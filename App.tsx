@@ -285,10 +285,16 @@ const App: React.FC = () => {
     }
   };
 
+  // FIX (Bug D): update coins locally for ALL users (guests included);
+  // only persist to DB when authenticated.
   const handleWinCoins = async (amount: number) => {
-    if (!currentUser) return;
-    await userService.updateCoins(currentUser.id, amount);
     setUserProfile(prev => ({ ...prev, coins: prev.coins + amount }));
+    if (!currentUser) return;
+    try {
+      await userService.updateCoins(currentUser.id, amount);
+    } catch (e) {
+      console.error("Failed to sync coins to server", e);
+    }
   };
 
   const handleBuyItem = async (item: ShopItem) => {
@@ -311,27 +317,30 @@ const App: React.FC = () => {
     }
   };
 
+  // FIX (Bug B): await signOut BEFORE resetting state so the logout
+  // button is still visible while the async call is in-flight.
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      // Reset settings
+    } catch (e) {
+      console.error("Logout error", e);
+    } finally {
+      // Reset state regardless of signOut outcome
       setSettings(prev => ({ 
         ...prev, 
         username: 'Guest',
         dictionarySource: 'builtin',
         useCustomDictionary: false
       }));
-      // Reset profile with a COMPLETE PetState to avoid runtime crashes
       setUserProfile(GUEST_PROFILE);
       setCurrentUser(null);
       setView('landing');
-    } catch (e) {
-      console.error("Logout error", e);
     }
   };
 
+  // FIX (Bug E): update XP locally for ALL users (guests included);
+  // only persist to DB when authenticated.
   const addXP = async (amount: number) => {
-    if (!currentUser) return;
     const newPet: PetState = { ...userProfile.pet, xp: userProfile.pet.xp + amount };
     if (newPet.xp >= newPet.level * 100) {
       newPet.xp -= newPet.level * 100;
@@ -341,6 +350,7 @@ const App: React.FC = () => {
       newPet.mood = 'happy';
     }
     setUserProfile(prev => ({ ...prev, pet: newPet }));
+    if (!currentUser) return;
     try {
       await userService.updateUserPet(currentUser.id, newPet);
     } catch (e) {
@@ -813,7 +823,7 @@ const App: React.FC = () => {
           <h2 className="text-2xl font-bold ml-4">Профиль игрока</h2>
         </div>
         
-        {settings.username !== 'Guest' && (
+        {currentUser && (
           <button 
             onClick={handleLogout}
             className="flex items-center gap-2 text-red-600 bg-red-50 px-3 py-2 rounded-lg hover:bg-red-100 transition text-sm font-bold"
@@ -830,7 +840,7 @@ const App: React.FC = () => {
           </div>
           <div>
             <h3 className="text-2xl font-bold text-gray-900">{userProfile.username}</h3>
-            {settings.username === 'Guest' ? (
+            {!currentUser ? (
               <p className="text-amber-500 text-sm font-medium">Войдите, чтобы сохранять прогресс</p>
             ) : (
                <div className="flex items-center gap-3">
@@ -1042,7 +1052,7 @@ const App: React.FC = () => {
           onClick={() => setView('shop')}
           className="w-full py-3 bg-gradient-to-r from-yellow-400 to-orange-400 text-white font-bold rounded-2xl shadow-md hover:opacity-90 active:scale-[0.98] transition-all"
         >
-          🛒 Магазин · {userProfile.coins} 🪙
+          🛍️ Магазин · {userProfile.coins} 🪙
         </button>
       </div>
 
