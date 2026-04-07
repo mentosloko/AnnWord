@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { EnrichedWord, PetState } from '../types';
+import { EnrichedWord, UserProfile } from '../types';
+import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface AnagramGameProps {
-  dictionary: EnrichedWord[];
   onBack: () => void;
-  pet: PetState;
-  onSuccess: (xp: number) => void;
+  userProfile: UserProfile;
   onWinCoins: (coins: number) => void;
+  onAddXP: (xp: number) => void;
 }
 
 interface LetterSlot {
@@ -16,7 +16,11 @@ interface LetterSlot {
   originalIndex: number;
 }
 
-export const AnagramGame: React.FC<AnagramGameProps> = ({ dictionary, onBack, pet, onSuccess, onWinCoins }) => {
+export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, onWinCoins, onAddXP }) => {
+  const dictionary: EnrichedWord[] = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
+    ? userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: '', level: 'Custom' }))
+    : COMMON_WORDS_EN;
+
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
   const [shuffledLetters, setShuffledLetters] = useState<LetterSlot[]>([]);
   const [userGuess, setUserGuess] = useState<{ char: string, slotIndex: number }[]>([]);
@@ -87,8 +91,8 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ dictionary, onBack, pe
     if (guess === currentWord.word) {
       setStatus('success');
       setMessage('Правильно! Отличная работа!');
-      onSuccess(30); // Give XP for anagram success
-      onWinCoins(10); // Give coins for anagram success
+      onAddXP(30);
+      onWinCoins(10);
       setTimeout(() => {
         pickNewWord();
       }, 2000);
@@ -98,7 +102,6 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ dictionary, onBack, pe
       setTimeout(() => {
         setStatus('playing');
         setMessage('');
-        // Reset
         const resetShuffled = shuffledLetters.map(s => ({ ...s, isUsed: false }));
         setShuffledLetters(resetShuffled);
         setUserGuess([]);
@@ -132,7 +135,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ dictionary, onBack, pe
 
       <div className="mb-8 text-center">
         <div className="text-sm text-gray-400 mb-1 uppercase tracking-tighter">Перевод</div>
-        <div className="text-2xl font-bold text-indigo-900">{currentWord?.translation}</div>
+        <div className="text-2xl font-bold text-indigo-900">{currentWord?.translation || '—'}</div>
       </div>
 
       {/* User Guess Area */}
