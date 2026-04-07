@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { EnrichedWord } from '../types';
+import { UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 
 interface Card {
@@ -13,11 +13,17 @@ interface Card {
 }
 
 interface MemoryGameProps {
-  onWin: (coins: number) => void;
-  onClose: () => void;
+  onBack: () => void;
+  userProfile: UserProfile;
+  onWinCoins: (coins: number) => void;
+  onAddXP: (xp: number) => void;
 }
 
-export const MemoryGame: React.FC<MemoryGameProps> = ({ onWin, onClose }) => {
+export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onWinCoins, onAddXP }) => {
+  const dictionary = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
+    ? userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: '' }))
+    : COMMON_WORDS_EN;
+
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
@@ -28,13 +34,11 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onWin, onClose }) => {
   }, []);
 
   const initializeGame = () => {
-    // Select 6 random words from dictionary
-    const shuffled = [...COMMON_WORDS_EN].sort(() => 0.5 - Math.random());
+    const shuffled = [...dictionary].sort(() => 0.5 - Math.random());
     const selectedWords = shuffled.slice(0, 6);
 
     const gameCards: Card[] = [];
     selectedWords.forEach((wordData, index) => {
-      // English word card
       gameCards.push({
         id: index * 2,
         content: wordData.word,
@@ -43,10 +47,9 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onWin, onClose }) => {
         isFlipped: false,
         isMatched: false,
       });
-      // Russian translation card
       gameCards.push({
         id: index * 2 + 1,
-        content: wordData.translation,
+        content: wordData.translation || wordData.word,
         type: 'ru',
         pairId: wordData.word,
         isFlipped: false,
@@ -78,7 +81,6 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onWin, onClose }) => {
       const secondCard = newCards.find(c => c.id === secondId);
 
       if (firstCard?.pairId === secondCard?.pairId) {
-        // Match!
         setTimeout(() => {
           setCards(prev => prev.map(card => 
             card.pairId === firstCard?.pairId ? { ...card, isMatched: true } : card
@@ -86,7 +88,6 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onWin, onClose }) => {
           setFlippedCards([]);
         }, 500);
       } else {
-        // No match
         setTimeout(() => {
           setCards(prev => prev.map(card => 
             (card.id === firstId || card.id === secondId) ? { ...card, isFlipped: false } : card
@@ -100,13 +101,20 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onWin, onClose }) => {
   useEffect(() => {
     if (cards.length > 0 && cards.every(card => card.isMatched) && !isWon) {
       setIsWon(true);
-      onWin(25); // Award 25 coins
+      onWinCoins(25);
+      onAddXP(40);
     }
   }, [cards, isWon]);
 
   return (
     <div className="flex flex-col items-center p-4 max-w-2xl mx-auto">
       <div className="flex justify-between w-full mb-6 items-center">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1 text-gray-500 hover:text-indigo-600 font-bold transition px-3 py-1 bg-gray-50 rounded-lg border border-gray-200"
+        >
+          <span className="text-xl">←</span> Меню
+        </button>
         <h2 className="text-2xl font-black text-indigo-900">Мемо</h2>
         <div className="text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-1.5 rounded-2xl shadow-sm">
           Ходы: {moves}
@@ -150,31 +158,22 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onWin, onClose }) => {
         >
           <div className="text-5xl mb-4">🎉</div>
           <h3 className="text-2xl font-black text-green-800 mb-2">Отлично!</h3>
-          <p className="text-green-600 font-bold mb-6">Ты нашел все пары за {moves} ходов.</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button 
+          <p className="text-green-600 font-bold mb-6">Ты нашёл все пары за {moves} ходов.</p>
+          <div className="flex gap-3">
+            <button
               onClick={initializeGame}
-              className="bg-green-500 text-white px-8 py-3 rounded-2xl font-bold hover:bg-green-600 transition shadow-lg transform active:scale-95"
+              className="flex-1 py-3 bg-indigo-50 text-indigo-600 font-bold rounded-2xl hover:bg-indigo-100 transition"
             >
               Играть снова
             </button>
-            <button 
-              onClick={onClose}
-              className="bg-white text-gray-500 border-2 border-gray-200 px-8 py-3 rounded-2xl font-bold hover:bg-gray-50 transition transform active:scale-95"
+            <button
+              onClick={onBack}
+              className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition shadow-lg"
             >
               В меню
             </button>
           </div>
         </motion.div>
-      )}
-
-      {!isWon && (
-        <button 
-          onClick={onClose}
-          className="mt-8 text-indigo-400 font-bold hover:text-indigo-600 transition flex items-center gap-2 bg-white px-6 py-2 rounded-xl shadow-sm border border-indigo-50"
-        >
-          <span>←</span> Выйти из игры
-        </button>
       )}
     </div>
   );
