@@ -12,7 +12,7 @@ interface SprintGameProps {
 
 export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onWinCoins, onAddXP }) => {
   const dictionary: EnrichedWord[] = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
-    ? userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: '', level: 'Custom' }))
+    ? userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: w, level: 'Custom' }))
     : COMMON_WORDS_EN;
 
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
@@ -26,16 +26,34 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onW
     if (dictionary.length === 0) return;
     const word = dictionary[Math.floor(Math.random() * dictionary.length)];
     setCurrentWord(word);
-    
+
+    // Use translation if available, otherwise fall back to the word itself
+    const correctAnswer = word.translation || word.word;
+
+    // Build wrong options without an infinite loop:
+    // try up to dictionary.length * 3 times, then fill with positional fallbacks.
     const wrongOptions: string[] = [];
-    while (wrongOptions.length < 3) {
+    const maxAttempts = dictionary.length * 3;
+    let attempts = 0;
+
+    while (wrongOptions.length < 3 && attempts < maxAttempts) {
+      attempts++;
       const randomWord = dictionary[Math.floor(Math.random() * dictionary.length)];
-      if (randomWord.translation !== word.translation && !wrongOptions.includes(randomWord.translation)) {
-        wrongOptions.push(randomWord.translation);
+      const candidate = randomWord.translation || randomWord.word;
+      if (candidate !== correctAnswer && !wrongOptions.includes(candidate)) {
+        wrongOptions.push(candidate);
       }
     }
-    
-    const allOptions = [...wrongOptions, word.translation].sort(() => Math.random() - 0.5);
+
+    // Fallback: if we still don't have 3 wrong options fill with placeholders
+    while (wrongOptions.length < 3) {
+      const placeholder = `Вариант ${wrongOptions.length + 1}`;
+      if (!wrongOptions.includes(placeholder)) {
+        wrongOptions.push(placeholder);
+      }
+    }
+
+    const allOptions = [...wrongOptions, correctAnswer].sort(() => Math.random() - 0.5);
     setOptions(allOptions);
     setFeedback(null);
   }, [dictionary]);
@@ -64,10 +82,12 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onW
     }
   }, [status]);
 
+  const correctAnswer = currentWord?.translation || currentWord?.word || '';
+
   const handleOptionClick = (option: string) => {
     if (status !== 'playing' || feedback) return;
-    
-    if (option === currentWord?.translation) {
+
+    if (option === correctAnswer) {
       setScore(prev => prev + 1);
       setFeedback('correct');
       setTimeout(pickNewWord, 500);
@@ -152,22 +172,22 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onW
       <div className="grid grid-cols-1 gap-3 w-full">
         {options.map((option, i) => (
           <motion.button
-            key={option}
+            key={`${option}-${i}`}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleOptionClick(option)}
             className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all border-2 flex justify-between items-center ${
-              feedback === 'correct' && option === currentWord?.translation
+              feedback === 'correct' && option === correctAnswer
                 ? 'bg-green-500 border-green-600 text-white shadow-lg'
-                : feedback === 'wrong' && option !== currentWord?.translation
+                : feedback === 'wrong' && option !== correctAnswer
                 ? 'bg-white border-gray-100 text-gray-400 opacity-50'
-                : feedback === 'wrong' && option === currentWord?.translation
+                : feedback === 'wrong' && option === correctAnswer
                 ? 'bg-green-100 border-green-500 text-green-700'
                 : 'bg-white border-gray-100 text-gray-700 hover:border-indigo-200 hover:bg-indigo-50 shadow-sm'
             }`}
           >
             <span>{option}</span>
-            {feedback === 'correct' && option === currentWord?.translation && <span>✅</span>}
+            {feedback === 'correct' && option === correctAnswer && <span>✅</span>}
           </motion.button>
         ))}
       </div>
