@@ -1,16 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { EnrichedWord, PetState } from '../types';
+import { EnrichedWord, UserProfile } from '../types';
+import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface SprintGameProps {
   onBack: () => void;
-  pet: PetState;
-  onSuccess: (xp: number) => void;
+  userProfile: UserProfile;
   onWinCoins: (coins: number) => void;
-  dictionary: EnrichedWord[];
+  onAddXP: (xp: number) => void;
 }
 
-export const SprintGame: React.FC<SprintGameProps> = ({ onBack, pet, onSuccess, onWinCoins, dictionary }) => {
+export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onWinCoins, onAddXP }) => {
+  const dictionary: EnrichedWord[] = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
+    ? userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: '', level: 'Custom' }))
+    : COMMON_WORDS_EN;
+
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
   const [options, setOptions] = useState<string[]>([]);
   const [score, setScore] = useState(0);
@@ -23,7 +27,6 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, pet, onSuccess, 
     const word = dictionary[Math.floor(Math.random() * dictionary.length)];
     setCurrentWord(word);
     
-    // Generate 3 wrong options
     const wrongOptions: string[] = [];
     while (wrongOptions.length < 3) {
       const randomWord = dictionary[Math.floor(Math.random() * dictionary.length)];
@@ -32,7 +35,6 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, pet, onSuccess, 
       }
     }
     
-    // Shuffle options
     const allOptions = [...wrongOptions, word.translation].sort(() => Math.random() - 0.5);
     setOptions(allOptions);
     setFeedback(null);
@@ -57,10 +59,10 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, pet, onSuccess, 
 
   useEffect(() => {
     if (status === 'ended') {
-      onSuccess(score * 10);
-      onWinCoins(score * 2); // Award coins based on score
+      onAddXP(score * 10);
+      onWinCoins(score * 2);
     }
-  }, [status]); // Only run when status changes to 'ended'
+  }, [status]);
 
   const handleOptionClick = (option: string) => {
     if (status !== 'playing' || feedback) return;
@@ -74,6 +76,17 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, pet, onSuccess, 
       setTimeout(pickNewWord, 800);
     }
   };
+
+  if (dictionary.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center bg-white rounded-3xl shadow-2xl w-full max-w-md">
+        <div className="text-6xl mb-4">📚</div>
+        <h2 className="text-2xl font-bold mb-2">Словарь пуст!</h2>
+        <p className="text-gray-500 mb-6">Выбери другой словарь в настройках.</p>
+        <button onClick={onBack} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold">Назад</button>
+      </div>
+    );
+  }
 
   if (status === 'ended') {
     return (
@@ -155,7 +168,6 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, pet, onSuccess, 
           >
             <span>{option}</span>
             {feedback === 'correct' && option === currentWord?.translation && <span>✅</span>}
-            {feedback === 'wrong' && option !== currentWord?.translation && option === currentWord?.translation && <span>👈</span>}
           </motion.button>
         ))}
       </div>
