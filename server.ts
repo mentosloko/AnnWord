@@ -123,7 +123,7 @@ app.get("/api/auth/yandex/callback", async (req, res) => {
       supabaseUserId = newUser.user.id;
     }
 
-    // Generate a one-time magic link to get a session on the client
+    // Generate a magic link — use action_link directly (includes token + type + redirect_to)
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
       email,
@@ -132,14 +132,13 @@ app.get("/api/auth/yandex/callback", async (req, res) => {
       },
     });
 
-    if (linkError || !linkData?.properties?.hashed_token) {
+    if (linkError || !linkData?.properties?.action_link) {
       console.error("Failed to generate magic link:", linkError);
       return res.redirect(`${APP_URL}/?auth_error=link_failed`);
     }
 
-    // Redirect user to the Supabase magic link URL — it will set the session in the browser
-    const confirmUrl = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(APP_URL)}`;
-    return res.redirect(confirmUrl);
+    // action_link is the complete Supabase verify URL — redirect user directly to it
+    return res.redirect(linkData.properties.action_link);
 
   } catch (err) {
     console.error("Yandex OAuth callback error:", err);
