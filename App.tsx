@@ -1327,7 +1327,7 @@ const App: React.FC = () => {
               onChar={handleChar} 
               onDelete={handleDelete} 
               onEnter={handleEnter}
-              keyStatuses={keyStatuses}
+              letterStatuses={keyStatuses}
             />
           </div>
         )}
