@@ -30,7 +30,7 @@ export interface InventoryItem {
   type: 'food' | 'pet' | 'accessory';
   name: string;
   quantity: number;
-  metadata?: any;
+  metadata?: { imageUrl?: string }; // FIX: было any, уточнили тип
 }
 
 export interface UserProfile {
