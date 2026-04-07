@@ -68,12 +68,30 @@ const GoogleIcon = () => (
   </svg>
 );
 
+// Default guest profile — used on logout and initial state
+const GUEST_PROFILE: UserProfile = {
+  username: 'Guest',
+  customDictionaryEn: [],
+  stats: { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} },
+  pet: {
+    name: 'Owl',
+    type: 'Owl',
+    level: 1,
+    mood: 'neutral',
+    xp: 0,
+    hunger: 100,
+    energy: 100,
+    equippedAccessories: []
+  },
+  coins: 100,
+  inventory: []
+};
+
 const App: React.FC = () => {
   // --- State ---
   const [view, setView] = useState<ViewState>('landing');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
- // NEW: Jail Modal state
   const [setupError, setSetupError] = useState<string | null>(null);
   
   // Auth Form State
@@ -94,23 +112,7 @@ const App: React.FC = () => {
   });
 
   // Profile Data
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    username: 'Guest',
-    customDictionaryEn: [],
-    stats: { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} },
-    pet: { 
-      name: 'Owl', 
-      type: 'Owl',
-      level: 1, 
-      mood: 'neutral', 
-      xp: 0,
-      hunger: 100,
-      energy: 100,
-      equippedAccessories: []
-    },
-    coins: 100,
-    inventory: []
-  });
+  const [userProfile, setUserProfile] = useState<UserProfile>(GUEST_PROFILE);
 
   // Safety timeout for auth loading
   useEffect(() => {
@@ -120,26 +122,8 @@ const App: React.FC = () => {
         console.warn("Auth loading timed out after 8s. Forcing entry as guest.");
         setIsAuthLoading(false);
         setShowLoginModal(false);
-        // If we don't have a profile yet, set a basic one so the app doesn't crash
         if (!userProfile || userProfile.username === 'Guest') {
-          setUserProfile({
-            username: 'Guest',
-            role: 'user',
-            customDictionaryEn: [],
-            stats: { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} },
-            pet: { 
-              name: 'Owl', 
-              type: 'Owl',
-              level: 1, 
-              mood: 'happy', 
-              xp: 0, 
-              hunger: 100, 
-              energy: 100,
-              equippedAccessories: []
-            },
-            coins: 100,
-            inventory: []
-          });
+          setUserProfile(GUEST_PROFILE);
         }
       }, 8000);
     }
@@ -167,14 +151,12 @@ const App: React.FC = () => {
   
   const historyScrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll history
   useEffect(() => {
     if (historyScrollRef.current) {
       historyScrollRef.current.scrollLeft = historyScrollRef.current.scrollWidth;
     }
   }, [gameState.history]);
 
-  // Clear setup error when settings change
   useEffect(() => {
     setSetupError(null);
   }, [settings]);
@@ -200,8 +182,6 @@ const App: React.FC = () => {
           console.log("Profile loaded:", profile.username);
           setUserProfile(profile);
           setSettings(prev => ({ ...prev, username: profile.username }));
-          
-          // Close modal and stop loading if we have a user
           setShowLoginModal(false);
           setIsAuthLoading(false);
         } catch (e) {
@@ -233,10 +213,28 @@ const App: React.FC = () => {
     }
   };
 
-  // Yandex OAuth goes through our Express server, NOT the Supabase SDK.
-  // The server handles the full OAuth flow and returns a Supabase magic link.
-  const handleYandexLogin = () => {
-    window.location.href = '/api/auth/yandex';
+  // Yandex OAuth: in production routes through Express (/api/auth/yandex).
+  // On localhost (Vite dev server) that route doesn't exist, so we fall back
+  // to a Supabase OAuth redirect via the SDK — same UX for the developer.
+  const handleYandexLogin = async () => {
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocalhost) {
+      // Dev fallback: use Supabase OAuth directly
+      setIsAuthLoading(true);
+      setAuthError(null);
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'yandex' as any,
+          options: { redirectTo: window.location.origin }
+        });
+        if (error) throw error;
+      } catch (err: any) {
+        setAuthError('Яндекс OAuth недоступен в dev-режиме. Используй Google или email.');
+        setIsAuthLoading(false);
+      }
+    } else {
+      window.location.href = '/api/auth/yandex';
+    }
   };
 
   const handleAuthSubmit = async () => {
@@ -312,21 +310,20 @@ const App: React.FC = () => {
       alert(err.message);
     }
   };
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
+      // Reset settings
       setSettings(prev => ({ 
         ...prev, 
         username: 'Guest',
-        dictionarySource: 'builtin', // Reset to builtin on logout
+        dictionarySource: 'builtin',
         useCustomDictionary: false
       }));
-      setUserProfile({
-        username: 'Guest',
-        customDictionaryEn: [],
-        stats: { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} },
-        pet: { name: 'Owl', level: 1, mood: 'neutral', xp: 0 }
-      });
+      // Reset profile with a COMPLETE PetState to avoid runtime crashes
+      setUserProfile(GUEST_PROFILE);
+      setCurrentUser(null);
       setView('landing');
     } catch (e) {
       console.error("Logout error", e);
@@ -336,7 +333,6 @@ const App: React.FC = () => {
   const addXP = async (amount: number) => {
     if (!currentUser) return;
     const newPet: PetState = { ...userProfile.pet, xp: userProfile.pet.xp + amount };
-    // Level up logic
     if (newPet.xp >= newPet.level * 100) {
       newPet.xp -= newPet.level * 100;
       newPet.level += 1;
@@ -355,40 +351,29 @@ const App: React.FC = () => {
 
   // --- Game Helpers ---
 
-  // 1. POOL FOR SECRET WORD
   const getSecretWordPool = useCallback(() => {
      let pool: EnrichedWord[] = [];
      if (settings.dictionarySource === 'custom' && userProfile.customDictionaryEn.length > 0) {
-        // Custom dictionary are plain strings.
         pool = userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: '', level: 'Custom' }));
      } else {
-        // Built-in Dictionary with Difficulty Filter
         pool = COMMON_WORDS_EN;
         if (settings.difficulty !== 'ALL') {
           pool = pool.filter(w => w.level === settings.difficulty);
         }
         pool = pool.map(w => ({ ...w, word: w.word.toUpperCase() }));
      }
-     
-     // Filter out words ending in 'S' (plural/3rd person) as requested
-     // We keep words ending in 'SS' as they are usually not plurals (e.g., GLASS, BOSS)
      return pool.filter(w => !w.word.endsWith('S') || w.word.endsWith('SS'));
   }, [settings.dictionarySource, settings.difficulty, userProfile.customDictionaryEn]);
 
-  // 2. POOL FOR VALIDATION
   const getValidationPool = useCallback(() => {
     const basePool = ALL_WORDS_EN;
     let combinedPool = basePool.filter(w => w.length === settings.wordLength).map(w => w.toUpperCase());
-
-    // Add Custom Dictionary words
     if (userProfile.customDictionaryEn.length > 0) {
        const customFiltered = userProfile.customDictionaryEn
          .filter(w => w.length === settings.wordLength)
          .map(w => w.toUpperCase());
        combinedPool = [...combinedPool, ...customFiltered];
     }
-
-    // Deduplicate
     return Array.from(new Set(combinedPool));
   }, [settings.wordLength, userProfile.customDictionaryEn]);
 
@@ -396,9 +381,6 @@ const App: React.FC = () => {
   const startNewGame = useCallback(() => {
     setSetupError(null);
     const rawPool = getSecretWordPool();
-    
-    // Filter by length
-    // rawPool is always EnrichedWord[] because getSecretWordPool normalizes all inputs.
     const filteredPool = rawPool.filter(w => w.word.length === settings.wordLength);
     
     if (filteredPool.length === 0) {
@@ -409,16 +391,13 @@ const App: React.FC = () => {
         msg = `В словаре нет слов уровня ${settings.difficulty} длиной ${settings.wordLength}.`;
       }
       setSetupError(msg);
-      return; // Stop here, do not change view to game
+      return;
     }
     
-    // If we have words, pick one
     let secretWord = '';
     let secretWordData: EnrichedWord | null = null;
 
     if (filteredPool.length > 0) {
-      // Prioritize Words from Jail? (Mechanic 1 from suggestions)
-      // For now, simple random
       const randomEntry = filteredPool[Math.floor(Math.random() * filteredPool.length)];
       secretWord = randomEntry.word;
       secretWordData = randomEntry;
@@ -456,18 +435,17 @@ const App: React.FC = () => {
   };
 
   const updateStats = async (won: boolean, word: string) => {
-    if (!currentUser) return; // Guest stats are not persisted
+    if (!currentUser) return;
 
     const newStats: UserStats = { ...userProfile.stats };
     newStats.gamesPlayed += 1;
     if (won) {
       newStats.gamesWon += 1;
       newStats.wordsGuessed[word] = (newStats.wordsGuessed[word] || 0) + 1;
-      addXP(50); // Give XP for Wordle win
-      handleWinCoins(20); // Give coins for Wordle win
+      addXP(50);
+      handleWinCoins(20);
     }
     
-    // Save locally immediately
     setUserProfile(prev => ({ ...prev, stats: newStats }));
 
     try {
@@ -476,9 +454,6 @@ const App: React.FC = () => {
       console.error("Failed to sync stats to server", e);
     }
   };
-
-  // --- NEW: Jail Logic ---
-
 
   const triggerShake = () => {
     setShakeRowIndex(gameState.rowIndex);
@@ -496,26 +471,16 @@ const App: React.FC = () => {
 
     const validWords = getValidationPool();
     if (!validWords.includes(gameState.currentGuess)) {
-      // --- NEW: MISTAKE TRAPPING ---
-      // User entered an invalid word. Check for typos.
-      
-      // Determine which pool to search for typos based on the active dictionary
-      let typoSearchPool = validWords; // Default to all valid words
-      
+      let typoSearchPool = validWords;
       if (settings.dictionarySource === 'custom') {
-         // STRICTLY use custom dictionary for typo suggestions in this mode
          typoSearchPool = userProfile.customDictionaryEn;
       }
-      
-      // Only look for words of the correct length to ensure valid suggestions for the game format
       const relevantPool = typoSearchPool.filter(w => w.length === settings.wordLength);
-
       setGameState(prev => ({ ...prev, error: "Такого слова нет в словаре" }));
       triggerShake();
       return;
     }
 
-    // --- EXISTING GAME LOGIC ---
     const wordEntry = COMMON_WORDS_EN.find(w => w.word === gameState.currentGuess);
     const translation = wordEntry ? wordEntry.translation : null;
     const newHistoryItem = { word: gameState.currentGuess, translation };
@@ -575,7 +540,6 @@ const App: React.FC = () => {
     } else {
       const char = e.key.toUpperCase();
       const isEnChar = /^[A-Z]$/.test(char);
-      
       if (isEnChar) handleChar(char);
     }
   }, [gameState, settings, view, keyStatuses, userProfile]); 
@@ -622,22 +586,16 @@ const App: React.FC = () => {
   const fetchHint = async () => {
     if (gameState.gameStatus !== 'playing') return;
     
-    // Calculate which dictionary to use for the hint pool
     let hintPool: string[] = [];
-
     if (settings.dictionarySource === 'custom' && userProfile.customDictionaryEn.length > 0) {
       hintPool = userProfile.customDictionaryEn;
     } else {
-      // Built-in Dictionary: Use ALL words for hints to allow powerful elimination
       hintPool = COMMON_WORDS_EN.map(w => w.word);
     }
-
-    // Filter potential hints by current word length
     hintPool = hintPool.filter(w => w.length === settings.wordLength);
 
     setGameState(prev => ({ ...prev, loadingHint: true }));
     
-    // Simulate a brief "thinking" delay for UX consistency
     setTimeout(() => {
       const bestWord = getBestEliminationHint(
         gameState.secretWord, 
@@ -664,7 +622,6 @@ const App: React.FC = () => {
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-sm animate-fade-in">
-            {/* Modal Header */}
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-gray-800">
                 {authMode === 'login' ? 'Вход' : 'Регистрация'}
@@ -677,14 +634,12 @@ const App: React.FC = () => {
               </button>
             </div>
 
-            {/* Error Message */}
             {authError && (
               <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center">
                  ⚠️ {authError}
               </div>
             )}
 
-            {/* Form */}
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
@@ -760,7 +715,6 @@ const App: React.FC = () => {
               </div>
             </form>
 
-            {/* Footer Toggle */}
             <div className="mt-6 pt-4 border-t border-gray-100 text-center text-sm">
               <span className="text-gray-500">
                 {authMode === 'login' ? 'Нет аккаунта? ' : 'Уже есть аккаунт? '}
@@ -918,8 +872,6 @@ const App: React.FC = () => {
   const renderReview = () => (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4">
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl flex flex-col h-[90vh]">
-        
-        {/* Header */}
         <div className="bg-indigo-600 p-4 rounded-t-2xl text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
              <div className="bg-white/20 p-2 rounded-full">
@@ -935,7 +887,6 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        {/* List Content */}
         <div className="flex-grow overflow-y-auto p-4 space-y-3">
           {gameState.history.length === 0 ? (
             <div className="text-center text-gray-400 mt-10">
@@ -961,7 +912,6 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* Footer Actions */}
         <div className="p-4 border-t bg-gray-50 rounded-b-2xl shrink-0 flex gap-3">
           <button 
             onClick={() => setView('landing')}
@@ -983,10 +933,8 @@ const App: React.FC = () => {
   const renderLanding = () => (
     <div className="flex flex-col items-center min-h-screen bg-gradient-to-b from-sky-200 via-purple-100 to-pink-100 p-4 relative overflow-y-auto pb-20">
       
-      {/* Top Bar */}
       <div className="w-full flex justify-between px-2 sm:px-8 pt-4 mb-2 gap-2">
          <div className="flex gap-2">
-           {/* Rules Button */}
            <button 
               onClick={() => setShowRulesModal(true)}
               className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-bold bg-white/80 backdrop-blur p-3 rounded-2xl shadow-sm hover:shadow-md transition"
@@ -1006,7 +954,6 @@ const App: React.FC = () => {
             )}
          </div>
 
-         {/* User/Auth Button */}
          {settings.username === 'Guest' ? (
           <button 
             onClick={() => {
@@ -1030,7 +977,6 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* Stats Bar (Coins, XP, Level) */}
       {settings.username !== 'Guest' && (
         <div className="w-full max-w-2xl flex justify-end gap-4 px-2 sm:px-8 mb-4">
           <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 px-3 py-1.5 rounded-full text-sm font-bold text-yellow-700">
@@ -1042,18 +988,15 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Title */}
       <div className="text-center mb-6">
         <h1 className="text-5xl font-black text-indigo-900 tracking-tight drop-shadow-sm">AnnWord</h1>
         <p className="text-indigo-600 mt-1 text-base font-medium">Угадай слово · Учи английский</p>
       </div>
 
-      {/* Pet Widget */}
       {settings.username !== 'Guest' && (
         <PetWidget pet={userProfile.pet} onNavigateToPetRoom={() => setView('petroom')} />
       )}
 
-      {/* Game Mode Selection */}
       <div className="w-full max-w-sm space-y-3 mt-4">
         {setupError && (
           <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 text-center">
@@ -1103,11 +1046,9 @@ const App: React.FC = () => {
         </button>
       </div>
 
-      {/* Settings Panel */}
       <div className="w-full max-w-sm mt-6 bg-white/80 backdrop-blur rounded-2xl p-4 shadow-sm border border-indigo-100">
         <h3 className="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide">Настройки</h3>
         
-        {/* Word Length */}
         <div className="mb-4">
           <label className="block text-xs font-bold text-gray-500 mb-2">Длина слова</label>
           <div className="flex gap-2">
@@ -1127,7 +1068,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Difficulty */}
         <div className="mb-4">
           <label className="block text-xs font-bold text-gray-500 mb-2">Сложность</label>
           <div className="flex gap-2">
@@ -1147,7 +1087,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Dictionary */}
         <div>
           <label className="block text-xs font-bold text-gray-500 mb-2">Словарь</label>
           <div className="flex gap-2">
@@ -1181,7 +1120,6 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          {/* Upload Button */}
           {settings.dictionarySource === 'custom' && currentUser && (
             <div className="mt-2">
               <label className="cursor-pointer flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
@@ -1202,7 +1140,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* History Scroll */}
       {gameState.history.length > 0 && (
         <div className="w-full max-w-sm mt-4">
           <div className="flex items-center justify-between mb-2">
@@ -1229,13 +1166,11 @@ const App: React.FC = () => {
     </div>
   );
 
-  // --- GAME VIEW ---
   const renderGame = () => {
     const isGameOver = gameState.gameStatus !== 'playing';
     
     return (
       <div className="flex flex-col items-center min-h-screen bg-gradient-to-b from-indigo-900 via-purple-900 to-indigo-900 p-4">
-        {/* Header */}
         <div className="w-full max-w-lg flex items-center justify-between mb-4">
           <button 
             onClick={() => setView('landing')}
@@ -1257,21 +1192,18 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        {/* Hint Banner */}
         {gameState.hint && (
           <div className="w-full max-w-lg mb-3 p-3 bg-yellow-500/20 border border-yellow-400/30 rounded-xl text-yellow-200 text-sm text-center font-medium">
             {gameState.hint}
           </div>
         )}
 
-        {/* Error Banner */}
         {gameState.error && (
           <div className="w-full max-w-lg mb-3 p-3 bg-red-500/20 border border-red-400/30 rounded-xl text-red-200 text-sm text-center font-medium">
             {gameState.error}
           </div>
         )}
 
-        {/* Grid */}
         <Grid
           guesses={gameState.guesses}
           currentGuess={gameState.currentGuess}
@@ -1281,7 +1213,6 @@ const App: React.FC = () => {
           shakeRowIndex={shakeRowIndex}
         />
 
-        {/* Game Over Banner */}
         {isGameOver && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
@@ -1320,7 +1251,6 @@ const App: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Keyboard */}
         {!isGameOver && (
           <div className="w-full max-w-lg mt-4">
             <Keyboard 
@@ -1335,7 +1265,6 @@ const App: React.FC = () => {
     );
   };
 
-  // --- MAIN RENDER ---
   if (!isAuthReady) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-sky-200 via-purple-100 to-pink-100 flex items-center justify-center">
