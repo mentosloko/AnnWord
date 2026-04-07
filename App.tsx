@@ -58,7 +58,6 @@ const InfoIcon = () => (
 const ListIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
 );
-
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -68,22 +67,18 @@ const GoogleIcon = () => (
   </svg>
 );
 
-// --- Helper: translate Yandex auth_error codes to Russian ---
-const YANDEX_ERROR_MESSAGES: Record<string, string> = {
-  no_code: 'Яндекс не вернул код авторизации. Попробуйте ещё раз.',
-  token_exchange_failed: 'Не удалось получить токен от Яндекса. Попробуйте позже.',
-  user_info_failed: 'Не удалось получить данные профиля от Яндекса.',
-  user_creation_failed: 'Не удалось создать аккаунт. Обратитесь в поддержку.',
-  link_failed: 'Ошибка генерации сессии. Попробуйте ещё раз.',
-  server_error: 'Внутренняя ошибка сервера при входе через Яндекс.',
-};
+const YandexIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10 20C15.5228 20 20 15.5228 20 10C20 4.47715 15.5228 0 10 0C4.47715 0 0 4.47715 0 10C0 15.5228 4.47715 20 10 20Z" fill="#FF0000"/>
+    <path d="M12.75 14.75H10.75V8.75L8.75 14.75H6.75L9.25 7.25V5.25H12.75V14.75Z" fill="white"/>
+  </svg>
+);
 
 const App: React.FC = () => {
   // --- State ---
   const [view, setView] = useState<ViewState>('landing');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
- // NEW: Jail Modal state
   const [setupError, setSetupError] = useState<string | null>(null);
   
   // Auth Form State
@@ -130,7 +125,6 @@ const App: React.FC = () => {
         console.warn("Auth loading timed out after 8s. Forcing entry as guest.");
         setIsAuthLoading(false);
         setShowLoginModal(false);
-        // If we don't have a profile yet, set a basic one so the app doesn't crash
         if (!userProfile || userProfile.username === 'Guest') {
           setUserProfile({
             username: 'Guest',
@@ -189,20 +183,6 @@ const App: React.FC = () => {
     setSetupError(null);
   }, [settings]);
 
-  // --- Handle ?auth_error= param from Yandex OAuth redirect ---
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const authErrorCode = params.get('auth_error');
-    if (authErrorCode) {
-      const message = YANDEX_ERROR_MESSAGES[authErrorCode] || `Ошибка входа через Яндекс: ${authErrorCode}`;
-      setAuthError(message);
-      setShowLoginModal(true);
-      // Clean up the URL so the error doesn't re-trigger on refresh
-      const cleanUrl = window.location.pathname + window.location.hash;
-      window.history.replaceState({}, '', cleanUrl);
-    }
-  }, []);
-
   // --- Auth & Profile Management ---
 
   useEffect(() => {
@@ -225,7 +205,6 @@ const App: React.FC = () => {
           setUserProfile(profile);
           setSettings(prev => ({ ...prev, username: profile.username }));
           
-          // Close modal and stop loading if we have a user
           setShowLoginModal(false);
           setIsAuthLoading(false);
         } catch (e) {
@@ -257,9 +236,21 @@ const App: React.FC = () => {
     }
   };
 
-  // Яндекс OAuth — редирект на Express-сервер, который выполнит весь flow
-  const handleYandexLogin = () => {
-    window.location.href = '/api/auth/yandex';
+  const handleYandexLogin = async () => {
+    setIsAuthLoading(true);
+    setAuthError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'custom:yandex' as any,
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      setAuthError(err.message || "Ошибка при входе через Яндекс");
+      setIsAuthLoading(false);
+    }
   };
 
   const handleAuthSubmit = async () => {
@@ -335,13 +326,14 @@ const App: React.FC = () => {
       alert(err.message);
     }
   };
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
       setSettings(prev => ({ 
         ...prev, 
         username: 'Guest',
-        dictionarySource: 'builtin', // Reset to builtin on logout
+        dictionarySource: 'builtin',
         useCustomDictionary: false
       }));
       setUserProfile({
@@ -359,7 +351,6 @@ const App: React.FC = () => {
   const addXP = async (amount: number) => {
     if (!currentUser) return;
     const newPet: PetState = { ...userProfile.pet, xp: userProfile.pet.xp + amount };
-    // Level up logic
     if (newPet.xp >= newPet.level * 100) {
       newPet.xp -= newPet.level * 100;
       newPet.level += 1;
@@ -378,14 +369,11 @@ const App: React.FC = () => {
 
   // --- Game Helpers ---
 
-  // 1. POOL FOR SECRET WORD
   const getSecretWordPool = useCallback(() => {
      let pool: EnrichedWord[] = [];
      if (settings.dictionarySource === 'custom' && userProfile.customDictionaryEn.length > 0) {
-        // Custom dictionary are plain strings.
         pool = userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: '', level: 'Custom' }));
      } else {
-        // Built-in Dictionary with Difficulty Filter
         pool = COMMON_WORDS_EN;
         if (settings.difficulty !== 'ALL') {
           pool = pool.filter(w => w.level === settings.difficulty);
@@ -393,17 +381,13 @@ const App: React.FC = () => {
         pool = pool.map(w => ({ ...w, word: w.word.toUpperCase() }));
      }
      
-     // Filter out words ending in 'S' (plural/3rd person) as requested
-     // We keep words ending in 'SS' as they are usually not plurals (e.g., GLASS, BOSS)
      return pool.filter(w => !w.word.endsWith('S') || w.word.endsWith('SS'));
   }, [settings.dictionarySource, settings.difficulty, userProfile.customDictionaryEn]);
 
-  // 2. POOL FOR VALIDATION
   const getValidationPool = useCallback(() => {
     const basePool = ALL_WORDS_EN;
     let combinedPool = basePool.filter(w => w.length === settings.wordLength).map(w => w.toUpperCase());
 
-    // Add Custom Dictionary words
     if (userProfile.customDictionaryEn.length > 0) {
        const customFiltered = userProfile.customDictionaryEn
          .filter(w => w.length === settings.wordLength)
@@ -411,7 +395,6 @@ const App: React.FC = () => {
        combinedPool = [...combinedPool, ...customFiltered];
     }
 
-    // Deduplicate
     return Array.from(new Set(combinedPool));
   }, [settings.wordLength, userProfile.customDictionaryEn]);
 
@@ -420,8 +403,6 @@ const App: React.FC = () => {
     setSetupError(null);
     const rawPool = getSecretWordPool();
     
-    // Filter by length
-    // rawPool is always EnrichedWord[] because getSecretWordPool normalizes all inputs.
     const filteredPool = rawPool.filter(w => w.word.length === settings.wordLength);
     
     if (filteredPool.length === 0) {
@@ -432,16 +413,13 @@ const App: React.FC = () => {
         msg = `В словаре нет слов уровня ${settings.difficulty} длиной ${settings.wordLength}.`;
       }
       setSetupError(msg);
-      return; // Stop here, do not change view to game
+      return;
     }
     
-    // If we have words, pick one
     let secretWord = '';
     let secretWordData: EnrichedWord | null = null;
 
     if (filteredPool.length > 0) {
-      // Prioritize Words from Jail? (Mechanic 1 from suggestions)
-      // For now, simple random
       const randomEntry = filteredPool[Math.floor(Math.random() * filteredPool.length)];
       secretWord = randomEntry.word;
       secretWordData = randomEntry;
@@ -479,18 +457,17 @@ const App: React.FC = () => {
   };
 
   const updateStats = async (won: boolean, word: string) => {
-    if (!currentUser) return; // Guest stats are not persisted
+    if (!currentUser) return;
 
     const newStats: UserStats = { ...userProfile.stats };
     newStats.gamesPlayed += 1;
     if (won) {
       newStats.gamesWon += 1;
       newStats.wordsGuessed[word] = (newStats.wordsGuessed[word] || 0) + 1;
-      addXP(50); // Give XP for Wordle win
-      handleWinCoins(20); // Give coins for Wordle win
+      addXP(50);
+      handleWinCoins(20);
     }
     
-    // Save locally immediately
     setUserProfile(prev => ({ ...prev, stats: newStats }));
 
     try {
@@ -499,9 +476,6 @@ const App: React.FC = () => {
       console.error("Failed to sync stats to server", e);
     }
   };
-
-  // --- NEW: Jail Logic ---
-
 
   const triggerShake = () => {
     setShakeRowIndex(gameState.rowIndex);
@@ -519,18 +493,12 @@ const App: React.FC = () => {
 
     const validWords = getValidationPool();
     if (!validWords.includes(gameState.currentGuess)) {
-      // --- NEW: MISTAKE TRAPPING ---
-      // User entered an invalid word. Check for typos.
-      
-      // Determine which pool to search for typos based on the active dictionary
-      let typoSearchPool = validWords; // Default to all valid words
+      let typoSearchPool = validWords;
       
       if (settings.dictionarySource === 'custom') {
-         // STRICTLY use custom dictionary for typo suggestions in this mode
          typoSearchPool = userProfile.customDictionaryEn;
       }
       
-      // Only look for words of the correct length to ensure valid suggestions for the game format
       const relevantPool = typoSearchPool.filter(w => w.length === settings.wordLength);
 
       setGameState(prev => ({ ...prev, error: "Такого слова нет в словаре" }));
@@ -538,7 +506,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // --- EXISTING GAME LOGIC ---
     const wordEntry = COMMON_WORDS_EN.find(w => w.word === gameState.currentGuess);
     const translation = wordEntry ? wordEntry.translation : null;
     const newHistoryItem = { word: gameState.currentGuess, translation };
@@ -608,7 +575,6 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-
   // --- Feature Handlers ---
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -645,22 +611,18 @@ const App: React.FC = () => {
   const fetchHint = async () => {
     if (gameState.gameStatus !== 'playing') return;
     
-    // Calculate which dictionary to use for the hint pool
     let hintPool: string[] = [];
 
     if (settings.dictionarySource === 'custom' && userProfile.customDictionaryEn.length > 0) {
       hintPool = userProfile.customDictionaryEn;
     } else {
-      // Built-in Dictionary: Use ALL words for hints to allow powerful elimination
       hintPool = COMMON_WORDS_EN.map(w => w.word);
     }
 
-    // Filter potential hints by current word length
     hintPool = hintPool.filter(w => w.length === settings.wordLength);
 
     setGameState(prev => ({ ...prev, loadingHint: true }));
     
-    // Simulate a brief "thinking" delay for UX consistency
     setTimeout(() => {
       const bestWord = getBestEliminationHint(
         gameState.secretWord, 
@@ -693,7 +655,7 @@ const App: React.FC = () => {
                 {authMode === 'login' ? 'Вход' : 'Регистрация'}
               </h3>
               <button 
-                onClick={() => { setShowLoginModal(false); setAuthError(null); }}
+                onClick={() => setShowLoginModal(false)}
                 className="text-gray-400 hover:text-gray-600"
               >
                 ✕
@@ -774,10 +736,7 @@ const App: React.FC = () => {
                   disabled={isAuthLoading}
                   className="w-full py-3 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-50 active:scale-[0.98] transition flex justify-center items-center gap-2"
                 >
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M10 20C15.5228 20 20 15.5228 20 10C20 4.47715 15.5228 0 10 0C4.47715 0 0 4.47715 0 10C0 15.5228 4.47715 20 10 20Z" fill="#FF0000"/>
-                    <path d="M12.75 14.75H10.75V8.75L8.75 14.75H6.75L9.25 7.25V5.25H12.75V14.75Z" fill="white"/>
-                  </svg>
+                  <YandexIcon />
                   Войти через Яндекс
                 </button>
               </div>
@@ -892,4 +851,728 @@ const App: React.FC = () => {
         )}
       </header>
 
-      <div className="bg-white ro
+      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-2xl">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
+            <UserIcon />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold text-gray-900">{userProfile.username}</h3>
+            {settings.username === 'Guest' ? (
+              <p className="text-amber-500 text-sm font-medium">Войдите, чтобы сохранять прогресс</p>
+            ) : (
+               <div className="flex items-center gap-3">
+                 <p className="text-gray-500">Уровень питомца: <span className="font-bold text-indigo-600">{userProfile.pet.level}</span></p>
+               </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="bg-gray-50 p-4 rounded-xl text-center">
+            <div className="text-3xl font-black text-gray-900">{userProfile.stats.gamesPlayed}</div>
+            <div className="text-sm text-gray-500 uppercase tracking-wide">Всего игр</div>
+          </div>
+          <div className="bg-green-50 p-4 rounded-xl text-center">
+            <div className="text-3xl font-black text-green-600">{userProfile.stats.gamesWon}</div>
+            <div className="text-sm text-green-600 uppercase tracking-wide">Побед</div>
+          </div>
+        </div>
+
+        <h4 className="font-bold text-gray-800 mb-4">Лучшие слова</h4>
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(userProfile.stats.wordsGuessed)
+            .sort((a, b) => (b[1] as number) - (a[1] as number))
+            .slice(0, 10)
+            .map(([word, count]) => (
+              <span key={word} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium border border-indigo-100">
+                {word} <span className="text-indigo-400 text-xs ml-1">x{count}</span>
+              </span>
+            ))}
+          {Object.keys(userProfile.stats.wordsGuessed).length === 0 && (
+            <p className="text-gray-400 italic">Пока нет угаданных слов</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderReview = () => (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl flex flex-col h-[90vh]">
+        
+        {/* Header */}
+        <div className="bg-indigo-600 p-4 rounded-t-2xl text-white flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+             <div className="bg-white/20 p-2 rounded-full">
+               <ListIcon />
+             </div>
+             <div>
+               <h2 className="text-lg font-bold">История слов</h2>
+               <p className="text-xs text-indigo-200">Слова из текущей игры</p>
+             </div>
+          </div>
+          <button onClick={() => setView('landing')} className="p-2 hover:bg-white/20 rounded-full transition">
+            <span className="text-2xl leading-none">&times;</span>
+          </button>
+        </div>
+
+        {/* List Content */}
+        <div className="flex-grow overflow-y-auto p-4 space-y-3">
+          {gameState.history.length === 0 ? (
+            <div className="text-center text-gray-400 mt-10">
+              <p>Нет введенных слов</p>
+            </div>
+          ) : (
+            gameState.history.map((item, idx) => {
+               const isCorrect = item.word === gameState.secretWord;
+               return (
+                  <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border-l-4 shadow-sm ${isCorrect ? 'bg-green-50 border-green-500' : 'bg-white border-gray-300'}`}>
+                    <div>
+                      <p className="font-bold text-gray-800 text-lg">{item.word}</p>
+                      {item.translation && (
+                        <p className="text-sm text-indigo-600 font-medium">{item.translation}</p>
+                      )}
+                    </div>
+                    {isCorrect && (
+                      <span className="text-green-600 text-sm font-bold bg-green-100 px-2 py-1 rounded">Верно!</span>
+                    )}
+                  </div>
+               );
+            })
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-4 border-t bg-gray-50 rounded-b-2xl shrink-0 flex gap-3">
+          <button 
+            onClick={() => setView('landing')}
+            className="flex-1 py-3 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition shadow-sm"
+          >
+            Меню
+          </button>
+          <button 
+            onClick={startNewGame}
+            className="flex-1 py-3 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 transition shadow-md flex justify-center items-center gap-2"
+          >
+            <RefreshIcon /> Играть снова
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderLanding = () => (
+    <div className="flex flex-col items-center min-h-screen bg-gradient-to-b from-sky-200 via-purple-100 to-pink-100 p-4 relative overflow-y-auto pb-20">
+      
+      {/* Top Bar */}
+      <div className="w-full flex justify-between px-2 sm:px-8 pt-4 mb-2 gap-2">
+         <div className="flex gap-2">
+           {/* Rules Button */}
+           <button 
+              onClick={() => setShowRulesModal(true)}
+              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-bold bg-white/80 backdrop-blur p-3 rounded-2xl shadow-sm hover:shadow-md transition"
+              title="Правила игры"
+            >
+              <InfoIcon /> 
+              <span className="hidden sm:inline">Правила</span>
+            </button>
+
+            {userProfile.role === 'admin' && (
+              <button 
+                onClick={() => setView('admin')}
+                className="flex items-center gap-2 text-red-600 hover:text-red-800 font-bold bg-white/80 backdrop-blur px-5 py-3 rounded-2xl shadow-sm hover:shadow-md transition border-2 border-red-100"
+              >
+                🛡️ Админ
+              </button>
+            )}
+         </div>
+
+         {/* User/Auth Button */}
+         {settings.username === 'Guest' ? (
+          <button 
+            onClick={() => {
+              setAuthMode('login');
+              setAuthError(null);
+              setTempUsername('');
+              setTempPassword('');
+              setShowLoginModal(true);
+            }}
+            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-bold bg-white/80 backdrop-blur px-5 py-3 rounded-2xl shadow-sm hover:shadow-md transition"
+          >
+            <LoginIcon /> Войти
+          </button>
+        ) : (
+          <button 
+            onClick={() => setView('profile')}
+            className="flex items-center gap-2 text-indigo-900 hover:text-indigo-700 font-bold bg-white/80 backdrop-blur px-5 py-3 rounded-2xl shadow-sm hover:shadow-md transition"
+          >
+            <UserIcon /> Привет, {settings.username}
+          </button>
+        )}
+      </div>
+
+      {/* Stats Bar (Coins, XP, Level) */}
+      {settings.username !== 'Guest' && (
+        <div className="w-full max-w-2xl px-2 sm:px-8 mb-6">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-3 shadow-lg border-2 border-white flex justify-between items-center gap-4">
+            <div className="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100">
+              <span className="text-xl">💰</span>
+              <span className="font-black text-amber-700">{userProfile.coins}</span>
+            </div>
+            
+            <div className="flex-1 flex flex-col gap-1">
+              <div className="flex justify-between text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+                <span>Уровень {userProfile.pet.level}</span>
+                <span>{userProfile.pet.xp} / {userProfile.pet.level * 100} XP</span>
+              </div>
+              <div className="h-2 bg-indigo-50 rounded-full overflow-hidden border border-indigo-100">
+                <motion.div 
+                  className="h-full bg-indigo-500"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(userProfile.pet.xp / (userProfile.pet.level * 100)) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 bg-pink-50 px-3 py-1.5 rounded-xl border border-pink-100">
+              <span className="text-xl">⭐</span>
+              <span className="font-black text-pink-700">{userProfile.pet.level}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="text-center mb-8 animate-bounce-in">
+        <h1 className="text-6xl font-black tracking-tighter text-indigo-900 mb-2 drop-shadow-md">
+          ✨ ANN<span className="text-pink-500">WORD</span> ✨
+        </h1>
+        <p className="text-indigo-700 font-bold text-lg bg-white/50 inline-block px-4 py-1 rounded-full">Магия английских слов!</p>
+      </div>
+
+      <div className="w-full max-w-2xl flex flex-col gap-6">
+        
+        {/* Settings Card */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 shadow-xl border-4 border-white">
+          <h2 className="text-2xl font-black text-indigo-800 mb-4 flex items-center gap-2">
+            ⚙️ Опции
+          </h2>
+          
+          <div className="space-y-6">
+            {/* Dictionary Source */}
+            <div>
+              <label className="block text-sm font-bold text-indigo-400 uppercase mb-2">Какой словарь используем?</label>
+              <div className="flex flex-col sm:flex-row bg-indigo-50 p-1.5 rounded-2xl gap-1.5">
+                <button 
+                  onClick={() => setSettings(s => ({ ...s, dictionarySource: 'builtin', useCustomDictionary: false }))}
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition ${settings.dictionarySource === 'builtin' ? 'bg-white text-indigo-600 shadow-md transform scale-[1.02]' : 'text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100/50'}`}
+                >
+                  🏫 Школьный
+                </button>
+                <button 
+                  onClick={() => {
+                    if (settings.username === 'Guest') {
+                        setAuthError("Для доступа к своему словарю необходимо войти в аккаунт");
+                        setAuthMode('login');
+                        setShowLoginModal(true);
+                    } else {
+                        setSettings(s => ({ ...s, dictionarySource: 'custom', useCustomDictionary: true }));
+                    }
+                  }}
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${
+                    settings.dictionarySource === 'custom' 
+                      ? 'bg-white text-indigo-600 shadow-md transform scale-[1.02]' 
+                      : 'text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100/50'
+                  }`}
+                >
+                  {settings.username === 'Guest' && <LockIcon />}
+                  🎒 Мой словарь
+                </button>
+              </div>
+            </div>
+
+            {/* Difficulty (Only for Built-in) */}
+            {settings.dictionarySource === 'builtin' && (
+              <div className="animate-fade-in">
+                <label className="block text-sm font-bold text-indigo-400 uppercase mb-2">Уровень сложности</label>
+                <div className="flex flex-wrap gap-2">
+                  {(['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'ALL'] as DifficultyLevel[]).map(level => (
+                    <button
+                      key={level}
+                      onClick={() => setSettings(s => ({ ...s, difficulty: level }))}
+                      className={`flex-1 min-w-[60px] py-2 rounded-xl text-sm font-bold border-2 transition ${
+                        settings.difficulty === level 
+                          ? 'border-pink-400 bg-pink-50 text-pink-600 shadow-sm' 
+                          : 'border-transparent bg-indigo-50 text-indigo-400 hover:bg-indigo-100'
+                      }`}
+                    >
+                      {level === 'ALL' ? 'Все' : level}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Custom Dict Upload */}
+            {settings.dictionarySource === 'custom' && (
+              <div className="animate-fade-in bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-4">
+                <label className="block text-sm font-bold text-yellow-800 mb-2">Загрузить свои слова (.txt)</label>
+                {isUploadingDict ? (
+                   <div className="flex items-center gap-2 text-sm text-yellow-700 animate-pulse py-2">
+                     <LoaderIcon /> Загрузка...
+                   </div>
+                ) : (
+                  <input 
+                    type="file" 
+                    accept=".txt" 
+                    onChange={handleFileUpload}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-yellow-200 file:text-yellow-800 hover:file:bg-yellow-300 cursor-pointer"
+                  />
+                )}
+                <p className="text-sm font-bold text-yellow-600/80 mt-2">
+                  В словаре: {userProfile.customDictionaryEn.length > 0 ? `${userProfile.customDictionaryEn.length} слов` : 'Пусто'}
+                </p>
+              </div>
+            )}
+
+            {/* Validation Error Message */}
+            {setupError && (
+              <div className="p-3 bg-red-100 text-red-700 rounded-xl text-sm font-bold animate-bounce-in text-center">
+                ⚠️ {setupError}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Games Grid */}
+        <div>
+          <h2 className="text-2xl font-black text-indigo-900 mb-4 text-center drop-shadow-sm">
+            Во что будем играть?
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Wordle Game */}
+            <div className="bg-white border-b-4 border-green-200 rounded-3xl p-6 shadow-lg flex flex-col items-center justify-center relative overflow-hidden">
+              <div className="text-5xl mb-3">🧩</div>
+              <h2 className="text-xl font-black text-gray-800">Wordle</h2>
+              <p className="text-gray-400 text-xs mt-2 font-medium text-center mb-4">Угадай слово по буквам</p>
+              
+              {/* Word Length Selector */}
+              <div className="w-full mb-4">
+                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 text-center">Длина слова</label>
+                <div className="flex gap-2 justify-center">
+                  {[4, 5, 6].map(len => (
+                    <button
+                      key={len}
+                      onClick={(e) => { e.stopPropagation(); setSettings(s => ({...s, wordLength: len as WordLength})); }}
+                      className={`w-10 h-10 rounded-xl font-black text-sm border-b-2 transition transform active:scale-95 ${
+                        settings.wordLength === len 
+                          ? 'border-green-600 bg-green-500 text-white shadow-md translate-y-0.5' 
+                          : 'border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100'
+                      }`}
+                    >
+                      {len}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button 
+                onClick={startNewGame}
+                className="w-full py-3 bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800 rounded-xl font-bold transition-colors"
+              >
+                Играть
+              </button>
+            </div>
+
+            {/* Anagrams Game */}
+            <button 
+              onClick={() => setView('anagrams')}
+              className="group bg-white border-b-4 border-purple-200 hover:border-purple-400 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 text-center flex flex-col items-center justify-center"
+            >
+              <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">🔤</div>
+              <h2 className="text-xl font-black text-gray-800 group-hover:text-purple-500">Анаграммы</h2>
+              <p className="text-gray-400 text-xs mt-2 font-medium">Собери слово из букв</p>
+            </button>
+
+            {/* Sprint Game */}
+            <button 
+              onClick={() => setView('sprint')}
+              className="group bg-white border-b-4 border-amber-200 hover:border-amber-400 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 text-center flex flex-col items-center justify-center"
+            >
+              <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">⚡</div>
+              <h2 className="text-xl font-black text-gray-800 group-hover:text-amber-500">Спринт</h2>
+              <p className="text-gray-400 text-xs mt-2 font-medium">Переведи слова на скорость</p>
+            </button>
+
+            {/* Hangman Game */}
+            <button 
+              onClick={() => setView('hangman')}
+              className="group bg-white border-b-4 border-sky-200 hover:border-sky-400 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 text-center flex flex-col items-center justify-center"
+            >
+              <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">🌤️</div>
+              <h2 className="text-xl font-black text-gray-800 group-hover:text-sky-500">Солнышко</h2>
+              <p className="text-gray-400 text-xs mt-2 font-medium">Спаси солнце от тучек</p>
+            </button>
+
+            {/* Memory Game */}
+            <button 
+              onClick={() => setView('memory')}
+              className="group bg-white border-b-4 border-yellow-200 hover:border-yellow-400 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 text-center flex flex-col items-center justify-center"
+            >
+              <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">🧠</div>
+              <h2 className="text-xl font-black text-gray-800 group-hover:text-yellow-500">Мемо</h2>
+              <p className="text-gray-400 text-xs mt-2 font-medium">Найди пары слов</p>
+            </button>
+
+            {/* Shop */}
+            <button 
+              onClick={() => setView('shop')}
+              className="group bg-white border-b-4 border-indigo-200 hover:border-indigo-400 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 text-center flex flex-col items-center justify-center"
+            >
+              <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">🛒</div>
+              <h2 className="text-xl font-black text-gray-800 group-hover:text-indigo-500">Магазин</h2>
+              <p className="text-gray-400 text-xs mt-2 font-medium">Еда и аксессуары</p>
+            </button>
+
+            {/* Pet Room */}
+            <button 
+              onClick={() => setView('pet_room')}
+              className="group bg-white border-b-4 border-pink-200 hover:border-pink-400 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 text-center flex flex-col items-center justify-center"
+            >
+              <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">🏠</div>
+              <h2 className="text-xl font-black text-gray-800 group-hover:text-pink-500">Комната</h2>
+              <p className="text-gray-400 text-xs mt-2 font-medium">Покорми питомца</p>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+
+  const renderGame = () => (
+    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden relative">
+      <header className="w-full border-b bg-white p-4 flex justify-between items-center shadow-sm z-10 shrink-0">
+        <button 
+          onClick={() => setView('landing')} 
+          className="flex items-center gap-1 text-gray-500 hover:text-indigo-600 font-bold transition px-3 py-1 bg-gray-50 rounded-lg border border-gray-200"
+        >
+          <span className="text-xl">←</span> Меню
+        </button>
+        <h1 className="text-2xl font-bold tracking-wider">
+          ANN<span className="text-green-600">WORD</span>
+        </h1>
+        <div className="w-16"></div>
+      </header>
+      
+      {/* Error Toast */}
+      <div className={`absolute top-20 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ${gameState.error ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+        <div className="bg-black text-white px-4 py-2 rounded-md font-bold shadow-lg">
+          {gameState.error}
+        </div>
+      </div>
+
+      <main className="flex-1 flex flex-col items-center justify-between w-full max-w-lg mx-auto p-2 overflow-hidden">
+        
+        {/* --- English specific: Translation History Ticker & Hints --- */}
+        {gameState.gameStatus === 'playing' && (
+           <div className="w-full mb-1 shrink-0 flex flex-col items-center gap-1">
+             
+             {/* History Ticker */}
+             {gameState.history.length > 0 && (
+               <div 
+                 ref={historyScrollRef}
+                 className="w-full overflow-x-auto whitespace-nowrap no-scrollbar py-1 px-2 flex gap-2"
+               >
+                 {gameState.history.map((item, idx) => (
+                   <div key={idx} className="inline-flex items-center bg-white border border-indigo-100 rounded-lg shadow-sm px-2 py-1 animate-bounce-in">
+                     <span className="font-bold text-gray-800 text-xs">{item.word}</span>
+                     {item.translation && (
+                       <>
+                         <span className="mx-1 text-gray-300 text-xs">|</span>
+                         <span className="text-indigo-600 text-xs max-w-[80px] truncate">{item.translation}</span>
+                       </>
+                     )}
+                   </div>
+                 ))}
+               </div>
+             )}
+
+             {/* Hint Button */}
+             {!gameState.hint && !gameState.loadingHint ? (
+               <button 
+                onClick={fetchHint}
+                className="text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full font-semibold hover:bg-indigo-100 transition shadow-sm"
+               >
+                 💡 Подсказка
+               </button>
+             ) : gameState.loadingHint ? (
+               <div className="bg-indigo-50 border border-indigo-100 text-indigo-500 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2">
+                 <LoaderIcon /> Думаю...
+               </div>
+             ) : (
+               <div className="bg-indigo-50 border border-indigo-200 text-indigo-800 p-2 rounded-lg text-xs text-center shadow-sm animate-fade-in w-full max-h-16 overflow-y-auto">
+                 <span className="font-bold">Подсказка:</span> {gameState.hint}
+               </div>
+             )}
+           </div>
+        )}
+
+        {/* Grid Container */}
+        <div className="flex-1 flex items-center justify-center w-full min-h-0">
+          <div className="transform scale-90 sm:scale-100 origin-center">
+            <Grid 
+              guesses={gameState.guesses}
+              currentGuess={gameState.currentGuess}
+              secretWord={gameState.secretWord}
+              wordLength={settings.wordLength}
+              maxGuesses={MAX_GUESSES}
+              shakeRowIndex={shakeRowIndex}
+            />
+          </div>
+        </div>
+
+        {gameState.gameStatus !== 'playing' && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-40 p-4 bg-white/95 backdrop-blur rounded-lg shadow-2xl border text-center animate-bounce-in w-11/12 max-w-sm">
+             <h2 className="text-xl font-bold mb-2">
+               {gameState.gameStatus === 'won' ? '🎉 Победа!' : '😔 Вы проиграли'}
+             </h2>
+             <p className="mb-2 text-gray-700">
+               Загаданное слово: <span className="font-bold text-black text-lg">{gameState.secretWord}</span>
+             </p>
+             {gameState.secretWordData && (
+                <div className="mb-4 text-sm">
+                  <span className="block text-gray-500">Перевод: <span className="text-indigo-600 font-semibold">{gameState.secretWordData.translation}</span></span>
+                  <span className="block text-gray-500 text-xs mt-1">Уровень: <span className="bg-gray-200 px-1.5 py-0.5 rounded text-gray-700 font-bold">{gameState.secretWordData.level}</span></span>
+                </div>
+             )}
+             <div className="flex flex-col gap-2">
+                 <button 
+                   onClick={() => setView('review')}
+                   className="w-full bg-indigo-50 text-indigo-700 border border-indigo-100 px-4 py-3 rounded-lg font-bold hover:bg-indigo-100 transition flex items-center justify-center gap-2"
+                 >
+                   <ListIcon /> Посмотреть слова
+                 </button>
+                 <div className="flex gap-2 justify-center">
+                    <button 
+                      onClick={() => setView('landing')}
+                      className="flex-1 bg-gray-100 text-gray-700 px-4 py-3 rounded-lg font-bold hover:bg-gray-200 transition"
+                    >
+                      Меню
+                    </button>
+                    <button 
+                      onClick={startNewGame}
+                      className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg font-bold hover:bg-green-700 flex items-center justify-center gap-2 transition shadow-md"
+                    >
+                      <RefreshIcon /> Играть снова
+                    </button>
+                 </div>
+             </div>
+          </div>
+        )}
+      </main>
+
+      <footer className="w-full bg-gray-100 pb-6 pt-2 border-t flex justify-center shrink-0">
+         <Keyboard 
+           onChar={handleChar} 
+           onDelete={handleDelete} 
+           onEnter={handleEnter} 
+           letterStatuses={keyStatuses}
+         />
+      </footer>
+    </div>
+  );
+
+  // --- Main Switch ---
+  let content;
+  if (view === 'landing') content = renderLanding();
+  else if (view === 'profile') content = renderProfile();
+  else if (view === 'review') content = renderReview();
+  else if (view === 'admin') content = <AdminDashboard onBack={() => setView('landing')} />;
+  else if (view === 'shop') content = (
+    <div className="min-h-screen bg-indigo-50 p-4">
+      <Shop 
+        userProfile={userProfile} 
+        onBuy={handleBuyItem} 
+        onClose={() => setView('landing')} 
+      />
+    </div>
+  );
+  else if (view === 'pet_room') content = (
+    <div className="min-h-screen bg-indigo-50 p-4">
+      <PetRoom 
+        userProfile={userProfile} 
+        onUseItem={handleUseItem} 
+        onClose={() => setView('landing')} 
+      />
+    </div>
+  );
+  else if (view === 'memory') content = (
+    <div className="min-h-screen bg-indigo-50 p-4">
+      <MemoryGame 
+        onWin={handleWinCoins} 
+        onClose={() => setView('landing')} 
+      />
+    </div>
+  );
+  else if (view === 'anagrams') content = (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <AnagramGame 
+        dictionary={getSecretWordPool()} 
+        onBack={() => setView('landing')} 
+        pet={userProfile.pet}
+        onSuccess={addXP}
+        onWinCoins={handleWinCoins}
+      />
+    </div>
+  );
+  else if (view === 'sprint') content = (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <SprintGame 
+        dictionary={getSecretWordPool()}
+        onBack={() => setView('landing')} 
+        pet={userProfile.pet}
+        onSuccess={addXP}
+        onWinCoins={handleWinCoins}
+      />
+    </div>
+  );
+  else if (view === 'hangman') content = (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <HangmanGame 
+        dictionary={getSecretWordPool()}
+        onBack={() => setView('landing')} 
+        pet={userProfile.pet}
+        onSuccess={addXP}
+        onWinCoins={handleWinCoins}
+      />
+    </div>
+  );
+  else content = renderGame();
+
+  return (
+    <>
+      {renderAuthModal()}
+      {renderRulesModal()}
+      
+      {userProfile.username !== 'Guest' && (view === 'landing') && (
+        <PetWidget 
+          pet={userProfile.pet} 
+          onClick={() => setView('pet_room')}
+        />
+      )}
+
+      {content}
+    </>
+  );
+};
+
+const AdminDashboard: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await userService.getAllUsersStats();
+        setUsers(data);
+      } catch (err) {
+        console.error("Failed to fetch admin stats", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-indigo-50 p-6 font-sans">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+             <div className="text-4xl">🛡️</div>
+             <h1 className="text-3xl font-black text-indigo-900">Панель администратора</h1>
+          </div>
+          <button 
+            onClick={onBack}
+            className="p-3 bg-white rounded-2xl shadow-md hover:bg-gray-100 transition-all transform active:scale-95 border-b-4 border-gray-200"
+          >
+            <BackIcon />
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <LoaderIcon />
+            <p className="text-indigo-400 font-bold animate-pulse">Загрузка статистики...</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden border-4 border-white">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-indigo-900 text-white">
+                    <th className="px-6 py-5 text-xs font-black uppercase tracking-wider">Пользователь</th>
+                    <th className="px-6 py-5 text-xs font-black uppercase tracking-wider">Роль</th>
+                    <th className="px-6 py-5 text-xs font-black uppercase tracking-wider text-center">Игр</th>
+                    <th className="px-6 py-5 text-xs font-black uppercase tracking-wider text-center">Побед</th>
+                    <th className="px-6 py-5 text-xs font-black uppercase tracking-wider">Питомец</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-indigo-50">
+                  {users.map((user, idx) => (
+                    <tr key={idx} className="hover:bg-indigo-50/50 transition-colors">
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black">
+                            {user.username.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="font-black text-indigo-900">{user.username}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border-b-2 ${
+                          user.role === 'admin' 
+                            ? 'bg-red-100 text-red-700 border-red-200' 
+                            : 'bg-blue-100 text-blue-700 border-blue-200'
+                        }`}>
+                          {user.role || 'user'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap text-center">
+                        <span className="font-black text-indigo-900 bg-indigo-50 px-3 py-1 rounded-lg">
+                          {user.stats.gamesPlayed}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap text-center">
+                        <span className="font-black text-green-600 bg-green-50 px-3 py-1 rounded-lg">
+                          {user.stats.gamesWon}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">🦉</span>
+                          <div className="text-xs">
+                            <div className="font-black text-indigo-900">{user.pet.name}</div>
+                            <div className="text-indigo-400 font-bold">Lvl {user.pet.level}</div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {users.length === 0 && (
+              <div className="py-20 text-center text-indigo-300 font-bold">
+                Пользователей пока нет 🤷‍♂️
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default App;
