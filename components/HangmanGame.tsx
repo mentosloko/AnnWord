@@ -1,16 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { EnrichedWord, PetState } from '../types';
+import { EnrichedWord, UserProfile } from '../types';
+import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface HangmanGameProps {
   onBack: () => void;
-  pet: PetState;
-  onSuccess: (xp: number) => void;
+  userProfile: UserProfile;
   onWinCoins: (coins: number) => void;
-  dictionary: EnrichedWord[];
+  onAddXP: (xp: number) => void;
 }
 
-export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, pet, onSuccess, onWinCoins, dictionary }) => {
+export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, onWinCoins, onAddXP }) => {
+  const dictionary: EnrichedWord[] = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
+    ? userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: '', level: 'Custom' }))
+    : COMMON_WORDS_EN;
+
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
   const [guessedLetters, setGuessedLetters] = useState<string[]>([]);
   const [mistakes, setMistakes] = useState(0);
@@ -26,10 +30,9 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, pet, onSuccess
     setStatus('playing');
   }, [dictionary]);
 
-  // Only pick word on initial mount
   useEffect(() => {
     pickNewWord();
-  }, []); // Empty dependency array to run only once on mount
+  }, []);
 
   const handleLetterClick = (letter: string) => {
     if (status !== 'playing' || guessedLetters.includes(letter)) return;
@@ -45,12 +48,11 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, pet, onSuccess
         return newMistakes;
       });
     } else {
-      // Check if won
       const allGuessed = currentWord.word.split('').every(char => [...guessedLetters, letter].includes(char));
       if (allGuessed) {
         setStatus('won');
-        onSuccess(50); // Fixed XP for winning
-        onWinCoins(15); // Fixed coins for winning
+        onAddXP(50);
+        onWinCoins(15);
       }
     }
   };
@@ -66,6 +68,17 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, pet, onSuccess
     ));
   };
 
+  if (dictionary.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center bg-white rounded-3xl shadow-2xl w-full max-w-md">
+        <div className="text-6xl mb-4">📚</div>
+        <h2 className="text-2xl font-bold mb-2">Словарь пуст!</h2>
+        <p className="text-gray-500 mb-6">Выбери другой словарь в настройках.</p>
+        <button onClick={onBack} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold">Назад</button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center w-full max-w-md p-6 bg-white rounded-3xl shadow-xl relative overflow-hidden">
       <div className="w-full flex justify-between items-center mb-8">
@@ -79,17 +92,13 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, pet, onSuccess
         <div className="w-16"></div>
       </div>
 
-      {/* Visual Penalty: Hearts system */}
       <div className="w-full bg-indigo-50 rounded-2xl p-4 mb-8">
         <div className="flex justify-center gap-2 mb-2">
           {Array.from({ length: maxMistakes }).map((_, i) => (
             <motion.span
               key={`heart-${i}`}
-              initial={{ scale: 1 }}
               animate={{ 
-                scale: i < (maxMistakes - mistakes) ? [1, 1.2, 1] : 1,
                 opacity: i < (maxMistakes - mistakes) ? 1 : 0.3,
-                filter: i < (maxMistakes - mistakes) ? 'grayscale(0%)' : 'grayscale(100%)'
               }}
               className="text-3xl"
             >
@@ -132,8 +141,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, pet, onSuccess
           </div>
           <div className="text-gray-500 mb-6">
             Загаданное слово: <span className="font-bold text-indigo-900">{currentWord?.word}</span>
-            <br />
-            Перевод: <span className="italic">{currentWord?.translation}</span>
+            {currentWord?.translation && (<><br />Перевод: <span className="italic">{currentWord.translation}</span></>)}
           </div>
           <button 
             onClick={pickNewWord}
