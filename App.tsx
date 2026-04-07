@@ -237,8 +237,9 @@ const App: React.FC = () => {
     setIsAuthLoading(true);
     setAuthError(null);
     try {
+      // 'custom:yandex' — идентификатор кастомного OIDC-провайдера в Supabase
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'yandex' as any,
+        provider: 'custom:yandex' as any,
         options: {
           redirectTo: window.location.origin
         }
@@ -249,11 +250,6 @@ const App: React.FC = () => {
       setIsAuthLoading(false);
     }
   };
-
-  // Remove the old message listener for Yandex since Supabase handles it via OAuth redirect
-  useEffect(() => {
-    // This can be empty now or removed
-  }, []);
 
   const handleAuthSubmit = async () => {
     if (!tempUsername.trim() || !tempPassword.trim()) {
