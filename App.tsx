@@ -68,6 +68,16 @@ const GoogleIcon = () => (
   </svg>
 );
 
+// --- Helper: translate Yandex auth_error codes to Russian ---
+const YANDEX_ERROR_MESSAGES: Record<string, string> = {
+  no_code: 'Яндекс не вернул код авторизации. Попробуйте ещё раз.',
+  token_exchange_failed: 'Не удалось получить токен от Яндекса. Попробуйте позже.',
+  user_info_failed: 'Не удалось получить данные профиля от Яндекса.',
+  user_creation_failed: 'Не удалось создать аккаунт. Обратитесь в поддержку.',
+  link_failed: 'Ошибка генерации сессии. Попробуйте ещё раз.',
+  server_error: 'Внутренняя ошибка сервера при входе через Яндекс.',
+};
+
 const App: React.FC = () => {
   // --- State ---
   const [view, setView] = useState<ViewState>('landing');
@@ -179,6 +189,20 @@ const App: React.FC = () => {
     setSetupError(null);
   }, [settings]);
 
+  // --- Handle ?auth_error= param from Yandex OAuth redirect ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const authErrorCode = params.get('auth_error');
+    if (authErrorCode) {
+      const message = YANDEX_ERROR_MESSAGES[authErrorCode] || `Ошибка входа через Яндекс: ${authErrorCode}`;
+      setAuthError(message);
+      setShowLoginModal(true);
+      // Clean up the URL so the error doesn't re-trigger on refresh
+      const cleanUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, '', cleanUrl);
+    }
+  }, []);
+
   // --- Auth & Profile Management ---
 
   useEffect(() => {
@@ -233,7 +257,7 @@ const App: React.FC = () => {
     }
   };
 
-  // Яндекс OAuth идёт через кастомный сервер — просто редиректим на /api/auth/yandex
+  // Яндекс OAuth — редирект на Express-сервер, который выполнит весь flow
   const handleYandexLogin = () => {
     window.location.href = '/api/auth/yandex';
   };
@@ -669,7 +693,7 @@ const App: React.FC = () => {
                 {authMode === 'login' ? 'Вход' : 'Регистрация'}
               </h3>
               <button 
-                onClick={() => setShowLoginModal(false)}
+                onClick={() => { setShowLoginModal(false); setAuthError(null); }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 ✕
@@ -868,49 +892,4 @@ const App: React.FC = () => {
         )}
       </header>
 
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-2xl">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
-            <UserIcon />
-          </div>
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900">{userProfile.username}</h3>
-            {settings.username === 'Guest' ? (
-              <p className="text-amber-500 text-sm font-medium">Войдите, чтобы сохранять прогресс</p>
-            ) : (
-               <div className="flex items-center gap-3">
-                 <p className="text-gray-500">Уровень питомца: <span className="font-bold text-indigo-600">{userProfile.pet.level}</span></p>
-               </div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-gray-50 p-4 rounded-xl text-center">
-            <div className="text-3xl font-black text-gray-900">{userProfile.stats.gamesPlayed}</div>
-            <div className="text-sm text-gray-500 uppercase tracking-wide">Всего игр</div>
-          </div>
-          <div className="bg-green-50 p-4 rounded-xl text-center">
-            <div className="text-3xl font-black text-green-600">{userProfile.stats.gamesWon}</div>
-            <div className="text-sm text-green-600 uppercase tracking-wide">Побед</div>
-          </div>
-        </div>
-
-        <h4 className="font-bold text-gray-800 mb-4">Лучшие слова</h4>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(userProfile.stats.wordsGuessed)
-            .sort((a, b) => (b[1] as number) - (a[1] as number))
-            .slice(0, 10)
-            .map(([word, count]) => (
-              <span key={word} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium border border-indigo-100">
-                {word} <span className="text-indigo-400 text-xs ml-1">x{count}</span>
-              </span>
-            ))}
-          {Object.keys(userProfile.stats.wordsGuessed).length === 0 && (
-            <p className="text-gray-400 italic">Пока нет угаданных слов</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
+      <div className="bg-white ro
