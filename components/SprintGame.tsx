@@ -1,0 +1,164 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { EnrichedWord, PetState } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
+
+interface SprintGameProps {
+  onBack: () => void;
+  pet: PetState;
+  onSuccess: (xp: number) => void;
+  onWinCoins: (coins: number) => void;
+  dictionary: EnrichedWord[];
+}
+
+export const SprintGame: React.FC<SprintGameProps> = ({ onBack, pet, onSuccess, onWinCoins, dictionary }) => {
+  const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
+  const [options, setOptions] = useState<string[]>([]);
+  const [score, setScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [status, setStatus] = useState<'playing' | 'ended'>('playing');
+  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+
+  const pickNewWord = useCallback(() => {
+    if (dictionary.length === 0) return;
+    const word = dictionary[Math.floor(Math.random() * dictionary.length)];
+    setCurrentWord(word);
+    
+    // Generate 3 wrong options
+    const wrongOptions: string[] = [];
+    while (wrongOptions.length < 3) {
+      const randomWord = dictionary[Math.floor(Math.random() * dictionary.length)];
+      if (randomWord.translation !== word.translation && !wrongOptions.includes(randomWord.translation)) {
+        wrongOptions.push(randomWord.translation);
+      }
+    }
+    
+    // Shuffle options
+    const allOptions = [...wrongOptions, word.translation].sort(() => Math.random() - 0.5);
+    setOptions(allOptions);
+    setFeedback(null);
+  }, [dictionary]);
+
+  useEffect(() => {
+    if (status === 'playing') {
+      pickNewWord();
+      const timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setStatus('ended');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [status, pickNewWord]);
+
+  useEffect(() => {
+    if (status === 'ended') {
+      onSuccess(score * 10);
+      onWinCoins(score * 2); // Award coins based on score
+    }
+  }, [status]); // Only run when status changes to 'ended'
+
+  const handleOptionClick = (option: string) => {
+    if (status !== 'playing' || feedback) return;
+    
+    if (option === currentWord?.translation) {
+      setScore(prev => prev + 1);
+      setFeedback('correct');
+      setTimeout(pickNewWord, 500);
+    } else {
+      setFeedback('wrong');
+      setTimeout(pickNewWord, 800);
+    }
+  };
+
+  if (status === 'ended') {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center bg-white rounded-3xl shadow-2xl w-full max-w-md">
+        <div className="text-6xl mb-4">🏆</div>
+        <h2 className="text-3xl font-black text-indigo-900 mb-2">Время вышло!</h2>
+        <p className="text-gray-500 mb-6 text-lg">Твой результат: <span className="font-bold text-indigo-600">{score}</span> очков</p>
+        <div className="bg-indigo-50 p-4 rounded-2xl mb-8 w-full">
+            <div className="text-sm text-indigo-400 uppercase font-bold mb-1">Опыт питомца</div>
+            <div className="text-2xl font-black text-indigo-600">+{score * 10} XP</div>
+        </div>
+        <button onClick={onBack} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-xl shadow-lg hover:bg-indigo-700 transition active:scale-95">Назад в меню</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center w-full max-w-md p-6 bg-white rounded-3xl shadow-xl relative overflow-hidden">
+      {/* Progress Bar */}
+      <div className="absolute top-0 left-0 h-2 bg-indigo-100 w-full">
+        <motion.div 
+          className="h-full bg-indigo-600"
+          initial={{ width: '100%' }}
+          animate={{ width: `${(timeLeft / 60) * 100}%` }}
+          transition={{ duration: 1, ease: 'linear' }}
+        />
+      </div>
+
+      <div className="w-full flex justify-between items-center mb-6 mt-4">
+        <button 
+          onClick={onBack} 
+          className="flex items-center gap-1 text-gray-500 hover:text-indigo-600 font-bold transition px-3 py-1 bg-gray-50 rounded-lg border border-gray-200"
+        >
+          <span className="text-xl">←</span> Меню
+        </button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full">
+            <span className="text-xl">⏱️</span>
+            <span className={`font-mono font-bold text-xl ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-gray-700'}`}>
+              {timeLeft}с
+            </span>
+          </div>
+          <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-full">
+            <span className="text-xl">⭐</span>
+            <span className="font-bold text-indigo-600 text-xl">{score}</span>
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentWord?.word}
+          initial={{ x: 50, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -50, opacity: 0 }}
+          className="text-center mb-12"
+        >
+          <div className="text-sm text-gray-400 mb-2 uppercase tracking-widest font-bold">Как переводится?</div>
+          <div className="text-5xl font-black text-indigo-900 tracking-tight">{currentWord?.word}</div>
+        </motion.div>
+      </AnimatePresence>
+
+      <div className="grid grid-cols-1 gap-3 w-full">
+        {options.map((option, i) => (
+          <motion.button
+            key={option}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => handleOptionClick(option)}
+            className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all border-2 flex justify-between items-center ${
+              feedback === 'correct' && option === currentWord?.translation
+                ? 'bg-green-500 border-green-600 text-white shadow-lg'
+                : feedback === 'wrong' && option !== currentWord?.translation
+                ? 'bg-white border-gray-100 text-gray-400 opacity-50'
+                : feedback === 'wrong' && option === currentWord?.translation
+                ? 'bg-green-100 border-green-500 text-green-700'
+                : 'bg-white border-gray-100 text-gray-700 hover:border-indigo-200 hover:bg-indigo-50 shadow-sm'
+            }`}
+          >
+            <span>{option}</span>
+            {feedback === 'correct' && option === currentWord?.translation && <span>✅</span>}
+            {feedback === 'wrong' && option !== currentWord?.translation && option === currentWord?.translation && <span>👈</span>}
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+};
