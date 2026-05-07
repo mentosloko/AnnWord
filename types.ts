@@ -9,20 +9,23 @@ export type CharStatus = 'correct' | 'present' | 'absent' | 'initial';
 export interface UserStats {
   gamesPlayed: number;
   gamesWon: number;
-  wordsGuessed: Record<string, number>; // Word -> count of times guessed correctly
+  wordsGuessed: Record<string, number>;
 }
-
-// --- NEW: Word Jail & Pet Types ---
 
 export interface PetState {
   name: string;
-  type: string; // 'Owl', 'Cat', 'Dragon', etc.
+  type: string;
   level: number;
   mood: 'sad' | 'neutral' | 'happy' | 'excited';
   xp: number;
-  hunger: number; // 0-100
-  energy: number; // 0-100
-  equippedAccessories: string[]; // IDs of equipped items
+  hunger: number;
+  energy: number;
+  equippedAccessories: string[];
+}
+
+/** Typed metadata — no more `any` */
+export interface InventoryItemMetadata {
+  imageUrl?: string;
 }
 
 export interface InventoryItem {
@@ -30,7 +33,7 @@ export interface InventoryItem {
   type: 'food' | 'pet' | 'accessory';
   name: string;
   quantity: number;
-  metadata?: { imageUrl?: string }; // FIX: было any, уточнили тип
+  metadata?: InventoryItemMetadata;
 }
 
 export interface UserProfile {
@@ -53,8 +56,6 @@ export interface ShopItem {
   imageUrl?: string;
 }
 
-// ----------------------------------
-
 export interface CellData {
   letter: string;
   status: CharStatus;
@@ -62,17 +63,16 @@ export interface CellData {
 
 export interface GameSettings {
   wordLength: WordLength;
-  useCustomDictionary: boolean; // Kept for backward compat logic, but dictionarySource is main now
+  useCustomDictionary: boolean;
   dictionarySource: DictionarySource;
   difficulty: DifficultyLevel;
-  username: string; // Current active user
+  username: string;
 }
 
-// New interface for words with metadata
 export interface EnrichedWord {
   word: string;
   translation: string;
-  level: string; // e.g., 'A1', 'B2'
+  level: string;
 }
 
 export interface HistoryItem {
@@ -82,10 +82,10 @@ export interface HistoryItem {
 
 export interface GameState {
   secretWord: string;
-  secretWordData?: EnrichedWord | null; // Store metadata for the UI
-  guesses: string[]; // List of words guessed so far
-  history: HistoryItem[]; // List of guesses with translations
-  currentGuess: string; // Current input being typed
+  secretWordData?: EnrichedWord | null;
+  guesses: string[];
+  history: HistoryItem[];
+  currentGuess: string;
   gameStatus: 'playing' | 'won' | 'lost';
   rowIndex: number;
   hint: string | null;
