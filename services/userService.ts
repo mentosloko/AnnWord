@@ -1,4 +1,4 @@
-import { UserProfile, UserStats, PetState, ShopItem } from "../types";
+import { UserProfile, UserStats, PetState, ShopItem, InventoryItem } from "../types";
 import { supabase } from "../supabase";
 
 // --- Helpers ---
@@ -16,15 +16,83 @@ const DEFAULT_PET: PetState = {
 
 const DEFAULT_STATS: UserStats = { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} };
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const normalizeStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+
+  return Array.from(
+    new Set(
+      value
+        .filter((item): item is string => typeof item === 'string')
+        .map(item => item.trim().toUpperCase().replace(/[^A-Z]/g, ''))
+        .filter(Boolean)
+    )
+  );
+};
+
+const normalizeStats = (value: unknown): UserStats => {
+  if (!isPlainObject(value)) return { ...DEFAULT_STATS };
+
+  const wordsGuessed = isPlainObject(value.wordsGuessed) ? value.wordsGuessed : {};
+
+  return {
+    gamesPlayed: typeof value.gamesPlayed === 'number' ? value.gamesPlayed : 0,
+    gamesWon: typeof value.gamesWon === 'number' ? value.gamesWon : 0,
+    wordsGuessed: Object.fromEntries(
+      Object.entries(wordsGuessed).filter((entry): entry is [string, number] =>
+        typeof entry[0] === 'string' && typeof entry[1] === 'number'
+      )
+    )
+  };
+};
+
+const normalizePet = (value: unknown): PetState => {
+  if (!isPlainObject(value)) return { ...DEFAULT_PET };
+
+  return {
+    ...DEFAULT_PET,
+    ...value,
+    name: typeof value.name === 'string' ? value.name : DEFAULT_PET.name,
+    type: typeof value.type === 'string' ? value.type : DEFAULT_PET.type,
+    level: typeof value.level === 'number' ? value.level : DEFAULT_PET.level,
+    mood: ['sad', 'neutral', 'happy', 'excited'].includes(String(value.mood))
+      ? value.mood as PetState['mood']
+      : DEFAULT_PET.mood,
+    xp: typeof value.xp === 'number' ? value.xp : DEFAULT_PET.xp,
+    hunger: typeof value.hunger === 'number' ? value.hunger : DEFAULT_PET.hunger,
+    energy: typeof value.energy === 'number' ? value.energy : DEFAULT_PET.energy,
+    equippedAccessories: normalizeStringArray(value.equippedAccessories)
+  };
+};
+
+const normalizeInventory = (value: unknown): InventoryItem[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter(isPlainObject)
+    .map(item => ({
+      id: typeof item.id === 'string' ? item.id : '',
+      type: ['food', 'pet', 'accessory'].includes(String(item.type))
+        ? item.type as InventoryItem['type']
+        : 'food',
+      name: typeof item.name === 'string' ? item.name : '',
+      quantity: typeof item.quantity === 'number' ? item.quantity : 1,
+      metadata: isPlainObject(item.metadata) ? { imageUrl: String(item.metadata.imageUrl || '') } : undefined
+    }))
+    .filter(item => item.id && item.name && item.quantity > 0);
+};
+
 /** Единственный маппер DB-row → UserProfile, используется везде */
 const mapProfileFromDB = (data: any): UserProfile => ({
-  username: data.username,
-  role: data.role ?? 'user',
-  customDictionaryEn: data.custom_dictionary_en || [],
-  stats: data.stats || DEFAULT_STATS,
-  pet: data.pet || DEFAULT_PET,
-  coins: data.coins ?? 0,
-  inventory: data.inventory || []
+  username: typeof data?.username === 'string' && data.username.trim() ? data.username : 'Guest',
+  role: data?.role === 'admin' ? 'admin' : 'user',
+  customDictionaryEn: normalizeStringArray(data?.custom_dictionary_en),
+  stats: normalizeStats(data?.stats),
+  pet: normalizePet(data?.pet),
+  coins: typeof data?.coins === 'number' ? data.coins : 0,
+  inventory: normalizeInventory(data?.inventory)
 });
 
 export const userService = {
@@ -42,7 +110,7 @@ export const userService = {
       username: defaultUsername,
       role,
       customDictionaryEn: [],
-      stats: DEFAULT_STATS,
+      stats: { ...DEFAULT_STATS },
       pet: { ...DEFAULT_PET },
       coins: 100,
       inventory: []
@@ -59,7 +127,7 @@ export const userService = {
 
     try {
       let profileData = null;
-      let fetchError: any = null; // FIX: объявляем переменную явно
+      let fetchError: any = null;
 
       // Attempt 1: 4s, Attempt 2: 8s
       for (let i = 0; i < 2; i++) {
@@ -101,7 +169,7 @@ export const userService = {
       }
 
       if (!profileData) {
-        console.log("Profile not found, attempting insert...");
+        console.log("Profile not found, attempting insert...", fetchError?.message || 'no existing row');
         const newUserProfile = {
           id: userId,
           username: defaultUsername,
@@ -163,7 +231,7 @@ export const userService = {
 
         if (fetchErr) throw fetchErr;
 
-        const newCoins = (profile?.coins ?? 0) + amount;
+        const newCoins = Math.max(0, (profile?.coins ?? 0) + amount);
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ coins: newCoins })
@@ -190,12 +258,14 @@ export const userService = {
 
       if (fetchErr) throw fetchErr;
 
-      if (profile.coins < item.price) {
+      const normalizedProfile = mapProfileFromDB(profile);
+
+      if (normalizedProfile.coins < item.price) {
         throw new Error("Недостаточно монет");
       }
 
-      const newCoins = profile.coins - item.price;
-      const inventory = [...(profile.inventory || [])];
+      const newCoins = normalizedProfile.coins - item.price;
+      const inventory = [...normalizedProfile.inventory];
 
       const existingItemIndex = inventory.findIndex((i: any) => i.id === item.id);
       if (existingItemIndex > -1 && item.type === 'food') {
@@ -244,12 +314,13 @@ export const userService = {
 
       if (fetchErr) throw fetchErr;
 
-      const inventory = [...(profile.inventory || [])];
+      const normalizedProfile = mapProfileFromDB(profile);
+      const inventory = [...normalizedProfile.inventory];
       const itemIndex = inventory.findIndex((i: any) => i.id === itemId);
       if (itemIndex === -1) throw new Error("Предмет не найден");
 
       const item = inventory[itemIndex];
-      const pet = { ...profile.pet };
+      const pet = { ...normalizedProfile.pet };
 
       if (item.type === 'food') {
         pet.hunger = Math.min(100, (pet.hunger || 0) + 20);
@@ -294,7 +365,7 @@ export const userService = {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ stats: newStats })
+        .update({ stats: normalizeStats(newStats) })
         .eq('id', userId);
       if (error) throw error;
     } catch (error) {
@@ -310,7 +381,7 @@ export const userService = {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ custom_dictionary_en: dictionary })
+        .update({ custom_dictionary_en: normalizeStringArray(dictionary) })
         .eq('id', userId);
       if (error) throw error;
     } catch (error) {
@@ -326,7 +397,7 @@ export const userService = {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ pet })
+        .update({ pet: normalizePet(pet) })
         .eq('id', userId);
       if (error) throw error;
     } catch (error) {
