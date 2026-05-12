@@ -2,6 +2,40 @@
 
 AnnWord is a Vite + React app for studying English words with Supabase-backed user profiles, custom dictionaries, stats, coins, pet state, inventory, and OAuth/email authentication.
 
+## Vercel frontend deployment
+
+This repository is prepared for Vercel deployment via `vercel.json`.
+
+Recommended Vercel settings:
+
+```text
+Framework Preset: Vite
+Install Command: npm install
+Build Command: npm run build
+Output Directory: dist
+Root Directory: ./
+```
+
+Required Vercel Environment Variables:
+
+```bash
+VITE_SUPABASE_URL=https://qbznenczthmznootlujy.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY
+```
+
+Optional Vercel Environment Variables:
+
+```bash
+VITE_ADMIN_EMAILS=
+GEMINI_API_KEY=
+```
+
+Do not expose `SUPABASE_SERVICE_ROLE_KEY` to frontend code. Add it only if you later move server-side logic to Vercel Functions and keep it server-only.
+
+The current Vercel setup is for the frontend app. The custom Yandex OAuth flow in `server.ts` is not executed by a static Vercel frontend deployment. For Yandex OAuth in production, move `/api/auth/yandex` and `/api/auth/yandex/callback` to Vercel Functions or Supabase Edge Functions.
+
+After importing the GitHub repository into Vercel, every push to `main` should create a new production deployment. Pull requests should create preview deployments if the Git integration is enabled.
+
 ## Local frontend run
 
 Prerequisites:
