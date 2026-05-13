@@ -1,6 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-
-const getAppUrl = (req: VercelRequest) => {
+const getAppUrl = (req: any) => {
   const configuredUrl = process.env.APP_URL || process.env.VITE_APP_URL;
   if (configuredUrl) return configuredUrl.replace(/\/$/, '');
 
@@ -9,7 +7,7 @@ const getAppUrl = (req: VercelRequest) => {
   return `${proto}://${host}`;
 };
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default function handler(req: any, res: any) {
   const clientId = process.env.YANDEX_CLIENT_ID;
   const appUrl = getAppUrl(req);
 
