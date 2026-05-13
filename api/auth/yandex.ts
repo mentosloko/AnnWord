@@ -8,23 +8,17 @@ const getAppUrl = (req: any) => {
 };
 
 export default function handler(req: any, res: any) {
-  const clientId = process.env.YANDEX_CLIENT_ID;
   const appUrl = getAppUrl(req);
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 
-  if (!clientId) {
-    return res.redirect(`${appUrl}/?auth_error=yandex_client_id_missing`);
+  if (!supabaseUrl) {
+    return res.redirect(`${appUrl}/?auth_error=supabase_url_missing`);
   }
 
-  const redirectUri = `${appUrl}/api/auth/yandex/callback`;
-  const state = Buffer.from(JSON.stringify({ appUrl })).toString('base64url');
-
   const params = new URLSearchParams({
-    response_type: 'code',
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    force_confirm: 'no',
-    state
+    provider: 'yandex',
+    redirect_to: appUrl
   });
 
-  return res.redirect(`https://oauth.yandex.ru/authorize?${params.toString()}`);
+  return res.redirect(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/authorize?${params.toString()}`);
 }
