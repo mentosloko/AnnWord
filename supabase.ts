@@ -21,7 +21,17 @@ const fakeQuery = {
 const fakeSupabaseClient = {
   supabaseUrl: '',
   auth: {
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => undefined } } }),
+    onAuthStateChange: (callback: any) => {
+      // Important: App.tsx waits for an auth event before leaving the initial
+      // loading screen. If Supabase env vars are missing, the fake client must
+      // still emit an INITIAL_SESSION event; otherwise the app stays stuck on
+      // "Загрузка..." forever, including in incognito mode.
+      window.setTimeout(() => {
+        callback('INITIAL_SESSION', null);
+      }, 0);
+
+      return { data: { subscription: { unsubscribe: () => undefined } } };
+    },
     signInWithOAuth: async () => ({ data: null, error: configurationError }),
     signInWithPassword: async () => ({ data: null, error: configurationError }),
     signUp: async () => ({ data: { user: null, session: null }, error: configurationError }),
