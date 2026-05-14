@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { ShopItem, UserProfile } from '../types';
 
@@ -26,24 +26,53 @@ const SHOP_ITEMS: ShopItem[] = [
 export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   const [activeTab, setActiveTab] = useState<'food' | 'pet' | 'accessory'>('food');
   const [buyingId, setBuyingId] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const filteredItems = SHOP_ITEMS.filter(item => item.type === activeTab);
 
   const handleBuy = async (item: ShopItem) => {
-    if (userProfile.coins < item.price) return;
+    if (userProfile.coins < item.price || buyingId) return;
     setBuyingId(item.id);
     try {
       await onBuy(item);
     } finally {
-      setBuyingId(null);
+      if (mountedRef.current) setBuyingId(null);
     }
+  };
+
+  const handleClose = () => {
+    onClose();
+
+    // Safety fallback for the current monolithic App.tsx routing: if parent
+    // navigation does not unmount Shop, do not leave the user trapped here.
+    window.setTimeout(() => {
+      if (mountedRef.current) {
+        window.location.assign(window.location.origin);
+      }
+    }, 250);
   };
 
   return (
     <div className="flex flex-col p-4 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-bold text-indigo-900">Магазин</h2>
-        <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-2xl border-2 border-yellow-200">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="px-4 py-2 rounded-xl bg-white border-2 border-indigo-100 text-indigo-700 font-bold hover:bg-indigo-50 transition shadow-sm"
+          >
+            ← На главный экран
+          </button>
+          <h2 className="text-3xl font-bold text-indigo-900">Магазин</h2>
+        </div>
+        <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-2xl border-2 border-yellow-200 w-fit">
           <span className="text-xl font-bold text-yellow-700">{userProfile.coins}</span>
           <span className="text-lg">🪙</span>
         </div>
@@ -121,10 +150,10 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
       </div>
 
       <button 
-        onClick={onClose}
-        className="mt-12 self-center text-gray-500 font-medium hover:text-gray-700 transition"
+        onClick={handleClose}
+        className="mt-12 self-center px-5 py-3 rounded-2xl bg-indigo-50 text-indigo-700 font-bold hover:bg-indigo-100 transition"
       >
-        Вернуться назад
+        ← На главный экран
       </button>
     </div>
   );
