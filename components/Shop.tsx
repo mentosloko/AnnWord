@@ -137,17 +137,17 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
           const canAfford = activeProfile.coins >= item.price;
           const ownedQuantity = getInventoryQuantity(activeProfile.inventory, item.id);
           return (
-            <motion.div key={item.id} whileHover={!isLocked ? { y: -5 } : {}} className={`bg-white rounded-3xl p-6 border-2 transition-all ${isLocked ? 'opacity-60 border-gray-100 grayscale' : 'border-indigo-50 shadow-sm hover:shadow-md'}`}>
+            <motion.div key={item.id} whileHover={canAfford && !isLocked ? { y: -5 } : {}} className={`bg-white rounded-3xl p-6 border-2 transition-all ${isLocked ? 'border-amber-100 shadow-sm' : canAfford ? 'border-indigo-50 shadow-sm hover:shadow-md' : 'border-gray-100 opacity-70'}`}>
               <div className="relative aspect-square mb-4 bg-indigo-50 rounded-2xl overflow-hidden">
-                <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img src={item.imageUrl} alt={item.name} className={`w-full h-full object-cover ${isLocked ? 'opacity-70' : ''}`} referrerPolicy="no-referrer" />
                 {isLocked && <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 backdrop-blur-sm text-white"><span className="text-3xl mb-1">🔒</span><span className="text-xs font-bold uppercase tracking-wider">Уровень {item.minLevel}</span></div>}
                 {ownedQuantity > 0 && !isLocked && <div className="absolute right-2 top-2 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-indigo-700 shadow">x{ownedQuantity}</div>}
               </div>
               <h3 className="text-xl font-bold text-indigo-900 mb-1">{item.name}</h3>
               <p className="text-sm text-gray-500 mb-4 line-clamp-2">{item.description}</p>
               <div className="flex items-center justify-between mt-auto">
-                <div className={`flex items-center gap-1 ${isLocked ? 'text-gray-400' : 'text-indigo-600'}`}><span className="font-bold">{item.price}</span><span className="text-sm">🪙</span></div>
-                <button disabled={isLocked || !canAfford || buyingId === item.id} onClick={() => handleBuy(item)} className={`px-4 py-2 rounded-xl font-bold transition-all ${isLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : !canAfford ? 'bg-red-50 text-red-300 cursor-not-allowed border-2 border-red-100' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'}`}>{buyingId === item.id ? '...' : isLocked ? '🔒' : !canAfford ? '🪙' : 'Купить'}</button>
+                <div className={`flex items-center gap-1 ${!canAfford ? 'text-gray-400' : isLocked ? 'text-amber-600' : 'text-indigo-600'}`}><span className="font-bold">{item.price}</span><span className="text-sm">🪙</span></div>
+                <button disabled={isLocked || !canAfford || buyingId === item.id} onClick={() => handleBuy(item)} className={`px-4 py-2 rounded-xl font-bold transition-all ${isLocked ? 'bg-amber-50 text-amber-600 cursor-not-allowed border-2 border-amber-100' : !canAfford ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-gray-100' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'}`}>{buyingId === item.id ? '...' : isLocked ? `Ур. ${item.minLevel}` : !canAfford ? 'Не хватает' : 'Купить'}</button>
               </div>
             </motion.div>
           );
