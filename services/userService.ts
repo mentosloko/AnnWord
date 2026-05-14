@@ -159,6 +159,12 @@ export const userService = {
     }
   },
 
+  buyCurrentUserItem: async (item: ShopItem): Promise<UserProfile | null> => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) return null;
+    return userService.buyItem(data.user.id, item);
+  },
+
   buyItem: async (userId: string, item: ShopItem): Promise<UserProfile> => {
     console.log(`userService.buyItem: userId=${userId}, item=${item.id}`);
 
