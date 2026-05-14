@@ -1,16 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AppRouter } from './components/AppRouter';
-import { AppHeader } from './components/layout/AppHeader';
-import { AppModals } from './components/AppModals';
 import { AuthBootstrapGate } from './components/AuthBootstrapGate';
-import { LandingScreen } from './components/screens/LandingScreen';
-import { SetupScreen } from './components/screens/SetupScreen';
-import { ClassicGameScreen } from './components/screens/ClassicGameScreen';
-import { ProfileScreen } from './components/screens/ProfileScreen';
-import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from './components/screens/ModeScreens';
-import { Shop } from './components/Shop';
-import { PetRoom } from './components/PetRoom';
-import { PetWidget } from './components/PetWidget';
+import { AppShell } from './components/AppShell';
+import { AppScreens } from './components/AppScreens';
 import { useAuthProfile } from './hooks/useAuthProfile';
 import { useClassicGameController } from './hooks/useClassicGameController';
 import { useDictionaryPools } from './hooks/useDictionaryPools';
@@ -49,6 +40,7 @@ const AppV2: React.FC = () => {
   } = authProfile;
 
   const { getSecretWordPool, getValidationPool, getModeWords } = useDictionaryPools({ settings, userProfile });
+
   const profileEconomy = useProfileEconomy({
     currentUserId: currentUser?.id ?? null,
     userProfile,
@@ -71,8 +63,6 @@ const AppV2: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) setShowLoginModal(false);
   }, [isAuthenticated]);
-
-  const goHome = useCallback(() => setRoute('landing'), []);
 
   const openLogin = useCallback(() => {
     openLoginMode();
@@ -126,101 +116,53 @@ const AppV2: React.FC = () => {
     );
   }
 
-  const setupError = classicGame.setupError || dictionaryUpload.dictionaryUploadError;
-
-  const screens: Partial<Record<ViewState, React.ReactNode>> = {
-    landing: (
-      <LandingScreen
-        userProfile={userProfile}
-        isAuthenticated={isAuthenticated}
-        onStartClassic={() => setRoute('setup')}
-        onStartAnagrams={() => setRoute('anagrams')}
-        onStartSprint={() => setRoute('sprint')}
-        onStartHangman={() => setRoute('hangman')}
-        onStartMemory={() => setRoute('memory')}
-        onOpenShop={() => setRoute('shop')}
-        onOpenRules={() => setShowRulesModal(true)}
-        onOpenLogin={openLogin}
-        onOpenProfile={() => setRoute('profile')}
-      />
-    ),
-    setup: (
-      <SetupScreen
-        settings={settings}
-        customWordsCount={userProfile.customDictionaryEn.length}
-        setupError={setupError}
-        isUploadingDictionary={dictionaryUpload.isUploadingDictionary}
-        onSettingsChange={setSettings}
-        onFileUpload={dictionaryUpload.handleDictionaryFileUpload}
-        onStartGame={classicGame.startNewGame}
-        onBack={goHome}
-      />
-    ),
-    game: (
-      <ClassicGameScreen
-        gameState={classicGame.gameState}
-        settings={settings}
-        keyStatuses={classicGame.keyStatuses}
-        shakeRowIndex={classicGame.shakeRowIndex}
-        onChar={classicGame.handleChar}
-        onDelete={classicGame.handleDelete}
-        onEnter={classicGame.handleEnter}
-        onHint={classicGame.fetchHint}
-        onRestart={classicGame.startNewGame}
-        onBackHome={goHome}
-      />
-    ),
-    profile: (
-      <ProfileScreen
-        userProfile={userProfile}
-        isAuthenticated={isAuthenticated}
-        onBackHome={goHome}
-        onOpenShop={() => setRoute('shop')}
-        onLogin={openLogin}
-      />
-    ),
-    anagrams: <AnagramsScreen words={modeWords} onWin={profileEconomy.winCoins} onBackHome={goHome} />,
-    sprint: <SprintScreen words={modeWords} onWin={profileEconomy.winCoins} onBackHome={goHome} />,
-    memory: <MemoryScreen words={modeWords} onWin={profileEconomy.winCoins} onBackHome={goHome} />,
-    hangman: <HangmanScreen words={modeWords} onWin={profileEconomy.winCoins} onBackHome={goHome} />,
-    shop: <Shop userProfile={userProfile} onBuy={handleBuy} onClose={goHome} />,
-    pet_room: <PetRoom userProfile={userProfile} onUseItem={handleUseItem} onClose={goHome} />,
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
-      <AppHeader
+    <AppShell
+      route={route}
+      userProfile={userProfile}
+      pet={userProfile.pet}
+      isAuthenticated={isAuthenticated}
+      showLoginModal={showLoginModal}
+      showRulesModal={showRulesModal}
+      authMode={authMode}
+      tempUsername={tempUsername}
+      tempPassword={tempPassword}
+      authError={authError}
+      isAuthLoading={isAuthLoading}
+      onLoginClick={openLogin}
+      onLogoutClick={handleLogout}
+      onProfileClick={() => setRoute('profile')}
+      onShopClick={() => setRoute('shop')}
+      onNavigateToPetRoom={() => setRoute('pet_room')}
+      onCloseLogin={() => setShowLoginModal(false)}
+      onCloseRules={() => setShowRulesModal(false)}
+      onAuthModeChange={setAuthMode}
+      onUsernameChange={setTempUsername}
+      onPasswordChange={setTempPassword}
+      onAuthSubmit={submitEmailAuth}
+      onYandexLogin={loginWithYandex}
+    >
+      <AppScreens
+        route={route}
         userProfile={userProfile}
         isAuthenticated={isAuthenticated}
-        onLoginClick={openLogin}
-        onLogoutClick={handleLogout}
-        onProfileClick={() => setRoute('profile')}
-        onShopClick={() => setRoute('shop')}
+        settings={settings}
+        modeWords={modeWords}
+        classicGame={classicGame}
+        dictionaryUpload={{
+          isUploadingDictionary: dictionaryUpload.isUploadingDictionary,
+          error: dictionaryUpload.dictionaryUploadError,
+          onFileUpload: dictionaryUpload.handleDictionaryFileUpload,
+        }}
+        onRouteChange={setRoute}
+        onSettingsChange={setSettings}
+        onOpenLogin={openLogin}
+        onOpenRules={() => setShowRulesModal(true)}
+        onBuy={handleBuy}
+        onUseItem={handleUseItem}
+        onWinCoins={profileEconomy.winCoins}
       />
-
-      <AppRouter route={route} screens={screens} fallback={screens.landing} />
-
-      {route !== 'pet_room' && route !== 'shop' && (
-        <PetWidget pet={userProfile.pet} onNavigateToPetRoom={() => setRoute('pet_room')} />
-      )}
-
-      <AppModals
-        showLoginModal={showLoginModal}
-        showRulesModal={showRulesModal}
-        authMode={authMode}
-        tempUsername={tempUsername}
-        tempPassword={tempPassword}
-        authError={authError}
-        isAuthLoading={isAuthLoading}
-        onCloseLogin={() => setShowLoginModal(false)}
-        onCloseRules={() => setShowRulesModal(false)}
-        onAuthModeChange={setAuthMode}
-        onUsernameChange={setTempUsername}
-        onPasswordChange={setTempPassword}
-        onAuthSubmit={submitEmailAuth}
-        onYandexLogin={loginWithYandex}
-      />
-    </div>
+    </AppShell>
   );
 };
 
