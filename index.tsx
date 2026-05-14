@@ -10,24 +10,17 @@ if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
-const AUTH_RECOVERY_FLAG = 'annword_auth_recovery_attempted';
-const OAuthTransitionOverlay = () => (
+const AuthTransitionOverlay = ({ title = 'Восстанавливаем вход' }: { title?: string }) => (
   <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-indigo-950 via-slate-950 to-purple-950 text-white">
     <div className="mx-4 max-w-sm rounded-3xl border border-white/10 bg-white/10 p-8 text-center shadow-2xl backdrop-blur">
       <div className="mx-auto mb-5 h-12 w-12 animate-spin rounded-full border-4 border-white/20 border-t-white" />
-      <div className="text-xl font-black">Завершаем вход</div>
+      <div className="text-xl font-black">{title}</div>
       <div className="mt-3 text-sm leading-relaxed text-white/75">
-        Получаем сессию и загружаем профиль. Это может занять несколько секунд после возврата из Яндекса.
+        Получаем сессию и загружаем профиль. Это может занять несколько секунд.
       </div>
     </div>
   </div>
 );
-
-const clearSupabaseAuthStorage = () => {
-  Object.keys(window.localStorage)
-    .filter(key => key.startsWith('sb-') && key.includes('auth-token'))
-    .forEach(key => window.localStorage.removeItem(key));
-};
 
 const getInitialAuthReturnState = () => {
   const href = window.location.href;
@@ -61,7 +54,6 @@ const stripAuthErrorFromUrlBeforeReactMount = () => {
 
   if (!hasAuthError) return false;
 
-  clearSupabaseAuthStorage();
   url.searchParams.delete('auth_error');
   url.searchParams.delete('error');
   url.searchParams.delete('error_code');
@@ -83,6 +75,7 @@ stripAuthErrorFromUrlBeforeReactMount();
 
 function AppWithAuthRecovery() {
   const [isCompletingOAuth, setIsCompletingOAuth] = useState(initialAuthReturnState.hasOAuthSuccess && !initialAuthReturnState.hasError);
+  const [isHydratingPersistedSession, setIsHydratingPersistedSession] = useState(true);
   const [appInstanceKey, setAppInstanceKey] = useState(() => {
     const shouldStartHome = window.sessionStorage.getItem(HOME_NAVIGATION_FLAG) === '1';
     if (shouldStartHome) {
@@ -93,10 +86,51 @@ function AppWithAuthRecovery() {
   });
 
   useEffect(() => {
+    let cancelled = false;
+    let maxTimer: number | undefined;
+
+    const finish = () => {
+      if (cancelled) return;
+      setIsHydratingPersistedSession(false);
+    };
+
+    const bootstrap = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) {
+          finish();
+          return;
+        }
+
+        maxTimer = window.setTimeout(finish, 4500);
+      } catch (_error) {
+        finish();
+      }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        finish();
+        return;
+      }
+      window.setTimeout(finish, 900);
+    });
+
+    bootstrap();
+
+    return () => {
+      cancelled = true;
+      if (maxTimer) window.clearTimeout(maxTimer);
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     const handleNavigateHome = () => {
       window.sessionStorage.removeItem(HOME_NAVIGATION_FLAG);
       cleanNavigationUrl();
       setIsCompletingOAuth(false);
+      setIsHydratingPersistedSession(false);
       setAppInstanceKey(prev => prev + 1);
     };
 
@@ -108,18 +142,12 @@ function AppWithAuthRecovery() {
     if (!isCompletingOAuth) return;
 
     let cancelled = false;
-    let minimumTimer: number | undefined;
     let maximumTimer: number | undefined;
 
     const finish = () => {
       if (cancelled) return;
       setIsCompletingOAuth(false);
     };
-
-    minimumTimer = window.setTimeout(async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) finish();
-    }, 1800);
 
     maximumTimer = window.setTimeout(finish, 9000);
 
@@ -131,41 +159,19 @@ function AppWithAuthRecovery() {
 
     return () => {
       cancelled = true;
-      if (minimumTimer) window.clearTimeout(minimumTimer);
       if (maximumTimer) window.clearTimeout(maximumTimer);
       subscription.unsubscribe();
     };
   }, [isCompletingOAuth]);
 
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      const alreadyRecovered = window.sessionStorage.getItem(AUTH_RECOVERY_FLAG) === '1';
-      const visibleText = document.body.innerText.toLowerCase();
-      const looksStuckOnLoader =
-        visibleText.includes('загруз') ||
-        visibleText.includes('loading') ||
-        visibleText.includes('подожд');
-
-      if (alreadyRecovered || !looksStuckOnLoader) return;
-
-      window.sessionStorage.setItem(AUTH_RECOVERY_FLAG, '1');
-      clearSupabaseAuthStorage();
-      const url = new URL(window.location.href);
-      url.searchParams.delete('auth_error');
-      url.searchParams.delete('error');
-      url.searchParams.delete('error_code');
-      url.searchParams.delete('error_description');
-      url.hash = '';
-      window.location.replace(url.toString());
-    }, 10000);
-
-    return () => window.clearTimeout(timeout);
-  }, []);
+  const showAuthOverlay = isCompletingOAuth || isHydratingPersistedSession;
 
   return (
     <>
       <App key={appInstanceKey} />
-      {isCompletingOAuth && <OAuthTransitionOverlay />}
+      {showAuthOverlay && (
+        <AuthTransitionOverlay title={isCompletingOAuth ? 'Завершаем вход' : 'Восстанавливаем вход'} />
+      )}
     </>
   );
 }
