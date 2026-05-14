@@ -1,3 +1,5 @@
+const SUPABASE_PROJECT_URL = 'https://qbznenczthmznootlujy.supabase.co';
+
 const getAppUrl = (req: any) => {
   const configuredUrl = process.env.APP_URL || process.env.VITE_APP_URL;
   if (configuredUrl) return configuredUrl.replace(/\/$/, '');
@@ -9,11 +11,7 @@ const getAppUrl = (req: any) => {
 
 export default function handler(req: any, res: any) {
   const appUrl = getAppUrl(req);
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    return res.redirect(`${appUrl}/?auth_error=supabase_url_missing`);
-  }
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || SUPABASE_PROJECT_URL;
 
   const params = new URLSearchParams({
     provider: 'yandex',
