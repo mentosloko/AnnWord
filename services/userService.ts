@@ -15,6 +15,14 @@ const DEFAULT_PET: PetState = {
 
 const DEFAULT_STATS: UserStats = { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} };
 
+const toShopItemPayload = (item: ShopItem) => ({
+  id: item.id,
+  type: item.type,
+  name: item.name,
+  price: item.price,
+  imageUrl: item.imageUrl || '',
+});
+
 export const userService = {
   getOrCreateProfile: async (userId: string, defaultUsername: string = 'Guest', email?: string): Promise<UserProfile> => {
     console.log("userService.getOrCreateProfile started for:", userId);
@@ -153,6 +161,22 @@ export const userService = {
 
   buyItem: async (userId: string, item: ShopItem): Promise<UserProfile> => {
     console.log(`userService.buyItem: userId=${userId}, item=${item.id}`);
+
+    try {
+      const { data, error } = await supabase.rpc('purchase_shop_item', {
+        p_user_id: userId,
+        p_item: toShopItemPayload(item),
+      });
+
+      if (!error && data) {
+        return mapProfileFromDB(data);
+      }
+
+      console.warn("RPC purchase_shop_item failed, falling back to manual update:", error?.message);
+    } catch (rpcError) {
+      console.warn("RPC purchase_shop_item threw, falling back to manual update:", rpcError);
+    }
+
     try {
       const { data: profile, error: fetchErr } = await supabase
         .from('profiles')
