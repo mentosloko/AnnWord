@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ChangeEvent } from 'react';
 import { DictionaryImportDiagnostics, readDictionaryFile } from '../services/dictionaryUpload';
 import { DictionarySource } from '../types';
 
@@ -13,7 +13,7 @@ export const useDictionaryUpload = ({ updateDictionary, setDictionarySource }: U
   const [dictionaryUploadWarnings, setDictionaryUploadWarnings] = useState<string[]>([]);
   const [lastImportDiagnostics, setLastImportDiagnostics] = useState<DictionaryImportDiagnostics | null>(null);
 
-  const handleDictionaryFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDictionaryFileUpload = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
