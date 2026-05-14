@@ -1,0 +1,176 @@
+import { useCallback, useEffect, useState } from 'react';
+import { User } from '@supabase/supabase-js';
+import { authService } from '../services/authService';
+import { GameSettings, UserProfile } from '../types';
+import { GUEST_PROFILE } from '../providers/ProfileProvider';
+
+export type AuthMode = 'login' | 'register';
+export type AuthBootstrapStatus = 'loading' | 'ready' | 'error';
+
+export const createInitialSettings = (): GameSettings => ({
+  wordLength: 5,
+  useCustomDictionary: false,
+  dictionarySource: 'builtin',
+  difficulty: 'ALL',
+  username: 'Guest',
+});
+
+export const useAuthProfile = () => {
+  const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus>('loading');
+  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
+  const [settings, setSettings] = useState<GameSettings>(createInitialSettings);
+  const [userProfile, setUserProfile] = useState<UserProfile>(GUEST_PROFILE);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const [tempUsername, setTempUsername] = useState('');
+  const [tempPassword, setTempPassword] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+
+  const resetToGuest = useCallback(() => {
+    setCurrentUser(null);
+    setUserProfile(GUEST_PROFILE);
+    setSettings(createInitialSettings());
+  }, []);
+
+  const loadProfileForUser = useCallback(async (user: User) => {
+    const { userService } = await import('../services/userService');
+    const profile = await userService.getOrCreateProfile(
+      user.id,
+      user.user_metadata?.full_name || user.user_metadata?.name || 'Guest',
+      user.email || undefined,
+    );
+    setUserProfile(profile);
+    setSettings(prev => ({ ...prev, username: profile.username }));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const finishBootstrap = (status: AuthBootstrapStatus, error: string | null = null) => {
+      if (cancelled) return;
+      setBootstrapStatus(status);
+      setBootstrapError(error);
+    };
+
+    authService.getInitialSession()
+      .then(async ({ user }) => {
+        if (cancelled) return;
+        setCurrentUser(user);
+        if (user) await loadProfileForUser(user);
+        finishBootstrap('ready');
+      })
+      .catch(error => {
+        console.error('Initial auth bootstrap failed', error);
+        finishBootstrap('error', error?.message || 'Не удалось восстановить сессию.');
+      });
+
+    const unsubscribe = authService.onAuthStateChange(async (_session, user) => {
+      setCurrentUser(user);
+      setIsAuthLoading(false);
+
+      if (user) {
+        try {
+          await loadProfileForUser(user);
+        } catch (error) {
+          console.error('Failed to load user profile after auth change', error);
+        }
+      } else {
+        resetToGuest();
+      }
+
+      finishBootstrap('ready');
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [loadProfileForUser, resetToGuest]);
+
+  const openLoginMode = useCallback(() => {
+    setAuthMode('login');
+    setAuthError(null);
+  }, []);
+
+  const submitEmailAuth = useCallback(async () => {
+    if (!tempUsername.trim() || !tempPassword.trim()) {
+      setAuthError('Заполните все поля');
+      return false;
+    }
+
+    setIsAuthLoading(true);
+    setAuthError(null);
+
+    try {
+      if (authMode === 'login') {
+        await authService.signInWithEmail(tempUsername, tempPassword);
+      } else {
+        const result = await authService.signUpWithEmail(tempUsername, tempPassword);
+        if (result.needsEmailConfirmation) {
+          setAuthError('На ваш email отправлено письмо для подтверждения. Пожалуйста, подтвердите его перед входом.');
+        }
+      }
+      setTempUsername('');
+      setTempPassword('');
+      return true;
+    } catch (error: any) {
+      setAuthError(error?.message || 'Ошибка авторизации');
+      return false;
+    } finally {
+      setIsAuthLoading(false);
+    }
+  }, [authMode, tempPassword, tempUsername]);
+
+  const loginWithYandex = useCallback(async () => {
+    setIsAuthLoading(true);
+    setAuthError(null);
+    try {
+      await authService.signInWithYandex();
+    } catch (error: any) {
+      setAuthError(error?.message || 'Ошибка входа через Яндекс');
+      setIsAuthLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    setIsAuthLoading(true);
+    try {
+      await authService.signOut();
+    } finally {
+      setIsAuthLoading(false);
+      resetToGuest();
+    }
+  }, [resetToGuest]);
+
+  const continueAsGuestAfterBootstrapError = useCallback(() => {
+    resetToGuest();
+    setBootstrapError(null);
+    setBootstrapStatus('ready');
+  }, [resetToGuest]);
+
+  return {
+    bootstrapStatus,
+    bootstrapError,
+    continueAsGuestAfterBootstrapError,
+    settings,
+    setSettings,
+    userProfile,
+    setUserProfile,
+    currentUser,
+    isAuthenticated: Boolean(currentUser),
+    authMode,
+    setAuthMode,
+    tempUsername,
+    setTempUsername,
+    tempPassword,
+    setTempPassword,
+    authError,
+    isAuthLoading,
+    setAuthError,
+    openLoginMode,
+    submitEmailAuth,
+    loginWithYandex,
+    logout,
+  };
+};
