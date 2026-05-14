@@ -12,11 +12,15 @@ interface ShopProps {
   onClose: () => void;
 }
 
+const getProfileSyncKey = (profile: UserProfile): string =>
+  `${profile.username}|${profile.coins}|${profile.pet.level}|${JSON.stringify(profile.inventory)}`;
+
 export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   const [activeTab, setActiveTab] = useState<'food' | 'pet' | 'accessory'>('food');
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [shopMessage, setShopMessage] = useState<string | null>(null);
   const [localProfile, setLocalProfile] = useState<UserProfile>(userProfile);
+  const lastExternalProfileKey = useRef(getProfileSyncKey(userProfile));
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -27,11 +31,20 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   }, []);
 
   useEffect(() => {
-    if (!buyingId) setLocalProfile(userProfile);
-  }, [userProfile, buyingId]);
+    const nextExternalKey = getProfileSyncKey(userProfile);
+    if (nextExternalKey !== lastExternalProfileKey.current) {
+      lastExternalProfileKey.current = nextExternalKey;
+      setLocalProfile(userProfile);
+    }
+  }, [userProfile]);
 
   const filteredItems = getShopItemsByType(activeTab);
   const activeProfile = localProfile;
+
+  const setLocalAndRemember = (profile: UserProfile) => {
+    setLocalProfile(profile);
+    lastExternalProfileKey.current = getProfileSyncKey(profile);
+  };
 
   const syncPurchase = async (item: ShopItem): Promise<UserProfile | null> => {
     if (typeof onBuy === 'function') {
@@ -55,29 +68,29 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
       return;
     }
 
-    setLocalProfile(optimisticPurchase.profile);
+    setLocalAndRemember(optimisticPurchase.profile);
     setShopMessage(null);
     setBuyingId(item.id);
 
     try {
       const serverProfile = await syncPurchase(item);
-      if (serverProfile && mountedRef.current) setLocalProfile(serverProfile);
+      if (serverProfile && mountedRef.current) setLocalAndRemember(serverProfile);
       if (mountedRef.current) setShopMessage('Покупка добавлена в инвентарь.');
     } catch (error: any) {
       const message = String(error?.message || '');
       if (message.includes('not a function') || message.includes('is not a function')) {
         try {
           const serverProfile = await userService.buyCurrentUserItem(item);
-          if (serverProfile && mountedRef.current) setLocalProfile(serverProfile);
+          if (serverProfile && mountedRef.current) setLocalAndRemember(serverProfile);
           if (mountedRef.current) setShopMessage('Покупка добавлена в инвентарь.');
         } catch (fallbackError: any) {
           if (mountedRef.current) {
-            setLocalProfile(userProfile);
+            setLocalAndRemember(userProfile);
             setShopMessage(fallbackError?.message || 'Покупка не удалась.');
           }
         }
       } else if (mountedRef.current) {
-        setLocalProfile(userProfile);
+        setLocalAndRemember(userProfile);
         setShopMessage(message || 'Покупка не удалась.');
       }
     } finally {
