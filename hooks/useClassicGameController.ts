@@ -2,12 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { MAX_GUESSES } from '../constants';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { getBestEliminationHint } from '../services/hintService';
-import { CharStatus, EnrichedWord, GameSettings, GameState, UserStats, ViewState } from '../types';
+import { CharStatus, EnrichedWord, GameSettings, GameState, ViewState } from '../types';
 
 interface UseClassicGameControllerArgs {
   route: ViewState;
   settings: GameSettings;
-  stats: UserStats;
   getSecretWordPool: () => EnrichedWord[];
   getValidationPool: () => string[];
   getModeWords: () => string[];
@@ -74,7 +73,6 @@ export const getUpdatedKeyStatuses = (
 export const useClassicGameController = ({
   route,
   settings,
-  stats,
   getSecretWordPool,
   getValidationPool,
   getModeWords,
@@ -132,18 +130,6 @@ export const useClassicGameController = ({
     window.setTimeout(() => setShakeRowIndex(null), 600);
   }, [gameState.rowIndex]);
 
-  const updateStats = useCallback(async (won: boolean, word: string) => {
-    const nextStats: UserStats = { ...stats, wordsGuessed: { ...stats.wordsGuessed } };
-    nextStats.gamesPlayed += 1;
-
-    if (won) {
-      nextStats.gamesWon += 1;
-      nextStats.wordsGuessed[word] = (nextStats.wordsGuessed[word] || 0) + 1;
-    }
-
-    await onStatsUpdate(won, word);
-  }, [onStatsUpdate, stats]);
-
   const handleEnter = useCallback(async () => {
     if (gameState.gameStatus !== 'playing') return;
 
@@ -180,8 +166,8 @@ export const useClassicGameController = ({
       error: null,
     }));
 
-    if (nextStatus !== 'playing') await updateStats(nextStatus === 'won', gameState.secretWord);
-  }, [gameState, getValidationPool, settings.wordLength, triggerShake, updateStats]);
+    if (nextStatus !== 'playing') await onStatsUpdate(nextStatus === 'won', gameState.secretWord);
+  }, [gameState, getValidationPool, onStatsUpdate, settings.wordLength, triggerShake]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
