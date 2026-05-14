@@ -1,8 +1,6 @@
-import { UserProfile, UserStats, PetState, ShopItem, InventoryItem } from "../types";
+import { UserProfile, UserStats, PetState, ShopItem } from "../types";
 import { supabase } from "../supabase";
-import { normalizeCustomDictionary } from "./dictionaryEngine";
-
-// --- Helpers ---
+import { mapProfileFromDB, normalizeDictionaryField, normalizePet, normalizeStats } from "./profileMapper";
 
 const DEFAULT_PET: PetState = {
   name: 'Owl',
@@ -17,96 +15,10 @@ const DEFAULT_PET: PetState = {
 
 const DEFAULT_STATS: UserStats = { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} };
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const normalizeStringArray = (value: unknown): string[] => {
-  if (!Array.isArray(value)) return [];
-
-  return Array.from(
-    new Set(
-      value
-        .filter((item): item is string => typeof item === 'string')
-        .map(item => item.trim().toUpperCase().replace(/[^A-Z]/g, ''))
-        .filter(Boolean)
-    )
-  );
-};
-
-export const normalizeDictionaryField = (value: unknown): string[] =>
-  Array.isArray(value) ? normalizeCustomDictionary(value.filter((item): item is string => typeof item === 'string')) : [];
-
-const normalizeStats = (value: unknown): UserStats => {
-  if (!isPlainObject(value)) return { ...DEFAULT_STATS };
-
-  const wordsGuessed = isPlainObject(value.wordsGuessed) ? value.wordsGuessed : {};
-
-  return {
-    gamesPlayed: typeof value.gamesPlayed === 'number' ? value.gamesPlayed : 0,
-    gamesWon: typeof value.gamesWon === 'number' ? value.gamesWon : 0,
-    wordsGuessed: Object.fromEntries(
-      Object.entries(wordsGuessed).filter((entry): entry is [string, number] =>
-        typeof entry[0] === 'string' && typeof entry[1] === 'number'
-      )
-    )
-  };
-};
-
-const normalizePet = (value: unknown): PetState => {
-  if (!isPlainObject(value)) return { ...DEFAULT_PET };
-
-  return {
-    ...DEFAULT_PET,
-    ...value,
-    name: typeof value.name === 'string' ? value.name : DEFAULT_PET.name,
-    type: typeof value.type === 'string' ? value.type : DEFAULT_PET.type,
-    level: typeof value.level === 'number' ? value.level : DEFAULT_PET.level,
-    mood: ['sad', 'neutral', 'happy', 'excited'].includes(String(value.mood))
-      ? value.mood as PetState['mood']
-      : DEFAULT_PET.mood,
-    xp: typeof value.xp === 'number' ? value.xp : DEFAULT_PET.xp,
-    hunger: typeof value.hunger === 'number' ? value.hunger : DEFAULT_PET.hunger,
-    energy: typeof value.energy === 'number' ? value.energy : DEFAULT_PET.energy,
-    equippedAccessories: normalizeStringArray(value.equippedAccessories)
-  };
-};
-
-const normalizeInventory = (value: unknown): InventoryItem[] => {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .filter(isPlainObject)
-    .map(item => ({
-      id: typeof item.id === 'string' ? item.id : '',
-      type: ['food', 'pet', 'accessory'].includes(String(item.type))
-        ? item.type as InventoryItem['type']
-        : 'food',
-      name: typeof item.name === 'string' ? item.name : '',
-      quantity: typeof item.quantity === 'number' ? item.quantity : 1,
-      metadata: isPlainObject(item.metadata) ? { imageUrl: String(item.metadata.imageUrl || '') } : undefined
-    }))
-    .filter(item => item.id && item.name && item.quantity > 0);
-};
-
-/** Единственный маппер DB-row → UserProfile, используется везде */
-export const mapProfileFromDB = (data: any): UserProfile => ({
-  username: typeof data?.username === 'string' && data.username.trim() ? data.username : 'Guest',
-  role: data?.role === 'admin' ? 'admin' : 'user',
-  customDictionaryEn: normalizeDictionaryField(data?.custom_dictionary_en),
-  stats: normalizeStats(data?.stats),
-  pet: normalizePet(data?.pet),
-  coins: typeof data?.coins === 'number' ? data.coins : 0,
-  inventory: normalizeInventory(data?.inventory)
-});
-
 export const userService = {
-  /**
-   * Получение или создание профиля.
-   */
   getOrCreateProfile: async (userId: string, defaultUsername: string = 'Guest', email?: string): Promise<UserProfile> => {
     console.log("userService.getOrCreateProfile started for:", userId);
 
-    // Определяем роль через env-переменную, не хардкодим email в коде
     const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map((e: string) => e.trim()).filter(Boolean);
     const role: 'admin' | 'user' = adminEmails.includes(email ?? '') ? 'admin' : 'user';
 
@@ -120,20 +32,16 @@ export const userService = {
       inventory: []
     });
 
-    // Connectivity check
     try {
       await fetch(supabase.supabaseUrl, { method: 'HEAD', mode: 'no-cors' }).catch(() => {
         console.error("DIAGNOSTIC: Cannot reach Supabase URL. Likely blocked by AdBlock or Firewall.");
       });
-    } catch (_) {
-      // Ignore ping errors
-    }
+    } catch (_) {}
 
     try {
       let profileData = null;
       let fetchError: any = null;
 
-      // Attempt 1: 4s, Attempt 2: 8s
       for (let i = 0; i < 2; i++) {
         const timeoutMs = i === 0 ? 4000 : 8000;
         console.log(`Fetch attempt ${i + 1} (Timeout: ${timeoutMs}ms)...`);
@@ -161,9 +69,7 @@ export const userService = {
           fetchError = error;
           console.log(`Attempt ${i + 1} failed with error code:`, error?.code);
 
-          if (error && error.code !== 'PGRST116') {
-            break;
-          }
+          if (error && error.code !== 'PGRST116') break;
         } catch (e: any) {
           console.warn(`Attempt ${i + 1} timed out or was blocked:`, e.message);
           if (i === 1) throw e;
@@ -217,9 +123,6 @@ export const userService = {
     }
   },
 
-  /**
-   * Обновление монет (атомарно через RPC).
-   */
   updateCoins: async (userId: string, amount: number): Promise<void> => {
     console.log(`userService.updateCoins: userId=${userId}, amount=${amount}`);
     try {
@@ -248,9 +151,6 @@ export const userService = {
     }
   },
 
-  /**
-   * Покупка предмета.
-   */
   buyItem: async (userId: string, item: ShopItem): Promise<UserProfile> => {
     console.log(`userService.buyItem: userId=${userId}, item=${item.id}`);
     try {
@@ -291,12 +191,7 @@ export const userService = {
         .select()
         .single();
 
-      if (updateError) {
-        if (updateError.message.includes("schema cache")) {
-          console.error("HINT: Run 'NOTIFY pgrst, \'reload schema\';' in Supabase SQL editor.");
-        }
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
       return mapProfileFromDB(updatedProfile);
     } catch (error) {
@@ -305,9 +200,6 @@ export const userService = {
     }
   },
 
-  /**
-   * Использование предмета.
-   */
   useItem: async (userId: string, itemId: string): Promise<UserProfile> => {
     try {
       const { data: profile, error: fetchErr } = await supabase
@@ -330,20 +222,15 @@ export const userService = {
         pet.hunger = Math.min(100, (pet.hunger || 0) + 20);
         pet.mood = 'happy';
         item.quantity -= 1;
-        if (item.quantity <= 0) {
-          inventory.splice(itemIndex, 1);
-        }
+        if (item.quantity <= 0) inventory.splice(itemIndex, 1);
       } else if (item.type === 'pet') {
         pet.type = item.name;
         pet.name = item.name;
       } else if (item.type === 'accessory') {
         if (!pet.equippedAccessories) pet.equippedAccessories = [];
         const accIndex = pet.equippedAccessories.indexOf(item.id);
-        if (accIndex > -1) {
-          pet.equippedAccessories.splice(accIndex, 1);
-        } else {
-          pet.equippedAccessories.push(item.id);
-        }
+        if (accIndex > -1) pet.equippedAccessories.splice(accIndex, 1);
+        else pet.equippedAccessories.push(item.id);
       }
 
       const { data: updatedProfile, error: updateError } = await supabase
@@ -362,9 +249,6 @@ export const userService = {
     }
   },
 
-  /**
-   * Обновление статистики.
-   */
   updateUserStats: async (userId: string, newStats: UserStats): Promise<void> => {
     try {
       const { error } = await supabase
@@ -378,9 +262,6 @@ export const userService = {
     }
   },
 
-  /**
-   * Обновление словаря пользователя.
-   */
   updateUserDictionary: async (userId: string, dictionary: string[]): Promise<void> => {
     try {
       const { error } = await supabase
@@ -394,9 +275,6 @@ export const userService = {
     }
   },
 
-  /**
-   * Обновление состояния питомца.
-   */
   updateUserPet: async (userId: string, pet: PetState): Promise<void> => {
     try {
       const { error } = await supabase
@@ -410,9 +288,6 @@ export const userService = {
     }
   },
 
-  /**
-   * Получение статистики всех пользователей (только для админа).
-   */
   getAllUsersStats: async (): Promise<UserProfile[]> => {
     try {
       const { data, error } = await supabase
