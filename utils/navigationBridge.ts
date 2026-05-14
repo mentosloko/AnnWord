@@ -1,11 +1,11 @@
-const HOME_QUERY = 'screen=home';
+export const HOME_NAVIGATION_EVENT = 'annword:navigate-home';
+export const HOME_NAVIGATION_FLAG = 'annword_force_home_after_reload';
 
 export const forceHomeNavigation = (): void => {
   try {
-    window.dispatchEvent(new CustomEvent('annword:navigate-home'));
-    window.history.replaceState({}, document.title, `${window.location.origin}/?${HOME_QUERY}&t=${Date.now()}`);
-    window.location.reload();
+    window.sessionStorage.setItem(HOME_NAVIGATION_FLAG, '1');
+    window.dispatchEvent(new CustomEvent(HOME_NAVIGATION_EVENT));
   } catch (_error) {
-    window.location.href = `${window.location.origin}/?${HOME_QUERY}&t=${Date.now()}`;
+    window.location.href = window.location.origin;
   }
 };
