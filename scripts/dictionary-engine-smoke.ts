@@ -47,10 +47,12 @@ assert(uploadResult.diagnostics.duplicateCount === 1, 'dictionary upload diagnos
 assert(uploadResult.diagnostics.invalidTokenCount === 1, 'dictionary upload diagnostics must count cleaned invalid tokens');
 assert(uploadResult.warnings.length >= 2, 'dictionary upload parser must expose non-blocking warnings');
 
-const largeDictionaryText = Array.from({ length: 250 }, (_, index) => `word${index}`).join('\n');
+const largeDictionaryWords = Array.from({ length: 250 }, (_, index) => `WORD${String.fromCharCode(65 + Math.floor(index / 26))}${String.fromCharCode(65 + (index % 26))}`);
+const largeDictionaryText = largeDictionaryWords.join('\n');
 const largeUploadResult = parseDictionaryText(largeDictionaryText);
 assert(largeUploadResult.words.length === 250, 'dictionary upload parser must not silently truncate large dictionaries');
 assert(largeUploadResult.diagnostics.importedCount === 250, 'large dictionary diagnostics must match imported count');
+assert(largeUploadResult.diagnostics.invalidTokenCount === 0, 'large dictionary smoke words must be valid English-letter tokens');
 
 const dirtyProfile = mapProfileFromDB({
   username: 'Tester',
