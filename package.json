@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "server": "tsx server.ts",
-    "build": "vite build",
+    "dictionary:smoke": "tsx scripts/dictionary-engine-smoke.ts",
+    "build": "npm run dictionary:smoke && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
