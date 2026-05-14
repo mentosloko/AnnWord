@@ -1,7 +1,13 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { ViewState } from '../types';
 
 export type AppRoute = ViewState;
+
+export const NAVIGATION_EVENT = 'annword:navigate';
+
+interface NavigationEventDetail {
+  route: AppRoute;
+}
 
 interface NavigationContextValue {
   route: AppRoute;
@@ -16,10 +22,22 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode; initialRo
 
   const navigate = useCallback((nextRoute: AppRoute) => {
     setRoute(nextRoute);
+    window.dispatchEvent(new CustomEvent<NavigationEventDetail>(NAVIGATION_EVENT, { detail: { route: nextRoute } }));
   }, []);
 
   const goHome = useCallback(() => {
-    setRoute('landing');
+    navigate('landing');
+  }, [navigate]);
+
+  useEffect(() => {
+    const handleExternalNavigation = (event: Event) => {
+      const route = (event as CustomEvent<NavigationEventDetail>).detail?.route;
+      if (!route) return;
+      setRoute(route);
+    };
+
+    window.addEventListener(NAVIGATION_EVENT, handleExternalNavigation);
+    return () => window.removeEventListener(NAVIGATION_EVENT, handleExternalNavigation);
   }, []);
 
   const value = useMemo<NavigationContextValue>(() => ({ route, navigate, goHome }), [route, navigate, goHome]);
