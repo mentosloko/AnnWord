@@ -2,7 +2,7 @@ import { InventoryItem, PetState, ShopItem, UserProfile } from '../types';
 
 export interface PurchaseResult {
   ok: boolean;
-  reason?: 'not_authenticated' | 'locked' | 'insufficient_funds' | 'invalid_item';
+  reason?: 'not_authenticated' | 'locked' | 'insufficient_funds' | 'invalid_item' | 'already_owned';
   profile?: UserProfile;
 }
 
@@ -10,6 +10,9 @@ export const canPurchaseItem = (profile: UserProfile, item: ShopItem): PurchaseR
   if (!item || !item.id || item.price < 0) return { ok: false, reason: 'invalid_item' };
   if ((profile.pet.level || 1) < item.minLevel) return { ok: false, reason: 'locked' };
   if (profile.coins < item.price) return { ok: false, reason: 'insufficient_funds' };
+  if (item.type !== 'food' && profile.inventory.some(entry => entry.id === item.id)) {
+    return { ok: false, reason: 'already_owned' };
+  }
   return { ok: true };
 };
 
@@ -25,7 +28,7 @@ export const applyPurchaseLocally = (profile: UserProfile, item: ShopItem): Purc
       ...inventory[existingIndex],
       quantity: inventory[existingIndex].quantity + 1,
     };
-  } else if (existingIndex < 0 || item.type !== 'food') {
+  } else if (existingIndex < 0) {
     inventory.push({
       id: item.id,
       type: item.type,
@@ -88,6 +91,7 @@ export const getPurchaseErrorMessage = (reason?: PurchaseResult['reason']): stri
     case 'insufficient_funds': return 'Недостаточно монет.';
     case 'not_authenticated': return 'Для покупки нужно войти в аккаунт.';
     case 'invalid_item': return 'Предмет не найден или повреждён.';
+    case 'already_owned': return 'Этот предмет уже есть в инвентаре.';
     default: return 'Покупка не удалась.';
   }
 };
