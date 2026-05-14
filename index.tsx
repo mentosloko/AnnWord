@@ -74,10 +74,10 @@ const initialAuthReturnState = getInitialAuthReturnState();
 stripAuthErrorFromUrlBeforeReactMount();
 
 function AppWithAuthRecovery() {
+  const shouldStartHome = window.sessionStorage.getItem(HOME_NAVIGATION_FLAG) === '1';
   const [isCompletingOAuth, setIsCompletingOAuth] = useState(initialAuthReturnState.hasOAuthSuccess && !initialAuthReturnState.hasError);
-  const [isHydratingPersistedSession, setIsHydratingPersistedSession] = useState(true);
+  const [isHydratingPersistedSession, setIsHydratingPersistedSession] = useState(!shouldStartHome);
   const [appInstanceKey, setAppInstanceKey] = useState(() => {
-    const shouldStartHome = window.sessionStorage.getItem(HOME_NAVIGATION_FLAG) === '1';
     if (shouldStartHome) {
       window.sessionStorage.removeItem(HOME_NAVIGATION_FLAG);
       cleanNavigationUrl();
@@ -86,6 +86,8 @@ function AppWithAuthRecovery() {
   });
 
   useEffect(() => {
+    if (!isHydratingPersistedSession) return;
+
     let cancelled = false;
     let maxTimer: number | undefined;
 
@@ -123,7 +125,7 @@ function AppWithAuthRecovery() {
       if (maxTimer) window.clearTimeout(maxTimer);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isHydratingPersistedSession]);
 
   useEffect(() => {
     const handleNavigateHome = () => {
