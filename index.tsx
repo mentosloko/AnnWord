@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
+import { AppProviders } from './components/AppProviders';
 import { supabase } from './supabase';
 import { HOME_NAVIGATION_EVENT, HOME_NAVIGATION_FLAG } from './utils/navigationBridge';
 
@@ -169,12 +170,12 @@ function AppWithAuthRecovery() {
   const showAuthOverlay = isCompletingOAuth || isHydratingPersistedSession;
 
   return (
-    <>
+    <AppProviders>
       <App key={appInstanceKey} />
       {showAuthOverlay && (
         <AuthTransitionOverlay title={isCompletingOAuth ? 'Завершаем вход' : 'Восстанавливаем вход'} />
       )}
-    </>
+    </AppProviders>
   );
 }
 
