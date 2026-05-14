@@ -11,17 +11,21 @@ export const AppRouter: React.FC<AppRouterProps> = ({ route, screens, fallback =
   return <>{screens[route] ?? fallback}</>;
 };
 
+export const KNOWN_ROUTES: ViewState[] = [
+  'landing',
+  'profile',
+  'setup',
+  'game',
+  'review',
+  'anagrams',
+  'sprint',
+  'hangman',
+  'memory',
+  'shop',
+  'pet_room',
+  'admin',
+];
+
 export const isKnownRoute = (route: string): route is ViewState => {
-  return [
-    'landing',
-    'setup',
-    'game',
-    'anagram',
-    'sprint',
-    'memory',
-    'hangman',
-    'shop',
-    'pet_room',
-    'stats',
-  ].includes(route);
+  return (KNOWN_ROUTES as string[]).includes(route);
 };
