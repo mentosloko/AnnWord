@@ -50,13 +50,14 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   const handleClose = () => {
     onClose();
 
-    // Safety fallback for the current monolithic App.tsx routing: if parent
-    // navigation does not unmount Shop, do not leave the user trapped here.
+    // Hard fallback for the current monolithic App.tsx routing. The app uses
+    // in-memory view state, so navigating to the same origin can be a browser no-op.
+    // A unique query string forces a fresh mount on the landing/home screen.
     window.setTimeout(() => {
       if (mountedRef.current) {
-        window.location.assign(window.location.origin);
+        window.location.replace(`${window.location.origin}/?screen=home&t=${Date.now()}`);
       }
-    }, 250);
+    }, 100);
   };
 
   return (
