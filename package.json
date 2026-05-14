@@ -13,7 +13,8 @@
     "pet:smoke": "tsx scripts/pet-engine-smoke.ts",
     "screens:smoke": "tsx scripts/screen-components-smoke.ts",
     "hooks:smoke": "tsx scripts/hooks-smoke.ts",
-    "build": "npm run dictionary:smoke && npm run navigation:smoke && npm run route:smoke && npm run economy:smoke && npm run pet:smoke && npm run screens:smoke && npm run hooks:smoke && vite build",
+    "appv2:smoke": "tsx scripts/appv2-architecture-smoke.ts",
+    "build": "npm run dictionary:smoke && npm run navigation:smoke && npm run route:smoke && npm run economy:smoke && npm run pet:smoke && npm run screens:smoke && npm run hooks:smoke && npm run appv2:smoke && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },

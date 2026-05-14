@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { authService } from '../services/authService';
+import { GUEST_PROFILE } from '../constants/profileDefaults';
 import { GameSettings, UserProfile } from '../types';
-import { GUEST_PROFILE } from '../providers/ProfileProvider';
 
 export type AuthMode = 'login' | 'register';
 export type AuthBootstrapStatus = 'loading' | 'ready' | 'error';

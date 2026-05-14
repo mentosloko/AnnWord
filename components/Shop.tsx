@@ -4,7 +4,6 @@ import { ShopItem, UserProfile } from '../types';
 import { getShopItemsByType } from '../services/shopCatalog';
 import { applyPurchaseLocally, canPurchaseItem, getInventoryQuantity, getPurchaseErrorMessage } from '../services/economyEngine';
 import { userService } from '../services/userService';
-import { forceHomeNavigation } from '../utils/navigationBridge';
 
 interface ShopProps {
   userProfile: UserProfile;
@@ -98,19 +97,11 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
     }
   };
 
-  const handleClose = () => {
-    try {
-      onClose();
-    } finally {
-      forceHomeNavigation();
-    }
-  };
-
   return (
     <div className="flex flex-col p-4 max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={handleClose} className="px-4 py-2 rounded-xl bg-white border-2 border-indigo-100 text-indigo-700 font-bold hover:bg-indigo-50 transition shadow-sm">← На главный экран</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-white border-2 border-indigo-100 text-indigo-700 font-bold hover:bg-indigo-50 transition shadow-sm">← На главный экран</button>
           <h2 className="text-3xl font-bold text-indigo-900">Магазин</h2>
         </div>
         <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-2xl border-2 border-yellow-200 w-fit">
@@ -153,7 +144,7 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
           );
         })}
       </div>
-      <button onClick={handleClose} className="mt-12 self-center px-5 py-3 rounded-2xl bg-indigo-50 text-indigo-700 font-bold hover:bg-indigo-100 transition">← На главный экран</button>
+      <button onClick={onClose} className="mt-12 self-center px-5 py-3 rounded-2xl bg-indigo-50 text-indigo-700 font-bold hover:bg-indigo-100 transition">← На главный экран</button>
     </div>
   );
 };

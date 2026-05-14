@@ -3,7 +3,6 @@ import { motion } from 'motion/react';
 import { UserProfile } from '../types';
 import { applyItemUseLocally } from '../services/economyEngine';
 import { getInventoryEmoji, getPetEmoji, getPetNeedSnapshot, getVisibleInventory } from '../services/petEngine';
-import { forceHomeNavigation } from '../utils/navigationBridge';
 
 interface PetRoomProps {
   userProfile: UserProfile;
@@ -72,19 +71,11 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
     }
   };
 
-  const handleClose = () => {
-    try {
-      onClose();
-    } finally {
-      forceHomeNavigation();
-    }
-  };
-
   return (
     <div className="flex flex-col p-4 max-w-4xl mx-auto">
       <div className="w-full flex justify-between items-center mb-8">
         <button 
-          onClick={handleClose} 
+          onClick={onClose} 
           className="flex items-center gap-1 text-gray-500 hover:text-indigo-600 font-bold transition px-3 py-1 bg-gray-50 rounded-lg border border-gray-200"
         >
           <span className="text-xl">←</span> На главный экран
