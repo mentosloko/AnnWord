@@ -1,5 +1,6 @@
 import { UserProfile, UserStats, PetState, ShopItem, InventoryItem } from "../types";
 import { supabase } from "../supabase";
+import { normalizeCustomDictionary } from "./dictionaryEngine";
 
 // --- Helpers ---
 
@@ -31,6 +32,9 @@ const normalizeStringArray = (value: unknown): string[] => {
     )
   );
 };
+
+const normalizeDictionaryField = (value: unknown): string[] =>
+  Array.isArray(value) ? normalizeCustomDictionary(value.filter((item): item is string => typeof item === 'string')) : [];
 
 const normalizeStats = (value: unknown): UserStats => {
   if (!isPlainObject(value)) return { ...DEFAULT_STATS };
@@ -88,7 +92,7 @@ const normalizeInventory = (value: unknown): InventoryItem[] => {
 const mapProfileFromDB = (data: any): UserProfile => ({
   username: typeof data?.username === 'string' && data.username.trim() ? data.username : 'Guest',
   role: data?.role === 'admin' ? 'admin' : 'user',
-  customDictionaryEn: normalizeStringArray(data?.custom_dictionary_en),
+  customDictionaryEn: normalizeDictionaryField(data?.custom_dictionary_en),
   stats: normalizeStats(data?.stats),
   pet: normalizePet(data?.pet),
   coins: typeof data?.coins === 'number' ? data.coins : 0,
@@ -381,7 +385,7 @@ export const userService = {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ custom_dictionary_en: normalizeStringArray(dictionary) })
+        .update({ custom_dictionary_en: normalizeDictionaryField(dictionary) })
         .eq('id', userId);
       if (error) throw error;
     } catch (error) {
