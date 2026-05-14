@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "server": "tsx server.ts",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "dictionary:smoke": "tsx scripts/dictionary-engine-smoke.ts",
     "navigation:smoke": "tsx scripts/navigation-smoke.ts",
     "route:smoke": "tsx scripts/route-contract-smoke.ts",
@@ -14,7 +17,7 @@
     "screens:smoke": "tsx scripts/screen-components-smoke.ts",
     "hooks:smoke": "tsx scripts/hooks-smoke.ts",
     "appv2:smoke": "tsx scripts/appv2-architecture-smoke.ts",
-    "build": "npm run dictionary:smoke && npm run navigation:smoke && npm run route:smoke && npm run economy:smoke && npm run pet:smoke && npm run screens:smoke && npm run hooks:smoke && npm run appv2:smoke && vite build",
+    "build": "npm run test:run && npm run dictionary:smoke && npm run navigation:smoke && npm run route:smoke && npm run economy:smoke && npm run pet:smoke && npm run screens:smoke && npm run hooks:smoke && npm run appv2:smoke && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
@@ -36,6 +39,7 @@
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vitest": "^3.2.4"
   }
 }
