@@ -12,7 +12,8 @@
     "economy:smoke": "tsx scripts/economy-smoke.ts",
     "pet:smoke": "tsx scripts/pet-engine-smoke.ts",
     "screens:smoke": "tsx scripts/screen-components-smoke.ts",
-    "build": "npm run dictionary:smoke && npm run navigation:smoke && npm run route:smoke && npm run economy:smoke && npm run pet:smoke && npm run screens:smoke && vite build",
+    "hooks:smoke": "tsx scripts/hooks-smoke.ts",
+    "build": "npm run dictionary:smoke && npm run navigation:smoke && npm run route:smoke && npm run economy:smoke && npm run pet:smoke && npm run screens:smoke && npm run hooks:smoke && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
