@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { PetState } from '../types';
 import { getPetNeedSnapshot } from '../services/petEngine';
-import { navigateToRoute } from '../utils/navigationBridge';
 
 interface PetWidgetProps {
   pet: PetState;
   onClick?: () => void;
+  onNavigateToPetRoom?: () => void;
 }
 
-export const PetWidget: React.FC<PetWidgetProps> = ({ pet, onClick }) => {
+export const PetWidget: React.FC<PetWidgetProps> = ({ pet, onClick, onNavigateToPetRoom }) => {
   const [feedback, setFeedback] = useState<string | null>(null);
   let emoji = '🦉';
   if (pet.type === 'Cat') emoji = '🐱';
@@ -36,7 +36,7 @@ export const PetWidget: React.FC<PetWidgetProps> = ({ pet, onClick }) => {
   const handleClick = () => {
     setFeedback('Открываю комнату...');
     window.setTimeout(() => setFeedback(null), 1400);
-    navigateToRoute('pet_room');
+    onNavigateToPetRoom?.();
     onClick?.();
   };
 
