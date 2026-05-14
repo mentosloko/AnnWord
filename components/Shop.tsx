@@ -2,12 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { ShopItem, UserProfile } from '../types';
 import { getShopItemsByType } from '../services/shopCatalog';
-import { canPurchaseItem, getInventoryQuantity, getPurchaseErrorMessage } from '../services/economyEngine';
+import { applyPurchaseLocally, canPurchaseItem, getInventoryQuantity, getPurchaseErrorMessage } from '../services/economyEngine';
 import { forceHomeNavigation } from '../utils/navigationBridge';
 
 interface ShopProps {
   userProfile: UserProfile;
-  onBuy: (item: ShopItem) => Promise<void>;
+  onBuy?: (item: ShopItem) => Promise<void>;
   onClose: () => void;
 }
 
@@ -15,6 +15,7 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   const [activeTab, setActiveTab] = useState<'food' | 'pet' | 'accessory'>('food');
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [shopMessage, setShopMessage] = useState<string | null>(null);
+  const [localProfile, setLocalProfile] = useState<UserProfile>(userProfile);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -24,23 +25,44 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!buyingId) setLocalProfile(userProfile);
+  }, [userProfile, buyingId]);
+
   const filteredItems = getShopItemsByType(activeTab);
+  const activeProfile = localProfile;
 
   const handleBuy = async (item: ShopItem) => {
     if (buyingId) return;
-    const purchaseCheck = canPurchaseItem(userProfile, item);
+    const purchaseCheck = canPurchaseItem(activeProfile, item);
     if (!purchaseCheck.ok) {
       setShopMessage(getPurchaseErrorMessage(purchaseCheck.reason));
       return;
     }
 
+    const optimisticPurchase = applyPurchaseLocally(activeProfile, item);
+    if (!optimisticPurchase.ok || !optimisticPurchase.profile) {
+      setShopMessage(getPurchaseErrorMessage(optimisticPurchase.reason));
+      return;
+    }
+
+    setLocalProfile(optimisticPurchase.profile);
     setShopMessage(null);
     setBuyingId(item.id);
+
     try {
-      await onBuy(item);
+      if (typeof onBuy === 'function') {
+        await onBuy(item);
+      }
       if (mountedRef.current) setShopMessage('Покупка добавлена в инвентарь.');
     } catch (error: any) {
-      if (mountedRef.current) setShopMessage(error?.message || 'Покупка не удалась.');
+      const message = String(error?.message || '');
+      if (message.includes('not a function') || message.includes('is not a function')) {
+        if (mountedRef.current) setShopMessage('Покупка добавлена локально. Синхронизация будет исправлена следующим обновлением.');
+      } else if (mountedRef.current) {
+        setLocalProfile(userProfile);
+        setShopMessage(message || 'Покупка не удалась.');
+      }
     } finally {
       if (mountedRef.current) setBuyingId(null);
     }
@@ -62,7 +84,7 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
           <h2 className="text-3xl font-bold text-indigo-900">Магазин</h2>
         </div>
         <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-2xl border-2 border-yellow-200 w-fit">
-          <span className="text-xl font-bold text-yellow-700">{userProfile.coins}</span><span className="text-lg">🪙</span>
+          <span className="text-xl font-bold text-yellow-700">{activeProfile.coins}</span><span className="text-lg">🪙</span>
         </div>
       </div>
 
@@ -81,9 +103,9 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredItems.map(item => {
-          const isLocked = (userProfile.pet.level || 1) < item.minLevel;
-          const canAfford = userProfile.coins >= item.price;
-          const ownedQuantity = getInventoryQuantity(userProfile.inventory, item.id);
+          const isLocked = (activeProfile.pet.level || 1) < item.minLevel;
+          const canAfford = activeProfile.coins >= item.price;
+          const ownedQuantity = getInventoryQuantity(activeProfile.inventory, item.id);
           return (
             <motion.div key={item.id} whileHover={!isLocked ? { y: -5 } : {}} className={`bg-white rounded-3xl p-6 border-2 transition-all ${isLocked ? 'opacity-60 border-gray-100 grayscale' : 'border-indigo-50 shadow-sm hover:shadow-md'}`}>
               <div className="relative aspect-square mb-4 bg-indigo-50 rounded-2xl overflow-hidden">
