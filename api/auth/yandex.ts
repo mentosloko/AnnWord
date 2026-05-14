@@ -14,7 +14,7 @@ export default function handler(req: any, res: any) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || SUPABASE_PROJECT_URL;
 
   const params = new URLSearchParams({
-    provider: 'yandex',
+    provider: 'custom:yandex',
     redirect_to: appUrl
   });
 
