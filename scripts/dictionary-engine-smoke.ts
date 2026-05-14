@@ -8,6 +8,7 @@ import {
   normalizeCustomDictionary,
   pickRandomSecretWord,
 } from '../services/dictionaryEngine';
+import { parseDictionaryText } from '../services/dictionaryUpload';
 import {
   getGuessTranslationForGame,
   getHintPoolForGame,
@@ -36,6 +37,22 @@ assert(normalizedCustom.includes('APPLE'), 'custom dictionary normalization must
 assert(normalizedCustom.includes('FOX'), 'custom dictionary normalization must strip non-letters');
 assert(normalizedCustom.filter(word => word === 'APPLE').length === 1, 'custom dictionary must be deduplicated');
 assert(JSON.stringify(normalizeDictionaryField(customInput)) === JSON.stringify(normalizedCustom), 'profile dictionary normalization must match dictionary engine normalization');
+
+const uploadedText = [' apple ', 'APPLE', 'stone', 'fox!', 'data', 'stones'].join('\n');
+const uploadResult = parseDictionaryText(uploadedText);
+assert(JSON.stringify(uploadResult.words) === JSON.stringify(normalizedCustom), 'dictionary upload parser must match dictionary engine normalization');
+assert(uploadResult.diagnostics.rawTokenCount === 6, 'dictionary upload diagnostics must preserve raw token count');
+assert(uploadResult.diagnostics.importedCount === normalizedCustom.length, 'dictionary upload diagnostics must expose imported word count');
+assert(uploadResult.diagnostics.duplicateCount === 1, 'dictionary upload diagnostics must count duplicates');
+assert(uploadResult.diagnostics.invalidTokenCount === 1, 'dictionary upload diagnostics must count cleaned invalid tokens');
+assert(uploadResult.warnings.length >= 2, 'dictionary upload parser must expose non-blocking warnings');
+
+const largeDictionaryWords = Array.from({ length: 250 }, (_, index) => `WORD${String.fromCharCode(65 + Math.floor(index / 26))}${String.fromCharCode(65 + (index % 26))}`);
+const largeDictionaryText = largeDictionaryWords.join('\n');
+const largeUploadResult = parseDictionaryText(largeDictionaryText);
+assert(largeUploadResult.words.length === 250, 'dictionary upload parser must not silently truncate large dictionaries');
+assert(largeUploadResult.diagnostics.importedCount === 250, 'large dictionary diagnostics must match imported count');
+assert(largeUploadResult.diagnostics.invalidTokenCount === 0, 'large dictionary smoke words must be valid English-letter tokens');
 
 const dirtyProfile = mapProfileFromDB({
   username: 'Tester',
@@ -98,12 +115,14 @@ assert(ALL_WORDS_EN.length === initialAllWordsCount, 'dictionary engine must not
 
 console.log(JSON.stringify({
   ok: true,
-  checked: 'dictionary-engine-game-adapter-and-profile-normalization',
+  checked: 'dictionary-engine-game-adapter-upload-and-profile-normalization',
   counts: {
     commonWords: COMMON_WORDS_EN.length,
     allWords: ALL_WORDS_EN.length,
     builtinFiveA1: builtinFiveA1.length,
     normalizedCustom: normalizedCustom.length,
+    uploadImported: uploadResult.diagnostics.importedCount,
+    largeUploadImported: largeUploadResult.diagnostics.importedCount,
     customFive: customFive.length,
     validationFive: validationFive.length,
     gameSecretPool: preparedCustomGameDictionary.secretWordPool.length,

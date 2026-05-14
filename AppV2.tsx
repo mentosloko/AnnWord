@@ -14,14 +14,14 @@ import { PetWidget } from './components/PetWidget';
 import { useAuthProfile } from './hooks/useAuthProfile';
 import { useClassicGameController } from './hooks/useClassicGameController';
 import { useDictionaryPools } from './hooks/useDictionaryPools';
+import { useDictionaryUpload } from './hooks/useDictionaryUpload';
 import { useProfileEconomy } from './hooks/useProfileEconomy';
-import { ShopItem, UserStats, ViewState } from './types';
+import { DictionarySource, ShopItem, UserStats, ViewState } from './types';
 
 const AppV2: React.FC = () => {
   const [route, setRoute] = useState<ViewState>('landing');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
-  const [isUploadingDict, setIsUploadingDict] = useState(false);
 
   const authProfile = useAuthProfile();
   const {
@@ -53,6 +53,19 @@ const AppV2: React.FC = () => {
     currentUserId: currentUser?.id ?? null,
     userProfile,
     setUserProfile,
+  });
+
+  const setDictionarySource = useCallback((source: DictionarySource) => {
+    setSettings(prev => ({
+      ...prev,
+      dictionarySource: source,
+      useCustomDictionary: source === 'custom',
+    }));
+  }, [setSettings]);
+
+  const dictionaryUpload = useDictionaryUpload({
+    updateDictionary: profileEconomy.updateDictionary,
+    setDictionarySource,
   });
 
   useEffect(() => {
@@ -99,29 +112,6 @@ const AppV2: React.FC = () => {
     onStatsUpdate: updateClassicStats,
   });
 
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingDict(true);
-    const reader = new FileReader();
-    reader.onload = async (readerEvent) => {
-      try {
-        const text = String(readerEvent.target?.result || '');
-        const cleanedWords = text
-          .split(/[\n\s,]+/)
-          .map(word => word.trim().toUpperCase().replace(/[^A-Z]/g, ''))
-          .filter(Boolean);
-
-        await profileEconomy.updateDictionary(cleanedWords);
-        setSettings(prev => ({ ...prev, dictionarySource: 'custom', useCustomDictionary: true }));
-      } finally {
-        setIsUploadingDict(false);
-      }
-    };
-    reader.readAsText(file);
-  }, [profileEconomy, setSettings]);
-
   const modeWords = useMemo(() => getModeWords(), [getModeWords]);
 
   const handleBuy = useCallback(async (item: ShopItem) => profileEconomy.buyItem(item), [profileEconomy]);
@@ -135,6 +125,8 @@ const AppV2: React.FC = () => {
       />
     );
   }
+
+  const setupError = classicGame.setupError || dictionaryUpload.dictionaryUploadError;
 
   const screens: Partial<Record<ViewState, React.ReactNode>> = {
     landing: (
@@ -156,10 +148,10 @@ const AppV2: React.FC = () => {
       <SetupScreen
         settings={settings}
         customWordsCount={userProfile.customDictionaryEn.length}
-        setupError={classicGame.setupError}
-        isUploadingDictionary={isUploadingDict}
+        setupError={setupError}
+        isUploadingDictionary={dictionaryUpload.isUploadingDictionary}
         onSettingsChange={setSettings}
-        onFileUpload={handleFileUpload}
+        onFileUpload={dictionaryUpload.handleDictionaryFileUpload}
         onStartGame={classicGame.startNewGame}
         onBack={goHome}
       />
