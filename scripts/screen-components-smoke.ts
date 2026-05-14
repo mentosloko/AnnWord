@@ -1,3 +1,4 @@
+import { AppModals } from '../components/AppModals';
 import { AuthModal } from '../components/auth/AuthModal';
 import { RulesModal } from '../components/modals/RulesModal';
 import { AppHeader } from '../components/layout/AppHeader';
@@ -14,6 +15,7 @@ const assert = (condition: unknown, message: string) => {
 };
 
 const components = {
+  AppModals,
   AuthModal,
   RulesModal,
   AppHeader,
