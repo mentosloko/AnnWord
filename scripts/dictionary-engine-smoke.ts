@@ -8,6 +8,13 @@ import {
   normalizeCustomDictionary,
   pickRandomSecretWord,
 } from '../services/dictionaryEngine';
+import {
+  getGuessTranslationForGame,
+  getHintPoolForGame,
+  isValidGuessForGame,
+  pickSecretForGame,
+  prepareGameDictionary,
+} from '../services/gameDictionaryAdapter';
 
 const assert = (condition: unknown, message: string) => {
   if (!condition) {
@@ -55,13 +62,31 @@ assert(builtPools.validationPool.includes('STONE'), 'built pools validation pool
 const randomPick = pickRandomSecretWord(customFive, () => 0);
 assert(randomPick?.word === customFive[0]?.word, 'random picker must support deterministic injected random function');
 
+const preparedCustomGameDictionary = prepareGameDictionary({
+  settings: { wordLength: 5, dictionarySource: 'custom', difficulty: 'ALL' },
+  userProfile: { customDictionaryEn: customInput },
+});
+assert(preparedCustomGameDictionary.errorMessage === null, 'game adapter must not return error when custom active pool exists');
+assert(preparedCustomGameDictionary.dictionarySourceUsed === 'custom', 'game adapter must preserve custom dictionary source');
+assert(isValidGuessForGame('stone', preparedCustomGameDictionary), 'game adapter validation must accept custom words');
+assert(!isValidGuessForGame('data', preparedCustomGameDictionary), 'game adapter validation must reject wrong word length');
+assert(pickSecretForGame(preparedCustomGameDictionary, () => 0)?.word === preparedCustomGameDictionary.secretWordPool[0]?.word, 'game adapter must pick deterministic secret when random is injected');
+assert(getHintPoolForGame(preparedCustomGameDictionary).every(word => word.length === 5), 'game adapter hint pool must match active secret pool');
+
+const preparedEmptyCustomGameDictionary = prepareGameDictionary({
+  settings: { wordLength: 6, dictionarySource: 'custom', difficulty: 'ALL' },
+  userProfile: { customDictionaryEn: ['cat', 'dog'] },
+});
+assert(Boolean(preparedEmptyCustomGameDictionary.errorMessage), 'game adapter must expose explicit empty custom dictionary message');
+
+assert(getGuessTranslationForGame('able'), 'game adapter translation lookup must work for built-in guesses');
 assert(getTranslationForWord('able'), 'translation lookup must work case-insensitively for built-in words');
 assert(COMMON_WORDS_EN.length === initialCommonCount, 'dictionary engine must not mutate COMMON_WORDS_EN');
 assert(ALL_WORDS_EN.length === initialAllWordsCount, 'dictionary engine must not mutate ALL_WORDS_EN');
 
 console.log(JSON.stringify({
   ok: true,
-  checked: 'dictionary-engine',
+  checked: 'dictionary-engine-and-game-adapter',
   counts: {
     commonWords: COMMON_WORDS_EN.length,
     allWords: ALL_WORDS_EN.length,
@@ -69,5 +94,7 @@ console.log(JSON.stringify({
     normalizedCustom: normalizedCustom.length,
     customFive: customFive.length,
     validationFive: validationFive.length,
+    gameSecretPool: preparedCustomGameDictionary.secretWordPool.length,
+    gameValidationPool: preparedCustomGameDictionary.validationPool.length,
   },
 }, null, 2));
