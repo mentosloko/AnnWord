@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { PetState, ShopItem, UserProfile, UserStats } from '../types';
-import { userService } from '../services/userService';
 
 interface UseProfileEconomyArgs {
   currentUserId: string | null;
@@ -8,11 +7,17 @@ interface UseProfileEconomyArgs {
   setUserProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
 }
 
+const getUserService = async () => {
+  const module = await import('../services/userService');
+  return module.userService;
+};
+
 export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }: UseProfileEconomyArgs) => {
   const winCoins = useCallback(async (amount: number) => {
     setUserProfile(prev => ({ ...prev, coins: prev.coins + amount }));
     if (!currentUserId) return;
     try {
+      const userService = await getUserService();
       await userService.updateCoins(currentUserId, amount);
     } catch (error) {
       console.error('Failed to sync coins to server', error);
@@ -21,12 +26,14 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
 
   const buyItem = useCallback(async (item: ShopItem) => {
     if (!currentUserId) return;
+    const userService = await getUserService();
     const updatedProfile = await userService.buyItem(currentUserId, item);
     setUserProfile(updatedProfile);
   }, [currentUserId, setUserProfile]);
 
   const useItem = useCallback(async (itemId: string) => {
     if (!currentUserId) return;
+    const userService = await getUserService();
     const updatedProfile = await userService.useItem(currentUserId, itemId);
     setUserProfile(updatedProfile);
   }, [currentUserId, setUserProfile]);
@@ -45,6 +52,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     if (!currentUserId) return;
 
     try {
+      const userService = await getUserService();
       await userService.updateUserPet(currentUserId, newPet);
     } catch (error) {
       console.error('Failed to update pet', error);
@@ -56,6 +64,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     if (!currentUserId) return;
 
     try {
+      const userService = await getUserService();
       await userService.updateUserStats(currentUserId, newStats);
     } catch (error) {
       console.error('Failed to sync stats to server', error);
@@ -67,6 +76,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     if (!currentUserId) return;
 
     try {
+      const userService = await getUserService();
       await userService.updateUserDictionary(currentUserId, dictionary);
     } catch (error) {
       console.error('Failed to upload dictionary', error);
