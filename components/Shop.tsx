@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { ShopItem, UserProfile } from '../types';
+import { getShopItemsByType } from '../services/shopCatalog';
+import { canPurchaseItem, getInventoryQuantity, getPurchaseErrorMessage } from '../services/economyEngine';
 import { forceHomeNavigation } from '../utils/navigationBridge';
 
 interface ShopProps {
@@ -9,19 +11,10 @@ interface ShopProps {
   onClose: () => void;
 }
 
-const SHOP_ITEMS: ShopItem[] = [
-  { id: 'apple', name: 'Яблоко', price: 10, type: 'food', minLevel: 1, description: 'Свежее яблоко для вашего питомца.', imageUrl: 'https://picsum.photos/seed/apple/100/100' },
-  { id: 'cake', name: 'Торт', price: 50, type: 'food', minLevel: 3, description: 'Сладкое угощение для вашего питомца.', imageUrl: 'https://picsum.photos/seed/cake/100/100' },
-  { id: 'steak', name: 'Стейк', price: 100, type: 'food', minLevel: 5, description: 'Сытный обед для вашего питомца.', imageUrl: 'https://picsum.photos/seed/steak/100/100' },
-  { id: 'cat', name: 'Кот', price: 500, type: 'pet', minLevel: 5, description: 'Милый кот, который присоединится к вашему путешествию.', imageUrl: 'https://picsum.photos/seed/cat/100/100' },
-  { id: 'dragon', name: 'Дракон', price: 2000, type: 'pet', minLevel: 10, description: 'Легендарный питомец-дракон.', imageUrl: 'https://picsum.photos/seed/dragon/100/100' },
-  { id: 'hat', name: 'Шляпа', price: 150, type: 'accessory', minLevel: 2, description: 'Стильная шляпа для вашего питомца.', imageUrl: 'https://picsum.photos/seed/hat/100/100' },
-  { id: 'glasses', name: 'Очки', price: 300, type: 'accessory', minLevel: 4, description: 'Крутые очки для вашего питомца.', imageUrl: 'https://picsum.photos/seed/glasses/100/100' },
-];
-
 export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   const [activeTab, setActiveTab] = useState<'food' | 'pet' | 'accessory'>('food');
   const [buyingId, setBuyingId] = useState<string | null>(null);
+  const [shopMessage, setShopMessage] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -31,13 +24,23 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
     };
   }, []);
 
-  const filteredItems = SHOP_ITEMS.filter(item => item.type === activeTab);
+  const filteredItems = getShopItemsByType(activeTab);
 
   const handleBuy = async (item: ShopItem) => {
-    if (userProfile.coins < item.price || buyingId) return;
+    if (buyingId) return;
+    const purchaseCheck = canPurchaseItem(userProfile, item);
+    if (!purchaseCheck.ok) {
+      setShopMessage(getPurchaseErrorMessage(purchaseCheck.reason));
+      return;
+    }
+
+    setShopMessage(null);
     setBuyingId(item.id);
     try {
       await onBuy(item);
+      if (mountedRef.current) setShopMessage('Покупка добавлена в инвентарь.');
+    } catch (error: any) {
+      if (mountedRef.current) setShopMessage(error?.message || 'Покупка не удалась.');
     } finally {
       if (mountedRef.current) setBuyingId(null);
     }
@@ -62,9 +65,16 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
           <span className="text-xl font-bold text-yellow-700">{userProfile.coins}</span><span className="text-lg">🪙</span>
         </div>
       </div>
+
+      {shopMessage && (
+        <div className="mb-5 rounded-2xl border-2 border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">
+          {shopMessage}
+        </div>
+      )}
+
       <div className="flex gap-2 mb-8 bg-indigo-50 p-1 rounded-2xl w-fit">
         {(['food', 'pet', 'accessory'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-2 rounded-xl font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>
+          <button key={tab} onClick={() => { setActiveTab(tab); setShopMessage(null); }} className={`px-6 py-2 rounded-xl font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>
             {tab === 'food' ? 'Еда' : tab === 'pet' ? 'Питомцы' : 'Аксессуары'}
           </button>
         ))}
@@ -73,11 +83,13 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
         {filteredItems.map(item => {
           const isLocked = (userProfile.pet.level || 1) < item.minLevel;
           const canAfford = userProfile.coins >= item.price;
+          const ownedQuantity = getInventoryQuantity(userProfile.inventory, item.id);
           return (
             <motion.div key={item.id} whileHover={!isLocked ? { y: -5 } : {}} className={`bg-white rounded-3xl p-6 border-2 transition-all ${isLocked ? 'opacity-60 border-gray-100 grayscale' : 'border-indigo-50 shadow-sm hover:shadow-md'}`}>
               <div className="relative aspect-square mb-4 bg-indigo-50 rounded-2xl overflow-hidden">
                 <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 {isLocked && <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 backdrop-blur-sm text-white"><span className="text-3xl mb-1">🔒</span><span className="text-xs font-bold uppercase tracking-wider">Уровень {item.minLevel}</span></div>}
+                {ownedQuantity > 0 && !isLocked && <div className="absolute right-2 top-2 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-indigo-700 shadow">x{ownedQuantity}</div>}
               </div>
               <h3 className="text-xl font-bold text-indigo-900 mb-1">{item.name}</h3>
               <p className="text-sm text-gray-500 mb-4 line-clamp-2">{item.description}</p>
