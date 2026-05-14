@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ShopItem, UserProfile } from '../types';
 import { getShopItemsByType } from '../services/shopCatalog';
 import { applyPurchaseLocally, canPurchaseItem, getInventoryQuantity, getPurchaseErrorMessage } from '../services/economyEngine';
+import { userService } from '../services/userService';
 import { forceHomeNavigation } from '../utils/navigationBridge';
 
 interface ShopProps {
@@ -32,6 +33,14 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   const filteredItems = getShopItemsByType(activeTab);
   const activeProfile = localProfile;
 
+  const syncPurchase = async (item: ShopItem): Promise<UserProfile | null> => {
+    if (typeof onBuy === 'function') {
+      await onBuy(item);
+      return null;
+    }
+    return userService.buyCurrentUserItem(item);
+  };
+
   const handleBuy = async (item: ShopItem) => {
     if (buyingId) return;
     const purchaseCheck = canPurchaseItem(activeProfile, item);
@@ -51,14 +60,22 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
     setBuyingId(item.id);
 
     try {
-      if (typeof onBuy === 'function') {
-        await onBuy(item);
-      }
+      const serverProfile = await syncPurchase(item);
+      if (serverProfile && mountedRef.current) setLocalProfile(serverProfile);
       if (mountedRef.current) setShopMessage('Покупка добавлена в инвентарь.');
     } catch (error: any) {
       const message = String(error?.message || '');
       if (message.includes('not a function') || message.includes('is not a function')) {
-        if (mountedRef.current) setShopMessage('Покупка добавлена локально. Синхронизация будет исправлена следующим обновлением.');
+        try {
+          const serverProfile = await userService.buyCurrentUserItem(item);
+          if (serverProfile && mountedRef.current) setLocalProfile(serverProfile);
+          if (mountedRef.current) setShopMessage('Покупка добавлена в инвентарь.');
+        } catch (fallbackError: any) {
+          if (mountedRef.current) {
+            setLocalProfile(userProfile);
+            setShopMessage(fallbackError?.message || 'Покупка не удалась.');
+          }
+        }
       } else if (mountedRef.current) {
         setLocalProfile(userProfile);
         setShopMessage(message || 'Покупка не удалась.');
