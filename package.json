@@ -8,9 +8,10 @@
     "server": "tsx server.ts",
     "dictionary:smoke": "tsx scripts/dictionary-engine-smoke.ts",
     "navigation:smoke": "tsx scripts/navigation-smoke.ts",
+    "route:smoke": "tsx scripts/route-contract-smoke.ts",
     "economy:smoke": "tsx scripts/economy-smoke.ts",
     "pet:smoke": "tsx scripts/pet-engine-smoke.ts",
-    "build": "npm run dictionary:smoke && npm run navigation:smoke && npm run economy:smoke && npm run pet:smoke && vite build",
+    "build": "npm run dictionary:smoke && npm run navigation:smoke && npm run route:smoke && npm run economy:smoke && npm run pet:smoke && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
