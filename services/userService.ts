@@ -33,7 +33,7 @@ const normalizeStringArray = (value: unknown): string[] => {
   );
 };
 
-const normalizeDictionaryField = (value: unknown): string[] =>
+export const normalizeDictionaryField = (value: unknown): string[] =>
   Array.isArray(value) ? normalizeCustomDictionary(value.filter((item): item is string => typeof item === 'string')) : [];
 
 const normalizeStats = (value: unknown): UserStats => {
@@ -89,7 +89,7 @@ const normalizeInventory = (value: unknown): InventoryItem[] => {
 };
 
 /** Единственный маппер DB-row → UserProfile, используется везде */
-const mapProfileFromDB = (data: any): UserProfile => ({
+export const mapProfileFromDB = (data: any): UserProfile => ({
   username: typeof data?.username === 'string' && data.username.trim() ? data.username : 'Guest',
   role: data?.role === 'admin' ? 'admin' : 'user',
   customDictionaryEn: normalizeDictionaryField(data?.custom_dictionary_en),
