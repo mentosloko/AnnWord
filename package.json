@@ -7,7 +7,8 @@
     "dev": "vite",
     "server": "tsx server.ts",
     "dictionary:smoke": "tsx scripts/dictionary-engine-smoke.ts",
-    "build": "npm run dictionary:smoke && vite build",
+    "navigation:smoke": "tsx scripts/navigation-smoke.ts",
+    "build": "npm run dictionary:smoke && npm run navigation:smoke && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
