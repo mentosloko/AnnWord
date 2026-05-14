@@ -15,7 +15,7 @@ import {
   pickSecretForGame,
   prepareGameDictionary,
 } from '../services/gameDictionaryAdapter';
-import { mapProfileFromDB, normalizeDictionaryField } from '../services/userService';
+import { mapProfileFromDB, normalizeDictionaryField } from '../services/profileMapper';
 
 const assert = (condition: unknown, message: string) => {
   if (!condition) {
