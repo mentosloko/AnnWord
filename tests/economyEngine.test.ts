@@ -39,11 +39,15 @@ const makeItem = (overrides: Partial<ShopItem> = {}): ShopItem => ({
 });
 
 describe('economyEngine', () => {
-  it('allows valid purchases and rejects locked, invalid, and unaffordable items', () => {
+  it('allows valid purchases and rejects locked, invalid, unaffordable, and already-owned items', () => {
     expect(canPurchaseItem(makeProfile(), makeItem()).ok).toBe(true);
     expect(canPurchaseItem(makeProfile({ coins: 1 }), makeItem()).reason).toBe('insufficient_funds');
     expect(canPurchaseItem(makeProfile({ pet: { ...makeProfile().pet, level: 1 } }), makeItem({ minLevel: 3 })).reason).toBe('locked');
     expect(canPurchaseItem(makeProfile(), makeItem({ id: '', price: -1 })).reason).toBe('invalid_item');
+    expect(canPurchaseItem(
+      makeProfile({ inventory: [{ id: 'hat', type: 'accessory', name: 'Hat', quantity: 1 }] }),
+      makeItem({ id: 'hat', name: 'Hat', type: 'accessory', price: 25 }),
+    ).reason).toBe('already_owned');
   });
 
   it('adds food quantity and subtracts coins on purchase', () => {
@@ -57,13 +61,15 @@ describe('economyEngine', () => {
     expect(getInventoryQuantity(profile.inventory, 'apple')).toBe(1);
   });
 
-  it('does not duplicate non-food items already owned', () => {
+  it('rejects duplicate non-food purchases without mutating profile or subtracting coins', () => {
     const profile = makeProfile({ inventory: [{ id: 'hat', type: 'accessory', name: 'Hat', quantity: 1 }] });
     const result = applyPurchaseLocally(profile, makeItem({ id: 'hat', name: 'Hat', type: 'accessory', price: 25 }));
 
-    expect(result.ok).toBe(true);
-    expect(result.profile?.coins).toBe(75);
-    expect(result.profile?.inventory.filter(item => item.id === 'hat')).toHaveLength(1);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe('already_owned');
+    expect(result.profile).toBeUndefined();
+    expect(profile.coins).toBe(100);
+    expect(profile.inventory.filter(item => item.id === 'hat')).toHaveLength(1);
   });
 
   it('uses food by increasing hunger, setting happy mood, and consuming quantity', () => {
@@ -100,6 +106,7 @@ describe('economyEngine', () => {
     expect(getPurchaseErrorMessage('locked')).toContain('недоступен');
     expect(getPurchaseErrorMessage('insufficient_funds')).toContain('Недостаточно');
     expect(getPurchaseErrorMessage('invalid_item')).toContain('Предмет');
+    expect(getPurchaseErrorMessage('already_owned')).toContain('уже есть');
     expect(getPurchaseErrorMessage()).toContain('не удалась');
   });
 });
