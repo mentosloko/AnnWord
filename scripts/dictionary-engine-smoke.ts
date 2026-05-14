@@ -15,6 +15,7 @@ import {
   pickSecretForGame,
   prepareGameDictionary,
 } from '../services/gameDictionaryAdapter';
+import { mapProfileFromDB, normalizeDictionaryField } from '../services/userService';
 
 const assert = (condition: unknown, message: string) => {
   if (!condition) {
@@ -34,6 +35,17 @@ const normalizedCustom = normalizeCustomDictionary(customInput);
 assert(normalizedCustom.includes('APPLE'), 'custom dictionary normalization must uppercase words');
 assert(normalizedCustom.includes('FOX'), 'custom dictionary normalization must strip non-letters');
 assert(normalizedCustom.filter(word => word === 'APPLE').length === 1, 'custom dictionary must be deduplicated');
+assert(JSON.stringify(normalizeDictionaryField(customInput)) === JSON.stringify(normalizedCustom), 'profile dictionary normalization must match dictionary engine normalization');
+
+const dirtyProfile = mapProfileFromDB({
+  username: 'Tester',
+  custom_dictionary_en: customInput,
+  stats: { gamesPlayed: 1, gamesWon: 1, wordsGuessed: { APPLE: 1 } },
+  pet: { name: 'Owl' },
+  coins: 50,
+  inventory: [],
+});
+assert(JSON.stringify(dirtyProfile.customDictionaryEn) === JSON.stringify(normalizedCustom), 'DB profile mapper must normalize custom dictionary with dictionary engine rules');
 
 const builtinFiveA1 = getBuiltinSecretWordPool({ wordLength: 5, difficulty: 'A1' });
 assert(builtinFiveA1.length > 0, 'built-in A1 5-letter secret pool must not be empty');
@@ -86,7 +98,7 @@ assert(ALL_WORDS_EN.length === initialAllWordsCount, 'dictionary engine must not
 
 console.log(JSON.stringify({
   ok: true,
-  checked: 'dictionary-engine-and-game-adapter',
+  checked: 'dictionary-engine-game-adapter-and-profile-normalization',
   counts: {
     commonWords: COMMON_WORDS_EN.length,
     allWords: ALL_WORDS_EN.length,
@@ -96,5 +108,6 @@ console.log(JSON.stringify({
     validationFive: validationFive.length,
     gameSecretPool: preparedCustomGameDictionary.secretWordPool.length,
     gameValidationPool: preparedCustomGameDictionary.validationPool.length,
+    profileDictionary: dirtyProfile.customDictionaryEn.length,
   },
 }, null, 2));
