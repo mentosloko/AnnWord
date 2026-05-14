@@ -92,7 +92,6 @@ const AppV2: React.FC = () => {
   const classicGame = useClassicGameController({
     route,
     settings,
-    stats: userProfile.stats,
     getSecretWordPool,
     getValidationPool,
     getModeWords,
