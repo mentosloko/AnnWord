@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './supabase';
+import { HOME_NAVIGATION_EVENT, HOME_NAVIGATION_FLAG } from './utils/navigationBridge';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -70,11 +71,38 @@ const stripAuthErrorFromUrlBeforeReactMount = () => {
   return true;
 };
 
+const cleanNavigationUrl = () => {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('screen');
+  url.searchParams.delete('t');
+  window.history.replaceState({}, document.title, url.toString());
+};
+
 const initialAuthReturnState = getInitialAuthReturnState();
 stripAuthErrorFromUrlBeforeReactMount();
 
 function AppWithAuthRecovery() {
   const [isCompletingOAuth, setIsCompletingOAuth] = useState(initialAuthReturnState.hasOAuthSuccess && !initialAuthReturnState.hasError);
+  const [appInstanceKey, setAppInstanceKey] = useState(() => {
+    const shouldStartHome = window.sessionStorage.getItem(HOME_NAVIGATION_FLAG) === '1';
+    if (shouldStartHome) {
+      window.sessionStorage.removeItem(HOME_NAVIGATION_FLAG);
+      cleanNavigationUrl();
+    }
+    return shouldStartHome ? 1 : 0;
+  });
+
+  useEffect(() => {
+    const handleNavigateHome = () => {
+      window.sessionStorage.removeItem(HOME_NAVIGATION_FLAG);
+      cleanNavigationUrl();
+      setIsCompletingOAuth(false);
+      setAppInstanceKey(prev => prev + 1);
+    };
+
+    window.addEventListener(HOME_NAVIGATION_EVENT, handleNavigateHome);
+    return () => window.removeEventListener(HOME_NAVIGATION_EVENT, handleNavigateHome);
+  }, []);
 
   useEffect(() => {
     if (!isCompletingOAuth) return;
@@ -136,7 +164,7 @@ function AppWithAuthRecovery() {
 
   return (
     <>
-      <App />
+      <App key={appInstanceKey} />
       {isCompletingOAuth && <OAuthTransitionOverlay />}
     </>
   );
