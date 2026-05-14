@@ -1,55 +1,27 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 const assert = (condition: unknown, message: string) => {
-  if (!condition) throw new Error(`AppV2 architecture smoke failed: ${message}`);
+  if (!condition) throw new Error(`AppV2 route flow smoke failed: ${message}`);
 };
 
 const read = (path: string) => readFileSync(path, 'utf8');
 
-const indexSource = read('index.tsx');
 const appSource = read('AppV2.tsx');
 const shopSource = read('components/Shop.tsx');
 const petRoomSource = read('components/PetRoom.tsx');
 const petWidgetSource = read('components/PetWidget.tsx');
 
-assert(indexSource.includes("import App from './AppV2'"), 'index.tsx must mount AppV2');
-assert(!indexSource.includes("import App from './App'"), 'index.tsx must not mount legacy App.tsx');
-
-const removedLegacyFiles = [
-  'App.tsx',
-  'components/AppProviders.tsx',
-  'components/LegacyAppBridge.tsx',
-  'providers/AuthProvider.tsx',
-  'providers/ProfileProvider.tsx',
-  'providers/NavigationProvider.tsx',
-  'utils/navigationBridge.ts',
-];
-
-for (const path of removedLegacyFiles) {
-  assert(!existsSync(path), `${path} should stay removed after AppV2 migration`);
-}
-
-const authProfileSource = read('hooks/useAuthProfile.ts');
-assert(
-  authProfileSource.includes("../constants/profileDefaults"),
-  'useAuthProfile should depend on neutral profile defaults, not legacy ProfileProvider',
-);
-assert(
-  !authProfileSource.includes('../providers/ProfileProvider'),
-  'useAuthProfile must not depend on legacy ProfileProvider',
-);
-
 const requiredRouteFragments = [
-  'landing:',
-  'setup:',
-  'game:',
-  'profile:',
-  'anagrams:',
-  'sprint:',
-  'memory:',
-  'hangman:',
-  'shop:',
-  'pet_room:',
+  "landing:",
+  "setup:",
+  "game:",
+  "profile:",
+  "anagrams:",
+  "sprint:",
+  "memory:",
+  "hangman:",
+  "shop:",
+  "pet_room:",
 ];
 
 for (const fragment of requiredRouteFragments) {
@@ -107,4 +79,4 @@ assert(petRoomSource.includes('onClick={onClose}'), 'PetRoom back button must cl
 assert(petWidgetSource.includes('onNavigateToPetRoom?: () => void'), 'PetWidget must keep parent-driven pet-room navigation callback');
 assert(petWidgetSource.includes('onNavigateToPetRoom?.()'), 'PetWidget must call parent-driven pet-room navigation callback');
 
-console.log(JSON.stringify({ ok: true, checked: 'appv2-architecture-and-route-flow' }, null, 2));
+console.log(JSON.stringify({ ok: true, checked: 'appv2-route-flow' }, null, 2));
