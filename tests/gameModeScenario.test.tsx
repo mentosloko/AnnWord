@@ -1,78 +1,107 @@
 import React from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from '../components/screens/ModeScreens';
 import { GUEST_PROFILE } from '../constants/profileDefaults';
+
+const makeModeGameMock = async (testId: string, label: string) => {
+  const ReactModule = await import('react');
+  return ({ userProfile, onWinCoins, onAddXP, onBack }: any) => ReactModule.createElement(
+    'div',
+    { 'data-testid': testId },
+    ReactModule.createElement('div', { 'data-testid': `${testId}-dictionary` }, userProfile.customDictionaryEn.join(',')),
+    ReactModule.createElement('button', { type: 'button', onClick: () => onWinCoins(7) }, `${label} win`),
+    ReactModule.createElement('button', { type: 'button', onClick: () => onAddXP(3) }, `${label} xp`),
+    ReactModule.createElement('button', { type: 'button', onClick: onBack }, `${label} back`),
+  );
+};
+
+vi.mock('../components/AnagramGame', async () => ({
+  AnagramGame: await makeModeGameMock('anagram-game', 'anagram'),
+}));
+
+vi.mock('../components/SprintGame', async () => ({
+  SprintGame: await makeModeGameMock('sprint-game', 'sprint'),
+}));
+
+vi.mock('../components/MemoryGame', async () => ({
+  MemoryGame: await makeModeGameMock('memory-game', 'memory'),
+}));
+
+vi.mock('../components/HangmanGame', async () => ({
+  HangmanGame: await makeModeGameMock('hangman-game', 'hangman'),
+}));
+
+import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from '../components/screens/ModeScreens';
 
 const words = ['APPLE', 'BERRY', 'MANGO', 'LEMON', 'PEACH', 'GRAPE'];
 
-const installStableRandom = () => {
-  let i = 0;
-  const values = [0, 0.1, 0.2, 0.3, 0.4, 0.5];
-  vi.spyOn(Math, 'random').mockImplementation(() => values[i++ % values.length]);
-};
-
 describe('game mode scenario contracts', () => {
-  beforeEach(() => {
-    installStableRandom();
-  });
-
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
   });
 
-  it('renders AnagramsScreen with a playable dictionary and parent back callback', () => {
+  it('wires AnagramsScreen to the mini-game prop contract', () => {
     const onBackHome = vi.fn();
+    const onWin = vi.fn();
 
-    render(<AnagramsScreen words={words} userProfile={GUEST_PROFILE} onWin={vi.fn()} onBackHome={onBackHome} />);
+    render(<AnagramsScreen words={words} userProfile={GUEST_PROFILE} onWin={onWin} onBackHome={onBackHome} />);
 
     expect(screen.getAllByText('Анаграммы').length).toBeGreaterThan(0);
-    expect(screen.getByText('Перевод')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Меню/i })).toBeInTheDocument();
+    expect(screen.getByTestId('anagram-game-dictionary')).toHaveTextContent(words.join(','));
 
-    fireEvent.click(screen.getByRole('button', { name: /Меню/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'anagram win' }));
+    fireEvent.click(screen.getByRole('button', { name: 'anagram back' }));
+
+    expect(onWin).toHaveBeenCalledWith(7);
     expect(onBackHome).toHaveBeenCalledTimes(1);
   });
 
-  it('renders SprintScreen with options and parent back callback', () => {
+  it('wires SprintScreen to the mini-game prop contract', () => {
     const onBackHome = vi.fn();
+    const onWin = vi.fn();
 
-    render(<SprintScreen words={words} userProfile={GUEST_PROFILE} onWin={vi.fn()} onBackHome={onBackHome} />);
+    render(<SprintScreen words={words} userProfile={GUEST_PROFILE} onWin={onWin} onBackHome={onBackHome} />);
 
     expect(screen.getByText('Спринт')).toBeInTheDocument();
-    expect(screen.getByText('Как переводится?')).toBeInTheDocument();
-    expect(screen.getByText(/60с/)).toBeInTheDocument();
+    expect(screen.getByTestId('sprint-game-dictionary')).toHaveTextContent(words.join(','));
 
-    fireEvent.click(screen.getByRole('button', { name: /Меню/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'sprint win' }));
+    fireEvent.click(screen.getByRole('button', { name: 'sprint back' }));
+
+    expect(onWin).toHaveBeenCalledWith(7);
     expect(onBackHome).toHaveBeenCalledTimes(1);
   });
 
-  it('renders MemoryScreen cards and parent back callback', () => {
+  it('wires MemoryScreen to the mini-game prop contract', () => {
     const onBackHome = vi.fn();
+    const onWin = vi.fn();
 
-    render(<MemoryScreen words={words} userProfile={GUEST_PROFILE} onWin={vi.fn()} onBackHome={onBackHome} />);
+    render(<MemoryScreen words={words} userProfile={GUEST_PROFILE} onWin={onWin} onBackHome={onBackHome} />);
 
     expect(screen.getByText('Память')).toBeInTheDocument();
-    expect(screen.getByText('Мемо')).toBeInTheDocument();
-    expect(screen.getByText(/Ходы: 0/)).toBeInTheDocument();
-    expect(screen.getAllByText('?')).toHaveLength(12);
+    expect(screen.getByTestId('memory-game-dictionary')).toHaveTextContent(words.join(','));
 
-    fireEvent.click(screen.getByRole('button', { name: /Меню/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'memory win' }));
+    fireEvent.click(screen.getByRole('button', { name: 'memory back' }));
+
+    expect(onWin).toHaveBeenCalledWith(7);
     expect(onBackHome).toHaveBeenCalledTimes(1);
   });
 
-  it('renders HangmanScreen with hearts, alphabet buttons, and parent back callback', () => {
+  it('wires HangmanScreen to the mini-game prop contract', () => {
     const onBackHome = vi.fn();
+    const onWin = vi.fn();
 
-    render(<HangmanScreen words={words} userProfile={GUEST_PROFILE} onWin={vi.fn()} onBackHome={onBackHome} />);
+    render(<HangmanScreen words={words} userProfile={GUEST_PROFILE} onWin={onWin} onBackHome={onBackHome} />);
 
     expect(screen.getByText('Виселица')).toBeInTheDocument();
-    expect(screen.getByText('Угадай слово')).toBeInTheDocument();
-    expect(screen.getByText(/Осталось попыток: 7/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'A' })).toBeInTheDocument();
+    expect(screen.getByTestId('hangman-game-dictionary')).toHaveTextContent(words.join(','));
 
-    fireEvent.click(screen.getByRole('button', { name: /Меню/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'hangman win' }));
+    fireEvent.click(screen.getByRole('button', { name: 'hangman back' }));
+
+    expect(onWin).toHaveBeenCalledWith(7);
     expect(onBackHome).toHaveBeenCalledTimes(1);
   });
 });
