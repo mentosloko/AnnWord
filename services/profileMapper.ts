@@ -10,6 +10,7 @@ const DEFAULT_PET: PetState = {
   xp: 0,
   moodScore: 60,
   stage: 'stage_1',
+  characterOnboarded: false,
   hunger: 100,
   energy: 100,
   equippedAccessories: []
@@ -69,6 +70,7 @@ export const normalizePet = (value: unknown): PetState => {
     energy: typeof value.energy === 'number' ? value.energy : DEFAULT_PET.energy,
     equippedAccessories: normalizeStringArray(value.equippedAccessories),
     activeHomeItemId: typeof value.activeHomeItemId === 'string' ? value.activeHomeItemId : undefined,
+    characterOnboarded: value.characterOnboarded === true,
     stage,
   };
 
