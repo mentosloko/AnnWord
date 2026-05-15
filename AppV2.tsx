@@ -8,6 +8,7 @@ import { useDictionaryPools } from './hooks/useDictionaryPools';
 import { useDictionaryUpload } from './hooks/useDictionaryUpload';
 import { useProfileEconomy } from './hooks/useProfileEconomy';
 import { DictionarySource, ShopItem, UserStats, ViewState } from './types';
+import { GameRewardInput } from './services/gamificationRules';
 
 const AppV2: React.FC = () => {
   const [route, setRoute] = useState<ViewState>('landing');
@@ -86,10 +87,9 @@ const AppV2: React.FC = () => {
     if (won) {
       nextStats.gamesWon += 1;
       nextStats.wordsGuessed[word] = (nextStats.wordsGuessed[word] || 0) + 1;
-      await profileEconomy.addXP(50);
-      await profileEconomy.winCoins(20);
     }
 
+    await profileEconomy.applyGameReward({ type: 'wordle', won });
     await profileEconomy.updateStats(nextStats);
   }, [profileEconomy, userProfile.stats]);
 
@@ -107,6 +107,9 @@ const AppV2: React.FC = () => {
 
   const handleBuy = useCallback(async (item: ShopItem) => profileEconomy.buyItem(item), [profileEconomy]);
   const handleUseItem = useCallback(async (itemId: string) => profileEconomy.useItem(itemId), [profileEconomy]);
+  const handleGameReward = useCallback(async (input: GameRewardInput) => {
+    await profileEconomy.applyGameReward(input);
+  }, [profileEconomy]);
 
   if (bootstrapStatus === 'loading' || bootstrapStatus === 'error') {
     return (
@@ -163,7 +166,7 @@ const AppV2: React.FC = () => {
         onOpenRules={() => setShowRulesModal(true)}
         onBuy={handleBuy}
         onUseItem={handleUseItem}
-        onWinCoins={profileEconomy.winCoins}
+        onGameReward={handleGameReward}
       />
     </AppShell>
   );
