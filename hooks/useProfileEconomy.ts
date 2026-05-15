@@ -39,20 +39,21 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     setUserProfile(updatedProfile);
   }, [currentUserId, setUserProfile]);
 
-  const addXP = useCallback(async (amount: number) => {
-    const progress = applyGameRewardToCharacter(userProfile.pet, { xp: amount, mood: amount });
-    const newPet: PetState = progress.pet;
-
-    setUserProfile(prev => ({ ...prev, pet: newPet }));
+  const updateCharacter = useCallback(async (pet: PetState) => {
+    setUserProfile(prev => ({ ...prev, pet }));
     if (!currentUserId) return;
-
     try {
       const userService = await getUserService();
-      await userService.updateUserPet(currentUserId, newPet);
+      await userService.updateUserPet(currentUserId, pet);
     } catch (error) {
-      console.error('Failed to update pet', error);
+      console.error('Failed to update character', error);
     }
-  }, [currentUserId, setUserProfile, userProfile.pet]);
+  }, [currentUserId, setUserProfile]);
+
+  const addXP = useCallback(async (amount: number) => {
+    const progress = applyGameRewardToCharacter(userProfile.pet, { xp: amount, mood: amount });
+    await updateCharacter(progress.pet);
+  }, [updateCharacter, userProfile.pet]);
 
   const applyGameReward = useCallback(async (input: GameRewardInput) => {
     const reward = calculateGameReward(input);
@@ -108,6 +109,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     winCoins,
     buyItem,
     useItem,
+    updateCharacter,
     addXP,
     applyGameReward,
     updateStats,
