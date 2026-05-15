@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserProfile } from '../../types';
+import { getPetEmoji } from '../../services/petEngine';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface LandingScreenProps {
@@ -58,7 +59,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed max-w-2xl mb-7">
             Классический word game, анаграммы, спринт, виселица и память — с единым словарём,
-            монетами и питомцем-компаньоном.
+            монетами и персонажем, который растёт от XP.
           </p>
 
           <div className="flex flex-wrap gap-3">
@@ -110,7 +111,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
               <div className="text-xs text-white/65 font-bold uppercase tracking-widest">монет</div>
             </div>
             <div className="rounded-2xl bg-white/10 p-4 border border-white/10">
-              <div className="text-3xl mb-2">🦉</div>
+              <div className="text-3xl mb-2">{getPetEmoji(userProfile.pet)}</div>
               <div className="text-2xl font-black">{userProfile.pet.level}</div>
               <div className="text-xs text-white/65 font-bold uppercase tracking-widest">уровень</div>
             </div>
