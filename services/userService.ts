@@ -11,6 +11,7 @@ const DEFAULT_PET: PetState = {
   xp: 0,
   moodScore: 60,
   stage: 'stage_1',
+  characterOnboarded: false,
   hunger: 60,
   energy: 60,
   equippedAccessories: []
