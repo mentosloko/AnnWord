@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion, AnimatePresence } from 'motion/react';
@@ -16,10 +16,27 @@ interface LetterSlot {
   originalIndex: number;
 }
 
+export const buildAnagramDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => {
+  if (customDictionaryEn.length === 0) return fallbackDictionary;
+
+  return customDictionaryEn.map(word => {
+    const normalizedWord = word.toUpperCase();
+    const builtinEntry = fallbackDictionary.find(entry => entry.word.toUpperCase() === normalizedWord);
+
+    return {
+      word: normalizedWord,
+      translation: builtinEntry?.translation || 'Перевод недоступен',
+      level: builtinEntry?.level || 'Custom',
+    };
+  });
+};
+
 export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, onWinCoins, onAddXP }) => {
-  const dictionary: EnrichedWord[] = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
-    ? userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: '', level: 'Custom' }))
-    : COMMON_WORDS_EN;
+  const dictionary = useMemo(
+    () => buildAnagramDictionary(userProfile.customDictionaryEn),
+    [userProfile.customDictionaryEn],
+  );
+  const nextWordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
   const [shuffledLetters, setShuffledLetters] = useState<LetterSlot[]>([]);
@@ -27,13 +44,26 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
   const [status, setStatus] = useState<'playing' | 'success' | 'error'>('playing');
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    if (dictionary.length > 0 && !currentWord) {
-      pickNewWord();
+  const clearNextWordTimeout = useCallback(() => {
+    if (nextWordTimeoutRef.current) {
+      clearTimeout(nextWordTimeoutRef.current);
+      nextWordTimeoutRef.current = null;
     }
-  }, [dictionary, currentWord]);
+  }, []);
 
-  const pickNewWord = () => {
+  const shuffle = useCallback((array: string[]): string[] => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    if (newArray.join('') === array.join('') && array.length > 1) {
+      return shuffle(array);
+    }
+    return newArray;
+  }, []);
+
+  const pickNewWord = useCallback(() => {
     if (dictionary.length === 0) return;
     const word = dictionary[Math.floor(Math.random() * dictionary.length)];
     setCurrentWord(word);
@@ -49,19 +79,15 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     setUserGuess([]);
     setStatus('playing');
     setMessage('');
-  };
+  }, [dictionary, shuffle]);
 
-  const shuffle = (array: string[]) => {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  useEffect(() => {
+    if (dictionary.length > 0 && !currentWord) {
+      pickNewWord();
     }
-    if (newArray.join('') === array.join('') && array.length > 1) {
-        return shuffle(array);
-    }
-    return newArray;
-  };
+  }, [dictionary.length, currentWord, pickNewWord]);
+
+  useEffect(() => clearNextWordTimeout, [clearNextWordTimeout]);
 
   const handleLetterClick = (letter: string, index: number) => {
     if (status !== 'playing' || shuffledLetters[index].isUsed) return;
@@ -93,13 +119,13 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
       setMessage('Правильно! Отличная работа!');
       onAddXP(30);
       onWinCoins(10);
-      setTimeout(() => {
-        pickNewWord();
-      }, 2000);
+      clearNextWordTimeout();
+      nextWordTimeoutRef.current = setTimeout(pickNewWord, 2000);
     } else {
       setStatus('error');
       setMessage('Неверно, попробуй еще раз!');
-      setTimeout(() => {
+      clearNextWordTimeout();
+      nextWordTimeoutRef.current = setTimeout(() => {
         setStatus('playing');
         setMessage('');
         const resetShuffled = shuffledLetters.map(s => ({ ...s, isUsed: false }));
@@ -135,10 +161,9 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
 
       <div className="mb-8 text-center">
         <div className="text-sm text-gray-400 mb-1 uppercase tracking-tighter">Перевод</div>
-        <div className="text-2xl font-bold text-indigo-900">{currentWord?.translation || '—'}</div>
+        <div className="text-2xl font-bold text-indigo-900">{currentWord?.translation || 'Перевод недоступен'}</div>
       </div>
 
-      {/* User Guess Area */}
       <div className="flex flex-wrap justify-center gap-2 mb-8 min-h-[60px] p-4 bg-indigo-50 rounded-2xl w-full border-2 border-dashed border-indigo-200">
         <AnimatePresence mode="popLayout">
           {userGuess.map((item, i) => (
@@ -157,7 +182,6 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
         </AnimatePresence>
       </div>
 
-      {/* Shuffled Letters Area */}
       <div className="flex flex-wrap justify-center gap-2 mb-8">
         {shuffledLetters.map((slot, i) => (
           <div key={`slot-${i}`} className="w-12 h-12 relative">
