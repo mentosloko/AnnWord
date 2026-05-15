@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from '../components/screens/ModeScreens';
 import { GUEST_PROFILE } from '../constants/profileDefaults';
 
@@ -14,13 +14,11 @@ const installStableRandom = () => {
 
 describe('game mode scenario contracts', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     installStableRandom();
   });
 
   afterEach(() => {
-    vi.clearAllTimers();
-    vi.useRealTimers();
+    cleanup();
     vi.restoreAllMocks();
   });
 
