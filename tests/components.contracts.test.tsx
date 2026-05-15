@@ -30,6 +30,7 @@ const profile: UserProfile = {
 };
 
 const settings: GameSettings = {
+  username: 'Tester',
   difficulty: 'ALL',
   wordLength: 5,
   dictionarySource: 'builtin',
