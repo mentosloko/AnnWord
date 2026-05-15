@@ -1,7 +1,8 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
+import { calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 
 interface Card {
   id: number;
@@ -15,8 +16,7 @@ interface Card {
 interface MemoryGameProps {
   onBack: () => void;
   userProfile: UserProfile;
-  onWinCoins: (coins: number) => void;
-  onAddXP: (xp: number) => void;
+  onGameReward: (input: GameRewardInput) => void | Promise<void>;
 }
 
 export const buildMemoryDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => {
@@ -62,19 +62,23 @@ export const createMemoryCards = (dictionary: EnrichedWord[], random: () => numb
   return gameCards.sort(() => 0.5 - random());
 };
 
-export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onWinCoins, onAddXP }) => {
+export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onGameReward }) => {
   const dictionary = useMemo(() => buildMemoryDictionary(userProfile.customDictionaryEn), [userProfile.customDictionaryEn]);
+  const rewardAppliedRef = useRef(false);
 
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
+  const [clicks, setClicks] = useState(0);
   const [isWon, setIsWon] = useState(false);
 
   const initializeGame = () => {
     setCards(createMemoryCards(dictionary));
     setFlippedCards([]);
     setMoves(0);
+    setClicks(0);
     setIsWon(false);
+    rewardAppliedRef.current = false;
   };
 
   useEffect(() => {
@@ -84,6 +88,7 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onW
   const handleCardClick = (id: number) => {
     if (flippedCards.length === 2 || cards.find(c => c.id === id)?.isFlipped || cards.find(c => c.id === id)?.isMatched) return;
 
+    setClicks(prev => prev + 1);
     const newCards = cards.map(card => 
       card.id === id ? { ...card, isFlipped: true } : card
     );
@@ -119,10 +124,17 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onW
   useEffect(() => {
     if (cards.length > 0 && cards.every(card => card.isMatched) && !isWon) {
       setIsWon(true);
-      onWinCoins(25);
-      onAddXP(40);
     }
-  }, [cards, isWon, onAddXP, onWinCoins]);
+  }, [cards, isWon]);
+
+  useEffect(() => {
+    if (isWon && !rewardAppliedRef.current) {
+      rewardAppliedRef.current = true;
+      void onGameReward({ type: 'memory', clicks });
+    }
+  }, [isWon, clicks, onGameReward]);
+
+  const rewardPreview = calculateGameReward({ type: 'memory', clicks });
 
   return (
     <div className="flex flex-col items-center p-4 max-w-2xl mx-auto">
@@ -135,7 +147,7 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onW
         </button>
         <h2 className="text-2xl font-black text-indigo-900">Мемо</h2>
         <div className="text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-1.5 rounded-2xl shadow-sm">
-          Ходы: {moves}
+          Кликов: {clicks}
         </div>
       </div>
 
@@ -176,7 +188,11 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onW
         >
           <div className="text-5xl mb-4">🎉</div>
           <h3 className="text-2xl font-black text-green-800 mb-2">Отлично!</h3>
-          <p className="text-green-600 font-bold mb-6">Ты нашёл все пары за {moves} ходов.</p>
+          <p className="text-green-600 font-bold mb-4">Ты нашёл все пары за {clicks} кликов.</p>
+          <div className="grid grid-cols-2 gap-3 bg-green-50 rounded-2xl p-4 mb-6">
+            <div><div className="text-xs font-bold text-green-500 uppercase">XP</div><div className="text-2xl font-black text-green-700">+{rewardPreview.xp}</div></div>
+            <div><div className="text-xs font-bold text-yellow-500 uppercase">Монеты</div><div className="text-2xl font-black text-yellow-600">+{rewardPreview.coins} 🪙</div></div>
+          </div>
           <div className="flex gap-3">
             <button
               onClick={initializeGame}
