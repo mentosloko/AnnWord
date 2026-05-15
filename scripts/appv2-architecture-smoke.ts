@@ -8,6 +8,8 @@ const read = (path: string) => readFileSync(path, 'utf8');
 
 const indexSource = read('index.tsx');
 const appSource = read('AppV2.tsx');
+const appShellSource = read('components/AppShell.tsx');
+const appScreensSource = read('components/AppScreens.tsx');
 const shopSource = read('components/Shop.tsx');
 const petRoomSource = read('components/PetRoom.tsx');
 const petWidgetSource = read('components/PetWidget.tsx');
@@ -39,6 +41,11 @@ assert(
   'useAuthProfile must not depend on legacy ProfileProvider',
 );
 
+assert(appSource.includes("import { AppShell } from './components/AppShell'"), 'AppV2 must compose AppShell');
+assert(appSource.includes("import { AppScreens } from './components/AppScreens'"), 'AppV2 must compose AppScreens');
+assert(appSource.includes('<AppShell'), 'AppV2 must render AppShell');
+assert(appSource.includes('<AppScreens'), 'AppV2 must render AppScreens');
+
 const requiredRouteFragments = [
   'landing:',
   'setup:',
@@ -53,27 +60,38 @@ const requiredRouteFragments = [
 ];
 
 for (const fragment of requiredRouteFragments) {
-  assert(appSource.includes(fragment), `AppV2 screens map must include ${fragment}`);
+  assert(appScreensSource.includes(fragment), `AppScreens route map must include ${fragment}`);
 }
 
 const requiredNavigationFragments = [
-  "onStartClassic={() => setRoute('setup')}",
-  "onStartAnagrams={() => setRoute('anagrams')}",
-  "onStartSprint={() => setRoute('sprint')}",
-  "onStartHangman={() => setRoute('hangman')}",
-  "onStartMemory={() => setRoute('memory')}",
-  "onOpenShop={() => setRoute('shop')}",
-  "onOpenProfile={() => setRoute('profile')}",
-  "onNavigateToPetRoom={() => setRoute('pet_room')}",
-  "shop: <Shop userProfile={userProfile} onBuy={handleBuy} onClose={goHome} />",
-  "pet_room: <PetRoom userProfile={userProfile} onUseItem={handleUseItem} onClose={goHome} />",
+  "onStartClassic={() => onRouteChange('setup')}",
+  "onStartAnagrams={() => onRouteChange('anagrams')}",
+  "onStartSprint={() => onRouteChange('sprint')}",
+  "onStartHangman={() => onRouteChange('hangman')}",
+  "onStartMemory={() => onRouteChange('memory')}",
+  "onOpenShop={() => onRouteChange('shop')}",
+  "onOpenProfile={() => onRouteChange('profile')}",
+  "shop: <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} />",
+  "pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onClose={goHome} />",
 ];
 
 for (const fragment of requiredNavigationFragments) {
-  assert(appSource.includes(fragment), `AppV2 must keep route wiring: ${fragment}`);
+  assert(appScreensSource.includes(fragment), `AppScreens must keep route wiring: ${fragment}`);
 }
 
-const forbiddenAppFragments = [
+const requiredShellFragments = [
+  '<AppHeader',
+  '<AppModals',
+  '<PetWidget',
+  "route !== 'pet_room' && route !== 'shop'",
+  'onNavigateToPetRoom={onNavigateToPetRoom}',
+];
+
+for (const fragment of requiredShellFragments) {
+  assert(appShellSource.includes(fragment), `AppShell must keep layout wiring: ${fragment}`);
+}
+
+const forbiddenLegacyFragments = [
   "./App'",
   './App"',
   'LegacyAppBridge',
@@ -86,18 +104,17 @@ const forbiddenAppFragments = [
   'navigateToRoute',
 ];
 
-for (const fragment of forbiddenAppFragments) {
-  assert(!appSource.includes(fragment), `AppV2 must not depend on legacy fragment: ${fragment}`);
-}
-
 for (const [path, source] of [
+  ['AppV2.tsx', appSource],
+  ['components/AppShell.tsx', appShellSource],
+  ['components/AppScreens.tsx', appScreensSource],
   ['components/Shop.tsx', shopSource],
   ['components/PetRoom.tsx', petRoomSource],
   ['components/PetWidget.tsx', petWidgetSource],
 ] as const) {
-  assert(!source.includes('navigationBridge'), `${path} must not import legacy navigationBridge`);
-  assert(!source.includes('forceHomeNavigation'), `${path} must not call forceHomeNavigation`);
-  assert(!source.includes('navigateToRoute'), `${path} must not call navigateToRoute`);
+  for (const fragment of forbiddenLegacyFragments) {
+    assert(!source.includes(fragment), `${path} must not depend on legacy fragment: ${fragment}`);
+  }
 }
 
 assert(shopSource.includes('onClose: () => void'), 'Shop must keep explicit onClose callback contract');
@@ -107,4 +124,4 @@ assert(petRoomSource.includes('onClick={onClose}'), 'PetRoom back button must cl
 assert(petWidgetSource.includes('onNavigateToPetRoom?: () => void'), 'PetWidget must keep parent-driven pet-room navigation callback');
 assert(petWidgetSource.includes('onNavigateToPetRoom?.()'), 'PetWidget must call parent-driven pet-room navigation callback');
 
-console.log(JSON.stringify({ ok: true, checked: 'appv2-architecture-and-route-flow' }, null, 2));
+console.log(JSON.stringify({ ok: true, checked: 'appv2-shell-screens-architecture-and-route-flow' }, null, 2));
