@@ -1,1 +1,3 @@
 Trigger production redeploy after merging MemoryGame translation fix and supported Wordle lengths.
+
+Retry: force Vercel Git integration to deploy latest main after user request.
