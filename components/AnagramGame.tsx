@@ -2,12 +2,12 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion, AnimatePresence } from 'motion/react';
+import { GameRewardInput } from '../services/gamificationRules';
 
 interface AnagramGameProps {
   onBack: () => void;
   userProfile: UserProfile;
-  onWinCoins: (coins: number) => void;
-  onAddXP: (xp: number) => void;
+  onGameReward: (input: GameRewardInput) => void | Promise<void>;
 }
 
 interface LetterSlot {
@@ -31,7 +31,7 @@ export const buildAnagramDictionary = (customDictionaryEn: string[] = [], fallba
   });
 };
 
-export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, onWinCoins, onAddXP }) => {
+export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, onGameReward }) => {
   const dictionary = useMemo(
     () => buildAnagramDictionary(userProfile.customDictionaryEn),
     [userProfile.customDictionaryEn],
@@ -43,6 +43,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
   const [userGuess, setUserGuess] = useState<{ char: string, slotIndex: number }[]>([]);
   const [status, setStatus] = useState<'playing' | 'success' | 'error'>('playing');
   const [message, setMessage] = useState('');
+  const [solvedCount, setSolvedCount] = useState(0);
 
   const clearNextWordTimeout = useCallback(() => {
     if (nextWordTimeoutRef.current) {
@@ -115,10 +116,11 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     if (!currentWord) return;
     const guess = userGuess.map(g => g.char).join('');
     if (guess === currentWord.word) {
+      const nextSolvedCount = solvedCount + 1;
+      setSolvedCount(nextSolvedCount);
       setStatus('success');
-      setMessage('Правильно! Отличная работа!');
-      onAddXP(30);
-      onWinCoins(10);
+      setMessage(`Правильно! +1 XP персонажу. Всего слов: ${nextSolvedCount}`);
+      await onGameReward({ type: 'anagram', guessedWords: 1 });
       clearNextWordTimeout();
       nextWordTimeoutRef.current = setTimeout(pickNewWord, 2000);
     } else {
@@ -156,7 +158,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
           <span className="text-xl">←</span> Меню
         </button>
         <div className="text-sm font-bold text-indigo-600 uppercase tracking-widest">Анаграммы</div>
-        <div className="w-16"></div>
+        <div className="text-sm font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">{solvedCount} слов</div>
       </div>
 
       <div className="mb-8 text-center">
