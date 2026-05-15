@@ -2,12 +2,12 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion, AnimatePresence } from 'motion/react';
+import { calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 
 interface SprintGameProps {
   onBack: () => void;
   userProfile: UserProfile;
-  onWinCoins: (coins: number) => void;
-  onAddXP: (xp: number) => void;
+  onGameReward: (input: GameRewardInput) => void | Promise<void>;
 }
 
 export const buildSprintDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => {
@@ -25,12 +25,13 @@ export const buildSprintDictionary = (customDictionaryEn: string[] = [], fallbac
   });
 };
 
-export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onWinCoins, onAddXP }) => {
+export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onGameReward }) => {
   const dictionary = useMemo(
     () => buildSprintDictionary(userProfile.customDictionaryEn),
     [userProfile.customDictionaryEn],
   );
   const nextWordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rewardAppliedRef = useRef(false);
 
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
   const [options, setOptions] = useState<string[]>([]);
@@ -101,13 +102,14 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onW
   }, [status, pickNewWord, clearNextWordTimeout]);
 
   useEffect(() => {
-    if (status === 'ended') {
-      onAddXP(score * 10);
-      onWinCoins(score * 2);
+    if (status === 'ended' && !rewardAppliedRef.current) {
+      rewardAppliedRef.current = true;
+      void onGameReward({ type: 'sprint', guessedWords: score });
     }
-  }, [status, score, onAddXP, onWinCoins]);
+  }, [status, score, onGameReward]);
 
   const correctAnswer = currentWord?.translation || currentWord?.word || '';
+  const rewardPreview = calculateGameReward({ type: 'sprint', guessedWords: score });
 
   const handleOptionClick = (option: string) => {
     if (status !== 'playing' || feedback) return;
@@ -140,10 +142,16 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onW
       <div className="flex flex-col items-center justify-center p-8 text-center bg-white rounded-3xl shadow-2xl w-full max-w-md">
         <div className="text-6xl mb-4">🏆</div>
         <h2 className="text-3xl font-black text-indigo-900 mb-2">Время вышло!</h2>
-        <p className="text-gray-500 mb-6 text-lg">Твой результат: <span className="font-bold text-indigo-600">{score}</span> очков</p>
-        <div className="bg-indigo-50 p-4 rounded-2xl mb-8 w-full">
-            <div className="text-sm text-indigo-400 uppercase font-bold mb-1">Опыт питомца</div>
-            <div className="text-2xl font-black text-indigo-600">+{score * 10} XP</div>
+        <p className="text-gray-500 mb-6 text-lg">Отгадано слов: <span className="font-bold text-indigo-600">{score}</span></p>
+        <div className="bg-indigo-50 p-4 rounded-2xl mb-8 w-full grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-sm text-indigo-400 uppercase font-bold mb-1">Опыт персонажа</div>
+              <div className="text-2xl font-black text-indigo-600">+{rewardPreview.xp} XP</div>
+            </div>
+            <div>
+              <div className="text-sm text-yellow-500 uppercase font-bold mb-1">Монеты</div>
+              <div className="text-2xl font-black text-yellow-600">+{rewardPreview.coins} 🪙</div>
+            </div>
         </div>
         <button onClick={onBack} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-xl shadow-lg hover:bg-indigo-700 transition active:scale-95">Назад в меню</button>
       </div>
