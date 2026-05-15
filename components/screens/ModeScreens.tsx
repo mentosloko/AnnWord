@@ -4,17 +4,18 @@ import { SprintGame } from '../SprintGame';
 import { MemoryGame } from '../MemoryGame';
 import { HangmanGame } from '../HangmanGame';
 import { GameModeShell } from './GameModeShell';
+import { GUEST_PROFILE } from '../../constants/profileDefaults';
 import { UserProfile } from '../../types';
 
 interface ModeScreenProps {
   words: string[];
-  userProfile: UserProfile;
+  userProfile?: UserProfile;
   onWin: (amount: number) => void | Promise<void>;
   onBackHome: () => void;
 }
 
-const buildModeProfile = (userProfile: UserProfile, words: string[]): UserProfile => ({
-  ...userProfile,
+const buildModeProfile = (userProfile: UserProfile | undefined, words: string[]): UserProfile => ({
+  ...(userProfile || GUEST_PROFILE),
   customDictionaryEn: words,
 });
 
