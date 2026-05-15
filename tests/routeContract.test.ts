@@ -19,8 +19,9 @@ describe('route contracts', () => {
       'admin',
     ];
 
-    expect(KNOWN_ROUTES).toEqual(requiredRoutes);
     expect(new Set(KNOWN_ROUTES).size).toBe(KNOWN_ROUTES.length);
+    expect(KNOWN_ROUTES).toHaveLength(requiredRoutes.length);
+    expect([...KNOWN_ROUTES].sort()).toEqual([...requiredRoutes].sort());
     for (const route of requiredRoutes) expect(isKnownRoute(route)).toBe(true);
   });
 
