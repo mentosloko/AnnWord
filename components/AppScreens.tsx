@@ -9,6 +9,8 @@ import { Shop } from './Shop';
 import { PetRoom } from './PetRoom';
 import { GameSettings, GameState, CharStatus, ShopItem, UserProfile, ViewState } from '../types';
 
+export type PlayableModeRoute = 'game' | 'anagrams' | 'sprint' | 'memory' | 'hangman';
+
 export interface ClassicGameScreenBindings {
   setupError: string | null;
   gameState: GameState;
@@ -33,9 +35,11 @@ export interface AppScreensProps {
   isAuthenticated: boolean;
   settings: GameSettings;
   modeWords: string[];
+  selectedPlayMode: PlayableModeRoute;
   classicGame: ClassicGameScreenBindings;
   dictionaryUpload: DictionaryUploadBindings;
   onRouteChange: (route: ViewState) => void;
+  onSelectedPlayModeChange: (mode: PlayableModeRoute) => void;
   onSettingsChange: (settings: GameSettings | ((prev: GameSettings) => GameSettings)) => void;
   onOpenLogin: () => void;
   onOpenRules: () => void;
@@ -50,9 +54,11 @@ export const AppScreens: React.FC<AppScreensProps> = ({
   isAuthenticated,
   settings,
   modeWords,
+  selectedPlayMode,
   classicGame,
   dictionaryUpload,
   onRouteChange,
+  onSelectedPlayModeChange,
   onSettingsChange,
   onOpenLogin,
   onOpenRules,
@@ -63,16 +69,29 @@ export const AppScreens: React.FC<AppScreensProps> = ({
   const goHome = () => onRouteChange('landing');
   const setupError = classicGame.setupError || dictionaryUpload.error;
 
+  const openSetupFor = (mode: PlayableModeRoute) => {
+    onSelectedPlayModeChange(mode);
+    onRouteChange('setup');
+  };
+
+  const startSelectedMode = () => {
+    if (selectedPlayMode === 'game') {
+      classicGame.startNewGame();
+      return;
+    }
+    onRouteChange(selectedPlayMode);
+  };
+
   const screens: Partial<Record<ViewState, React.ReactNode>> = {
     landing: (
       <LandingScreen
         userProfile={userProfile}
         isAuthenticated={isAuthenticated}
-        onStartClassic={() => onRouteChange('setup')}
-        onStartAnagrams={() => onRouteChange('anagrams')}
-        onStartSprint={() => onRouteChange('sprint')}
-        onStartHangman={() => onRouteChange('hangman')}
-        onStartMemory={() => onRouteChange('memory')}
+        onStartClassic={() => openSetupFor('game')}
+        onStartAnagrams={() => openSetupFor('anagrams')}
+        onStartSprint={() => openSetupFor('sprint')}
+        onStartHangman={() => openSetupFor('hangman')}
+        onStartMemory={() => openSetupFor('memory')}
         onOpenShop={() => onRouteChange('shop')}
         onOpenRules={onOpenRules}
         onOpenLogin={onOpenLogin}
@@ -81,13 +100,14 @@ export const AppScreens: React.FC<AppScreensProps> = ({
     ),
     setup: (
       <SetupScreen
+        selectedPlayMode={selectedPlayMode}
         settings={settings}
         customWordsCount={userProfile.customDictionaryEn.length}
         setupError={setupError}
         isUploadingDictionary={dictionaryUpload.isUploadingDictionary}
         onSettingsChange={onSettingsChange}
         onFileUpload={dictionaryUpload.onFileUpload}
-        onStartGame={classicGame.startNewGame}
+        onStartGame={startSelectedMode}
         onBack={goHome}
       />
     ),

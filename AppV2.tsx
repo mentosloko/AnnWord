@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AuthBootstrapGate } from './components/AuthBootstrapGate';
 import { AppShell } from './components/AppShell';
-import { AppScreens } from './components/AppScreens';
+import { AppScreens, PlayableModeRoute } from './components/AppScreens';
 import { useAuthProfile } from './hooks/useAuthProfile';
 import { useClassicGameController } from './hooks/useClassicGameController';
 import { useDictionaryPools } from './hooks/useDictionaryPools';
@@ -11,6 +11,7 @@ import { DictionarySource, ShopItem, UserStats, ViewState } from './types';
 
 const AppV2: React.FC = () => {
   const [route, setRoute] = useState<ViewState>('landing');
+  const [selectedPlayMode, setSelectedPlayMode] = useState<PlayableModeRoute>('game');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
 
@@ -144,6 +145,7 @@ const AppV2: React.FC = () => {
     >
       <AppScreens
         route={route}
+        selectedPlayMode={selectedPlayMode}
         userProfile={userProfile}
         isAuthenticated={isAuthenticated}
         settings={settings}
@@ -155,6 +157,7 @@ const AppV2: React.FC = () => {
           onFileUpload: dictionaryUpload.handleDictionaryFileUpload,
         }}
         onRouteChange={setRoute}
+        onSelectedPlayModeChange={setSelectedPlayMode}
         onSettingsChange={setSettings}
         onOpenLogin={openLogin}
         onOpenRules={() => setShowRulesModal(true)}

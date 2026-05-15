@@ -42,7 +42,8 @@ assert(
 );
 
 assert(appSource.includes("import { AppShell } from './components/AppShell'"), 'AppV2 must compose AppShell');
-assert(appSource.includes("import { AppScreens } from './components/AppScreens'"), 'AppV2 must compose AppScreens');
+assert(appSource.includes('AppScreens') && appSource.includes("from './components/AppScreens'"), 'AppV2 must compose AppScreens');
+assert(appSource.includes('selectedPlayMode'), 'AppV2 must keep selected game mode state for shared setup');
 assert(appSource.includes('<AppShell'), 'AppV2 must render AppShell');
 assert(appSource.includes('<AppScreens'), 'AppV2 must render AppScreens');
 
@@ -64,11 +65,11 @@ for (const fragment of requiredRouteFragments) {
 }
 
 const requiredNavigationFragments = [
-  "onStartClassic={() => onRouteChange('setup')}",
-  "onStartAnagrams={() => onRouteChange('anagrams')}",
-  "onStartSprint={() => onRouteChange('sprint')}",
-  "onStartHangman={() => onRouteChange('hangman')}",
-  "onStartMemory={() => onRouteChange('memory')}",
+  "onStartClassic={() => openSetupFor('game')}",
+  "onStartAnagrams={() => openSetupFor('anagrams')}",
+  "onStartSprint={() => openSetupFor('sprint')}",
+  "onStartHangman={() => openSetupFor('hangman')}",
+  "onStartMemory={() => openSetupFor('memory')}",
   "onOpenShop={() => onRouteChange('shop')}",
   "onOpenProfile={() => onRouteChange('profile')}",
   "shop: <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} />",
@@ -77,6 +78,19 @@ const requiredNavigationFragments = [
 
 for (const fragment of requiredNavigationFragments) {
   assert(appScreensSource.includes(fragment), `AppScreens must keep route wiring: ${fragment}`);
+}
+
+const sharedSetupFragments = [
+  'selectedPlayMode',
+  'openSetupFor',
+  'startSelectedMode',
+  "if (selectedPlayMode === 'game')",
+  'classicGame.startNewGame();',
+  'onRouteChange(selectedPlayMode);',
+];
+
+for (const fragment of sharedSetupFragments) {
+  assert(appScreensSource.includes(fragment), `AppScreens must keep shared setup flow: ${fragment}`);
 }
 
 const requiredShellFragments = [
@@ -124,4 +138,4 @@ assert(petRoomSource.includes('onClick={onClose}'), 'PetRoom back button must cl
 assert(petWidgetSource.includes('onNavigateToPetRoom?: () => void'), 'PetWidget must keep parent-driven pet-room navigation callback');
 assert(petWidgetSource.includes('onNavigateToPetRoom?.()'), 'PetWidget must call parent-driven pet-room navigation callback');
 
-console.log(JSON.stringify({ ok: true, checked: 'appv2-shell-screens-architecture-and-route-flow' }, null, 2));
+console.log(JSON.stringify({ ok: true, checked: 'appv2-shell-screens-shared-setup-route-flow' }, null, 2));
