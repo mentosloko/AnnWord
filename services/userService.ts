@@ -1,15 +1,18 @@
 import { UserProfile, UserStats, PetState, ShopItem } from "../types";
 import { supabase } from "../supabase";
 import { mapProfileFromDB, normalizeDictionaryField, normalizePet, normalizeStats } from "./profileMapper";
+import { applyItemUseLocally } from "./economyEngine";
 
 const DEFAULT_PET: PetState = {
-  name: 'Owl',
-  type: 'Owl',
+  name: 'Щенок',
+  type: 'Puppy',
   level: 1,
   mood: 'happy',
   xp: 0,
-  hunger: 100,
-  energy: 100,
+  moodScore: 60,
+  stage: 'stage_1',
+  hunger: 60,
+  energy: 60,
   equippedAccessories: []
 };
 
@@ -21,6 +24,8 @@ const toShopItemPayload = (item: ShopItem) => ({
   name: item.name,
   price: item.price,
   imageUrl: item.imageUrl || '',
+  effect: item.effect || {},
+  characterType: item.characterType || '',
 });
 
 export const userService = {
@@ -36,7 +41,7 @@ export const userService = {
       customDictionaryEn: [],
       stats: { ...DEFAULT_STATS },
       pet: { ...DEFAULT_PET },
-      coins: 100,
+      coins: 5,
       inventory: []
     });
 
@@ -95,7 +100,7 @@ export const userService = {
           custom_dictionary_en: [],
           stats: DEFAULT_STATS,
           pet: { ...DEFAULT_PET },
-          coins: 100,
+          coins: 5,
           inventory: []
         };
 
@@ -204,7 +209,7 @@ export const userService = {
       const existingItemIndex = inventory.findIndex((i: any) => i.id === item.id);
       if (existingItemIndex > -1 && item.type === 'food') {
         inventory[existingItemIndex].quantity += 1;
-      } else {
+      } else if (existingItemIndex === -1) {
         inventory.push({
           id: item.id,
           type: item.type,
@@ -241,31 +246,12 @@ export const userService = {
       if (fetchErr) throw fetchErr;
 
       const normalizedProfile = mapProfileFromDB(profile);
-      const inventory = [...normalizedProfile.inventory];
-      const itemIndex = inventory.findIndex((i: any) => i.id === itemId);
-      if (itemIndex === -1) throw new Error("Предмет не найден");
-
-      const item = inventory[itemIndex];
-      const pet = { ...normalizedProfile.pet };
-
-      if (item.type === 'food') {
-        pet.hunger = Math.min(100, (pet.hunger || 0) + 20);
-        pet.mood = 'happy';
-        item.quantity -= 1;
-        if (item.quantity <= 0) inventory.splice(itemIndex, 1);
-      } else if (item.type === 'pet') {
-        pet.type = item.name;
-        pet.name = item.name;
-      } else if (item.type === 'accessory') {
-        if (!pet.equippedAccessories) pet.equippedAccessories = [];
-        const accIndex = pet.equippedAccessories.indexOf(item.id);
-        if (accIndex > -1) pet.equippedAccessories.splice(accIndex, 1);
-        else pet.equippedAccessories.push(item.id);
-      }
+      const used = applyItemUseLocally(normalizedProfile, itemId);
+      if (!used.ok || !used.profile) throw new Error("Предмет не найден");
 
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
-        .update({ inventory, pet })
+        .update({ inventory: used.profile.inventory, pet: normalizePet(used.profile.pet) })
         .eq('id', userId)
         .select()
         .single();
