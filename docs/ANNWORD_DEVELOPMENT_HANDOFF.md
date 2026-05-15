@@ -1,6 +1,6 @@
 # AnnWord — development handoff
 
-Дата фиксации: после pre-UX architecture/testing работ и перед переходом к UX/gamification ветке.
+Дата фиксации: после реализации первого UX/gamification MVP-куска и перед продолжением, когда восстановится Vercel deploy limit.
 
 Репозиторий:
 
@@ -8,64 +8,478 @@
 mentosloko/AnnWord
 ```
 
-## 1. Текущий статус
+## 1. Текущий статус на конец сессии
 
-### Production
+### Main branch
 
-Production Vercel был зелёным после PR #12:
+Работа велась прямо в `main`.
+
+Последний зафиксированный коммит с правкой тестов под новую геймификацию:
 
 ```text
-production commit: 2f04bfd9fa00dd266189b07ec14335d31a8dab8b
-production deployment: dpl_Ce7SDgBWZiPtguW9NX134Ns3mV3L
-production url: https://ann-word.vercel.app
+dd597dac3b1544e9353f8864abc407baed737458
+Update economy tests for mood score model
 ```
 
-### Открытый PR перед UX
-
-Открыт PR #13:
+Перед ним были важные коммиты UX/gamification MVP:
 
 ```text
-PR #13: Add pre-UX game scenario test suite
-branch: game-scenario-tests
+2ce08f1baf730cf8f99623929fc20bb9b8893300
+Document character onboarding flow
+
+704dddc1d9568b8c0e7cab4cb9d36562289e8a21
+Update component tests for character wording
+
+a960fd2b1e07b9ddf1aa51e1564eae57065e0873
+Update game mode tests for reward callback contract
 ```
 
-В PR #13 уже был успешный Vercel preview на коммите:
+### Production / Vercel
+
+Последний доступный зелёный production deployment до серии gamification-коммитов:
 
 ```text
-384ce10028d101ca95d326e4999c3adb4a7bc509
-Fix Vitest hoisted mode game mocks
-
-deployment: dpl_437tu8YQ4TcUDgqgDRDeAnXQJ5gL
+production deployment: dpl_H93bHMYCgKGJevFpzxRpbrUoexhE
+commit: 5a22bed7a633eb4fac8eed64ce4cec4cb8173151
+message: Add character gamification reward rules
 state: READY
 ```
 
-После этого был добавлен технический trigger-коммит для нового preview:
+После этого Vercel deployments начали падать на тестах старого контракта. Эти тесты были обновлены в последних коммитах, но новый полноценный Vercel build не стартовал из-за лимита:
 
 ```text
-2fc56085da26ed580268e752185fba84ac6e6bc5
-Trigger Vercel preview after scenario test fix
+Vercel status URL: https://vercel.com/mentosloko-1417s-projects?upgradeToPro=build-rate-limit
+GitHub status: failure, причина — build-rate-limit
 ```
 
-Затем была исправлена mock-hoisting ошибка в `gameModeScenario.test.tsx`:
+Важно: последний видимый Vercel failure до фикса тестов был не инфраструктурным — падали тесты, которые всё ещё ожидали старую модель `onWinCoins/onAddXP/hunger/energy`. После этого тесты были переписаны на новую модель `onGameReward/moodScore/character`.
+
+## 2. Что реализовано в gamification MVP
+
+### 2.1. Терминология и модель
+
+Продуктово переходим от узкого понятия `pet` к широкой модели `character`.
+
+В коде тип всё ещё называется `PetState` для обратной совместимости, но внутри он теперь хранит character-состояние:
 
 ```text
-384ce10028d101ca95d326e4999c3adb4a7bc509
-Fix Vitest hoisted mode game mocks
+type
+name
+xp
+level
+stage
+moodScore
+mood
+characterOnboarded
+equippedAccessories
+activeHomeItemId
 ```
 
-Если текущая ветка содержит более свежие trigger-коммиты, их нужно проверять по PR #13 и Vercel previews.
+Legacy-поля `hunger` и `energy` оставлены только для совместимости и не должны использоваться в новой логике.
 
-## 2. Главная архитектурная цель завершённого этапа
+### 2.2. Mood scale
 
-Цель этапа была подготовить проект к UX/gamification-работам без риска снова получить неуправляемый монолит.
-
-В результате проект переведён из состояния:
+Одна шкала состояния:
 
 ```text
-монолитный App / legacy bridge / слабые тесты
+moodScore: 0–100
 ```
 
-в состояние:
+Маппинг:
+
+```text
+0–20   sad
+21–45  calm
+46–70  happy
+71–90  joyful
+91–100 super_happy
+```
+
+Игры поднимают mood максимум до 70. Treats из магазина могут поднимать mood выше 70.
+
+### 2.3. Character growth / levels
+
+Рост персонажа отделён от mood.
+
+XP не уменьшается. Уровень и стадия — долгосрочный прогресс.
+
+Текущая таблица уровней:
+
+```text
+level 1  total XP 0    stage_1
+level 2  total XP 10   stage_1
+level 3  total XP 25   stage_2
+level 4  total XP 45   stage_2
+level 5  total XP 70   stage_2
+level 6  total XP 100  stage_3
+level 7  total XP 135  stage_3
+level 8  total XP 175  stage_3
+level 9  total XP 220  stage_4
+level 10 total XP 270  stage_4
+```
+
+### 2.4. XP rules по играм
+
+XP — маленькими числами, удобными для детского счёта.
+
+```text
+Wordle: +5 XP только если слово угадано
+Sprint: +1 XP за каждое отгаданное слово, cap +4
+Anagram: +1 XP за каждое отгаданное слово
+Memo: XP зависит от кликов
+Hangman: +4 XP только если слово угадано
+```
+
+Memo:
+
+```text
+<= 8 кликов: +4 XP
+9–10 кликов: +3 XP
+11–12 кликов: +2 XP
+13–14 кликов: +1 XP
+15+ кликов: 0 XP
+```
+
+Ошибки не уменьшают XP/монеты/mood. Ошибки можно использовать только для образовательной логики повторения.
+
+### 2.5. Coins
+
+Монеты — маленькими числами, нужны для магазина.
+
+Текущая логика:
+
+```text
+Wordle guessed: +3 coins
+Wordle completed but not guessed: +1 coin
+Sprint 1–2 guessed words: +1 coin
+Sprint 3+ guessed words: +2 coins
+Anagram 1–2 guessed words: +1 coin
+Anagram 3+ guessed words: +2 coins
+Memo 8–12 clicks: +2 coins
+Memo 13–14 clicks: +1 coin
+Hangman guessed: +2 coins
+Hangman completed but not guessed: +1 coin
+```
+
+Streak achievements ещё не реализованы. Когда делать — только coins, без XP.
+
+### 2.6. Starter character onboarding
+
+Добавлен onboarding выбора персонажа для авторизованных пользователей.
+
+Файлы:
+
+```text
+services/characterCatalog.ts
+components/screens/CharacterOnboardingScreen.tsx
+```
+
+Стартовые персонажи:
+
+```text
+Puppy   / Щенок      / default name: Бадди
+Dragon  / Дракончик  / default name: Искорка
+RoboCat / Робокот    / default name: Байт
+```
+
+Флаг:
+
+```text
+pet.characterOnboarded: boolean
+```
+
+Поведение:
+
+```text
+new authenticated user + characterOnboarded=false → route=character_onboarding
+guest profile → characterOnboarded=true, onboarding не блокирует гостя
+после выбора персонажа → updateUserPet → route=landing
+```
+
+### 2.7. Shop MVP
+
+Магазин переработан на категории:
+
+```text
+Лакомства
+Аксессуары
+Домик
+```
+
+Файлы:
+
+```text
+services/shopCatalog.ts
+services/economyEngine.ts
+components/Shop.tsx
+```
+
+Treats:
+
+```text
+apple       price 2   mood +8  cap 80
+cookie      price 3   mood +10 cap 85
+berry       price 5   mood +15 cap 90
+icecream    price 7   mood +20 cap 95
+star_treat  price 10  mood +25 cap 100
+```
+
+Accessories:
+
+```text
+bow          5
+glasses      6
+hat          7
+hero_cape    10
+star_collar  12
+crown        15
+```
+
+Home items:
+
+```text
+dog_house         Puppy only   20
+dragon_nest       Dragon only  20
+charging_station  RoboCat only 20
+```
+
+### 2.8. Character room
+
+`components/PetRoom.tsx` обновлён под character/mood-модель.
+
+Теперь показывает:
+
+```text
+одну шкалу Настроение
+уровень
+stage
+XP до следующего уровня
+активный home item
+аксессуары
+инвентарь treats/accessories/home
+```
+
+Убраны UI-шкалы голода/энергии.
+
+### 2.9. Floating widget
+
+`components/PetWidget.tsx` обновлён:
+
+```text
+aria-label: Открыть комнату персонажа
+тексты: Я скучал / Готов к игре / Рад учиться / Супернастроение
+moodScore vertical bar
+```
+
+Виджет скрыт на routes:
+
+```text
+pet_room
+shop
+character_onboarding
+```
+
+### 2.10. Post-game character progress
+
+Добавлен общий компонент:
+
+```text
+components/CharacterProgressCard.tsx
+```
+
+Показывает:
+
+```text
+XP gained
+coins gained
+character emoji/name
+level
+XP progress bar
+stage
+```
+
+Подключён к:
+
+```text
+Wordle / ClassicGameScreen
+Sprint
+Memo
+Hangman
+```
+
+Anagram пока continuous-mode: даёт награду за каждое отгаданное слово и показывает immediate feedback, без отдельного финального post-game экрана.
+
+## 3. Основные файлы, которые изменились
+
+```text
+types.ts
+AppV2.tsx
+components/AppShell.tsx
+components/AppScreens.tsx
+components/screens/LandingScreen.tsx
+components/screens/ClassicGameScreen.tsx
+components/screens/ModeScreens.tsx
+components/screens/CharacterOnboardingScreen.tsx
+components/CharacterProgressCard.tsx
+components/PetWidget.tsx
+components/PetRoom.tsx
+components/Shop.tsx
+components/SprintGame.tsx
+components/AnagramGame.tsx
+components/MemoryGame.tsx
+components/HangmanGame.tsx
+constants/profileDefaults.ts
+services/gamificationRules.ts
+services/characterCatalog.ts
+services/shopCatalog.ts
+services/profileMapper.ts
+services/petEngine.ts
+services/economyEngine.ts
+services/userService.ts
+docs/GAMIFICATION_SPEC.md
+```
+
+Тесты обновлены:
+
+```text
+tests/components.contracts.test.tsx
+tests/gameModeScenario.test.tsx
+tests/economyEngine.test.ts
+scripts/pet-engine-smoke.ts
+scripts/economy-smoke.ts
+```
+
+## 4. Что важно проверить завтра после восстановления Vercel лимита
+
+### 4.1. Сначала не продолжать фичи, а проверить билд
+
+Сделать новый маленький trigger commit или rerun deployment после сброса лимита.
+
+Проверить:
+
+```text
+Vercel deployment state
+GitHub commit status
+Vercel build logs
+```
+
+Если снова ошибка — первым делом смотреть тесты и TypeScript/lint.
+
+### 4.2. Локально / в CI
+
+Нужно прогнать:
+
+```bash
+npm install
+npm run check
+npm run build
+```
+
+Важно: корректный `package-lock.json` всё ещё нужно сгенерировать через реальный `npm install` и закоммитить.
+
+### 4.3. Supabase
+
+Schema/migrations не менялись.
+
+Всё новое хранится в существующих JSON-полях:
+
+```text
+profiles.pet
+profiles.inventory
+profiles.coins
+```
+
+Проверить руками:
+
+```text
+регистрация нового пользователя
+создание profiles row
+pet.characterOnboarded=false для нового auth user
+redirect на character_onboarding
+выбор Puppy/Dragon/RoboCat
+сохранение pet.characterOnboarded=true
+сохранение name/type
+начисление XP/coins после игр
+покупка treat
+использование treat → moodScore растёт
+покупка accessory/home item
+применение accessory/home item
+```
+
+## 5. UX MVP checklist перед тестированием
+
+Минимальные сценарии для ручного UX smoke:
+
+```text
+1. Новый пользователь регистрируется и попадает на выбор персонажа.
+2. Выбирает Щенка/Дракончика/Робокота и задаёт имя.
+3. Попадает на главный экран.
+4. Играет Wordle: победа и поражение.
+5. Видит CharacterProgressCard после Wordle.
+6. Играет Sprint и видит XP/coins после окончания таймера.
+7. Играет Memo и проверяет reward по количеству кликов.
+8. Играет Hangman: победа и поражение.
+9. Покупает treat в магазине.
+10. Использует treat в комнате персонажа, moodScore растёт.
+11. Покупает accessory, надевает/снимает.
+12. Покупает home item для текущего character type.
+13. Проверяет, что home item другого персонажа недоступен/не показывается.
+```
+
+Особо проверить mobile widths:
+
+```text
+iPhone-like narrow width
+Android-like narrow width
+tablet width
+```
+
+## 6. Известные ограничения текущего MVP
+
+```text
+Нет streak achievements.
+Нет отдельной таблицы gamification_events.
+Нет серверного reward transaction layer — награды синкаются через updateCoins/updateUserPet.
+Нет отдельной миграции под character; всё в JSON.
+Нет визуальных stage-assets; stage пока текст/логика.
+Anagram continuous-mode без общего финального progress card.
+Level-up/stage-up пока показываются как progress state, без отдельной celebration animation.
+```
+
+## 7. Что делать следующим крупным куском
+
+Рекомендуемый следующий branch после восстановления Vercel лимита:
+
+```text
+ux-gamification-mvp-polish
+```
+
+Не начинать с новых механик. Сначала довести текущий MVP до UX-тестируемого состояния:
+
+```text
+1. Добиться зелёного Vercel build.
+2. Сгенерировать package-lock.json.
+3. Пройти ручной Supabase/auth smoke.
+4. Улучшить CharacterProgressCard: level-up/stage-up celebration.
+5. Скрыть техническое stage_1/stage_2 из UI или заменить на детские названия.
+6. Добавить UX-copy в rules modal: как персонаж получает XP.
+7. Подготовить тестовые аккаунты и короткий friendly dictionary.
+8. Провести UX MVP testing.
+```
+
+Только после этого добавлять:
+
+```text
+streak achievements
+server-side event log
+gamification_events
+seasonal/items expansion
+реальные character/stage assets
+```
+
+## 8. Старый pre-UX handoff context
+
+До gamification MVP проект был подготовлен архитектурно:
 
 ```text
 AppV2 orchestration root
@@ -79,602 +493,31 @@ CI
 world-domain foundation
 ```
 
-## 3. Что сделано по архитектуре
-
-### 3.1. Удалён legacy слой
-
-Удалены старые архитектурные элементы:
+Старый world-domain foundation (`worldTypes`, `worldCatalog`, `petProgressionEngine`, `islandProgressEngine`, `petReactionEngine`, `rewardEngine`) пока не является runtime-источником новой MVP-геймификации. Текущая runtime-модель идёт через:
 
 ```text
-App.tsx
-components/AppProviders.tsx
-components/LegacyAppBridge.tsx
-providers/AuthProvider.tsx
-providers/ProfileProvider.tsx
-providers/NavigationProvider.tsx
-utils/navigationBridge.ts
-components/ScreenFallbackHomeButton.tsx
+gamificationRules
+characterCatalog
+shopCatalog
+economyEngine
+petEngine
+profileMapper
+useProfileEconomy
 ```
 
-Ключевой принцип новой архитектуры:
+Не смешивать эти два слоя без отдельного рефакторинга.
+
+## 9. Короткий handoff для следующей сессии
 
 ```text
-AppV2 держит route state.
-Дочерние компоненты получают callbacks сверху.
-Глобальный navigationBridge больше не используется.
-```
-
-### 3.2. AppV2 split
-
-`AppV2` разбит на:
-
-```text
-AppV2
-  ├── AppShell
-  └── AppScreens
-```
-
-Файлы:
-
-```text
-components/AppShell.tsx
-components/AppScreens.tsx
-```
-
-`AppShell` отвечает за:
-
-```text
-AppHeader
-AppModals
-PetWidget
-общий layout
-```
-
-`AppScreens` отвечает за:
-
-```text
-route → screen mapping
-LandingScreen
-SetupScreen
-ClassicGameScreen
-ProfileScreen
-AnagramsScreen
-SprintScreen
-MemoryScreen
-HangmanScreen
-Shop
-PetRoom
-```
-
-`AppV2` теперь является orchestration root: хуки, bootstrap, route state, composition.
-
-### 3.3. Вынесенные хуки и сервисы
-
-Основные хуки:
-
-```text
-hooks/useAuthProfile.ts
-hooks/useClassicGameController.ts
-hooks/useDictionaryPools.ts
-hooks/useDictionaryUpload.ts
-hooks/useProfileEconomy.ts
-```
-
-Основные сервисы:
-
-```text
-services/dictionaryEngine.ts
-services/gameDictionaryAdapter.ts
-services/dictionaryUpload.ts
-services/economyEngine.ts
-services/petEngine.ts
-services/profileMapper.ts
-```
-
-Импорт пользовательского словаря вынесен из `AppV2`:
-
-```text
-services/dictionaryUpload.ts
-hooks/useDictionaryUpload.ts
-```
-
-Там реализованы:
-
-```text
-normalization
-deduplication
-diagnostics
-warnings
-no silent truncation на больших словарях
-```
-
-## 4. Что сделано по тестированию
-
-### 4.1. Vitest + React Testing Library
-
-Добавлены:
-
-```text
-vitest.config.ts
-tests/setupTests.ts
-@testing-library/react
-@testing-library/jest-dom
-jsdom
-```
-
-Команды:
-
-```text
-npm run test
-npm run test:run
-npm run test:coverage
-```
-
-### 4.2. Scripts structure
-
-`package.json` приведён к структуре:
-
-```text
-check:unit
-check:smoke
-check
-build
-```
-
-Логика:
-
-```text
-check = lint + unit tests + smoke
-build = check + vite build
-```
-
-### 4.3. GitHub Actions CI
-
-Добавлен workflow:
-
-```text
-.github/workflows/ci.yml
-```
-
-CI делает:
-
-```text
-install dependencies
-npm run lint
-npm run check:unit
-npm run check:smoke
-vite build
-```
-
-Добавлены защита от зависших прогонов:
-
-```yaml
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-timeout-minutes: 10
-```
-
-CI сейчас использует:
-
-```text
-npm ci если есть package-lock.json
-npm install если package-lock.json нет
-```
-
-Важно: старый `package-lock.json` был устаревшим и ломал `npm ci`, поэтому был удалён в PR #13. Корректный lockfile нужно сгенерировать отдельно через реальный `npm install`.
-
-## 5. Тестовое покрытие
-
-### 5.1. Unit tests
-
-Есть тесты:
-
-```text
-tests/dictionaryUpload.test.ts
-tests/dictionaryEngine.test.ts
-tests/economyEngine.test.ts
-tests/petEngine.test.ts
-tests/profileMapper.test.ts
-tests/routeContract.test.ts
-tests/petProgressionEngine.test.ts
-tests/islandProgressEngine.test.ts
-tests/petReactionEngine.test.ts
-tests/rewardEngine.test.ts
-```
-
-Покрыто:
-
-```text
-dictionary normalization
-custom dictionary parsing
-large dictionary without silent truncation
-dictionary pools
-game dictionary adapter
-economy purchases
-item use
-pet mood / decay / inventory
-profile DB normalization
-route contracts
-world-domain foundation
-egg progression
-island sticker progress
-pet reactions
-reward outcomes
-```
-
-### 5.2. Component contract tests
-
-Файл:
-
-```text
-tests/components.contracts.test.tsx
-```
-
-Покрыты:
-
-```text
-LandingScreen
-SetupScreen
-Shop
-PetRoom
-PetWidget
-```
-
-Проверяются callback contracts:
-
-```text
-onStartClassic
-onOpenShop
-onOpenProfile
-onFileUpload
-onStartGame
-onClose
-onNavigateToPetRoom
-```
-
-### 5.3. Pre-UX game scenario tests
-
-PR #13 добавляет:
-
-```text
-tests/classicGameScenario.test.tsx
-tests/gameModeScenario.test.tsx
-```
-
-#### Classic game scenarios
-
-Покрыто:
-
-```text
-safe initial game state
-duplicate-letter scoring
-keyboard status precedence
-start classic game from setup
-block start when selected dictionary has no words of selected length
-short guess validation without consuming attempt
-unknown word validation without consuming attempt
-win scenario
-loss after MAX_GUESSES
-keyboard input only inside route=game
-```
-
-#### Mini-game route/contracts
-
-Покрыто:
-
-```text
-AnagramsScreen
-SprintScreen
-MemoryScreen
-HangmanScreen
-```
-
-Важно: `gameModeScenario.test.tsx` не рендерит реальные mini-game компоненты, потому что у них есть таймеры/интервалы/анимации. Вместо этого mini-games замоканы, а тест проверяет контракт обвязки:
-
-```text
-ModeScreens → mini-game gets userProfile
-ModeScreens → mini-game gets customDictionaryEn = words
-ModeScreens → mini-game gets onWinCoins
-ModeScreens → mini-game gets onAddXP
-ModeScreens → mini-game gets onBack
-```
-
-## 6. Важные найденные и исправленные баги
-
-### 6.1. Runtime-риск в ModeScreens
-
-Был найден реальный риск: `ModeScreens` передавал mini-game компонентам неправильный prop-contract.
-
-Раньше wrappers по смыслу давали:
-
-```text
-words
-onWin
-onBack
-```
-
-А реальные компоненты ожидали:
-
-```text
-userProfile
-onWinCoins
-onAddXP
-onBack
-```
-
-Исправлено:
-
-```text
-ModeScreens теперь принимает userProfile.
-AppScreens передаёт userProfile в Anagrams/Sprint/Memory/Hangman.
-ModeScreens строит profile с customDictionaryEn = words.
-Mini-games получают userProfile, onWinCoins, onAddXP, onBack.
-```
-
-Файлы:
-
-```text
-components/screens/ModeScreens.tsx
-components/AppScreens.tsx
-```
-
-### 6.2. Duplicate-letter test expectation
-
-Была ошибка теста:
-
-```text
-PAPER vs APPLE
-```
-
-Тест ожидал:
-
-```text
-P = present
-```
-
-Но правильно:
-
-```text
-P = correct
-```
-
-Потому что `P` на позиции 3 совпадает с `APPLE`.
-
-Исправлено в коммите:
-
-```text
-c8875bb4aa25a955f654ba63b4921e214429eac1
-Fix keyboard status expectation for duplicate letters
-```
-
-### 6.3. Vitest hoisting mocks
-
-Была ошибка:
-
-```text
-ReferenceError: Cannot access 'makeModeGameMock' before initialization
-```
-
-Причина: `vi.mock` hoisted, а helper был top-level.
-
-Исправлено через:
-
-```ts
-const { createModeGameMock } = vi.hoisted(() => ({ ... }))
-```
-
-Коммит:
-
-```text
-384ce10028d101ca95d326e4999c3adb4a7bc509
-Fix Vitest hoisted mode game mocks
-```
-
-## 7. World-domain foundation для будущей геймификации
-
-На основе концепции «Мир ANNWORD» добавлен чистый доменный каркас без UI.
-
-Файлы:
-
-```text
-services/worldTypes.ts
-services/worldCatalog.ts
-services/petProgressionEngine.ts
-services/petReactionEngine.ts
-services/islandProgressEngine.ts
-services/rewardEngine.ts
-```
-
-Заложены сущности:
-
-```text
-egg
-owl
-fox
-dino
-baby
-teen
-master
-island
-sticker
-game event
-reward outcome
-pet reaction
-```
-
-### 7.1. Pet progression
-
-```text
-egg → starter pet после N guessed words
-starter pets: owl / fox / dino
-level 1–5 → baby
-level 6–12 → teen
-level 13+ → master
-```
-
-### 7.2. Islands
-
-```text
-forest_a1 → Лес A1
-jungle_a2 → Джунгли A2
-mountain_b1 → Горный пик B1
-10 guessed words → sticker unlock
-```
-
-### 7.3. Pet reactions
-
-```text
-heart
-phrase
-sound
-```
-
-Фразы:
-
-```text
-I love learning!
-You are a star!
-Give me more words!
-Great job!
-More words, please!
-```
-
-### 7.4. Rewards
-
-События:
-
-```text
-WORD_GUESSED
-GAME_WON
-GAME_LOST
-PET_TAPPED
-ITEM_PURCHASED
-ITEM_USED
-```
-
-Reward outcome:
-
-```text
-coinsDelta
-xpDelta
-petReaction
-progressionEvent
-```
-
-Важно: world-domain слой пока не подключен к runtime UI/игре. Это foundation для будущей UX/gamification фазы.
-
-## 8. Что осталось сделать перед переходом в UX branch
-
-### 8.1. Проверить финальный статус PR #13
-
-Нужно проверить последний Vercel preview и GitHub Actions по PR #13.
-
-Уже точно был зелёный preview на:
-
-```text
-384ce10028d101ca95d326e4999c3adb4a7bc509
-state: READY
-```
-
-Если последний head PR #13 тоже зелёный, PR можно мержить.
-
-### 8.2. Смержить PR #13
-
-После merge PR #13 дождаться production deployment на `main`.
-
-### 8.3. Сгенерировать корректный package-lock.json
-
-Сейчас корректного lockfile нет.
-
-Нужно отдельно сделать:
-
-```bash
-npm install
-git add package-lock.json
-```
-
-После этого CI автоматически будет использовать:
-
-```bash
-npm ci
-```
-
-## 9. Supabase notes
-
-В текущем цикле Supabase schema не менялась:
-
-```text
-нет migrations
-нет edge functions
-нет schema changes
-```
-
-`server.ts` был ранее поправлен только типизационно для Yandex/Supabase user lookup.
-
-## 10. Vercel notes
-
-Доступный Vercel MCP tool `deploy_to_vercel` не запускает реальный API-deploy. Он возвращает инструкцию `vercel deploy`.
-
-Рабочий способ триггерить Vercel в этой среде:
-
-```text
-push/commit в GitHub branch → Vercel Git integration запускает preview/production
-```
-
-## 11. Рекомендуемый следующий UX этап
-
-После merge PR #13 создать новую ветку, например:
-
-```text
-ux-world-annword-home
-```
-
-И начинать UX с концепции:
-
-```text
-home как Мир ANNWORD
-egg onboarding
-pet room v2
-island map
-sticker collection
-reward feedback
-pet reactions
-```
-
-Использовать уже созданный foundation:
-
-```text
-worldTypes
-worldCatalog
-petProgressionEngine
-islandProgressEngine
-petReactionEngine
-rewardEngine
-```
-
-Не внедрять всё сразу. Лучше идти итерациями:
-
-```text
-1. Новый home / landing structure
-2. Pet widget / pet room visual state
-3. Egg onboarding UI
-4. Reward feedback UI
-5. Island map UI
-6. Sticker collection UI
-```
-
-## 12. Короткий handoff
-
-```text
-main production green на PR #12
-PR #13 открыт и содержит pre-UX game scenario tests
-ключевой зелёный preview PR #13: 384ce100 READY
-ModeScreens contract bug исправлен
-classic game scenarios добавлены
-game mode wrappers проверяются через mocked contract tests
-world-domain foundation готов
-architecture готова к UX
-package-lock требует корректной регенерации
+Работали на main.
+Последний важный commit: dd597dac3b1544e9353f8864abc407baed737458.
+Vercel сейчас failure из-за build-rate-limit на последнем коммите, а не из-за нового build log.
+Предыдущие Vercel ERROR были из-за старых тестов; тесты обновлены.
+Нужно дождаться восстановления deploy limit и получить свежий build.
+Schema Supabase не менялась.
+Новый auth user должен попасть на character onboarding.
+Гости onboarding не блокирует.
+MVP loop: games → XP/coins → character level/stage/mood → shop → treats/accessories/home.
+Следующий приоритет: green build + package-lock + ручной UX smoke, не новые фичи.
 ```
