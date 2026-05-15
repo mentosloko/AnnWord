@@ -4,10 +4,11 @@ import { LandingScreen } from './screens/LandingScreen';
 import { SetupScreen } from './screens/SetupScreen';
 import { ClassicGameScreen } from './screens/ClassicGameScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
+import { CharacterOnboardingScreen } from './screens/CharacterOnboardingScreen';
 import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from './screens/ModeScreens';
 import { Shop } from './Shop';
 import { PetRoom } from './PetRoom';
-import { GameSettings, GameState, CharStatus, ShopItem, UserProfile, ViewState } from '../types';
+import { GameSettings, GameState, CharStatus, PetState, ShopItem, UserProfile, ViewState } from '../types';
 import { GameRewardInput } from '../services/gamificationRules';
 
 export type PlayableModeRoute = 'game' | 'anagrams' | 'sprint' | 'memory' | 'hangman';
@@ -47,6 +48,7 @@ export interface AppScreensProps {
   onBuy: (item: ShopItem) => Promise<void>;
   onUseItem: (itemId: string) => Promise<void>;
   onGameReward: (input: GameRewardInput) => Promise<void>;
+  onCharacterOnboardingComplete: (character: PetState) => Promise<void>;
 }
 
 export const AppScreens: React.FC<AppScreensProps> = ({
@@ -66,6 +68,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
   onBuy,
   onUseItem,
   onGameReward,
+  onCharacterOnboardingComplete,
 }) => {
   const goHome = () => onRouteChange('landing');
   const setupError = classicGame.setupError || dictionaryUpload.error;
@@ -84,6 +87,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
   };
 
   const screens: Partial<Record<ViewState, React.ReactNode>> = {
+    character_onboarding: <CharacterOnboardingScreen onComplete={onCharacterOnboardingComplete} />,
     landing: (
       <LandingScreen
         userProfile={userProfile}
