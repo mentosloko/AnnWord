@@ -1,6 +1,6 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
-import { GameRewardInput, PetState, ShopItem, UserProfile, UserStats } from '../types';
-import { applyGameRewardToCharacter, calculateGameReward } from '../services/gamificationRules';
+import { PetState, ShopItem, UserProfile, UserStats } from '../types';
+import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 
 interface UseProfileEconomyArgs {
   currentUserId: string | null;
@@ -56,10 +56,8 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
 
   const applyGameReward = useCallback(async (input: GameRewardInput) => {
     const reward = calculateGameReward(input);
-    let nextPet: PetState = userProfile.pet;
-    if (reward.xp > 0 || reward.mood > 0) {
-      nextPet = applyGameRewardToCharacter(userProfile.pet, reward).pet;
-    }
+    const progress = applyGameRewardToCharacter(userProfile.pet, reward);
+    const nextPet: PetState = progress.pet;
 
     const nextProfile: UserProfile = {
       ...userProfile,
@@ -73,16 +71,13 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
       try {
         const userService = await getUserService();
         if (reward.coins !== 0) await userService.updateCoins(currentUserId, reward.coins);
-        if (nextPet !== userProfile.pet) await userService.updateUserPet(currentUserId, nextPet);
+        if (reward.xp !== 0 || reward.mood !== 0) await userService.updateUserPet(currentUserId, nextPet);
       } catch (error) {
         console.error('Failed to sync game reward', error);
       }
     }
 
-    return {
-      reward,
-      progress: applyGameRewardToCharacter(userProfile.pet, reward),
-    };
+    return { reward, progress };
   }, [currentUserId, setUserProfile, userProfile]);
 
   const updateStats = useCallback(async (stats: UserStats) => {
