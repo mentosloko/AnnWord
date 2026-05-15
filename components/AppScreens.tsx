@@ -120,6 +120,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
       <ClassicGameScreen
         gameState={classicGame.gameState}
         settings={settings}
+        userProfile={userProfile}
         keyStatuses={classicGame.keyStatuses}
         shakeRowIndex={classicGame.shakeRowIndex}
         onChar={classicGame.handleChar}
