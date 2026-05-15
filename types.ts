@@ -12,22 +12,30 @@ export interface UserStats {
   wordsGuessed: Record<string, number>; // Word -> count of times guessed correctly
 }
 
-// --- NEW: Word Jail & Pet Types ---
+// --- Character gamification types ---
+
+export type CharacterMood = 'sad' | 'calm' | 'happy' | 'joyful' | 'super_happy' | 'neutral' | 'excited';
+export type CharacterStage = 'stage_1' | 'stage_2' | 'stage_3' | 'stage_4';
+export type InventoryItemType = 'food' | 'pet' | 'accessory' | 'home';
+export type GameRewardType = 'wordle' | 'sprint' | 'anagram' | 'memory' | 'hangman' | 'other';
 
 export interface PetState {
   name: string;
-  type: string; // 'Owl', 'Cat', 'Dragon', etc.
+  type: string; // 'Puppy', 'Dragon', 'RoboCat', etc. Kept as PetState for backward compatibility.
   level: number;
-  mood: 'sad' | 'neutral' | 'happy' | 'excited';
-  xp: number;
-  hunger: number; // 0-100
-  energy: number; // 0-100
+  mood: CharacterMood;
+  xp: number; // Total character XP, not level-local XP.
+  moodScore?: number; // 0-100. Games can raise it to 70; treats can raise it to 100.
+  stage?: CharacterStage;
+  hunger?: number; // Legacy field. Do not use for new reward logic.
+  energy?: number; // Legacy field. Do not use for new reward logic.
   equippedAccessories: string[]; // IDs of equipped items
+  activeHomeItemId?: string;
 }
 
 export interface InventoryItem {
   id: string;
-  type: 'food' | 'pet' | 'accessory';
+  type: InventoryItemType;
   name: string;
   quantity: number;
   metadata?: { imageUrl?: string }; // FIX: было any, уточнили тип
@@ -47,10 +55,15 @@ export interface ShopItem {
   id: string;
   name: string;
   price: number;
-  type: 'food' | 'pet' | 'accessory';
+  type: InventoryItemType;
   minLevel: number;
   description: string;
   imageUrl?: string;
+  effect?: {
+    mood?: number;
+    moodCap?: number;
+  };
+  characterType?: string;
 }
 
 // ----------------------------------
