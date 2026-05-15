@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion, AnimatePresence } from 'motion/react';
-import { calculateGameReward, GameRewardInput } from '../services/gamificationRules';
+import { CharacterProgressCard } from './CharacterProgressCard';
+import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 
 interface SprintGameProps {
   onBack: () => void;
@@ -110,6 +111,7 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
 
   const correctAnswer = currentWord?.translation || currentWord?.word || '';
   const rewardPreview = calculateGameReward({ type: 'sprint', guessedWords: score });
+  const progressPreview = applyGameRewardToCharacter(userProfile.pet, rewardPreview);
 
   const handleOptionClick = (option: string) => {
     if (status !== 'playing' || feedback) return;
@@ -143,17 +145,8 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
         <div className="text-6xl mb-4">🏆</div>
         <h2 className="text-3xl font-black text-indigo-900 mb-2">Время вышло!</h2>
         <p className="text-gray-500 mb-6 text-lg">Отгадано слов: <span className="font-bold text-indigo-600">{score}</span></p>
-        <div className="bg-indigo-50 p-4 rounded-2xl mb-8 w-full grid grid-cols-2 gap-3">
-            <div>
-              <div className="text-sm text-indigo-400 uppercase font-bold mb-1">Опыт персонажа</div>
-              <div className="text-2xl font-black text-indigo-600">+{rewardPreview.xp} XP</div>
-            </div>
-            <div>
-              <div className="text-sm text-yellow-500 uppercase font-bold mb-1">Монеты</div>
-              <div className="text-2xl font-black text-yellow-600">+{rewardPreview.coins} 🪙</div>
-            </div>
-        </div>
-        <button onClick={onBack} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-xl shadow-lg hover:bg-indigo-700 transition active:scale-95">Назад в меню</button>
+        <CharacterProgressCard pet={progressPreview.pet} xpGained={rewardPreview.xp} coinsGained={rewardPreview.coins} />
+        <button onClick={onBack} className="w-full py-4 mt-6 bg-indigo-600 text-white rounded-2xl font-bold text-xl shadow-lg hover:bg-indigo-700 transition active:scale-95">Назад в меню</button>
       </div>
     );
   }
