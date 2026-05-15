@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion, AnimatePresence } from 'motion/react';
@@ -10,10 +10,27 @@ interface SprintGameProps {
   onAddXP: (xp: number) => void;
 }
 
+export const buildSprintDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => {
+  if (customDictionaryEn.length === 0) return fallbackDictionary;
+
+  return customDictionaryEn.map(word => {
+    const normalizedWord = word.toUpperCase();
+    const builtinEntry = fallbackDictionary.find(entry => entry.word.toUpperCase() === normalizedWord);
+
+    return {
+      word: normalizedWord,
+      translation: builtinEntry?.translation || word,
+      level: builtinEntry?.level || 'Custom',
+    };
+  });
+};
+
 export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onWinCoins, onAddXP }) => {
-  const dictionary: EnrichedWord[] = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
-    ? userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: w, level: 'Custom' }))
-    : COMMON_WORDS_EN;
+  const dictionary = useMemo(
+    () => buildSprintDictionary(userProfile.customDictionaryEn),
+    [userProfile.customDictionaryEn],
+  );
+  const nextWordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
   const [options, setOptions] = useState<string[]>([]);
@@ -22,16 +39,20 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onW
   const [status, setStatus] = useState<'playing' | 'ended'>('playing');
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
 
+  const clearNextWordTimeout = useCallback(() => {
+    if (nextWordTimeoutRef.current) {
+      clearTimeout(nextWordTimeoutRef.current);
+      nextWordTimeoutRef.current = null;
+    }
+  }, []);
+
   const pickNewWord = useCallback(() => {
     if (dictionary.length === 0) return;
     const word = dictionary[Math.floor(Math.random() * dictionary.length)];
     setCurrentWord(word);
 
-    // Use translation if available, otherwise fall back to the word itself
     const correctAnswer = word.translation || word.word;
 
-    // Build wrong options without an infinite loop:
-    // try up to dictionary.length * 3 times, then fill with positional fallbacks.
     const wrongOptions: string[] = [];
     const maxAttempts = dictionary.length * 3;
     let attempts = 0;
@@ -45,7 +66,6 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onW
       }
     }
 
-    // Fallback: if we still don't have 3 wrong options fill with placeholders
     while (wrongOptions.length < 3) {
       const placeholder = `Вариант ${wrongOptions.length + 1}`;
       if (!wrongOptions.includes(placeholder)) {
@@ -59,41 +79,48 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onW
   }, [dictionary]);
 
   useEffect(() => {
-    if (status === 'playing') {
-      pickNewWord();
-      const timer = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setStatus('ended');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [status, pickNewWord]);
+    if (status !== 'playing') return;
+
+    pickNewWord();
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          clearNextWordTimeout();
+          setStatus('ended');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+      clearNextWordTimeout();
+    };
+  }, [status, pickNewWord, clearNextWordTimeout]);
 
   useEffect(() => {
     if (status === 'ended') {
       onAddXP(score * 10);
       onWinCoins(score * 2);
     }
-  }, [status]);
+  }, [status, score, onAddXP, onWinCoins]);
 
   const correctAnswer = currentWord?.translation || currentWord?.word || '';
 
   const handleOptionClick = (option: string) => {
     if (status !== 'playing' || feedback) return;
 
+    clearNextWordTimeout();
+
     if (option === correctAnswer) {
       setScore(prev => prev + 1);
       setFeedback('correct');
-      setTimeout(pickNewWord, 500);
+      nextWordTimeoutRef.current = setTimeout(pickNewWord, 500);
     } else {
       setFeedback('wrong');
-      setTimeout(pickNewWord, 800);
+      nextWordTimeoutRef.current = setTimeout(pickNewWord, 800);
     }
   };
 
@@ -125,7 +152,6 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onW
 
   return (
     <div className="flex flex-col items-center w-full max-w-md p-6 bg-white rounded-3xl shadow-xl relative overflow-hidden">
-      {/* Progress Bar */}
       <div className="absolute top-0 left-0 h-2 bg-indigo-100 w-full">
         <motion.div 
           className="h-full bg-indigo-600"
