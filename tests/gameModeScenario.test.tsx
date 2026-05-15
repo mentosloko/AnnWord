@@ -59,6 +59,13 @@ describe('game mode scenario contracts', () => {
     expect(onBackHome).toHaveBeenCalledTimes(1);
   });
 
+  it('renders safely without userProfile fallback', () => {
+    render(<SprintScreen words={words} onWin={vi.fn()} onBackHome={vi.fn()} />);
+
+    expect(screen.getByText('Спринт')).toBeInTheDocument();
+    expect(screen.getByTestId('sprint-game-dictionary')).toHaveTextContent(words.join(','));
+  });
+
   it('wires SprintScreen to the mini-game prop contract', () => {
     const onBackHome = vi.fn();
     const onWin = vi.fn();
