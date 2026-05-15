@@ -1,0 +1,4 @@
+Redeploy trigger for Vercel Git integration.
+
+Triggered after merging AppShell/AppScreens + RTL component tests.
+Target main should deploy from commit aae2bfcfaec1045a52165b24a7c694a33b59f4c7 or newer.
