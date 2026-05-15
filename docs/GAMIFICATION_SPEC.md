@@ -15,6 +15,20 @@ AnnWord gamification is based on characters, not only pets. A character can be a
 - No achievements based on total learned words.
 - Character mood and character growth are separate systems.
 
+## Starter character onboarding
+
+New authenticated users must choose and name a starter character before entering the main app flow. Guests use the default character and are not blocked by onboarding.
+
+Starter characters:
+
+| Type | UI name | Default name | Role |
+|---|---|---|---|
+| `Puppy` | Щенок | Бадди | Friendly classic companion |
+| `Dragon` | Дракончик | Искорка | Adventure/magic character |
+| `RoboCat` | Робокот | Байт | Tech-style character |
+
+The onboarding result is stored in the existing `pet` JSON object with `characterOnboarded: true`, so no database migration is required for this step.
+
 ## Character state
 
 Each user has one active character.
@@ -28,6 +42,7 @@ Character fields:
 - `stage`: derived from level.
 - `moodScore`: 0-100.
 - `mood`: derived from moodScore.
+- `characterOnboarded`: whether the user has selected and named the character.
 - `equippedAccessories`: cosmetic item ids.
 - `activeHomeItemId`: selected home/room item.
 
@@ -161,7 +176,7 @@ After each game the UI should show:
 - Level-up if a new level is reached.
 - Stage-up if the character grows/upgrades.
 
-The current implementation shows basic reward information for the mode games. A richer shared post-game character progress component should be added next.
+The current implementation uses a shared `CharacterProgressCard` in Wordle, Sprint, Memo, and Hangman result states. Anagram gives immediate per-word feedback because it is continuous rather than a finite round.
 
 ## Language guidelines
 
