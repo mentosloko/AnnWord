@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion } from 'motion/react';
-import { calculateGameReward, GameRewardInput } from '../services/gamificationRules';
+import { CharacterProgressCard } from './CharacterProgressCard';
+import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 
 interface HangmanGameProps {
   onBack: () => void;
@@ -67,6 +68,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
 
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const rewardPreview = status === 'playing' ? null : calculateGameReward({ type: 'hangman', won: status === 'won' });
+  const progressPreview = rewardPreview ? applyGameRewardToCharacter(userProfile.pet, rewardPreview) : null;
 
   const renderWord = () => {
     if (!currentWord) return null;
@@ -152,10 +154,9 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
             Загаданное слово: <span className="font-bold text-indigo-900">{currentWord?.word}</span>
             {currentWord?.translation && (<><br />Перевод: <span className="italic">{currentWord.translation}</span></>)}
           </div>
-          {rewardPreview && (
-            <div className="grid grid-cols-2 gap-3 bg-indigo-50 rounded-2xl p-4 mb-6">
-              <div><div className="text-xs font-bold text-indigo-400 uppercase">XP</div><div className="text-2xl font-black text-indigo-600">+{rewardPreview.xp}</div></div>
-              <div><div className="text-xs font-bold text-yellow-500 uppercase">Монеты</div><div className="text-2xl font-black text-yellow-600">+{rewardPreview.coins} 🪙</div></div>
+          {rewardPreview && progressPreview && (
+            <div className="mb-6">
+              <CharacterProgressCard pet={progressPreview.pet} xpGained={rewardPreview.xp} coinsGained={rewardPreview.coins} />
             </div>
           )}
           <button 
