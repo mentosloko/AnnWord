@@ -62,7 +62,9 @@ describe('classic game scenarios', () => {
   });
 
   afterEach(() => {
-    vi.runOnlyPendingTimers();
+    act(() => {
+      vi.runOnlyPendingTimers();
+    });
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -79,7 +81,7 @@ describe('classic game scenarios', () => {
   });
 
   it('scores duplicate letters correctly and never downgrades correct keyboard statuses', () => {
-    expect(getGuessLetterStatuses('ALLEY', 'APPLE')).toEqual(['correct', 'absent', 'absent', 'present', 'absent']);
+    expect(getGuessLetterStatuses('ALLEY', 'APPLE')).toEqual(['correct', 'present', 'absent', 'present', 'absent']);
 
     const previous = getUpdatedKeyStatuses({}, 'PAPER', 'APPLE');
     expect(previous.P).toBe('present');
@@ -193,7 +195,9 @@ describe('classic game scenarios', () => {
     act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'A' })));
     expect(result.current.gameState.currentGuess).toBe('');
 
-    rerender({ ...args, route: 'game' });
+    act(() => {
+      rerender({ ...args, route: 'game' });
+    });
     act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'A' })));
     act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace' })));
     act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'A' })));
