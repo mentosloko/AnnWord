@@ -46,9 +46,9 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
   const getModeWords = useCallback((): string[] => {
     const secretPool = getSecretWordPool();
     return secretPool
-      .filter(entry => entry.word.length >= 3)
+      .filter(entry => entry.word.length === settings.wordLength)
       .map(entry => entry.word);
-  }, [getSecretWordPool]);
+  }, [getSecretWordPool, settings.wordLength]);
 
   return {
     getSecretWordPool,
