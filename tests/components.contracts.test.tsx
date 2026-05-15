@@ -58,11 +58,13 @@ describe('component contracts', () => {
       />,
     );
 
-    fireEvent.click(screen.getByText(/classic/i));
-    fireEvent.click(screen.getAllByRole('button').find(button => button.textContent?.match(/shop|магаз/i))!);
+    fireEvent.click(screen.getByRole('button', { name: 'Играть' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Открыть магазин' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Профиль' }));
 
     expect(onStartClassic).toHaveBeenCalledTimes(1);
-    expect(onOpenShop).toHaveBeenCalled();
+    expect(onOpenShop).toHaveBeenCalledTimes(1);
+    expect(onOpenProfile).toHaveBeenCalledTimes(1);
   });
 
   it('SetupScreen exposes upload and start-game contracts', () => {
@@ -86,33 +88,30 @@ describe('component contracts', () => {
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(['APPLE'], 'dict.txt', { type: 'text/plain' })] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Начать игру' }));
 
-    fireEvent.click(screen.getAllByRole('button').find(button => button.textContent?.match(/start|играть|play/i))!);
-
-    expect(onFileUpload).toHaveBeenCalled();
-    expect(onStartGame).toHaveBeenCalled();
+    expect(onFileUpload).toHaveBeenCalledTimes(1);
+    expect(onStartGame).toHaveBeenCalledTimes(1);
   });
 
-  it('Shop closes and purchases through explicit callbacks', () => {
-    const onBuy = vi.fn().mockResolvedValue(undefined);
+  it('Shop closes through explicit callback', () => {
     const onClose = vi.fn();
 
-    render(<Shop userProfile={profile} onBuy={onBuy} onClose={onClose} />);
+    render(<Shop userProfile={profile} onBuy={vi.fn().mockResolvedValue(undefined)} onClose={onClose} />);
 
-    fireEvent.click(screen.getAllByRole('button').find(button => button.textContent?.match(/назад|back/i))!);
+    fireEvent.click(screen.getAllByRole('button', { name: /На главный экран/i })[0]);
 
-    expect(onClose).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('PetRoom uses explicit item and close callbacks', () => {
-    const onUseItem = vi.fn().mockResolvedValue(undefined);
+  it('PetRoom closes through explicit callback', () => {
     const onClose = vi.fn();
 
-    render(<PetRoom userProfile={profile} onUseItem={onUseItem} onClose={onClose} />);
+    render(<PetRoom userProfile={profile} onUseItem={vi.fn().mockResolvedValue(undefined)} onClose={onClose} />);
 
-    fireEvent.click(screen.getAllByRole('button').find(button => button.textContent?.match(/назад|back/i))!);
+    fireEvent.click(screen.getByRole('button', { name: /На главный экран/i }));
 
-    expect(onClose).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('PetWidget navigates through parent callback', () => {
@@ -120,8 +119,8 @@ describe('component contracts', () => {
 
     render(<PetWidget pet={profile.pet} onNavigateToPetRoom={onNavigateToPetRoom} />);
 
-    fireEvent.click(screen.getByText(profile.pet.name));
+    fireEvent.click(screen.getByRole('button', { name: 'Открыть комнату питомца' }));
 
-    expect(onNavigateToPetRoom).toHaveBeenCalled();
+    expect(onNavigateToPetRoom).toHaveBeenCalledTimes(1);
   });
 });
