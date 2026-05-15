@@ -3,32 +3,34 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { GUEST_PROFILE } from '../constants/profileDefaults';
 
-const makeModeGameMock = async (testId: string, label: string) => {
-  const ReactModule = await import('react');
-  return ({ userProfile, onWinCoins, onAddXP, onBack }: any) => ReactModule.createElement(
-    'div',
-    { 'data-testid': testId },
-    ReactModule.createElement('div', { 'data-testid': `${testId}-dictionary` }, userProfile.customDictionaryEn.join(',')),
-    ReactModule.createElement('button', { type: 'button', onClick: () => onWinCoins(7) }, `${label} win`),
-    ReactModule.createElement('button', { type: 'button', onClick: () => onAddXP(3) }, `${label} xp`),
-    ReactModule.createElement('button', { type: 'button', onClick: onBack }, `${label} back`),
-  );
-};
-
-vi.mock('../components/AnagramGame', async () => ({
-  AnagramGame: await makeModeGameMock('anagram-game', 'anagram'),
+const { createModeGameMock } = vi.hoisted(() => ({
+  createModeGameMock: (testId: string, label: string) => {
+    const MockModeGame = ({ userProfile, onWinCoins, onAddXP, onBack }: any) => React.createElement(
+      'div',
+      { 'data-testid': testId },
+      React.createElement('div', { 'data-testid': `${testId}-dictionary` }, userProfile.customDictionaryEn.join(',')),
+      React.createElement('button', { type: 'button', onClick: () => onWinCoins(7) }, `${label} win`),
+      React.createElement('button', { type: 'button', onClick: () => onAddXP(3) }, `${label} xp`),
+      React.createElement('button', { type: 'button', onClick: onBack }, `${label} back`),
+    );
+    return MockModeGame;
+  },
 }));
 
-vi.mock('../components/SprintGame', async () => ({
-  SprintGame: await makeModeGameMock('sprint-game', 'sprint'),
+vi.mock('../components/AnagramGame', () => ({
+  AnagramGame: createModeGameMock('anagram-game', 'anagram'),
 }));
 
-vi.mock('../components/MemoryGame', async () => ({
-  MemoryGame: await makeModeGameMock('memory-game', 'memory'),
+vi.mock('../components/SprintGame', () => ({
+  SprintGame: createModeGameMock('sprint-game', 'sprint'),
 }));
 
-vi.mock('../components/HangmanGame', async () => ({
-  HangmanGame: await makeModeGameMock('hangman-game', 'hangman'),
+vi.mock('../components/MemoryGame', () => ({
+  MemoryGame: createModeGameMock('memory-game', 'memory'),
+}));
+
+vi.mock('../components/HangmanGame', () => ({
+  HangmanGame: createModeGameMock('hangman-game', 'hangman'),
 }));
 
 import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from '../components/screens/ModeScreens';
