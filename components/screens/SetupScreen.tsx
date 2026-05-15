@@ -13,7 +13,7 @@ interface SetupScreenProps {
   onBack: () => void;
 }
 
-const WORD_LENGTHS: WordLength[] = [4, 5, 6, 7, 8];
+const WORD_LENGTHS: WordLength[] = [4, 5, 6];
 const DIFFICULTIES: DifficultyLevel[] = ['ALL', 'A1', 'A2', 'B1', 'B2', 'C1'];
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({
@@ -55,7 +55,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <section>
             <h2 className="text-sm font-black text-indigo-400 uppercase tracking-widest mb-3">Длина слова</h2>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {WORD_LENGTHS.map(length => (
                 <button
                   type="button"
