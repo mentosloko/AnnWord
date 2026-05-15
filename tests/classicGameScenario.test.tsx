@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, renderHook } from '@testing-library/react';
+import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAX_GUESSES } from '../constants';
 import {
@@ -57,15 +57,11 @@ const setupController = (overrides: Partial<Parameters<typeof useClassicGameCont
 
 describe('classic game scenarios', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     vi.spyOn(Math, 'random').mockReturnValue(0);
   });
 
   afterEach(() => {
-    act(() => {
-      vi.runOnlyPendingTimers();
-    });
-    vi.useRealTimers();
+    cleanup();
     vi.restoreAllMocks();
   });
 
