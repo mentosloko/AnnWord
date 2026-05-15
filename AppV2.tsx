@@ -7,7 +7,7 @@ import { useClassicGameController } from './hooks/useClassicGameController';
 import { useDictionaryPools } from './hooks/useDictionaryPools';
 import { useDictionaryUpload } from './hooks/useDictionaryUpload';
 import { useProfileEconomy } from './hooks/useProfileEconomy';
-import { DictionarySource, ShopItem, UserStats, ViewState } from './types';
+import { DictionarySource, PetState, ShopItem, UserStats, ViewState } from './types';
 import { GameRewardInput } from './services/gamificationRules';
 
 const AppV2: React.FC = () => {
@@ -66,6 +66,13 @@ const AppV2: React.FC = () => {
     if (isAuthenticated) setShowLoginModal(false);
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (bootstrapStatus !== 'ready') return;
+    if (route !== 'character_onboarding' && !userProfile.pet.characterOnboarded) {
+      setRoute('character_onboarding');
+    }
+  }, [bootstrapStatus, route, userProfile.pet.characterOnboarded]);
+
   const openLogin = useCallback(() => {
     openLoginMode();
     setShowLoginModal(true);
@@ -109,6 +116,10 @@ const AppV2: React.FC = () => {
   const handleUseItem = useCallback(async (itemId: string) => profileEconomy.useItem(itemId), [profileEconomy]);
   const handleGameReward = useCallback(async (input: GameRewardInput) => {
     await profileEconomy.applyGameReward(input);
+  }, [profileEconomy]);
+  const handleCharacterOnboardingComplete = useCallback(async (character: PetState) => {
+    await profileEconomy.updateCharacter(character);
+    setRoute('landing');
   }, [profileEconomy]);
 
   if (bootstrapStatus === 'loading' || bootstrapStatus === 'error') {
@@ -167,6 +178,7 @@ const AppV2: React.FC = () => {
         onBuy={handleBuy}
         onUseItem={handleUseItem}
         onGameReward={handleGameReward}
+        onCharacterOnboardingComplete={handleCharacterOnboardingComplete}
       />
     </AppShell>
   );
