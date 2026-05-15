@@ -1,8 +1,10 @@
 import React from 'react';
 import { DictionarySource, DifficultyLevel, GameSettings, WordLength } from '../../types';
 import { ScreenContainer } from '../layout/ScreenContainer';
+import { PlayableModeRoute } from '../AppScreens';
 
 interface SetupScreenProps {
+  selectedPlayMode: PlayableModeRoute;
   settings: GameSettings;
   customWordsCount: number;
   setupError: string | null;
@@ -16,7 +18,16 @@ interface SetupScreenProps {
 const WORD_LENGTHS: WordLength[] = [4, 5, 6];
 const DIFFICULTIES: DifficultyLevel[] = ['ALL', 'A1', 'A2', 'B1', 'B2', 'C1'];
 
+const MODE_LABELS: Record<PlayableModeRoute, string> = {
+  game: 'Wordle',
+  anagrams: 'Анаграммы',
+  sprint: 'Спринт',
+  memory: 'Мемо',
+  hangman: 'Виселица',
+};
+
 export const SetupScreen: React.FC<SetupScreenProps> = ({
+  selectedPlayMode,
   settings,
   customWordsCount,
   setupError,
@@ -42,6 +53,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
       <div className="rounded-[2rem] bg-white border-2 border-indigo-50 shadow-sm p-6 sm:p-8">
         <div className="mb-8">
+          <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-indigo-500 mb-4">
+            Режим: {MODE_LABELS[selectedPlayMode]}
+          </div>
           <h1 className="text-3xl font-black text-indigo-950 mb-2">Настройка игры</h1>
           <p className="text-gray-500">Выберите длину слова, уровень и источник словаря перед стартом.</p>
         </div>
@@ -137,7 +151,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           onClick={onStartGame}
           className="mt-8 w-full rounded-2xl bg-indigo-600 py-4 text-white font-black hover:bg-indigo-700 transition shadow-lg shadow-indigo-100"
         >
-          Начать игру
+          Играть: {MODE_LABELS[selectedPlayMode]}
         </button>
       </div>
     </ScreenContainer>
