@@ -65,7 +65,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
 
     try {
       const userService = await getUserService();
-      await userService.updateStats(currentUserId, stats);
+      await userService.updateUserStats(currentUserId, stats);
     } catch (error) {
       console.error('Failed to update stats', error);
     }
@@ -77,7 +77,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
 
     try {
       const userService = await getUserService();
-      await userService.updateCustomDictionary(currentUserId, dictionary);
+      await userService.updateUserDictionary(currentUserId, dictionary);
     } catch (error) {
       console.error('Failed to update custom dictionary', error);
     }
