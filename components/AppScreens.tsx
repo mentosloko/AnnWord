@@ -114,10 +114,10 @@ export const AppScreens: React.FC<AppScreensProps> = ({
         onLogin={onOpenLogin}
       />
     ),
-    anagrams: <AnagramsScreen words={modeWords} onWin={onWinCoins} onBackHome={goHome} />,
-    sprint: <SprintScreen words={modeWords} onWin={onWinCoins} onBackHome={goHome} />,
-    memory: <MemoryScreen words={modeWords} onWin={onWinCoins} onBackHome={goHome} />,
-    hangman: <HangmanScreen words={modeWords} onWin={onWinCoins} onBackHome={goHome} />,
+    anagrams: <AnagramsScreen words={modeWords} userProfile={userProfile} onWin={onWinCoins} onBackHome={goHome} />,
+    sprint: <SprintScreen words={modeWords} userProfile={userProfile} onWin={onWinCoins} onBackHome={goHome} />,
+    memory: <MemoryScreen words={modeWords} userProfile={userProfile} onWin={onWinCoins} onBackHome={goHome} />,
+    hangman: <HangmanScreen words={modeWords} userProfile={userProfile} onWin={onWinCoins} onBackHome={goHome} />,
     shop: <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} />,
     pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onClose={goHome} />,
   };
