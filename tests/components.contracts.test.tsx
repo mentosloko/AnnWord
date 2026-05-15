@@ -68,12 +68,13 @@ describe('component contracts', () => {
     expect(onOpenProfile).toHaveBeenCalledTimes(1);
   });
 
-  it('SetupScreen exposes upload and start-game contracts', () => {
+  it('SetupScreen exposes upload and selected-mode start-game contracts', () => {
     const onFileUpload = vi.fn();
     const onStartGame = vi.fn();
 
     render(
       <SetupScreen
+        selectedPlayMode="memory"
         settings={settings}
         customWordsCount={1}
         setupError={'Ошибка словаря'}
@@ -86,10 +87,11 @@ describe('component contracts', () => {
     );
 
     expect(screen.getByText('Ошибка словаря')).toBeInTheDocument();
+    expect(screen.getByText('Режим: Мемо')).toBeInTheDocument();
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(['APPLE'], 'dict.txt', { type: 'text/plain' })] } });
-    fireEvent.click(screen.getByRole('button', { name: 'Начать игру' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Играть: Мемо' }));
 
     expect(onFileUpload).toHaveBeenCalledTimes(1);
     expect(onStartGame).toHaveBeenCalledTimes(1);
