@@ -1,19 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
+import { calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 
 interface HangmanGameProps {
   onBack: () => void;
   userProfile: UserProfile;
-  onWinCoins: (coins: number) => void;
-  onAddXP: (xp: number) => void;
+  onGameReward: (input: GameRewardInput) => void | Promise<void>;
 }
 
-export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, onWinCoins, onAddXP }) => {
+export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, onGameReward }) => {
   const dictionary: EnrichedWord[] = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
     ? userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: '', level: 'Custom' }))
     : COMMON_WORDS_EN;
+  const rewardAppliedRef = useRef(false);
 
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
   const [guessedLetters, setGuessedLetters] = useState<string[]>([]);
@@ -28,16 +29,25 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
     setGuessedLetters([]);
     setMistakes(0);
     setStatus('playing');
+    rewardAppliedRef.current = false;
   }, [dictionary]);
 
   useEffect(() => {
     pickNewWord();
   }, []);
 
+  useEffect(() => {
+    if ((status === 'won' || status === 'lost') && !rewardAppliedRef.current) {
+      rewardAppliedRef.current = true;
+      void onGameReward({ type: 'hangman', won: status === 'won' });
+    }
+  }, [status, onGameReward]);
+
   const handleLetterClick = (letter: string) => {
     if (status !== 'playing' || guessedLetters.includes(letter)) return;
     
-    setGuessedLetters([...guessedLetters, letter]);
+    const nextGuessedLetters = [...guessedLetters, letter];
+    setGuessedLetters(nextGuessedLetters);
     
     if (!currentWord?.word.includes(letter)) {
       setMistakes(prev => {
@@ -48,16 +58,15 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
         return newMistakes;
       });
     } else {
-      const allGuessed = currentWord.word.split('').every(char => [...guessedLetters, letter].includes(char));
+      const allGuessed = currentWord.word.split('').every(char => nextGuessedLetters.includes(char));
       if (allGuessed) {
         setStatus('won');
-        onAddXP(50);
-        onWinCoins(15);
       }
     }
   };
 
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const rewardPreview = status === 'playing' ? null : calculateGameReward({ type: 'hangman', won: status === 'won' });
 
   const renderWord = () => {
     if (!currentWord) return null;
@@ -137,12 +146,18 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
       ) : (
         <div className="text-center w-full">
           <div className={`text-2xl font-black mb-4 ${status === 'won' ? 'text-green-600' : 'text-red-500'}`}>
-            {status === 'won' ? 'Победа! 🎉' : 'Попробуй еще раз!'}
+            {status === 'won' ? 'Победа! 🎉' : 'Почти получилось!'}
           </div>
-          <div className="text-gray-500 mb-6">
+          <div className="text-gray-500 mb-4">
             Загаданное слово: <span className="font-bold text-indigo-900">{currentWord?.word}</span>
             {currentWord?.translation && (<><br />Перевод: <span className="italic">{currentWord.translation}</span></>)}
           </div>
+          {rewardPreview && (
+            <div className="grid grid-cols-2 gap-3 bg-indigo-50 rounded-2xl p-4 mb-6">
+              <div><div className="text-xs font-bold text-indigo-400 uppercase">XP</div><div className="text-2xl font-black text-indigo-600">+{rewardPreview.xp}</div></div>
+              <div><div className="text-xs font-bold text-yellow-500 uppercase">Монеты</div><div className="text-2xl font-black text-yellow-600">+{rewardPreview.coins} 🪙</div></div>
+            </div>
+          )}
           <button 
             onClick={pickNewWord}
             className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-xl shadow-lg hover:bg-indigo-700 transition"
