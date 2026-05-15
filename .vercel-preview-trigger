@@ -1,0 +1,2 @@
+Trigger preview deployment for game-scenario-tests after fixing Vitest hoisted mocks.
+Commit expected at or after 384ce10028d101ca95d326e4999c3adb4a7bc509.
