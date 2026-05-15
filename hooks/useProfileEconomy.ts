@@ -1,5 +1,6 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
-import { PetState, ShopItem, UserProfile, UserStats } from '../types';
+import { GameRewardInput, PetState, ShopItem, UserProfile, UserStats } from '../types';
+import { applyGameRewardToCharacter, calculateGameReward } from '../services/gamificationRules';
 
 interface UseProfileEconomyArgs {
   currentUserId: string | null;
@@ -39,14 +40,8 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
   }, [currentUserId, setUserProfile]);
 
   const addXP = useCallback(async (amount: number) => {
-    const newPet: PetState = { ...userProfile.pet, xp: userProfile.pet.xp + amount };
-    if (newPet.xp >= newPet.level * 100) {
-      newPet.xp -= newPet.level * 100;
-      newPet.level += 1;
-      newPet.mood = 'excited';
-    } else {
-      newPet.mood = 'happy';
-    }
+    const progress = applyGameRewardToCharacter(userProfile.pet, { xp: amount, mood: amount });
+    const newPet: PetState = progress.pet;
 
     setUserProfile(prev => ({ ...prev, pet: newPet }));
     if (!currentUserId) return;
@@ -58,6 +53,37 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
       console.error('Failed to update pet', error);
     }
   }, [currentUserId, setUserProfile, userProfile.pet]);
+
+  const applyGameReward = useCallback(async (input: GameRewardInput) => {
+    const reward = calculateGameReward(input);
+    let nextPet: PetState = userProfile.pet;
+    if (reward.xp > 0 || reward.mood > 0) {
+      nextPet = applyGameRewardToCharacter(userProfile.pet, reward).pet;
+    }
+
+    const nextProfile: UserProfile = {
+      ...userProfile,
+      coins: userProfile.coins + reward.coins,
+      pet: nextPet,
+    };
+
+    setUserProfile(nextProfile);
+
+    if (currentUserId) {
+      try {
+        const userService = await getUserService();
+        if (reward.coins !== 0) await userService.updateCoins(currentUserId, reward.coins);
+        if (nextPet !== userProfile.pet) await userService.updateUserPet(currentUserId, nextPet);
+      } catch (error) {
+        console.error('Failed to sync game reward', error);
+      }
+    }
+
+    return {
+      reward,
+      progress: applyGameRewardToCharacter(userProfile.pet, reward),
+    };
+  }, [currentUserId, setUserProfile, userProfile]);
 
   const updateStats = useCallback(async (stats: UserStats) => {
     setUserProfile(prev => ({ ...prev, stats }));
@@ -88,6 +114,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     buyItem,
     useItem,
     addXP,
+    applyGameReward,
     updateStats,
     updateDictionary,
   };
