@@ -12,6 +12,7 @@ export const GUEST_PROFILE: UserProfile = {
     xp: 0,
     moodScore: 60,
     stage: 'stage_1',
+    characterOnboarded: true,
     hunger: 60,
     energy: 60,
     equippedAccessories: [],
