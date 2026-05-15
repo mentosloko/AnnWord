@@ -11,11 +11,19 @@ interface ShopProps {
   onClose: () => void;
 }
 
+type ShopTab = 'food' | 'accessory' | 'home';
+
 const getProfileSyncKey = (profile: UserProfile): string =>
-  `${profile.username}|${profile.coins}|${profile.pet.level}|${JSON.stringify(profile.inventory)}`;
+  `${profile.username}|${profile.coins}|${profile.pet.level}|${profile.pet.type}|${JSON.stringify(profile.inventory)}`;
+
+const getTabLabel = (tab: ShopTab): string => {
+  if (tab === 'food') return 'Лакомства';
+  if (tab === 'accessory') return 'Аксессуары';
+  return 'Домик';
+};
 
 export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'food' | 'pet' | 'accessory'>('food');
+  const [activeTab, setActiveTab] = useState<ShopTab>('food');
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [shopMessage, setShopMessage] = useState<string | null>(null);
   const [localProfile, setLocalProfile] = useState<UserProfile>(userProfile);
@@ -37,8 +45,9 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
     }
   }, [userProfile]);
 
-  const filteredItems = getShopItemsByType(activeTab);
   const activeProfile = localProfile;
+  const filteredItems = getShopItemsByType(activeTab)
+    .filter(item => !item.characterType || item.characterType === activeProfile.pet.type);
 
   const setLocalAndRemember = (profile: UserProfile) => {
     setLocalProfile(profile);
@@ -116,15 +125,15 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
       )}
 
       <div className="flex gap-2 mb-8 bg-indigo-50 p-1 rounded-2xl w-fit">
-        {(['food', 'pet', 'accessory'] as const).map(tab => (
+        {(['food', 'accessory', 'home'] as const).map(tab => (
           <button key={tab} onClick={() => { setActiveTab(tab); setShopMessage(null); }} className={`px-6 py-2 rounded-xl font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>
-            {tab === 'food' ? 'Еда' : tab === 'pet' ? 'Питомцы' : 'Аксессуары'}
+            {getTabLabel(tab)}
           </button>
         ))}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredItems.map(item => {
-          const isLocked = (activeProfile.pet.level || 1) < item.minLevel;
+          const isLocked = (activeProfile.pet.level || 1) < item.minLevel || Boolean(item.characterType && item.characterType !== activeProfile.pet.type);
           const canAfford = activeProfile.coins >= item.price;
           const ownedQuantity = getInventoryQuantity(activeProfile.inventory, item.id);
           return (
