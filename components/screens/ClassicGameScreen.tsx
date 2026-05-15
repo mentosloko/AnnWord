@@ -1,6 +1,8 @@
 import React from 'react';
-import { CharStatus, GameState, GameSettings } from '../../types';
+import { CharStatus, GameState, GameSettings, UserProfile } from '../../types';
 import { MAX_GUESSES } from '../../constants';
+import { calculateGameReward } from '../../services/gamificationRules';
+import { CharacterProgressCard } from '../CharacterProgressCard';
 import { Grid } from '../Grid';
 import { Keyboard } from '../Keyboard';
 import { ScreenContainer } from '../layout/ScreenContainer';
@@ -8,6 +10,7 @@ import { ScreenContainer } from '../layout/ScreenContainer';
 interface ClassicGameScreenProps {
   gameState: GameState;
   settings: GameSettings;
+  userProfile: UserProfile;
   keyStatuses: Record<string, CharStatus>;
   shakeRowIndex: number | null;
   onChar: (char: string) => void;
@@ -21,6 +24,7 @@ interface ClassicGameScreenProps {
 export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
   gameState,
   settings,
+  userProfile,
   keyStatuses,
   shakeRowIndex,
   onChar,
@@ -31,6 +35,7 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
   onBackHome,
 }) => {
   const isFinished = gameState.gameStatus === 'won' || gameState.gameStatus === 'lost';
+  const rewardPreview = isFinished ? calculateGameReward({ type: 'wordle', won: gameState.gameStatus === 'won' }) : null;
 
   return (
     <ScreenContainer className="max-w-5xl pb-28">
@@ -107,12 +112,22 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
           {isFinished && (
             <div className={`mt-5 rounded-2xl p-4 border-2 ${gameState.gameStatus === 'won' ? 'bg-green-50 border-green-100 text-green-800' : 'bg-red-50 border-red-100 text-red-800'}`}>
               <div className="text-sm font-black uppercase tracking-widest mb-1">
-                {gameState.gameStatus === 'won' ? 'Победа' : 'Игра окончена'}
+                {gameState.gameStatus === 'won' ? 'Победа' : 'Почти получилось'}
               </div>
               <div className="text-2xl font-black">{gameState.secretWord}</div>
               {gameState.secretWordData?.translation && (
                 <div className="text-sm mt-1 opacity-80">{gameState.secretWordData.translation}</div>
               )}
+            </div>
+          )}
+
+          {isFinished && rewardPreview && (
+            <div className="mt-5">
+              <CharacterProgressCard
+                pet={userProfile.pet}
+                xpGained={rewardPreview.xp}
+                coinsGained={rewardPreview.coins}
+              />
             </div>
           )}
         </aside>
