@@ -1,4 +1,6 @@
 import { InventoryItem, PetState, ShopItem, UserProfile } from '../types';
+import { applyTreatMood } from './gamificationRules';
+import { getShopItemById } from './shopCatalog';
 
 export interface PurchaseResult {
   ok: boolean;
@@ -9,6 +11,7 @@ export interface PurchaseResult {
 export const canPurchaseItem = (profile: UserProfile, item: ShopItem): PurchaseResult => {
   if (!item || !item.id || item.price < 0) return { ok: false, reason: 'invalid_item' };
   if ((profile.pet.level || 1) < item.minLevel) return { ok: false, reason: 'locked' };
+  if (item.characterType && profile.pet.type !== item.characterType) return { ok: false, reason: 'locked' };
   if (profile.coins < item.price) return { ok: false, reason: 'insufficient_funds' };
   if (item.type !== 'food' && profile.inventory.some(entry => entry.id === item.id)) {
     return { ok: false, reason: 'already_owned' };
@@ -54,11 +57,15 @@ export const applyItemUseLocally = (profile: UserProfile, itemId: string): Purch
   if (index < 0) return { ok: false, reason: 'invalid_item' };
 
   const item = inventory[index];
-  const pet: PetState = { ...profile.pet, equippedAccessories: [...(profile.pet.equippedAccessories || [])] };
+  const shopItem = getShopItemById(itemId);
+  let pet: PetState = { ...profile.pet, equippedAccessories: [...(profile.pet.equippedAccessories || [])] };
 
   if (item.type === 'food') {
-    pet.hunger = Math.min(100, (pet.hunger || 0) + 20);
-    pet.mood = 'happy';
+    const moodDelta = shopItem?.effect?.mood ?? 8;
+    const moodCap = shopItem?.effect?.moodCap ?? 100;
+    pet = applyTreatMood(pet, moodDelta, moodCap);
+    pet.hunger = pet.moodScore;
+    pet.energy = pet.moodScore;
     item.quantity -= 1;
     if (item.quantity <= 0) inventory.splice(index, 1);
   }
@@ -66,13 +73,18 @@ export const applyItemUseLocally = (profile: UserProfile, itemId: string): Purch
   if (item.type === 'pet') {
     pet.type = item.name;
     pet.name = item.name;
-    pet.mood = 'excited';
+    pet.moodScore = 80;
+    pet.mood = 'joyful';
   }
 
   if (item.type === 'accessory') {
     const equippedIndex = pet.equippedAccessories.indexOf(item.id);
     if (equippedIndex >= 0) pet.equippedAccessories.splice(equippedIndex, 1);
     else pet.equippedAccessories.push(item.id);
+  }
+
+  if (item.type === 'home') {
+    pet.activeHomeItemId = pet.activeHomeItemId === item.id ? undefined : item.id;
   }
 
   return {
@@ -87,7 +99,7 @@ export const applyItemUseLocally = (profile: UserProfile, itemId: string): Purch
 
 export const getPurchaseErrorMessage = (reason?: PurchaseResult['reason']): string => {
   switch (reason) {
-    case 'locked': return 'Предмет пока недоступен: нужен более высокий уровень питомца.';
+    case 'locked': return 'Предмет пока недоступен для этого уровня или персонажа.';
     case 'insufficient_funds': return 'Недостаточно монет.';
     case 'not_authenticated': return 'Для покупки нужно войти в аккаунт.';
     case 'invalid_item': return 'Предмет не найден или повреждён.';
