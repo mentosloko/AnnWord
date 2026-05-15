@@ -80,7 +80,7 @@ describe('classic game scenarios', () => {
     expect(getGuessLetterStatuses('ALLEY', 'APPLE')).toEqual(['correct', 'present', 'absent', 'present', 'absent']);
 
     const previous = getUpdatedKeyStatuses({}, 'PAPER', 'APPLE');
-    expect(previous.P).toBe('present');
+    expect(previous.P).toBe('correct');
     expect(previous.A).toBe('present');
 
     const next = getUpdatedKeyStatuses(previous, 'APPLE', 'APPLE');
