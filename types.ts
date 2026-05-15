@@ -1,4 +1,4 @@
-export type WordLength = 4 | 5 | 6 | 7 | 8;
+export type WordLength = 4 | 5 | 6;
 export type DictionarySource = 'builtin' | 'custom';
 export type DifficultyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'ALL';
 

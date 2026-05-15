@@ -102,16 +102,16 @@ describe('classic game scenarios', () => {
     expect(result.current.keyStatuses).toEqual({});
   });
 
-  it('blocks game start when selected dictionary has no matching word length', () => {
+  it('blocks game start when selected dictionary has no matching supported word length', () => {
     const { result, onRouteChange } = setupController({
-      settings: { ...settings, wordLength: 8, dictionarySource: 'custom' },
-      getSecretWordPool: () => words,
+      settings: { ...settings, wordLength: 6, dictionarySource: 'custom' },
+      getSecretWordPool: () => words.filter(word => word.word.length !== 6),
     });
 
     act(() => result.current.startNewGame());
 
     expect(onRouteChange).not.toHaveBeenCalled();
-    expect(result.current.setupError).toBe('В вашем словаре нет слов длиной 8.');
+    expect(result.current.setupError).toBe('В вашем словаре нет слов длиной 6.');
   });
 
   it('validates short guesses and unknown dictionary words without consuming attempts', async () => {

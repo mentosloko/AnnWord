@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { UserProfile } from '../types';
+import React, { useMemo, useState, useEffect } from 'react';
+import { motion } from 'motion/react';
+import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 
 interface Card {
@@ -19,49 +19,67 @@ interface MemoryGameProps {
   onAddXP: (xp: number) => void;
 }
 
+export const buildMemoryDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => {
+  const translationByWord = new Map(
+    fallbackDictionary
+      .filter(entry => entry.word && entry.translation)
+      .map(entry => [entry.word.toUpperCase(), entry]),
+  );
+
+  const customWordsWithTranslations = customDictionaryEn
+    .map(word => translationByWord.get(word.trim().toUpperCase()))
+    .filter((entry): entry is EnrichedWord => Boolean(entry?.translation));
+
+  return customWordsWithTranslations.length >= 6
+    ? customWordsWithTranslations
+    : fallbackDictionary.filter(entry => Boolean(entry.translation));
+};
+
+export const createMemoryCards = (dictionary: EnrichedWord[], random: () => number = Math.random): Card[] => {
+  const shuffled = [...dictionary].sort(() => 0.5 - random());
+  const selectedWords = shuffled.slice(0, 6);
+
+  const gameCards: Card[] = [];
+  selectedWords.forEach((wordData, index) => {
+    gameCards.push({
+      id: index * 2,
+      content: wordData.word,
+      type: 'en',
+      pairId: wordData.word,
+      isFlipped: false,
+      isMatched: false,
+    });
+    gameCards.push({
+      id: index * 2 + 1,
+      content: wordData.translation,
+      type: 'ru',
+      pairId: wordData.word,
+      isFlipped: false,
+      isMatched: false,
+    });
+  });
+
+  return gameCards.sort(() => 0.5 - random());
+};
+
 export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onWinCoins, onAddXP }) => {
-  const dictionary = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
-    ? userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: '' }))
-    : COMMON_WORDS_EN;
+  const dictionary = useMemo(() => buildMemoryDictionary(userProfile.customDictionaryEn), [userProfile.customDictionaryEn]);
 
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
   const [isWon, setIsWon] = useState(false);
 
-  useEffect(() => {
-    initializeGame();
-  }, []);
-
   const initializeGame = () => {
-    const shuffled = [...dictionary].sort(() => 0.5 - Math.random());
-    const selectedWords = shuffled.slice(0, 6);
-
-    const gameCards: Card[] = [];
-    selectedWords.forEach((wordData, index) => {
-      gameCards.push({
-        id: index * 2,
-        content: wordData.word,
-        type: 'en',
-        pairId: wordData.word,
-        isFlipped: false,
-        isMatched: false,
-      });
-      gameCards.push({
-        id: index * 2 + 1,
-        content: wordData.translation || wordData.word,
-        type: 'ru',
-        pairId: wordData.word,
-        isFlipped: false,
-        isMatched: false,
-      });
-    });
-
-    setCards(gameCards.sort(() => 0.5 - Math.random()));
+    setCards(createMemoryCards(dictionary));
     setFlippedCards([]);
     setMoves(0);
     setIsWon(false);
   };
+
+  useEffect(() => {
+    initializeGame();
+  }, [dictionary]);
 
   const handleCardClick = (id: number) => {
     if (flippedCards.length === 2 || cards.find(c => c.id === id)?.isFlipped || cards.find(c => c.id === id)?.isMatched) return;
@@ -104,7 +122,7 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onW
       onWinCoins(25);
       onAddXP(40);
     }
-  }, [cards, isWon]);
+  }, [cards, isWon, onAddXP, onWinCoins]);
 
   return (
     <div className="flex flex-col items-center p-4 max-w-2xl mx-auto">
