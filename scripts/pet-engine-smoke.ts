@@ -6,34 +6,34 @@ const assert = (condition: unknown, message: string) => {
 };
 
 const happyPet: PetState = {
-  name: 'Owl',
-  type: 'Owl',
+  name: 'Щенок',
+  type: 'Puppy',
   level: 2,
   mood: 'happy',
   xp: 10,
-  hunger: 90,
-  energy: 90,
+  moodScore: 65,
+  stage: 'stage_1',
+  hunger: 65,
+  energy: 65,
   equippedAccessories: []
 };
 
-assert(derivePetMood(90, 90) === 'excited', 'high hunger and energy should derive excited mood');
-assert(derivePetMood(20, 90) === 'sad', 'low hunger should derive sad mood');
-assert(derivePetMood(90, 15) === 'sad', 'low energy should derive sad mood');
-assert(derivePetMood(50, 90) === 'neutral', 'mid hunger should derive neutral mood');
+assert(derivePetMood(95) === 'super_happy', 'very high mood score should derive super_happy mood');
+assert(derivePetMood(15) === 'sad', 'low mood score should derive sad mood');
+assert(derivePetMood(40) === 'calm', 'mid-low mood score should derive calm mood');
+assert(derivePetMood(60) === 'happy', 'mid mood score should derive happy mood');
 
 const snapshot = getPetNeedSnapshot(happyPet);
-assert(snapshot.attentionLevel === 'ok', 'well-fed pet should be ok');
-assert(snapshot.statusLabel === 'Всё хорошо', 'well-fed pet should have ok label');
+assert(snapshot.attentionLevel === 'ok', 'happy character should be ok');
+assert(snapshot.statusLabel === 'Рад учиться', 'happy character should have learning-ready label');
 
 const decayed = applyPetDecay(happyPet, {
   lastActiveMs: 0,
-  nowMs: 1000 * 60 * 60 * 10,
-  hungerLossPerHour: 3,
-  energyLossPerHour: 2,
+  nowMs: 1000 * 60 * 60 * 24 * 2,
+  moodLossPerDay: 8,
 });
-assert(decayed.hunger === 60, 'decay should reduce hunger by elapsed hours');
-assert(decayed.energy === 70, 'decay should reduce energy by elapsed hours');
-assert(decayed.mood === derivePetMood(decayed.hunger, decayed.energy), 'decay must refresh mood');
+assert(decayed.moodScore === 49, 'decay should reduce mood by elapsed days');
+assert(decayed.mood === derivePetMood(decayed.moodScore || 0), 'decay must refresh mood');
 
 const profile: UserProfile = {
   username: 'Tester',
@@ -41,16 +41,18 @@ const profile: UserProfile = {
   customDictionaryEn: [],
   stats: { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} },
   pet: happyPet,
-  coins: 100,
+  coins: 10,
   inventory: [
     { id: 'apple', type: 'food', name: 'Яблоко', quantity: 2 },
-    { id: 'hat', type: 'accessory', name: 'Шляпа', quantity: 1 },
-    { id: 'cake', type: 'food', name: 'Торт', quantity: 0 },
+    { id: 'hat', type: 'accessory', name: 'Шапочка', quantity: 1 },
+    { id: 'dog_house', type: 'home', name: 'Будка', quantity: 1 },
+    { id: 'cookie', type: 'food', name: 'Печенье', quantity: 0 },
   ],
 };
 
 assert(getVisibleInventory(profile, 'food').length === 1, 'visible inventory must filter by type and positive quantity');
+assert(getVisibleInventory(profile, 'home').length === 1, 'visible inventory must include home items');
 assert(getInventoryEmoji(profile.inventory[0]) === '🍎', 'apple emoji must be stable');
-assert(getPetEmoji(happyPet) === '🦉', 'owl pet emoji must be stable');
+assert(getPetEmoji(happyPet) === '🐶', 'puppy emoji must be stable');
 
 console.log(JSON.stringify({ ok: true, checked: 'pet-engine' }, null, 2));
