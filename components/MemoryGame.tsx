@@ -2,7 +2,8 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
-import { calculateGameReward, GameRewardInput } from '../services/gamificationRules';
+import { CharacterProgressCard } from './CharacterProgressCard';
+import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 
 interface Card {
   id: number;
@@ -135,6 +136,7 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
   }, [isWon, clicks, onGameReward]);
 
   const rewardPreview = calculateGameReward({ type: 'memory', clicks });
+  const progressPreview = applyGameRewardToCharacter(userProfile.pet, rewardPreview);
 
   return (
     <div className="flex flex-col items-center p-4 max-w-2xl mx-auto">
@@ -184,16 +186,13 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
         <motion.div 
           initial={{ opacity: 0, y: 20, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="mt-8 p-8 bg-white rounded-[2rem] border-4 border-green-100 text-center shadow-2xl"
+          className="mt-8 p-8 bg-white rounded-[2rem] border-4 border-green-100 text-center shadow-2xl w-full max-w-md"
         >
           <div className="text-5xl mb-4">🎉</div>
           <h3 className="text-2xl font-black text-green-800 mb-2">Отлично!</h3>
           <p className="text-green-600 font-bold mb-4">Ты нашёл все пары за {clicks} кликов.</p>
-          <div className="grid grid-cols-2 gap-3 bg-green-50 rounded-2xl p-4 mb-6">
-            <div><div className="text-xs font-bold text-green-500 uppercase">XP</div><div className="text-2xl font-black text-green-700">+{rewardPreview.xp}</div></div>
-            <div><div className="text-xs font-bold text-yellow-500 uppercase">Монеты</div><div className="text-2xl font-black text-yellow-600">+{rewardPreview.coins} 🪙</div></div>
-          </div>
-          <div className="flex gap-3">
+          <CharacterProgressCard pet={progressPreview.pet} xpGained={rewardPreview.xp} coinsGained={rewardPreview.coins} />
+          <div className="flex gap-3 mt-6">
             <button
               onClick={initializeGame}
               className="flex-1 py-3 bg-indigo-50 text-indigo-600 font-bold rounded-2xl hover:bg-indigo-100 transition"
