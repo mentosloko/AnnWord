@@ -3,7 +3,7 @@ import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import path from "path";
 import dotenv from "dotenv";
-import { createClient } from '@supabase/supabase-js';
+import { createClient, User } from '@supabase/supabase-js';
 
 dotenv.config();
 
@@ -95,8 +95,8 @@ app.get("/api/auth/yandex/callback", async (req, res) => {
 
     // Find or create Supabase user by yandex_id stored in user_metadata
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(
-      (u) => u.user_metadata?.yandex_id === yandexId
+    const existingUser: User | undefined = existingUsers.users.find(
+      (user: User) => user.user_metadata?.yandex_id === yandexId
     );
 
     let supabaseUserId: string;
@@ -148,22 +148,32 @@ app.get("/api/auth/yandex/callback", async (req, res) => {
 
 // Vite middleware setup
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+  const vite = await createViteServer({
+    server: { middlewareMode: true },
+    appType: 'spa',
+  });
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  app.use(vite.middlewares);
+
+  app.use('*', async (req, res, next) => {
+    const url = req.originalUrl;
+
+    try {
+      let template = await vite.transformIndexHtml(url, `
+        <html>
+          <head><title>AnnWord</title></head>
+          <body><div id="root"></div><script type="module" src="/index.tsx"></script></body>
+        </html>
+      `);
+      res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+    } catch (e) {
+      vite.ssrFixStacktrace(e as Error);
+      next(e);
+    }
+  });
+
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
   });
 }
 
