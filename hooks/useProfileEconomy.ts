@@ -1,10 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import { PetState, ShopItem, UserProfile, UserStats } from '../types';
 
 interface UseProfileEconomyArgs {
   currentUserId: string | null;
   userProfile: UserProfile;
-  setUserProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
+  setUserProfile: Dispatch<SetStateAction<UserProfile>>;
 }
 
 const getUserService = async () => {
@@ -59,15 +59,15 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     }
   }, [currentUserId, setUserProfile, userProfile.pet]);
 
-  const updateStats = useCallback(async (newStats: UserStats) => {
-    setUserProfile(prev => ({ ...prev, stats: newStats }));
+  const updateStats = useCallback(async (stats: UserStats) => {
+    setUserProfile(prev => ({ ...prev, stats }));
     if (!currentUserId) return;
 
     try {
       const userService = await getUserService();
-      await userService.updateUserStats(currentUserId, newStats);
+      await userService.updateStats(currentUserId, stats);
     } catch (error) {
-      console.error('Failed to sync stats to server', error);
+      console.error('Failed to update stats', error);
     }
   }, [currentUserId, setUserProfile]);
 
@@ -77,10 +77,9 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
 
     try {
       const userService = await getUserService();
-      await userService.updateUserDictionary(currentUserId, dictionary);
+      await userService.updateCustomDictionary(currentUserId, dictionary);
     } catch (error) {
-      console.error('Failed to upload dictionary', error);
-      throw error;
+      console.error('Failed to update custom dictionary', error);
     }
   }, [currentUserId, setUserProfile]);
 
