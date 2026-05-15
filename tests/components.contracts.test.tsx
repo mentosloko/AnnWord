@@ -13,13 +13,16 @@ const profile: UserProfile = {
   customDictionaryEn: ['APPLE'],
   stats: { gamesPlayed: 1, gamesWon: 1, wordsGuessed: { APPLE: 1 } },
   pet: {
-    name: 'Owl',
-    type: 'Owl',
+    name: 'Бадди',
+    type: 'Puppy',
     level: 2,
     mood: 'happy',
     xp: 10,
-    hunger: 80,
-    energy: 70,
+    moodScore: 60,
+    stage: 'stage_1',
+    characterOnboarded: true,
+    hunger: 60,
+    energy: 60,
     equippedAccessories: [],
   },
   coins: 100,
@@ -122,7 +125,7 @@ describe('component contracts', () => {
 
     render(<PetWidget pet={profile.pet} onNavigateToPetRoom={onNavigateToPetRoom} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Открыть комнату питомца' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Открыть комнату персонажа' }));
 
     expect(onNavigateToPetRoom).toHaveBeenCalledTimes(1);
   });
