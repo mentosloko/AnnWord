@@ -13,13 +13,16 @@ const makeProfile = (overrides: Partial<UserProfile> = {}): UserProfile => ({
   customDictionaryEn: [],
   stats: { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} },
   pet: {
-    name: 'Owl',
-    type: 'Owl',
+    name: 'Бадди',
+    type: 'Puppy',
     level: 2,
-    mood: 'neutral',
+    mood: 'calm',
     xp: 0,
+    moodScore: 40,
+    stage: 'stage_1',
+    characterOnboarded: true,
     hunger: 40,
-    energy: 50,
+    energy: 40,
     equippedAccessories: [],
   },
   coins: 100,
@@ -35,6 +38,7 @@ const makeItem = (overrides: Partial<ShopItem> = {}): ShopItem => ({
   minLevel: 1,
   description: 'Food',
   imageUrl: 'apple.png',
+  effect: { mood: 8, moodCap: 80 },
   ...overrides,
 });
 
@@ -72,17 +76,17 @@ describe('economyEngine', () => {
     expect(profile.inventory.filter(item => item.id === 'hat')).toHaveLength(1);
   });
 
-  it('uses food by increasing hunger, setting happy mood, and consuming quantity', () => {
+  it('uses food by increasing moodScore, deriving mood, and consuming quantity', () => {
     const profile = makeProfile({ inventory: [{ id: 'apple', type: 'food', name: 'Apple', quantity: 1 }] });
     const result = applyItemUseLocally(profile, 'apple');
 
     expect(result.ok).toBe(true);
-    expect(result.profile?.pet.hunger).toBe(60);
+    expect(result.profile?.pet.moodScore).toBe(48);
     expect(result.profile?.pet.mood).toBe('happy');
     expect(result.profile?.inventory).toEqual([]);
   });
 
-  it('toggles accessories and switches pet type', () => {
+  it('toggles accessories and switches character type', () => {
     const profile = makeProfile({
       inventory: [
         { id: 'hat', type: 'accessory', name: 'Hat', quantity: 1 },
@@ -99,7 +103,7 @@ describe('economyEngine', () => {
     const switched = applyItemUseLocally(profile, 'cat').profile!;
     expect(switched.pet.type).toBe('Cat');
     expect(switched.pet.name).toBe('Cat');
-    expect(switched.pet.mood).toBe('excited');
+    expect(switched.pet.mood).toBe('joyful');
   });
 
   it('returns stable user-facing purchase error messages', () => {
