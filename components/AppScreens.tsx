@@ -8,6 +8,7 @@ import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from './scr
 import { Shop } from './Shop';
 import { PetRoom } from './PetRoom';
 import { GameSettings, GameState, CharStatus, ShopItem, UserProfile, ViewState } from '../types';
+import { GameRewardInput } from '../services/gamificationRules';
 
 export type PlayableModeRoute = 'game' | 'anagrams' | 'sprint' | 'memory' | 'hangman';
 
@@ -45,7 +46,7 @@ export interface AppScreensProps {
   onOpenRules: () => void;
   onBuy: (item: ShopItem) => Promise<void>;
   onUseItem: (itemId: string) => Promise<void>;
-  onWinCoins: (amount: number) => Promise<void>;
+  onGameReward: (input: GameRewardInput) => Promise<void>;
 }
 
 export const AppScreens: React.FC<AppScreensProps> = ({
@@ -64,7 +65,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
   onOpenRules,
   onBuy,
   onUseItem,
-  onWinCoins,
+  onGameReward,
 }) => {
   const goHome = () => onRouteChange('landing');
   const setupError = classicGame.setupError || dictionaryUpload.error;
@@ -134,10 +135,10 @@ export const AppScreens: React.FC<AppScreensProps> = ({
         onLogin={onOpenLogin}
       />
     ),
-    anagrams: <AnagramsScreen words={modeWords} userProfile={userProfile} onWin={onWinCoins} onBackHome={goHome} />,
-    sprint: <SprintScreen words={modeWords} userProfile={userProfile} onWin={onWinCoins} onBackHome={goHome} />,
-    memory: <MemoryScreen words={modeWords} userProfile={userProfile} onWin={onWinCoins} onBackHome={goHome} />,
-    hangman: <HangmanScreen words={modeWords} userProfile={userProfile} onWin={onWinCoins} onBackHome={goHome} />,
+    anagrams: <AnagramsScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
+    sprint: <SprintScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
+    memory: <MemoryScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
+    hangman: <HangmanScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
     shop: <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} />,
     pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onClose={goHome} />,
   };
