@@ -2,7 +2,7 @@ export type WordLength = 4 | 5 | 6;
 export type DictionarySource = 'builtin' | 'custom';
 export type DifficultyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'ALL';
 
-export type ViewState = 'landing' | 'profile' | 'setup' | 'game' | 'review' | 'anagrams' | 'sprint' | 'hangman' | 'memory' | 'shop' | 'pet_room' | 'admin';
+export type ViewState = 'landing' | 'profile' | 'setup' | 'game' | 'review' | 'anagrams' | 'sprint' | 'hangman' | 'memory' | 'shop' | 'pet_room' | 'character_onboarding' | 'admin';
 
 export type CharStatus = 'correct' | 'present' | 'absent' | 'initial';
 
@@ -27,6 +27,7 @@ export interface PetState {
   xp: number; // Total character XP, not level-local XP.
   moodScore?: number; // 0-100. Games can raise it to 70; treats can raise it to 100.
   stage?: CharacterStage;
+  characterOnboarded?: boolean;
   hunger?: number; // Legacy field. Do not use for new reward logic.
   energy?: number; // Legacy field. Do not use for new reward logic.
   equippedAccessories: string[]; // IDs of equipped items
