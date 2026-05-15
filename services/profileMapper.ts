@@ -1,12 +1,15 @@
 import { InventoryItem, PetState, UserProfile, UserStats } from '../types';
 import { normalizeCustomDictionary } from './dictionaryEngine';
+import { deriveCharacterLevel, deriveCharacterStage, deriveMoodFromScore, normalizeMoodScore } from './gamificationRules';
 
 const DEFAULT_PET: PetState = {
-  name: 'Owl',
-  type: 'Owl',
+  name: 'Щенок',
+  type: 'Puppy',
   level: 1,
   mood: 'happy',
   xp: 0,
+  moodScore: 60,
+  stage: 'stage_1',
   hunger: 100,
   energy: 100,
   equippedAccessories: []
@@ -24,7 +27,7 @@ const normalizeStringArray = (value: unknown): string[] => {
     new Set(
       value
         .filter((item): item is string => typeof item === 'string')
-        .map(item => item.trim().toUpperCase().replace(/[^A-Z]/g, ''))
+        .map(item => item.trim())
         .filter(Boolean)
     )
   );
@@ -52,19 +55,35 @@ export const normalizeStats = (value: unknown): UserStats => {
 export const normalizePet = (value: unknown): PetState => {
   if (!isPlainObject(value)) return { ...DEFAULT_PET };
 
-  return {
+  const rawXp = typeof value.xp === 'number' ? Math.max(0, Math.round(value.xp)) : DEFAULT_PET.xp;
+  const level = deriveCharacterLevel(rawXp);
+  const stage = deriveCharacterStage(level);
+  const basePet: PetState = {
     ...DEFAULT_PET,
     ...value,
     name: typeof value.name === 'string' ? value.name : DEFAULT_PET.name,
     type: typeof value.type === 'string' ? value.type : DEFAULT_PET.type,
-    level: typeof value.level === 'number' ? value.level : DEFAULT_PET.level,
-    mood: ['sad', 'neutral', 'happy', 'excited'].includes(String(value.mood))
-      ? value.mood as PetState['mood']
-      : DEFAULT_PET.mood,
-    xp: typeof value.xp === 'number' ? value.xp : DEFAULT_PET.xp,
+    level,
+    xp: rawXp,
     hunger: typeof value.hunger === 'number' ? value.hunger : DEFAULT_PET.hunger,
     energy: typeof value.energy === 'number' ? value.energy : DEFAULT_PET.energy,
-    equippedAccessories: normalizeStringArray(value.equippedAccessories)
+    equippedAccessories: normalizeStringArray(value.equippedAccessories),
+    activeHomeItemId: typeof value.activeHomeItemId === 'string' ? value.activeHomeItemId : undefined,
+    stage,
+  };
+
+  const moodScore = normalizeMoodScore({
+    ...basePet,
+    mood: ['sad', 'neutral', 'calm', 'happy', 'excited', 'joyful', 'super_happy'].includes(String(value.mood))
+      ? value.mood as PetState['mood']
+      : DEFAULT_PET.mood,
+    moodScore: typeof value.moodScore === 'number' ? value.moodScore : undefined,
+  });
+
+  return {
+    ...basePet,
+    moodScore,
+    mood: deriveMoodFromScore(moodScore),
   };
 };
 
@@ -75,7 +94,7 @@ export const normalizeInventory = (value: unknown): InventoryItem[] => {
     .filter(isPlainObject)
     .map(item => ({
       id: typeof item.id === 'string' ? item.id : '',
-      type: ['food', 'pet', 'accessory'].includes(String(item.type))
+      type: ['food', 'pet', 'accessory', 'home'].includes(String(item.type))
         ? item.type as InventoryItem['type']
         : 'food',
       name: typeof item.name === 'string' ? item.name : '',
