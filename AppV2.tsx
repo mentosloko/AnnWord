@@ -67,11 +67,11 @@ const AppV2: React.FC = () => {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (bootstrapStatus !== 'ready') return;
+    if (bootstrapStatus !== 'ready' || !isAuthenticated) return;
     if (route !== 'character_onboarding' && !userProfile.pet.characterOnboarded) {
       setRoute('character_onboarding');
     }
-  }, [bootstrapStatus, route, userProfile.pet.characterOnboarded]);
+  }, [bootstrapStatus, isAuthenticated, route, userProfile.pet.characterOnboarded]);
 
   const openLogin = useCallback(() => {
     openLoginMode();
