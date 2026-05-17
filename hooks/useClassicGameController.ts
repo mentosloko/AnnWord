@@ -90,7 +90,14 @@ export const useClassicGameController = ({
 
   const startNewGame = useCallback(() => {
     setSetupError(null);
-    const filteredPool = getSecretWordPool().filter(entry => entry.word.length === settings.wordLength);
+    const rawPool = getSecretWordPool();
+
+    if (settings.dictionarySource === 'custom' && rawPool.length === 0) {
+      setSetupError('Мой словарь не загружен. Загрузите TXT/CSV-файл или выберите встроенный словарь.');
+      return;
+    }
+
+    const filteredPool = rawPool.filter(entry => entry.word.length === settings.wordLength);
 
     if (filteredPool.length === 0) {
       setSetupError(
