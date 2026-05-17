@@ -16,7 +16,7 @@ export interface UserStats {
 
 export type CharacterMood = 'sad' | 'calm' | 'happy' | 'joyful' | 'super_happy' | 'neutral' | 'excited';
 export type CharacterStage = 'stage_1' | 'stage_2' | 'stage_3' | 'stage_4';
-export type InventoryItemType = 'food' | 'pet' | 'accessory' | 'home';
+export type InventoryItemType = 'food' | 'pet' | 'accessory' | 'home' | 'mystery';
 export type GameRewardType = 'wordle' | 'sprint' | 'anagram' | 'memory' | 'hangman' | 'other';
 
 export interface PetState {
@@ -52,6 +52,11 @@ export interface UserProfile {
   inventory: InventoryItem[];
 }
 
+export interface ShopRandomRewardOption {
+  itemId: string;
+  weight: number;
+}
+
 export interface ShopItem {
   id: string;
   name: string;
@@ -65,6 +70,9 @@ export interface ShopItem {
     moodCap?: number;
   };
   characterType?: string;
+  randomReward?: {
+    pool: ShopRandomRewardOption[];
+  };
 }
 
 // ----------------------------------
