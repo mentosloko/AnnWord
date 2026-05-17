@@ -110,10 +110,12 @@ export const AppScreens: React.FC<AppScreensProps> = ({
         customWordsCount={userProfile.customDictionaryEn.length}
         setupError={setupError}
         isUploadingDictionary={dictionaryUpload.isUploadingDictionary}
+        isAuthenticated={isAuthenticated}
         onSettingsChange={onSettingsChange}
         onFileUpload={dictionaryUpload.onFileUpload}
         onStartGame={startSelectedMode}
         onBack={goHome}
+        onLogin={onOpenLogin}
       />
     ),
     game: (
