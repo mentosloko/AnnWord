@@ -53,10 +53,23 @@ describe('petEngine', () => {
     expect(getPetNeedSnapshot({ ...pet, moodScore: 150 })).toMatchObject({ moodScore: 100, hunger: 100, energy: 100, attentionLevel: 'ok' });
   });
 
-  it('applies deterministic day-based mood decay without mutating original pet', () => {
+  it('does not decay from client-local timestamps', () => {
     const decayed = applyPetDecay({ ...pet, moodScore: 60 }, {
       nowMs: 1000 * 60 * 60 * 24 * 2,
       lastActiveMs: 0,
+      moodLossPerDay: 8,
+    });
+
+    expect(decayed.moodScore).toBe(60);
+    expect(decayed.hunger).toBe(60);
+    expect(decayed.energy).toBe(60);
+    expect(decayed).toMatchObject(pet);
+  });
+
+  it('applies deterministic day-based mood decay only from server timestamps', () => {
+    const decayed = applyPetDecay({ ...pet, moodScore: 60 }, {
+      serverNowMs: 1000 * 60 * 60 * 24 * 2,
+      serverLastActiveMs: 0,
       moodLossPerDay: 8,
     });
 
