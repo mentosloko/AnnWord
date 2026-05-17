@@ -1,22 +1,22 @@
 import { UserProfile } from '../types';
 
 export const GUEST_PROFILE: UserProfile = {
-  username: 'Guest',
+  username: 'Гость',
   customDictionaryEn: [],
   stats: { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} },
   pet: {
-    name: 'Щенок',
+    name: 'Персонаж',
     type: 'Puppy',
     level: 1,
-    mood: 'happy',
+    mood: 'calm',
     xp: 0,
-    moodScore: 60,
+    moodScore: 45,
     stage: 'stage_1',
     characterOnboarded: true,
-    hunger: 60,
-    energy: 60,
+    hunger: 45,
+    energy: 45,
     equippedAccessories: [],
   },
-  coins: 5,
+  coins: 0,
   inventory: [],
 };
