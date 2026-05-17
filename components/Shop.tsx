@@ -11,7 +11,7 @@ interface ShopProps {
   onClose: () => void;
 }
 
-type ShopTab = 'food' | 'accessory' | 'home';
+type ShopTab = 'food' | 'accessory' | 'home' | 'mystery';
 
 const getProfileSyncKey = (profile: UserProfile): string =>
   `${profile.username}|${profile.coins}|${profile.pet.level}|${profile.pet.type}|${JSON.stringify(profile.inventory)}`;
@@ -19,6 +19,7 @@ const getProfileSyncKey = (profile: UserProfile): string =>
 const getTabLabel = (tab: ShopTab): string => {
   if (tab === 'food') return 'Лакомства';
   if (tab === 'accessory') return 'Аксессуары';
+  if (tab === 'mystery') return 'Секрет';
   return 'Домик';
 };
 
@@ -77,13 +78,15 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
     }
 
     setLocalAndRemember(optimisticPurchase.profile);
-    setShopMessage(null);
+    setShopMessage(optimisticPurchase.awardedItem ? `Секретная коробка открыта: ${optimisticPurchase.awardedItem.name}!` : null);
     setBuyingId(item.id);
 
     try {
       const serverProfile = await syncPurchase(item);
       if (serverProfile && mountedRef.current) setLocalAndRemember(serverProfile);
-      if (mountedRef.current) setShopMessage('Покупка добавлена в инвентарь.');
+      if (mountedRef.current) {
+        setShopMessage(optimisticPurchase.awardedItem ? `Секретная коробка открыта: ${optimisticPurchase.awardedItem.name}!` : 'Покупка добавлена в инвентарь.');
+      }
     } catch (error: any) {
       const message = String(error?.message || '');
       if (message.includes('not a function') || message.includes('is not a function')) {
@@ -107,10 +110,10 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   };
 
   return (
-    <div className="flex flex-col p-4 max-w-4xl mx-auto">
+    <div className="flex flex-col p-3 sm:p-4 max-w-5xl mx-auto pb-24">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-white border-2 border-indigo-100 text-indigo-700 font-bold hover:bg-indigo-50 transition shadow-sm">← На главный экран</button>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <button type="button" onClick={onClose} className="w-fit px-4 py-2 rounded-xl bg-white border-2 border-indigo-100 text-indigo-700 font-bold hover:bg-indigo-50 transition shadow-sm">← На главный экран</button>
           <h2 className="text-3xl font-bold text-indigo-900">Магазин</h2>
         </div>
         <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-2xl border-2 border-yellow-200 w-fit">
@@ -124,9 +127,9 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
         </div>
       )}
 
-      <div className="flex gap-2 mb-8 bg-indigo-50 p-1 rounded-2xl w-fit">
-        {(['food', 'accessory', 'home'] as const).map(tab => (
-          <button key={tab} onClick={() => { setActiveTab(tab); setShopMessage(null); }} className={`px-6 py-2 rounded-xl font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>
+      <div className="flex flex-wrap gap-2 mb-8 bg-indigo-50 p-1 rounded-2xl w-fit">
+        {(['food', 'accessory', 'home', 'mystery'] as const).map(tab => (
+          <button key={tab} onClick={() => { setActiveTab(tab); setShopMessage(null); }} className={`px-4 sm:px-6 py-2 rounded-xl font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>
             {getTabLabel(tab)}
           </button>
         ))}
@@ -136,18 +139,28 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
           const isLocked = (activeProfile.pet.level || 1) < item.minLevel || Boolean(item.characterType && item.characterType !== activeProfile.pet.type);
           const canAfford = activeProfile.coins >= item.price;
           const ownedQuantity = getInventoryQuantity(activeProfile.inventory, item.id);
+          const isMystery = item.type === 'mystery';
           return (
             <motion.div key={item.id} whileHover={canAfford && !isLocked ? { y: -5 } : {}} className={`bg-white rounded-3xl p-6 border-2 transition-all ${isLocked ? 'border-amber-100 shadow-sm' : canAfford ? 'border-indigo-50 shadow-sm hover:shadow-md' : 'border-gray-100 opacity-70'}`}>
-              <div className="relative aspect-square mb-4 bg-indigo-50 rounded-2xl overflow-hidden">
-                <img src={item.imageUrl} alt={item.name} className={`w-full h-full object-cover ${isLocked ? 'opacity-70' : ''}`} referrerPolicy="no-referrer" />
+              <div className={`relative aspect-square mb-4 ${isMystery ? 'bg-gradient-to-br from-purple-100 to-indigo-50' : 'bg-indigo-50'} rounded-2xl overflow-hidden flex items-center justify-center`}>
+                {isMystery ? (
+                  <div className="text-7xl">🎁</div>
+                ) : (
+                  <img src={item.imageUrl} alt={item.name} className={`w-full h-full object-cover ${isLocked ? 'opacity-70' : ''}`} referrerPolicy="no-referrer" />
+                )}
                 {isLocked && <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 backdrop-blur-sm text-white"><span className="text-3xl mb-1">🔒</span><span className="text-xs font-bold uppercase tracking-wider">Уровень {item.minLevel}</span></div>}
-                {ownedQuantity > 0 && !isLocked && <div className="absolute right-2 top-2 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-indigo-700 shadow">x{ownedQuantity}</div>}
+                {ownedQuantity > 0 && !isLocked && !isMystery && <div className="absolute right-2 top-2 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-indigo-700 shadow">x{ownedQuantity}</div>}
               </div>
               <h3 className="text-xl font-bold text-indigo-900 mb-1">{item.name}</h3>
-              <p className="text-sm text-gray-500 mb-4 line-clamp-2">{item.description}</p>
+              <p className="text-sm text-gray-500 mb-4 line-clamp-3">{item.description}</p>
+              {isMystery && (
+                <div className="mb-4 rounded-2xl bg-purple-50 border border-purple-100 px-3 py-2 text-xs font-bold text-purple-700">
+                  Вероятности настраиваются в каталоге магазина через веса выпадения.
+                </div>
+              )}
               <div className="flex items-center justify-between mt-auto">
                 <div className={`flex items-center gap-1 ${!canAfford ? 'text-gray-400' : isLocked ? 'text-amber-600' : 'text-indigo-600'}`}><span className="font-bold">{item.price}</span><span className="text-sm">🪙</span></div>
-                <button disabled={isLocked || !canAfford || buyingId === item.id} onClick={() => handleBuy(item)} className={`px-4 py-2 rounded-xl font-bold transition-all ${isLocked ? 'bg-amber-50 text-amber-600 cursor-not-allowed border-2 border-amber-100' : !canAfford ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-gray-100' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'}`}>{buyingId === item.id ? '...' : isLocked ? `Ур. ${item.minLevel}` : !canAfford ? 'Не хватает' : 'Купить'}</button>
+                <button disabled={isLocked || !canAfford || buyingId === item.id} onClick={() => handleBuy(item)} className={`px-4 py-2 rounded-xl font-bold transition-all ${isLocked ? 'bg-amber-50 text-amber-600 cursor-not-allowed border-2 border-amber-100' : !canAfford ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-gray-100' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'}`}>{buyingId === item.id ? '...' : isLocked ? `Ур. ${item.minLevel}` : !canAfford ? 'Не хватает' : isMystery ? 'Открыть' : 'Купить'}</button>
               </div>
             </motion.div>
           );
