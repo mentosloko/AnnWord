@@ -16,10 +16,31 @@ describe('profileMapper', () => {
     expect(normalizeStats(null)).toEqual({ gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} });
   });
 
-  it('normalizes pet fields and falls back for invalid values', () => {
-    const normalized = normalizePet({ name: 'Kitty', type: 'Cat', level: 3, mood: 'broken', xp: 10, hunger: 50, energy: 40, equippedAccessories: [' hat ', 'hat', 1] });
+  it('normalizes character fields and falls back for invalid values', () => {
+    const normalized = normalizePet({
+      name: 'Kitty',
+      type: 'Cat',
+      level: 3,
+      mood: 'broken',
+      xp: 10,
+      moodScore: 60,
+      hunger: 50,
+      energy: 40,
+      stage: 'stage_1',
+      equippedAccessories: [' hat ', 'hat', 1],
+    });
 
-    expect(normalized).toMatchObject({ name: 'Kitty', type: 'Cat', level: 3, mood: 'happy', xp: 10, hunger: 50, energy: 40 });
+    expect(normalized).toMatchObject({
+      name: 'Kitty',
+      type: 'Cat',
+      level: 2,
+      mood: 'happy',
+      xp: 10,
+      moodScore: 60,
+      hunger: 50,
+      energy: 40,
+    });
+
     expect(normalized.equippedAccessories).toEqual(['HAT']);
   });
 
@@ -43,7 +64,7 @@ describe('profileMapper', () => {
       role: 'admin',
       custom_dictionary_en: ['stone', 'STONE'],
       stats: { gamesPlayed: 5, gamesWon: 4, wordsGuessed: { STONE: 2 } },
-      pet: { type: 'Dragon', hunger: 80 },
+      pet: { type: 'Dragon', moodScore: 80 },
       coins: 42,
       inventory: [{ id: 'hat', type: 'accessory', name: 'Hat', quantity: 1 }],
     });
@@ -53,7 +74,8 @@ describe('profileMapper', () => {
     expect(profile.customDictionaryEn).toEqual(['STONE']);
     expect(profile.stats.gamesPlayed).toBe(5);
     expect(profile.pet.type).toBe('Dragon');
-    expect(profile.pet.name).toBe('Owl');
+    expect(profile.pet.name).toBe('Щенок');
+    expect(profile.pet.coins).toBeUndefined();
     expect(profile.coins).toBe(42);
     expect(profile.inventory).toHaveLength(1);
   });
