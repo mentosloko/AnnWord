@@ -13,9 +13,14 @@ export interface PetNeedSnapshot {
 }
 
 export interface PetDecayOptions {
+  /** Server-authoritative current timestamp. Do not pass local Date.now() here. */
+  serverNowMs?: number | null;
+  /** Server-authoritative last activity timestamp. */
+  serverLastActiveMs?: number | null;
+  moodLossPerDay?: number;
+  /** Legacy options are intentionally ignored for new character logic. */
   nowMs?: number;
   lastActiveMs?: number | null;
-  moodLossPerDay?: number;
   hungerLossPerHour?: number;
   energyLossPerHour?: number;
 }
@@ -50,8 +55,15 @@ export const getPetNeedSnapshot = (pet: PetState): PetNeedSnapshot => {
 };
 
 export const applyPetDecay = (pet: PetState, options: PetDecayOptions = {}): PetState => {
-  const nowMs = options.nowMs ?? Date.now();
-  const lastActiveMs = options.lastActiveMs ?? nowMs;
+  const nowMs = options.serverNowMs;
+  const lastActiveMs = options.serverLastActiveMs;
+
+  // Safety rule: never decay from client-local time. Users can change local time,
+  // so character state can only deteriorate when both timestamps come from server data.
+  if (typeof nowMs !== 'number' || typeof lastActiveMs !== 'number') {
+    return pet;
+  }
+
   const elapsedDays = Math.max(0, (nowMs - lastActiveMs) / (1000 * 60 * 60 * 24));
   const moodLossPerDay = options.moodLossPerDay ?? 8;
 
@@ -82,6 +94,7 @@ export const getInventoryEmoji = (item: InventoryItem): string => {
     case 'dog_house': return '🏠';
     case 'dragon_nest': return '🪺';
     case 'charging_station': return '🔋';
+    case 'mystery_box': return '🎁';
     case 'puppy': return '🐶';
     case 'dragon': return '🐲';
     case 'robo_cat': return '🤖';
