@@ -44,7 +44,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, route, userProfile
 
     {children}
 
-    {route !== 'pet_room' && route !== 'shop' && route !== 'character_onboarding' && (
+    {isAuthenticated && route !== 'pet_room' && route !== 'shop' && route !== 'character_onboarding' && (
       <PetWidget pet={pet} onNavigateToPetRoom={onNavigateToPetRoom} />
     )}
 
