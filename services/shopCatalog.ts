@@ -17,6 +17,28 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'dog_house', name: 'Будка', price: 20, type: 'home', minLevel: 3, description: 'Домик для щенка.', imageUrl: 'https://picsum.photos/seed/dog-house/100/100', characterType: 'Puppy' },
   { id: 'dragon_nest', name: 'Гнездо', price: 20, type: 'home', minLevel: 3, description: 'Уютное гнездо для дракончика.', imageUrl: 'https://picsum.photos/seed/dragon-nest/100/100', characterType: 'Dragon' },
   { id: 'charging_station', name: 'Зарядная станция', price: 20, type: 'home', minLevel: 3, description: 'Станция отдыха для робокота.', imageUrl: 'https://picsum.photos/seed/charging-station/100/100', characterType: 'RoboCat' },
+
+  {
+    id: 'mystery_box',
+    name: 'Секретная коробка',
+    price: 8,
+    type: 'mystery',
+    minLevel: 2,
+    description: 'Случайный предмет: чаще выпадают простые лакомства, реже — дорогие аксессуары.',
+    imageUrl: 'https://picsum.photos/seed/mystery-box/100/100',
+    randomReward: {
+      pool: [
+        { itemId: 'apple', weight: 28 },
+        { itemId: 'cookie', weight: 24 },
+        { itemId: 'berry', weight: 18 },
+        { itemId: 'icecream', weight: 10 },
+        { itemId: 'bow', weight: 8 },
+        { itemId: 'glasses', weight: 6 },
+        { itemId: 'hat', weight: 4 },
+        { itemId: 'crown', weight: 2 },
+      ],
+    },
+  },
 ];
 
 export const getShopItemById = (itemId: string): ShopItem | undefined =>
