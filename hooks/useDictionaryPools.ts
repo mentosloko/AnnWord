@@ -11,7 +11,7 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
   const getSecretWordPool = useCallback((): EnrichedWord[] => {
     let pool: EnrichedWord[] = [];
 
-    if (settings.dictionarySource === 'custom' && userProfile.customDictionaryEn.length > 0) {
+    if (settings.dictionarySource === 'custom') {
       pool = userProfile.customDictionaryEn.map(word => ({
         word: word.toUpperCase(),
         translation: '',
