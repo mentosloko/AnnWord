@@ -41,7 +41,7 @@ describe('profileMapper', () => {
       energy: 40,
     });
 
-    expect(normalized.equippedAccessories).toEqual(['HAT']);
+    expect(normalized.equippedAccessories).toEqual(['hat']);
   });
 
   it('normalizes inventory and removes unusable entries', () => {
