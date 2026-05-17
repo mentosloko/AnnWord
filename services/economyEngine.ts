@@ -6,33 +6,38 @@ export interface PurchaseResult {
   ok: boolean;
   reason?: 'not_authenticated' | 'locked' | 'insufficient_funds' | 'invalid_item' | 'already_owned';
   profile?: UserProfile;
+  awardedItem?: ShopItem;
 }
 
-export const canPurchaseItem = (profile: UserProfile, item: ShopItem): PurchaseResult => {
-  if (!item || !item.id || item.price < 0) return { ok: false, reason: 'invalid_item' };
-  if ((profile.pet.level || 1) < item.minLevel) return { ok: false, reason: 'locked' };
-  if (item.characterType && profile.pet.type !== item.characterType) return { ok: false, reason: 'locked' };
-  if (profile.coins < item.price) return { ok: false, reason: 'insufficient_funds' };
-  if (item.type !== 'food' && profile.inventory.some(entry => entry.id === item.id)) {
-    return { ok: false, reason: 'already_owned' };
+const pickWeightedReward = (item: ShopItem, random: () => number = Math.random): ShopItem | null => {
+  const pool = item.randomReward?.pool || [];
+  const validPool = pool
+    .map(option => ({ ...option, item: getShopItemById(option.itemId) }))
+    .filter((option): option is typeof option & { item: ShopItem } => Boolean(option.item) && option.weight > 0);
+
+  const totalWeight = validPool.reduce((sum, option) => sum + option.weight, 0);
+  if (totalWeight <= 0) return null;
+
+  let cursor = random() * totalWeight;
+  for (const option of validPool) {
+    cursor -= option.weight;
+    if (cursor <= 0) return option.item;
   }
-  return { ok: true };
+
+  return validPool[validPool.length - 1]?.item || null;
 };
 
-export const applyPurchaseLocally = (profile: UserProfile, item: ShopItem): PurchaseResult => {
-  const allowed = canPurchaseItem(profile, item);
-  if (!allowed.ok) return allowed;
-
-  const inventory = profile.inventory.map(entry => ({ ...entry }));
-  const existingIndex = inventory.findIndex(entry => entry.id === item.id);
+const addInventoryItem = (inventory: InventoryItem[], item: ShopItem): InventoryItem[] => {
+  const nextInventory = inventory.map(entry => ({ ...entry }));
+  const existingIndex = nextInventory.findIndex(entry => entry.id === item.id);
 
   if (existingIndex >= 0 && item.type === 'food') {
-    inventory[existingIndex] = {
-      ...inventory[existingIndex],
-      quantity: inventory[existingIndex].quantity + 1,
+    nextInventory[existingIndex] = {
+      ...nextInventory[existingIndex],
+      quantity: nextInventory[existingIndex].quantity + 1,
     };
   } else if (existingIndex < 0) {
-    inventory.push({
+    nextInventory.push({
       id: item.id,
       type: item.type,
       name: item.name,
@@ -41,8 +46,39 @@ export const applyPurchaseLocally = (profile: UserProfile, item: ShopItem): Purc
     });
   }
 
+  return nextInventory;
+};
+
+export const canPurchaseItem = (profile: UserProfile, item: ShopItem): PurchaseResult => {
+  if (!item || !item.id || item.price < 0) return { ok: false, reason: 'invalid_item' };
+  if ((profile.pet.level || 1) < item.minLevel) return { ok: false, reason: 'locked' };
+  if (item.characterType && profile.pet.type !== item.characterType) return { ok: false, reason: 'locked' };
+  if (profile.coins < item.price) return { ok: false, reason: 'insufficient_funds' };
+  if (item.type !== 'food' && item.type !== 'mystery' && profile.inventory.some(entry => entry.id === item.id)) {
+    return { ok: false, reason: 'already_owned' };
+  }
+  return { ok: true };
+};
+
+export const applyPurchaseLocally = (profile: UserProfile, item: ShopItem, random: () => number = Math.random): PurchaseResult => {
+  const allowed = canPurchaseItem(profile, item);
+  if (!allowed.ok) return allowed;
+
+  let awardedItem: ShopItem | undefined;
+  let inventory = profile.inventory.map(entry => ({ ...entry }));
+
+  if (item.type === 'mystery') {
+    const reward = pickWeightedReward(item, random);
+    if (!reward) return { ok: false, reason: 'invalid_item' };
+    awardedItem = reward;
+    inventory = addInventoryItem(inventory, reward);
+  } else {
+    inventory = addInventoryItem(inventory, item);
+  }
+
   return {
     ok: true,
+    awardedItem,
     profile: {
       ...profile,
       coins: profile.coins - item.price,
