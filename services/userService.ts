@@ -1,7 +1,7 @@
 import { UserProfile, UserStats, PetState, ShopItem } from "../types";
 import { supabase } from "../supabase";
 import { mapProfileFromDB, normalizeDictionaryField, normalizePet, normalizeStats } from "./profileMapper";
-import { applyItemUseLocally } from "./economyEngine";
+import { applyItemUseLocally, applyPurchaseLocally } from "./economyEngine";
 
 const DEFAULT_PET: PetState = {
   name: 'Щенок',
@@ -174,19 +174,21 @@ export const userService = {
   buyItem: async (userId: string, item: ShopItem): Promise<UserProfile> => {
     console.log(`userService.buyItem: userId=${userId}, item=${item.id}`);
 
-    try {
-      const { data, error } = await supabase.rpc('purchase_shop_item', {
-        p_user_id: userId,
-        p_item: toShopItemPayload(item),
-      });
+    if (item.type !== 'mystery') {
+      try {
+        const { data, error } = await supabase.rpc('purchase_shop_item', {
+          p_user_id: userId,
+          p_item: toShopItemPayload(item),
+        });
 
-      if (!error && data) {
-        return mapProfileFromDB(data);
+        if (!error && data) {
+          return mapProfileFromDB(data);
+        }
+
+        console.warn("RPC purchase_shop_item failed, falling back to manual update:", error?.message);
+      } catch (rpcError) {
+        console.warn("RPC purchase_shop_item threw, falling back to manual update:", rpcError);
       }
-
-      console.warn("RPC purchase_shop_item failed, falling back to manual update:", error?.message);
-    } catch (rpcError) {
-      console.warn("RPC purchase_shop_item threw, falling back to manual update:", rpcError);
     }
 
     try {
@@ -199,30 +201,14 @@ export const userService = {
       if (fetchErr) throw fetchErr;
 
       const normalizedProfile = mapProfileFromDB(profile);
-
-      if (normalizedProfile.coins < item.price) {
-        throw new Error("Недостаточно монет");
-      }
-
-      const newCoins = normalizedProfile.coins - item.price;
-      const inventory = [...normalizedProfile.inventory];
-
-      const existingItemIndex = inventory.findIndex((i: any) => i.id === item.id);
-      if (existingItemIndex > -1 && item.type === 'food') {
-        inventory[existingItemIndex].quantity += 1;
-      } else if (existingItemIndex === -1) {
-        inventory.push({
-          id: item.id,
-          type: item.type,
-          name: item.name,
-          quantity: 1,
-          metadata: { imageUrl: item.imageUrl }
-        });
+      const purchase = applyPurchaseLocally(normalizedProfile, item);
+      if (!purchase.ok || !purchase.profile) {
+        throw new Error(purchase.reason || "Покупка не удалась");
       }
 
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
-        .update({ coins: newCoins, inventory })
+        .update({ coins: purchase.profile.coins, inventory: purchase.profile.inventory })
         .eq('id', userId)
         .select()
         .single();
