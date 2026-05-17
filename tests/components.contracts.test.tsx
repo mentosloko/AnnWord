@@ -71,7 +71,7 @@ describe('component contracts', () => {
     expect(onOpenProfile).toHaveBeenCalledTimes(1);
   });
 
-  it('SetupScreen exposes upload and selected-mode start-game contracts', () => {
+  it('SetupScreen exposes upload and selected-mode start-game contracts for authenticated users', () => {
     const onFileUpload = vi.fn();
     const onStartGame = vi.fn();
 
@@ -82,10 +82,12 @@ describe('component contracts', () => {
         customWordsCount={1}
         setupError={'Ошибка словаря'}
         isUploadingDictionary={false}
+        isAuthenticated
         onSettingsChange={vi.fn()}
         onFileUpload={onFileUpload}
         onStartGame={onStartGame}
         onBack={vi.fn()}
+        onLogin={vi.fn()}
       />,
     );
 
@@ -98,6 +100,34 @@ describe('component contracts', () => {
 
     expect(onFileUpload).toHaveBeenCalledTimes(1);
     expect(onStartGame).toHaveBeenCalledTimes(1);
+  });
+
+  it('SetupScreen gates custom dictionary for guests', () => {
+    const onLogin = vi.fn();
+    const onSettingsChange = vi.fn();
+
+    render(
+      <SetupScreen
+        selectedPlayMode="game"
+        settings={settings}
+        customWordsCount={0}
+        setupError={null}
+        isUploadingDictionary={false}
+        isAuthenticated={false}
+        onSettingsChange={onSettingsChange}
+        onFileUpload={vi.fn()}
+        onStartGame={vi.fn()}
+        onBack={vi.fn()}
+        onLogin={onLogin}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Зарегистрироваться/i }));
+    expect(onLogin).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('input[type="file"]')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /Мой словарь/i }));
+    expect(onSettingsChange).not.toHaveBeenCalled();
   });
 
   it('Shop closes through explicit callback', () => {
