@@ -27,12 +27,19 @@ const snapshot = getPetNeedSnapshot(happyPet);
 assert(snapshot.attentionLevel === 'ok', 'happy character should be ok');
 assert(snapshot.statusLabel === 'Рад учиться', 'happy character should have learning-ready label');
 
-const decayed = applyPetDecay(happyPet, {
+const localTimeDecayAttempt = applyPetDecay(happyPet, {
   lastActiveMs: 0,
   nowMs: 1000 * 60 * 60 * 24 * 2,
   moodLossPerDay: 8,
 });
-assert(decayed.moodScore === 49, 'decay should reduce mood by elapsed days');
+assert(localTimeDecayAttempt.moodScore === 65, 'client-local time must not decay mood');
+
+const decayed = applyPetDecay(happyPet, {
+  serverLastActiveMs: 0,
+  serverNowMs: 1000 * 60 * 60 * 24 * 2,
+  moodLossPerDay: 8,
+});
+assert(decayed.moodScore === 49, 'server timestamp decay should reduce mood by elapsed days');
 assert(decayed.mood === derivePetMood(decayed.moodScore || 0), 'decay must refresh mood');
 
 const profile: UserProfile = {
