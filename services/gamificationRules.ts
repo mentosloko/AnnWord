@@ -24,33 +24,57 @@ export interface CharacterProgressResult {
   stagedUp: boolean;
 }
 
-export const CHARACTER_LEVEL_THRESHOLDS = [
-  { level: 1, totalXp: 0, stage: 'stage_1' as const },
-  { level: 2, totalXp: 10, stage: 'stage_1' as const },
-  { level: 3, totalXp: 25, stage: 'stage_2' as const },
-  { level: 4, totalXp: 45, stage: 'stage_2' as const },
-  { level: 5, totalXp: 70, stage: 'stage_2' as const },
-  { level: 6, totalXp: 100, stage: 'stage_3' as const },
-  { level: 7, totalXp: 135, stage: 'stage_3' as const },
-  { level: 8, totalXp: 175, stage: 'stage_3' as const },
-  { level: 9, totalXp: 220, stage: 'stage_4' as const },
-  { level: 10, totalXp: 270, stage: 'stage_4' as const },
-];
+const getStageForLevel = (level: number): CharacterStage => {
+  if (level >= 15) return 'stage_4';
+  if (level >= 9) return 'stage_3';
+  if (level >= 3) return 'stage_2';
+  return 'stage_1';
+};
+
+export const getTotalXpForLevel = (level: number): number => {
+  const normalizedLevel = Math.max(1, Math.round(level || 1));
+  if (normalizedLevel === 1) return 0;
+  if (normalizedLevel === 2) return 50;
+  if (normalizedLevel === 3) return 120;
+  if (normalizedLevel === 4) return 220;
+  if (normalizedLevel === 5) return 360;
+  return 360 + (normalizedLevel - 5) * normalizedLevel * 180;
+};
+
+export const CHARACTER_LEVEL_THRESHOLDS = Array.from({ length: 20 }, (_, index) => {
+  const level = index + 1;
+  return {
+    level,
+    totalXp: getTotalXpForLevel(level),
+    stage: getStageForLevel(level),
+  };
+});
 
 const clamp = (value: number, min = 0, max = 100): number => Math.max(min, Math.min(max, Math.round(value)));
 
 export const deriveCharacterLevel = (totalXp: number): number => {
   const normalizedXp = Math.max(0, Math.round(totalXp || 0));
-  return CHARACTER_LEVEL_THRESHOLDS.reduce((level, threshold) => (
-    normalizedXp >= threshold.totalXp ? threshold.level : level
-  ), 1);
+  let level = 1;
+
+  for (let candidate = 1; candidate <= 100; candidate += 1) {
+    if (normalizedXp >= getTotalXpForLevel(candidate)) level = candidate;
+    else break;
+  }
+
+  return level;
 };
 
-export const deriveCharacterStage = (level: number): CharacterStage => {
-  const threshold = [...CHARACTER_LEVEL_THRESHOLDS]
-    .reverse()
-    .find(entry => level >= entry.level);
-  return threshold?.stage || 'stage_1';
+export const deriveCharacterStage = (level: number): CharacterStage => getStageForLevel(level);
+
+export const getCharacterStageLabel = (stage: CharacterStage | undefined): string => {
+  switch (stage) {
+    case 'stage_2': return 'Юный исследователь';
+    case 'stage_3': return 'Знаток слов';
+    case 'stage_4': return 'Мастер слов';
+    case 'stage_1':
+    default:
+      return 'Малыш';
+  }
 };
 
 export const deriveMoodFromScore = (moodScore: number): CharacterMood => {
@@ -77,65 +101,67 @@ export const normalizeMoodScore = (pet: PetState): number => {
   }
 };
 
-export const getNextLevelThreshold = (level: number): number | null => {
-  const next = CHARACTER_LEVEL_THRESHOLDS.find(entry => entry.level === level + 1);
-  return next?.totalXp ?? null;
-};
+export const getNextLevelThreshold = (level: number): number | null => getTotalXpForLevel(level + 1);
 
-export const getCurrentLevelThreshold = (level: number): number =>
-  [...CHARACTER_LEVEL_THRESHOLDS]
-    .reverse()
-    .find(entry => level >= entry.level)?.totalXp ?? 0;
+export const getCurrentLevelThreshold = (level: number): number => getTotalXpForLevel(level);
+
+const getPityXp = (won?: boolean): number => (won ? 0 : 8);
 
 export const calculateGameReward = (input: GameRewardInput): GameRewardResult => {
   switch (input.type) {
     case 'wordle': {
       const won = Boolean(input.won);
-      const xp = won ? 5 : 0;
+      const xp = won ? 25 : getPityXp(won);
       return {
         xp,
         coins: won ? 3 : 1,
-        mood: xp,
+        mood: Math.min(12, xp),
         label: won ? 'Wordle угадан' : 'Wordle завершён',
       };
     }
     case 'sprint': {
       const guessed = Math.max(0, Math.round(input.guessedWords || 0));
-      const xp = Math.min(4, guessed);
+      const xp = guessed > 0 ? Math.min(30, guessed * 5) : 5;
       return {
         xp,
         coins: guessed >= 3 ? 2 : guessed >= 1 ? 1 : 0,
-        mood: xp,
+        mood: Math.min(12, xp),
         label: 'Спринт завершён',
       };
     }
     case 'anagram': {
       const guessed = Math.max(0, Math.round(input.guessedWords || 0));
-      const xp = Math.min(4, guessed);
+      const xp = guessed > 0 ? Math.min(25, guessed * 5) : 5;
       return {
         xp,
         coins: guessed >= 3 ? 2 : guessed >= 1 ? 1 : 0,
-        mood: xp,
+        mood: Math.min(10, xp),
         label: 'Анаграммы',
       };
     }
     case 'memory': {
       const clicks = Math.max(0, Math.round(input.clicks || 0));
-      const xp = clicks > 0 && clicks <= 8 ? 4 : clicks <= 10 ? 3 : clicks <= 12 ? 2 : clicks <= 14 ? 1 : 0;
+      let xp = 8;
+      if (clicks > 0 && clicks <= 12) xp = 30;
+      else if (clicks <= 16) xp = 25;
+      else if (clicks <= 20) xp = 20;
+      else if (clicks <= 24) xp = 15;
+      else if (clicks > 24) xp = 10;
+
       return {
         xp,
-        coins: clicks > 0 && clicks <= 12 ? 2 : clicks <= 14 ? 1 : 0,
-        mood: xp,
+        coins: clicks > 0 && clicks <= 16 ? 2 : clicks <= 24 ? 1 : 0,
+        mood: Math.min(12, xp),
         label: 'Мемо завершено',
       };
     }
     case 'hangman': {
       const won = Boolean(input.won);
-      const xp = won ? 4 : 0;
+      const xp = won ? 25 : getPityXp(won);
       return {
         xp,
         coins: won ? 2 : 1,
-        mood: xp,
+        mood: Math.min(12, xp),
         label: won ? 'Виселица пройдена' : 'Виселица завершена',
       };
     }
@@ -187,4 +213,12 @@ export const getCharacterProgressText = (pet: PetState): string => {
   const nextThreshold = getNextLevelThreshold(level);
   if (nextThreshold === null) return 'Максимальный уровень';
   return `До следующего уровня: ${Math.max(0, nextThreshold - (pet.xp || 0))} XP`;
+};
+
+export const getCharacterProgressPercent = (pet: PetState): number => {
+  const level = deriveCharacterLevel(pet.xp || 0);
+  const currentThreshold = getCurrentLevelThreshold(level);
+  const nextThreshold = getNextLevelThreshold(level);
+  if (nextThreshold === null || nextThreshold <= currentThreshold) return 100;
+  return clamp(((pet.xp || 0) - currentThreshold) / (nextThreshold - currentThreshold) * 100);
 };
