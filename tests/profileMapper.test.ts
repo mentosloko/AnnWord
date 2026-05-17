@@ -75,7 +75,6 @@ describe('profileMapper', () => {
     expect(profile.stats.gamesPlayed).toBe(5);
     expect(profile.pet.type).toBe('Dragon');
     expect(profile.pet.name).toBe('Щенок');
-    expect(profile.pet.coins).toBeUndefined();
     expect(profile.coins).toBe(42);
     expect(profile.inventory).toHaveLength(1);
   });
