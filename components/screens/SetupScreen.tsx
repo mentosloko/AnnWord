@@ -9,10 +9,12 @@ interface SetupScreenProps {
   customWordsCount: number;
   setupError: string | null;
   isUploadingDictionary: boolean;
+  isAuthenticated: boolean;
   onSettingsChange: (settings: GameSettings) => void;
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onStartGame: () => void;
   onBack: () => void;
+  onLogin: () => void;
 }
 
 const WORD_LENGTHS: WordLength[] = [4, 5, 6];
@@ -32,13 +34,20 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   customWordsCount,
   setupError,
   isUploadingDictionary,
+  isAuthenticated,
   onSettingsChange,
   onFileUpload,
   onStartGame,
   onBack,
+  onLogin,
 }) => {
   const updateSetting = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => {
     onSettingsChange({ ...settings, [key]: value });
+  };
+
+  const selectDictionarySource = (source: DictionarySource) => {
+    if (source === 'custom' && !isAuthenticated) return;
+    updateSetting('dictionarySource', source);
   };
 
   return (
@@ -110,39 +119,64 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           <section className="lg:col-span-2">
             <h2 className="text-sm font-black text-indigo-400 uppercase tracking-widest mb-3">Словарь</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {(['builtin', 'custom'] as DictionarySource[]).map(source => (
-                <button
-                  type="button"
-                  key={source}
-                  onClick={() => updateSetting('dictionarySource', source)}
-                  className={`rounded-3xl p-5 text-left border-2 transition ${
-                    settings.dictionarySource === source
-                      ? 'bg-indigo-50 border-indigo-300 text-indigo-950'
-                      : 'bg-white border-indigo-100 text-gray-700 hover:bg-indigo-50'
-                  }`}
-                >
-                  <div className="text-2xl mb-2">{source === 'builtin' ? '📚' : '⬆️'}</div>
-                  <div className="font-black mb-1">{source === 'builtin' ? 'Встроенный словарь' : 'Мой словарь'}</div>
-                  <div className="text-xs text-gray-500">
-                    {source === 'builtin'
-                      ? 'Базовый словарь с уровнями сложности.'
-                      : `${customWordsCount} слов загружено.`}
-                  </div>
-                </button>
-              ))}
+              {(['builtin', 'custom'] as DictionarySource[]).map(source => {
+                const isCustomLocked = source === 'custom' && !isAuthenticated;
+                return (
+                  <button
+                    type="button"
+                    key={source}
+                    disabled={isCustomLocked}
+                    onClick={() => selectDictionarySource(source)}
+                    className={`rounded-3xl p-5 text-left border-2 transition relative ${
+                      settings.dictionarySource === source
+                        ? 'bg-indigo-50 border-indigo-300 text-indigo-950'
+                        : 'bg-white border-indigo-100 text-gray-700 hover:bg-indigo-50'
+                    } ${isCustomLocked ? 'opacity-70 cursor-not-allowed hover:bg-white' : ''}`}
+                  >
+                    <div className="text-2xl mb-2">{source === 'builtin' ? '📚' : '🔒'}</div>
+                    <div className="font-black mb-1">{source === 'builtin' ? 'Встроенный словарь' : 'Мой словарь'}</div>
+                    <div className="text-xs text-gray-500">
+                      {source === 'builtin'
+                        ? 'Базовый словарь с уровнями сложности.'
+                        : isCustomLocked
+                          ? 'Доступен после регистрации.'
+                          : `${customWordsCount} слов загружено.`}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
-            <label className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 p-4 cursor-pointer hover:bg-indigo-50 transition">
-              <input type="file" accept=".txt,.csv" onChange={onFileUpload} className="hidden" />
-              <span className="text-2xl">📄</span>
-              <span className="flex-1">
-                <span className="block font-black text-indigo-900">Загрузить словарь</span>
-                <span className="block text-xs text-gray-500">TXT/CSV, слова через пробел, перенос строки или запятую.</span>
-              </span>
-              <span className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-indigo-700 border border-indigo-100">
-                {isUploadingDictionary ? 'Загрузка...' : 'Выбрать файл'}
-              </span>
-            </label>
+            {!isAuthenticated ? (
+              <div className="mt-4 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/70 p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <span className="text-2xl">🔐</span>
+                  <span className="flex-1">
+                    <span className="block font-black text-indigo-900">Свой словарь доступен после регистрации</span>
+                    <span className="block text-xs text-gray-500">Войдите в аккаунт, чтобы загружать TXT/CSV и играть по своим словам.</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onLogin}
+                    className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-black text-white hover:bg-indigo-700 transition"
+                  >
+                    Зарегистрироваться
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 p-4 cursor-pointer hover:bg-indigo-50 transition">
+                <input type="file" accept=".txt,.csv" onChange={onFileUpload} className="hidden" />
+                <span className="text-2xl">📄</span>
+                <span className="flex-1">
+                  <span className="block font-black text-indigo-900">Загрузить словарь</span>
+                  <span className="block text-xs text-gray-500">TXT/CSV, слова через пробел, перенос строки или запятую.</span>
+                </span>
+                <span className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-indigo-700 border border-indigo-100">
+                  {isUploadingDictionary ? 'Загрузка...' : 'Выбрать файл'}
+                </span>
+              </label>
+            )}
           </section>
         </div>
 
