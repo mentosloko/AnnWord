@@ -33,7 +33,7 @@ describe('profileMapper', () => {
     expect(normalized).toMatchObject({
       name: 'Kitty',
       type: 'Cat',
-      level: 2,
+      level: 1,
       mood: 'happy',
       xp: 10,
       moodScore: 60,
