@@ -11,7 +11,7 @@ interface GridProps {
 }
 
 const Cell: React.FC<{ letter: string; status: CharStatus }> = ({ letter, status }) => {
-  let baseClasses = "flex-1 aspect-square max-w-[4rem] border-2 flex items-center justify-center text-xl sm:text-3xl font-bold uppercase select-none transition-all duration-300 rounded-md";
+  const baseClasses = "flex-1 aspect-square min-w-0 max-w-[3.4rem] sm:max-w-[4rem] border-2 flex items-center justify-center text-[clamp(1.25rem,6vw,2rem)] sm:text-3xl font-black uppercase select-none transition-all duration-300 rounded-xl tracking-[0.08em] font-mono leading-none";
   let statusClasses = "";
 
   switch (status) {
@@ -25,7 +25,7 @@ const Cell: React.FC<{ letter: string; status: CharStatus }> = ({ letter, status
       statusClasses = "bg-gray-500 border-gray-500 text-white";
       break;
     default:
-      statusClasses = letter ? "border-gray-400 text-black scale-105" : "border-gray-200 bg-white";
+      statusClasses = letter ? "border-gray-400 text-indigo-950 scale-105 bg-white" : "border-gray-200 bg-white";
       break;
   }
 
@@ -73,7 +73,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
   // Render past guesses
   for (let i = 0; i < maxGuesses; i++) {
     let rowContent;
-    let isShake = i === shakeRowIndex;
+    const isShake = i === shakeRowIndex;
 
     if (i < guesses.length) {
       const guess = guesses[i];
@@ -97,7 +97,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
     rows.push(
       <div 
         key={i} 
-        className={`flex gap-1 sm:gap-2 mb-1 sm:mb-2 justify-center w-full ${isShake ? 'animate-shake' : ''}`}
+        className={`flex gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 justify-center w-full ${isShake ? 'animate-shake' : ''}`}
         style={{ animation: isShake ? 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both' : 'none' }}
       >
         {rowContent}
@@ -115,7 +115,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
           40%, 60% { transform: translate3d(4px, 0, 0); }
         }
       `}</style>
-      <div className="flex flex-col flex-grow w-full max-w-md justify-center p-2 h-full">
+      <div className="flex flex-col flex-grow w-full max-w-[min(24rem,92vw)] justify-center p-1 sm:p-2 h-full">
         {rows}
       </div>
     </>
