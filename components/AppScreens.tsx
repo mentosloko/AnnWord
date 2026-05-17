@@ -137,6 +137,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
         isAuthenticated={isAuthenticated}
         onBackHome={goHome}
         onOpenShop={() => onRouteChange('shop')}
+        onOpenPetRoom={() => onRouteChange('pet_room')}
         onLogin={onOpenLogin}
       />
     ),
