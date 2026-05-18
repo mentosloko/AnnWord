@@ -41,6 +41,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   onBack,
   onLogin,
 }) => {
+  const isCustomDictionary = settings.dictionarySource === 'custom';
+
   const updateSetting = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => {
     onSettingsChange({ ...settings, [key]: value });
   };
@@ -66,7 +68,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             Режим: {MODE_LABELS[selectedPlayMode]}
           </div>
           <h1 className="text-3xl font-black text-indigo-950 mb-2">Настройка игры</h1>
-          <p className="text-gray-500">Выберите длину слова, уровень и источник словаря перед стартом.</p>
+          <p className="text-gray-500">Выберите длину слова, источник словаря и уровень для встроенного словаря.</p>
         </div>
 
         {setupError && (
@@ -96,24 +98,39 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             </div>
           </section>
 
-          <section>
-            <h2 className="text-sm font-black text-indigo-400 uppercase tracking-widest mb-3">Уровень</h2>
+          <section className={isCustomDictionary ? 'opacity-60' : ''}>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h2 className="text-sm font-black text-indigo-400 uppercase tracking-widest">Уровень</h2>
+              {isCustomDictionary && (
+                <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-gray-400">
+                  Только для встроенного
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-3 gap-2">
               {DIFFICULTIES.map(level => (
                 <button
                   type="button"
                   key={level}
-                  onClick={() => updateSetting('difficulty', level)}
+                  disabled={isCustomDictionary}
+                  onClick={() => {
+                    if (!isCustomDictionary) updateSetting('difficulty', level);
+                  }}
                   className={`rounded-2xl py-3 font-black border-2 transition ${
                     settings.difficulty === level
                       ? 'bg-indigo-600 border-indigo-600 text-white'
                       : 'bg-white border-indigo-100 text-indigo-700 hover:bg-indigo-50'
-                  }`}
+                  } ${isCustomDictionary ? 'cursor-not-allowed hover:bg-white disabled:text-gray-400 disabled:border-gray-100 disabled:bg-gray-50' : ''}`}
                 >
                   {level}
                 </button>
               ))}
             </div>
+            {isCustomDictionary && (
+              <p className="mt-2 text-xs font-bold text-gray-400">
+                Для своего словаря уровень не выбирается: игра берёт слова из загруженного файла, а длина слова остаётся активной.
+              </p>
+            )}
           </section>
 
           <section className="lg:col-span-2">
