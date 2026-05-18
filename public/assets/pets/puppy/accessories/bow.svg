@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Puppy bow accessory">
+  <defs>
+    <linearGradient id="bowPink" x1="96" y1="118" x2="416" y2="394" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffc4d6"/>
+      <stop offset="0.55" stop-color="#ff7fab"/>
+      <stop offset="1" stop-color="#e94983"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(182 160) rotate(48) scale(200 126)">
+      <stop stop-color="#fff7fb" stop-opacity="0.9"/>
+      <stop offset="0.55" stop-color="#fff7fb" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#fff7fb" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#9b2f5a" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <g filter="url(#softShadow)">
+    <path d="M248 206C198 134 89 105 55 170c-32 61 15 148 84 157 41 5 78-14 109-55z" fill="url(#bowPink)"/>
+    <path d="M264 206c50-72 159-101 193-36 32 61-15 148-84 157-41 5-78-14-109-55z" fill="url(#bowPink)"/>
+    <path d="M126 306 84 400c-7 16 11 31 25 21l104-73z" fill="#f35f96"/>
+    <path d="m386 306 42 94c7 16-11 31-25 21l-104-73z" fill="#f35f96"/>
+    <rect x="216" y="186" width="80" height="126" rx="28" fill="#f76fa0"/>
+    <path d="M248 206C198 134 89 105 55 170c-32 61 15 148 84 157 41 5 78-14 109-55z" fill="url(#shine)"/>
+    <path d="M264 206c50-72 159-101 193-36 32 61-15 148-84 157-41 5-78-14-109-55z" fill="url(#shine)" opacity="0.65"/>
+    <path d="M219 234c-31-19-74-25-120-5M293 234c31-19 74-25 120-5" fill="none" stroke="#cb336d" stroke-opacity="0.34" stroke-width="10" stroke-linecap="round"/>
+    <g fill="#fff5ea" opacity="0.86">
+      <circle cx="120" cy="188" r="14"/><circle cx="177" cy="154" r="12"/><circle cx="184" cy="254" r="11"/><circle cx="96" cy="268" r="12"/>
+      <circle cx="392" cy="188" r="14"/><circle cx="335" cy="154" r="12"/><circle cx="328" cy="254" r="11"/><circle cx="416" cy="268" r="12"/>
+      <circle cx="256" cy="224" r="10"/><circle cx="256" cy="276" r="8"/>
+    </g>
+  </g>
+</svg>
