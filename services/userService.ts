@@ -265,13 +265,18 @@ export const userService = {
     }
   },
 
-  updateUserDictionary: async (userId: string, dictionary: string[]): Promise<void> => {
+  updateUserDictionary: async (userId: string, dictionary: string[]): Promise<UserProfile> => {
     try {
-      const { error } = await supabase
+      const normalizedDictionary = normalizeDictionaryField(dictionary);
+      const { data, error } = await supabase
         .from('profiles')
-        .update({ custom_dictionary_en: normalizeDictionaryField(dictionary) })
-        .eq('id', userId);
+        .update({ custom_dictionary_en: normalizedDictionary, updated_at: new Date().toISOString() })
+        .eq('id', userId)
+        .select()
+        .single();
       if (error) throw error;
+      if (!data) throw new Error('Сервер не вернул обновлённый профиль.');
+      return mapProfileFromDB(data);
     } catch (error) {
       console.error("Supabase Error (updateUserDictionary):", error);
       throw error;
