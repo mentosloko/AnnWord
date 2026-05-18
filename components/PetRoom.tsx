@@ -4,6 +4,7 @@ import { InventoryItem, UserProfile } from '../types';
 import { applyItemUseLocally } from '../services/economyEngine';
 import { getCharacterProgressPercent, getCharacterProgressText, getCharacterStageLabel } from '../services/gamificationRules';
 import { getInventoryEmoji, getPetEmoji, getPetNeedSnapshot, getVisibleInventory } from '../services/petEngine';
+import { getEquippedAccessoryAssetUrl, getInventoryImageUrl, getPuppyAccessoryOverlayClass } from '../services/petAssets';
 
 interface PetRoomProps {
   userProfile: UserProfile;
@@ -160,15 +161,45 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
                 scale: petSnapshot.mood === 'sad' ? [1, 0.99, 1] : [1, 1.025, 1],
               }}
               transition={{ repeat: Infinity, duration: petSnapshot.mood === 'sad' ? 4 : 3, ease: 'easeInOut' }}
-              className="relative cursor-pointer focus:outline-none focus:ring-4 focus:ring-indigo-200 rounded-full"
+              className="relative cursor-pointer focus:outline-none focus:ring-4 focus:ring-indigo-200 rounded-full w-48 h-48 sm:w-64 sm:h-64 flex items-center justify-center"
             >
-              <div className="text-[7rem] sm:text-[9rem] leading-none drop-shadow-sm">{getPetEmoji(pet)}</div>
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                {(pet.equippedAccessories || []).map(accessoryId => (
-                  <div key={accessoryId} className={`absolute ${getAccessoryPositionClass(accessoryId)}`}>
-                    {getInventoryEmoji({ id: accessoryId, type: 'accessory', name: '', quantity: 1 })}
-                  </div>
-                ))}
+              {(pet.equippedAccessories || []).map(accessoryId => {
+                const assetUrl = getEquippedAccessoryAssetUrl(pet, accessoryId);
+                if (!assetUrl || accessoryId !== 'hero_cape') return null;
+                return (
+                  <img
+                    key={accessoryId}
+                    src={assetUrl}
+                    alt=""
+                    aria-hidden="true"
+                    className={`${getPuppyAccessoryOverlayClass(accessoryId)} pointer-events-none select-none`}
+                    draggable={false}
+                  />
+                );
+              })}
+              <div className="relative z-20 text-[7rem] sm:text-[9rem] leading-none drop-shadow-sm">{getPetEmoji(pet)}</div>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                {(pet.equippedAccessories || []).map(accessoryId => {
+                  const assetUrl = getEquippedAccessoryAssetUrl(pet, accessoryId);
+                  if (assetUrl && accessoryId !== 'hero_cape') {
+                    return (
+                      <img
+                        key={accessoryId}
+                        src={assetUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className={`${getPuppyAccessoryOverlayClass(accessoryId)} pointer-events-none select-none`}
+                        draggable={false}
+                      />
+                    );
+                  }
+                  if (assetUrl) return null;
+                  return (
+                    <div key={accessoryId} className={`absolute ${getAccessoryPositionClass(accessoryId)}`}>
+                      {getInventoryEmoji({ id: accessoryId, type: 'accessory', name: '', quantity: 1 })}
+                    </div>
+                  );
+                })}
               </div>
             </motion.button>
 
@@ -238,6 +269,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
             ) : (
               filteredInventory.map(item => {
                 const isActive = pet.equippedAccessories?.includes(item.id) || pet.activeHomeItemId === item.id;
+                const itemImageUrl = getInventoryImageUrl(item, pet);
                 return (
                   <motion.button
                     type="button"
@@ -251,7 +283,11 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
                         : 'bg-indigo-50 border-indigo-100 text-indigo-900 hover:bg-indigo-100'
                     }`}
                   >
-                    <div className="text-4xl mb-2">{getInventoryEmoji(item)}</div>
+                    {itemImageUrl ? (
+                      <img src={itemImageUrl} alt="" className="w-14 h-14 object-contain mb-2" aria-hidden="true" draggable={false} />
+                    ) : (
+                      <div className="text-4xl mb-2">{getInventoryEmoji(item)}</div>
+                    )}
                     <span className="text-[10px] font-bold uppercase tracking-tighter text-center line-clamp-1">{item.name}</span>
                     {item.quantity > 1 && (
                       <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
