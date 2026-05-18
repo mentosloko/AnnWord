@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion, AnimatePresence } from 'motion/react';
-import { CharacterProgressCard } from './CharacterProgressCard';
+import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 
 interface SprintGameProps {
@@ -40,6 +40,15 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
   const [timeLeft, setTimeLeft] = useState(60);
   const [status, setStatus] = useState<'playing' | 'ended'>('playing');
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+
+  const restartGame = () => {
+    clearNextWordTimeout();
+    rewardAppliedRef.current = false;
+    setScore(0);
+    setTimeLeft(60);
+    setFeedback(null);
+    setStatus('playing');
+  };
 
   const clearNextWordTimeout = useCallback(() => {
     if (nextWordTimeoutRef.current) {
@@ -139,20 +148,8 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
     );
   }
 
-  if (status === 'ended') {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 text-center bg-white rounded-3xl shadow-2xl w-full max-w-md">
-        <div className="text-6xl mb-4">🏆</div>
-        <h2 className="text-3xl font-black text-indigo-900 mb-2">Время вышло!</h2>
-        <p className="text-gray-500 mb-6 text-lg">Отгадано слов: <span className="font-bold text-indigo-600">{score}</span></p>
-        <CharacterProgressCard pet={progressPreview.pet} xpGained={rewardPreview.xp} coinsGained={rewardPreview.coins} />
-        <button onClick={onBack} className="w-full py-4 mt-6 bg-indigo-600 text-white rounded-2xl font-bold text-xl shadow-lg hover:bg-indigo-700 transition active:scale-95">Назад в меню</button>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col items-center w-full max-w-md p-6 bg-white rounded-3xl shadow-xl relative overflow-hidden">
+    <div className="flex flex-col items-center w-full max-w-md p-4 sm:p-6 bg-white rounded-3xl shadow-xl relative overflow-hidden">
       <div className="absolute top-0 left-0 h-2 bg-indigo-100 w-full">
         <motion.div 
           className="h-full bg-indigo-600"
@@ -162,14 +159,14 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
         />
       </div>
 
-      <div className="w-full flex justify-between items-center mb-6 mt-4">
+      <div className="w-full flex justify-between items-center mb-6 mt-4 gap-3">
         <button 
           onClick={onBack} 
           className="flex items-center gap-1 text-gray-500 hover:text-indigo-600 font-bold transition px-3 py-1 bg-gray-50 rounded-lg border border-gray-200"
         >
           <span className="text-xl">←</span> Меню
         </button>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full">
             <span className="text-xl">⏱️</span>
             <span className={`font-mono font-bold text-xl ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-gray-700'}`}>
@@ -192,7 +189,7 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
           className="text-center mb-12"
         >
           <div className="text-sm text-gray-400 mb-2 uppercase tracking-widest font-bold">Как переводится?</div>
-          <div className="text-5xl font-black text-indigo-900 tracking-tight">{currentWord?.word}</div>
+          <div className="text-4xl sm:text-5xl font-black text-indigo-900 tracking-tight break-words">{currentWord?.word}</div>
         </motion.div>
       </AnimatePresence>
 
@@ -203,7 +200,7 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleOptionClick(option)}
-            className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all border-2 flex justify-between items-center ${
+            className={`w-full py-4 px-6 rounded-2xl font-bold text-base sm:text-lg transition-all border-2 flex justify-between items-center ${
               feedback === 'correct' && option === correctAnswer
                 ? 'bg-green-500 border-green-600 text-white shadow-lg'
                 : feedback === 'wrong' && option !== correctAnswer
@@ -218,6 +215,19 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
           </motion.button>
         ))}
       </div>
+
+      <GameResultOverlay
+        isOpen={status === 'ended'}
+        status="completed"
+        title="Спринт завершён"
+        subtitle={`Отгадано слов: ${score}`}
+        emoji="🏆"
+        pet={progressPreview.pet}
+        xpGained={rewardPreview.xp}
+        coinsGained={rewardPreview.coins}
+        onPrimary={restartGame}
+        onSecondary={onBack}
+      />
     </div>
   );
 };
