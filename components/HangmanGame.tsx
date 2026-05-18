@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion } from 'motion/react';
-import { CharacterProgressCard } from './CharacterProgressCard';
+import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 
 interface HangmanGameProps {
@@ -35,7 +35,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
 
   useEffect(() => {
     pickNewWord();
-  }, []);
+  }, [pickNewWord]);
 
   useEffect(() => {
     if ((status === 'won' || status === 'lost') && !rewardAppliedRef.current) {
@@ -73,7 +73,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
   const renderWord = () => {
     if (!currentWord) return null;
     return currentWord.word.split('').map((char, i) => (
-      <div key={i} className="w-10 h-12 border-b-4 border-indigo-600 flex items-center justify-center text-3xl font-black text-indigo-900 mx-1">
+      <div key={i} className="w-8 h-10 sm:w-10 sm:h-12 border-b-4 border-indigo-600 flex items-center justify-center text-2xl sm:text-3xl font-black text-indigo-900 mx-1">
         {guessedLetters.includes(char) || status === 'lost' ? char : ''}
       </div>
     ));
@@ -91,7 +91,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
   }
 
   return (
-    <div className="flex flex-col items-center w-full max-w-md p-6 bg-white rounded-3xl shadow-xl relative overflow-hidden">
+    <div className="flex flex-col items-center w-full max-w-md p-4 sm:p-6 bg-white rounded-3xl shadow-xl relative overflow-hidden">
       <div className="w-full flex justify-between items-center mb-8">
         <button 
           onClick={onBack} 
@@ -104,14 +104,12 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
       </div>
 
       <div className="w-full bg-indigo-50 rounded-2xl p-4 mb-8">
-        <div className="flex justify-center gap-2 mb-2">
+        <div className="flex justify-center gap-1 sm:gap-2 mb-2">
           {Array.from({ length: maxMistakes }).map((_, i) => (
             <motion.span
               key={`heart-${i}`}
-              animate={{ 
-                opacity: i < (maxMistakes - mistakes) ? 1 : 0.3,
-              }}
-              className="text-3xl"
+              animate={{ opacity: i < (maxMistakes - mistakes) ? 1 : 0.3 }}
+              className="text-2xl sm:text-3xl"
             >
               ❤️
             </motion.span>
@@ -122,50 +120,48 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
         </div>
       </div>
 
-      <div className="flex justify-center mb-12 flex-wrap">
+      <div className="flex justify-center mb-10 sm:mb-12 flex-wrap">
         {renderWord()}
       </div>
 
-      {status === 'playing' ? (
-        <div className="grid grid-cols-7 gap-2 w-full">
-          {alphabet.map(letter => (
-            <button
-              key={letter}
-              disabled={guessedLetters.includes(letter)}
-              onClick={() => handleLetterClick(letter)}
-              className={`h-10 rounded-lg font-bold text-sm transition-all ${
-                guessedLetters.includes(letter)
-                  ? currentWord?.word.includes(letter)
-                    ? 'bg-green-100 text-green-600 border-2 border-green-200'
-                    : 'bg-gray-100 text-gray-300 border-2 border-gray-100'
-                  : 'bg-white border-2 border-gray-100 text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 shadow-sm'
-              }`}
-            >
-              {letter}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center w-full">
-          <div className={`text-2xl font-black mb-4 ${status === 'won' ? 'text-green-600' : 'text-red-500'}`}>
-            {status === 'won' ? 'Победа! 🎉' : 'Почти получилось!'}
-          </div>
-          <div className="text-gray-500 mb-4">
-            Загаданное слово: <span className="font-bold text-indigo-900">{currentWord?.word}</span>
-            {currentWord?.translation && (<><br />Перевод: <span className="italic">{currentWord.translation}</span></>)}
-          </div>
-          {rewardPreview && progressPreview && (
-            <div className="mb-6">
-              <CharacterProgressCard pet={progressPreview.pet} xpGained={rewardPreview.xp} coinsGained={rewardPreview.coins} />
-            </div>
-          )}
-          <button 
-            onClick={pickNewWord}
-            className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-xl shadow-lg hover:bg-indigo-700 transition"
+      <div className="grid grid-cols-7 gap-1.5 sm:gap-2 w-full">
+        {alphabet.map(letter => (
+          <button
+            key={letter}
+            disabled={guessedLetters.includes(letter) || status !== 'playing'}
+            onClick={() => handleLetterClick(letter)}
+            className={`h-9 sm:h-10 rounded-lg font-bold text-xs sm:text-sm transition-all ${
+              guessedLetters.includes(letter)
+                ? currentWord?.word.includes(letter)
+                  ? 'bg-green-100 text-green-600 border-2 border-green-200'
+                  : 'bg-gray-100 text-gray-300 border-2 border-gray-100'
+                : 'bg-white border-2 border-gray-100 text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 shadow-sm'
+            }`}
           >
-            Играть снова
+            {letter}
           </button>
-        </div>
+        ))}
+      </div>
+
+      {rewardPreview && progressPreview && (
+        <GameResultOverlay
+          isOpen={status !== 'playing'}
+          status={status === 'won' ? 'won' : 'lost'}
+          title={status === 'won' ? 'Победа!' : 'Почти получилось'}
+          subtitle={status === 'won' ? 'Слово угадано по буквам.' : 'Слово открылось — можно попробовать снова.'}
+          emoji={status === 'won' ? '🎉' : '💪'}
+          pet={progressPreview.pet}
+          xpGained={rewardPreview.xp}
+          coinsGained={rewardPreview.coins}
+          onPrimary={pickNewWord}
+          onSecondary={onBack}
+          details={(
+            <span>
+              Слово: <span className="font-black">{currentWord?.word}</span>
+              {currentWord?.translation ? ` · ${currentWord.translation}` : ''}
+            </span>
+          )}
+        />
       )}
     </div>
   );
