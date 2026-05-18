@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Puppy idle companion">
+  <defs>
+    <linearGradient id="fur" x1="160" y1="118" x2="358" y2="420" gradientUnits="userSpaceOnUse"><stop stop-color="#ffd98a"/><stop offset=".55" stop-color="#f4a33f"/><stop offset="1" stop-color="#d77b25"/></linearGradient>
+    <linearGradient id="cream" x1="220" y1="180" x2="292" y2="395" gradientUnits="userSpaceOnUse"><stop stop-color="#fff9e8"/><stop offset="1" stop-color="#ffe4b4"/></linearGradient>
+    <radialGradient id="eye" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(216 220) rotate(74) scale(34)"><stop stop-color="#6b3611"/><stop offset="1" stop-color="#150906"/></radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#7a4316" flood-opacity=".18"/></filter>
+  </defs>
+  <ellipse cx="260" cy="456" rx="148" ry="24" fill="#9cb4d2" opacity=".18"/>
+  <g filter="url(#shadow)">
+    <path d="M353 302c67-22 80 42 39 72-31 23-76 3-79-35" fill="url(#fur)"/>
+    <path d="M338 313c35-8 54 13 48 31-22 13-49 9-62-10" fill="#ffd481" opacity=".55"/>
+    <ellipse cx="256" cy="318" rx="112" ry="118" fill="url(#fur)"/>
+    <ellipse cx="256" cy="330" rx="49" ry="86" fill="url(#cream)"/>
+    <path d="M172 318c-22 34-30 78-13 115 18 6 36 4 51-8-1-45 9-86 31-119" fill="url(#fur)"/>
+    <path d="M340 318c22 34 30 78 13 115-18 6-36 4-51-8 1-45-9-86-31-119" fill="url(#fur)"/>
+    <ellipse cx="191" cy="434" rx="34" ry="24" fill="url(#cream)"/>
+    <ellipse cx="321" cy="434" rx="34" ry="24" fill="url(#cream)"/>
+    <circle cx="256" cy="205" r="104" fill="url(#fur)"/>
+    <path d="M238 103c20 44 18 82 2 120h32c-13-42-12-79 2-120-13-6-25-6-36 0z" fill="url(#cream)" opacity=".95"/>
+    <ellipse cx="151" cy="203" rx="42" ry="72" fill="#e98d31" transform="rotate(22 151 203)"/>
+    <ellipse cx="361" cy="203" rx="42" ry="72" fill="#e98d31" transform="rotate(-22 361 203)"/>
+    <ellipse cx="256" cy="244" rx="64" ry="52" fill="url(#cream)"/>
+    <circle cx="216" cy="218" r="28" fill="url(#eye)"/><circle cx="296" cy="218" r="28" fill="url(#eye)"/>
+    <circle cx="207" cy="207" r="8" fill="#fff"/><circle cx="287" cy="207" r="8" fill="#fff"/>
+    <path d="M231 185c-15-11-32-10-45 1M281 185c15-11 32-10 45 1" stroke="#7e3e14" stroke-width="10" stroke-linecap="round" fill="none"/>
+    <ellipse cx="256" cy="244" rx="23" ry="17" fill="#29201c"/>
+    <path d="M232 272c16 24 49 24 64 0" stroke="#5b261c" stroke-width="9" stroke-linecap="round" fill="none"/>
+    <path d="M255 281c7 12 21 12 28 0" stroke="#e47b75" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>
