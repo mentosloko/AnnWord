@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Puppy crown accessory">
+  <defs>
+    <linearGradient id="gold" x1="88" y1="80" x2="424" y2="426" gradientUnits="userSpaceOnUse"><stop stop-color="#fff2a6"/><stop offset="0.24" stop-color="#ffc633"/><stop offset="0.58" stop-color="#ce810c"/><stop offset="1" stop-color="#fff0a0"/></linearGradient>
+    <linearGradient id="gem" x1="228" y1="143" x2="284" y2="234" gradientUnits="userSpaceOnUse"><stop stop-color="#fff0fb"/><stop offset="0.35" stop-color="#ff72bd"/><stop offset="1" stop-color="#c11273"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="13" stdDeviation="16" flood-color="#6f4100" flood-opacity="0.2"/></filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M82 341 55 162l86 73 59-128 56 128 56-128 59 128 86-73-27 179z" fill="url(#gold)" stroke="#9d5d06" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M85 330h342v66c0 22-18 40-40 40H125c-22 0-40-18-40-40z" fill="url(#gold)" stroke="#9d5d06" stroke-width="8"/>
+    <path d="M102 353c83 24 225 24 308 0" fill="none" stroke="#fff0a5" stroke-width="14" stroke-linecap="round" opacity="0.7"/>
+    <circle cx="55" cy="160" r="24" fill="url(#gold)"/><circle cx="141" cy="235" r="22" fill="url(#gold)"/><circle cx="200" cy="107" r="24" fill="url(#gold)"/><circle cx="256" cy="235" r="22" fill="url(#gold)"/><circle cx="312" cy="107" r="24" fill="url(#gold)"/><circle cx="371" cy="235" r="22" fill="url(#gold)"/><circle cx="457" cy="160" r="24" fill="url(#gold)"/>
+    <path d="m256 139 39 65-39 65-39-65z" fill="url(#gem)" stroke="#9d5d06" stroke-width="7"/>
+    <circle cx="145" cy="290" r="23" fill="url(#gem)" stroke="#9d5d06" stroke-width="7"/>
+    <circle cx="367" cy="290" r="23" fill="url(#gem)" stroke="#9d5d06" stroke-width="7"/>
+    <path d="M219 375h74" stroke="#be7407" stroke-width="14" stroke-linecap="round" opacity="0.45"/>
+    <circle cx="205" cy="376" r="10" fill="#fff0a5" opacity="0.75"/><circle cx="307" cy="376" r="10" fill="#fff0a5" opacity="0.75"/>
+  </g>
+</svg>
