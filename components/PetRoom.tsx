@@ -4,7 +4,7 @@ import { InventoryItem, UserProfile } from '../types';
 import { applyItemUseLocally } from '../services/economyEngine';
 import { getCharacterProgressPercent, getCharacterProgressText, getCharacterStageLabel } from '../services/gamificationRules';
 import { getInventoryEmoji, getPetEmoji, getPetNeedSnapshot, getVisibleInventory } from '../services/petEngine';
-import { getEquippedAccessoryAssetUrl, getInventoryImageUrl, getPuppyAccessoryOverlayClass } from '../services/petAssets';
+import { getInventoryImageUrl, getPuppyCharacterAssetUrl } from '../services/petAssets';
 
 interface PetRoomProps {
   userProfile: UserProfile;
@@ -36,18 +36,6 @@ const getCharacterPhrase = (profile: UserProfile): string => {
   if (snapshot.moodScore <= 70) return 'Отличный момент для новой игры!';
   if ((profile.pet.level || 1) >= 5) return 'Я уже сильный знаток слов. Хочу новый вызов!';
   return 'Супернастроение! Давай продолжим учиться.';
-};
-
-const getAccessoryPositionClass = (itemId: string): string => {
-  switch (itemId) {
-    case 'hat': return '-top-10 left-1/2 -translate-x-1/2 text-5xl';
-    case 'glasses': return 'top-10 left-1/2 -translate-x-1/2 text-4xl';
-    case 'bow': return '-top-6 right-8 text-4xl rotate-12';
-    case 'crown': return '-top-14 left-1/2 -translate-x-1/2 text-5xl';
-    case 'hero_cape': return 'bottom-3 left-1/2 -translate-x-1/2 text-6xl opacity-80';
-    case 'star_collar': return 'bottom-8 left-1/2 -translate-x-1/2 text-4xl';
-    default: return '-top-8 right-6 text-4xl';
-  }
 };
 
 export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClose }) => {
@@ -84,6 +72,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
   const activeProfile = localProfile;
   const pet = activeProfile.pet;
   const petSnapshot = getPetNeedSnapshot(pet);
+  const puppyCharacterAssetUrl = getPuppyCharacterAssetUrl(pet);
   const filteredInventory = getVisibleInventory(activeProfile, activeTab as InventoryItem['type']);
   const xpProgress = getCharacterProgressPercent(pet);
 
@@ -161,46 +150,18 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
                 scale: petSnapshot.mood === 'sad' ? [1, 0.99, 1] : [1, 1.025, 1],
               }}
               transition={{ repeat: Infinity, duration: petSnapshot.mood === 'sad' ? 4 : 3, ease: 'easeInOut' }}
-              className="relative cursor-pointer focus:outline-none focus:ring-4 focus:ring-indigo-200 rounded-full w-48 h-48 sm:w-64 sm:h-64 flex items-center justify-center"
+              className="relative cursor-pointer focus:outline-none focus:ring-4 focus:ring-indigo-200 rounded-[3rem] w-56 h-56 sm:w-72 sm:h-72 flex items-center justify-center"
             >
-              {(pet.equippedAccessories || []).map(accessoryId => {
-                const assetUrl = getEquippedAccessoryAssetUrl(pet, accessoryId);
-                if (!assetUrl || accessoryId !== 'hero_cape') return null;
-                return (
-                  <img
-                    key={accessoryId}
-                    src={assetUrl}
-                    alt=""
-                    aria-hidden="true"
-                    className={`${getPuppyAccessoryOverlayClass(accessoryId)} pointer-events-none select-none`}
-                    draggable={false}
-                  />
-                );
-              })}
-              <div className="relative z-20 text-[7rem] sm:text-[9rem] leading-none drop-shadow-sm">{getPetEmoji(pet)}</div>
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                {(pet.equippedAccessories || []).map(accessoryId => {
-                  const assetUrl = getEquippedAccessoryAssetUrl(pet, accessoryId);
-                  if (assetUrl && accessoryId !== 'hero_cape') {
-                    return (
-                      <img
-                        key={accessoryId}
-                        src={assetUrl}
-                        alt=""
-                        aria-hidden="true"
-                        className={`${getPuppyAccessoryOverlayClass(accessoryId)} pointer-events-none select-none`}
-                        draggable={false}
-                      />
-                    );
-                  }
-                  if (assetUrl) return null;
-                  return (
-                    <div key={accessoryId} className={`absolute ${getAccessoryPositionClass(accessoryId)}`}>
-                      {getInventoryEmoji({ id: accessoryId, type: 'accessory', name: '', quantity: 1 })}
-                    </div>
-                  );
-                })}
-              </div>
+              {puppyCharacterAssetUrl ? (
+                <img
+                  src={puppyCharacterAssetUrl}
+                  alt={pet.name}
+                  className="w-full h-full object-contain drop-shadow-sm select-none"
+                  draggable={false}
+                />
+              ) : (
+                <div className="text-[7rem] sm:text-[9rem] leading-none drop-shadow-sm">{getPetEmoji(pet)}</div>
+              )}
             </motion.button>
 
             <motion.div
