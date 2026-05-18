@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
-import { CharacterProgressCard } from './CharacterProgressCard';
+import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 
 interface Card {
@@ -87,7 +87,7 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
   }, [dictionary]);
 
   const handleCardClick = (id: number) => {
-    if (flippedCards.length === 2 || cards.find(c => c.id === id)?.isFlipped || cards.find(c => c.id === id)?.isMatched) return;
+    if (isWon || flippedCards.length === 2 || cards.find(c => c.id === id)?.isFlipped || cards.find(c => c.id === id)?.isMatched) return;
 
     setClicks(prev => prev + 1);
     const newCards = cards.map(card => 
@@ -139,8 +139,8 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
   const progressPreview = applyGameRewardToCharacter(userProfile.pet, rewardPreview);
 
   return (
-    <div className="flex flex-col items-center p-4 max-w-2xl mx-auto">
-      <div className="flex justify-between w-full mb-6 items-center">
+    <div className="flex flex-col items-center p-3 sm:p-4 max-w-2xl mx-auto w-full">
+      <div className="flex justify-between w-full mb-6 items-center gap-3">
         <button
           onClick={onBack}
           className="flex items-center gap-1 text-gray-500 hover:text-indigo-600 font-bold transition px-3 py-1 bg-gray-50 rounded-lg border border-gray-200"
@@ -148,17 +148,17 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
           <span className="text-xl">←</span> Меню
         </button>
         <h2 className="text-2xl font-black text-indigo-900">Мемо</h2>
-        <div className="text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-1.5 rounded-2xl shadow-sm">
+        <div className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 sm:px-4 py-1.5 rounded-2xl shadow-sm">
           Кликов: {clicks}
         </div>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 w-full">
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 w-full">
         {cards.map(card => (
           <motion.div
             key={card.id}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: isWon ? 1 : 1.05 }}
+            whileTap={{ scale: isWon ? 1 : 0.95 }}
             onClick={() => handleCardClick(card.id)}
             className={`aspect-square cursor-pointer rounded-2xl flex items-center justify-center text-center p-2 transition-all shadow-md border-4 ${
               card.isFlipped || card.isMatched 
@@ -167,8 +167,8 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
             }`}
           >
             {(card.isFlipped || card.isMatched) ? (
-              <div className="flex flex-col items-center justify-center">
-                <span className={`font-black break-words leading-tight ${card.type === 'en' ? 'text-indigo-900 text-sm sm:text-base' : 'text-pink-600 text-xs sm:text-sm'}`}>
+              <div className="flex flex-col items-center justify-center min-w-0">
+                <span className={`font-black break-words leading-tight ${card.type === 'en' ? 'text-indigo-900 text-xs sm:text-base' : 'text-pink-600 text-[11px] sm:text-sm'}`}>
                   {card.content}
                 </span>
                 <div className="mt-1 text-[8px] uppercase font-bold text-gray-300">
@@ -182,32 +182,19 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
         ))}
       </div>
 
-      {isWon && (
-        <motion.div 
-          initial={{ opacity: 0, y: 20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="mt-8 p-8 bg-white rounded-[2rem] border-4 border-green-100 text-center shadow-2xl w-full max-w-md"
-        >
-          <div className="text-5xl mb-4">🎉</div>
-          <h3 className="text-2xl font-black text-green-800 mb-2">Отлично!</h3>
-          <p className="text-green-600 font-bold mb-4">Ты нашёл все пары за {clicks} кликов.</p>
-          <CharacterProgressCard pet={progressPreview.pet} xpGained={rewardPreview.xp} coinsGained={rewardPreview.coins} />
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={initializeGame}
-              className="flex-1 py-3 bg-indigo-50 text-indigo-600 font-bold rounded-2xl hover:bg-indigo-100 transition"
-            >
-              Играть снова
-            </button>
-            <button
-              onClick={onBack}
-              className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition shadow-lg"
-            >
-              В меню
-            </button>
-          </div>
-        </motion.div>
-      )}
+      <GameResultOverlay
+        isOpen={isWon}
+        status="won"
+        title="Отлично!"
+        subtitle={`Ты нашёл все пары за ${clicks} кликов.`}
+        emoji="🎉"
+        pet={progressPreview.pet}
+        xpGained={rewardPreview.xp}
+        coinsGained={rewardPreview.coins}
+        onPrimary={initializeGame}
+        onSecondary={onBack}
+        details={<span>Ходов: {moves}</span>}
+      />
     </div>
   );
 };
