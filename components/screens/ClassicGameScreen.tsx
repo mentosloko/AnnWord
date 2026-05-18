@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { CharStatus, GameState, GameSettings, UserProfile } from '../../types';
 import { MAX_GUESSES } from '../../constants';
-import { calculateGameReward } from '../../services/gamificationRules';
-import { CharacterProgressCard } from '../CharacterProgressCard';
+import { applyGameRewardToCharacter, calculateGameReward } from '../../services/gamificationRules';
+import { GameResultOverlay } from '../GameResultOverlay';
 import { Grid } from '../Grid';
 import { Keyboard } from '../Keyboard';
 import { ScreenContainer } from '../layout/ScreenContainer';
@@ -44,6 +44,7 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
   const [showRules, setShowRules] = useState(false);
   const isFinished = gameState.gameStatus === 'won' || gameState.gameStatus === 'lost';
   const rewardPreview = isFinished ? calculateGameReward({ type: 'wordle', won: gameState.gameStatus === 'won' }) : null;
+  const progressPreview = rewardPreview ? applyGameRewardToCharacter(userProfile.pet, rewardPreview) : null;
 
   return (
     <ScreenContainer className="max-w-5xl pb-28">
@@ -148,16 +149,6 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
               )}
             </div>
           )}
-
-          {isFinished && rewardPreview && (
-            <div className="mt-5">
-              <CharacterProgressCard
-                pet={userProfile.pet}
-                xpGained={rewardPreview.xp}
-                coinsGained={rewardPreview.coins}
-              />
-            </div>
-          )}
         </aside>
       </div>
 
@@ -169,6 +160,27 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
           letterStatuses={keyStatuses}
         />
       </div>
+
+      {isFinished && rewardPreview && progressPreview && (
+        <GameResultOverlay
+          isOpen={isFinished}
+          status={gameState.gameStatus === 'won' ? 'won' : 'lost'}
+          title={gameState.gameStatus === 'won' ? 'Победа!' : 'Почти получилось'}
+          subtitle={gameState.gameStatus === 'won' ? 'Слово угадано.' : 'Попробуем ещё раз?'}
+          emoji={gameState.gameStatus === 'won' ? '🎉' : '💪'}
+          pet={progressPreview.pet}
+          xpGained={rewardPreview.xp}
+          coinsGained={rewardPreview.coins}
+          onPrimary={onRestart}
+          onSecondary={onBackHome}
+          details={(
+            <span>
+              Слово: <span className="font-black">{gameState.secretWord}</span>
+              {gameState.secretWordData?.translation ? ` · ${gameState.secretWordData.translation}` : ''}
+            </span>
+          )}
+        />
+      )}
     </ScreenContainer>
   );
 };
