@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Puppy with hat and hero cape">
+  <image href="../accessories/hero_cape.svg" x="95" y="192" width="322" height="322"/>
+  <image href="../base/idle.svg" width="512" height="512"/>
+  <image href="../accessories/hat.svg" x="151" y="48" width="210" height="210"/>
+</svg>
