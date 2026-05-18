@@ -10,30 +10,17 @@ const PUPPY_ACCESSORY_ASSET_URLS: Record<string, string> = {
   star_collar: '/assets/pets/puppy/accessories/star_collar.svg',
 };
 
-const PUPPY_COMBO_ASSET_URLS: Record<string, string> = {
-  bow_glasses: '/assets/pets/puppy/with-accessories/bow_glasses.svg',
-  bow_hat: '/assets/pets/puppy/with-accessories/bow_hat.svg',
-  bow_hero_cape: '/assets/pets/puppy/with-accessories/bow_hero_cape.svg',
-  bow_star_collar: '/assets/pets/puppy/with-accessories/bow_star_collar.svg',
-  bow_crown: '/assets/pets/puppy/with-accessories/bow_crown.svg',
-  glasses_hat: '/assets/pets/puppy/with-accessories/glasses_hat.svg',
-  glasses_hero_cape: '/assets/pets/puppy/with-accessories/glasses_hero_cape.svg',
-  glasses_star_collar: '/assets/pets/puppy/with-accessories/glasses_star_collar.svg',
-  glasses_crown: '/assets/pets/puppy/with-accessories/glasses_crown.svg',
-  hat_hero_cape: '/assets/pets/puppy/with-accessories/hat_hero_cape.svg',
-};
-
-const PUPPY_COMBO_PRIORITY = [
-  'bow_glasses',
-  'bow_hat',
-  'bow_hero_cape',
-  'bow_star_collar',
-  'bow_crown',
-  'glasses_hat',
-  'glasses_hero_cape',
-  'glasses_star_collar',
-  'glasses_crown',
-  'hat_hero_cape',
+const PUPPY_COMBO_ASSETS: Array<{ key: string; accessories: string[]; url: string }> = [
+  { key: 'bow_glasses', accessories: ['bow', 'glasses'], url: '/assets/pets/puppy/with-accessories/bow_glasses.svg' },
+  { key: 'bow_hat', accessories: ['bow', 'hat'], url: '/assets/pets/puppy/with-accessories/bow_hat.svg' },
+  { key: 'bow_hero_cape', accessories: ['bow', 'hero_cape'], url: '/assets/pets/puppy/with-accessories/bow_hero_cape.svg' },
+  { key: 'bow_star_collar', accessories: ['bow', 'star_collar'], url: '/assets/pets/puppy/with-accessories/bow_star_collar.svg' },
+  { key: 'bow_crown', accessories: ['bow', 'crown'], url: '/assets/pets/puppy/with-accessories/bow_crown.svg' },
+  { key: 'glasses_hat', accessories: ['glasses', 'hat'], url: '/assets/pets/puppy/with-accessories/glasses_hat.svg' },
+  { key: 'glasses_hero_cape', accessories: ['glasses', 'hero_cape'], url: '/assets/pets/puppy/with-accessories/glasses_hero_cape.svg' },
+  { key: 'glasses_star_collar', accessories: ['glasses', 'star_collar'], url: '/assets/pets/puppy/with-accessories/glasses_star_collar.svg' },
+  { key: 'glasses_crown', accessories: ['glasses', 'crown'], url: '/assets/pets/puppy/with-accessories/glasses_crown.svg' },
+  { key: 'hat_hero_cape', accessories: ['hat', 'hero_cape'], url: '/assets/pets/puppy/with-accessories/hat_hero_cape.svg' },
 ];
 
 export const getPuppyAccessoryAssetUrl = (itemId: string): string | null =>
@@ -43,11 +30,11 @@ export const getPuppyCharacterAssetUrl = (pet: PetState): string | null => {
   if (pet.type !== 'Puppy') return null;
 
   const equipped = new Set(pet.equippedAccessories || []);
-  const matchingCombo = PUPPY_COMBO_PRIORITY.find(comboKey =>
-    comboKey.split('_').every(part => equipped.has(part === 'cape' ? 'hero_cape' : part)),
+  const matchingCombo = PUPPY_COMBO_ASSETS.find(combo =>
+    combo.accessories.every(accessoryId => equipped.has(accessoryId)),
   );
 
-  return matchingCombo ? PUPPY_COMBO_ASSET_URLS[matchingCombo] : PUPPY_BASE_ASSET_URL;
+  return matchingCombo?.url || PUPPY_BASE_ASSET_URL;
 };
 
 export const getShopImageUrl = (item: ShopItem): string | undefined => {
