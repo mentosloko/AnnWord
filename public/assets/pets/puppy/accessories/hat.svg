@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Puppy hat accessory">
+  <defs>
+    <linearGradient id="blue" x1="78" y1="118" x2="432" y2="382" gradientUnits="userSpaceOnUse"><stop stop-color="#cfe4ff"/><stop offset="0.42" stop-color="#6fa9f4"/><stop offset="1" stop-color="#2d65c9"/></linearGradient>
+    <radialGradient id="top" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(206 164) rotate(34) scale(234 122)"><stop stop-color="#eef7ff"/><stop offset="0.48" stop-color="#8fc2ff"/><stop offset="1" stop-color="#316fcf"/></radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="12" stdDeviation="15" flood-color="#123b78" flood-opacity="0.18"/></filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M76 300c21-128 108-199 211-186 80 10 141 75 156 178 4 28-14 53-42 58-89 15-203 17-294 2-23-4-35-27-31-52z" fill="url(#top)"/>
+    <path d="M79 302c76 39 286 43 370 2 15 48-24 76-81 82-77 8-172 8-247-1-53-7-70-40-42-83z" fill="url(#blue)"/>
+    <path d="M112 320c76 22 209 27 309 1" fill="none" stroke="#174dba" stroke-width="18" stroke-linecap="round" opacity="0.45"/>
+    <path d="M181 139c-23 34-34 92-31 163M281 115c20 45 28 111 21 188M377 182c-2 35-14 80-36 124" fill="none" stroke="#ffffff" stroke-opacity="0.24" stroke-width="11" stroke-linecap="round"/>
+    <path d="M253 93c20-27 52-12 48 20-13 8-31 8-48-20z" fill="#6fa9f4"/>
+    <g transform="translate(338 318) rotate(-11)">
+      <path d="M0 20c-20-31-66-29-80 2-8 19 6 44 30 49 19 4 36-6 50-25z" fill="#76adf4"/>
+      <path d="M16 20c20-31 66-29 80 2 8 19-6 44-30 49-19 4-36-6-50-25z" fill="#76adf4"/>
+      <rect x="-12" y="8" width="40" height="50" rx="18" fill="#4d8ee5"/>
+    </g>
+  </g>
+</svg>
