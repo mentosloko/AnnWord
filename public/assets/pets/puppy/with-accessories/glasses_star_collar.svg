@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Puppy with glasses and star collar">
+  <image href="../base/idle.svg" width="512" height="512"/>
+  <image href="../accessories/star_collar.svg" x="150" y="258" width="212" height="212"/>
+  <image href="../accessories/glasses.svg" x="161" y="168" width="190" height="190"/>
+</svg>
