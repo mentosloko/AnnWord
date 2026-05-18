@@ -1,4 +1,5 @@
 import { ShopItem } from '../types';
+import { getPuppyAccessoryAssetUrl } from './petAssets';
 
 export const SHOP_ITEMS: ShopItem[] = [
   { id: 'apple', name: 'Яблоко', price: 2, type: 'food', minLevel: 1, description: 'Простое лакомство. Настроение +8, максимум до 80.', imageUrl: 'https://picsum.photos/seed/apple/100/100', effect: { mood: 8, moodCap: 80 } },
@@ -7,11 +8,11 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'icecream', name: 'Мороженое', price: 7, type: 'food', minLevel: 3, description: 'Праздничное лакомство. Настроение +20, максимум до 95.', imageUrl: 'https://picsum.photos/seed/icecream/100/100', effect: { mood: 20, moodCap: 95 } },
   { id: 'star_treat', name: 'Звёздное лакомство', price: 10, type: 'food', minLevel: 5, description: 'Особое лакомство. Настроение +25, максимум до 100.', imageUrl: 'https://picsum.photos/seed/star-treat/100/100', effect: { mood: 25, moodCap: 100 } },
 
-  { id: 'bow', name: 'Бантик', price: 5, type: 'accessory', minLevel: 1, description: 'Милый аксессуар для персонажа.', imageUrl: 'https://picsum.photos/seed/bow/100/100' },
-  { id: 'glasses', name: 'Очки', price: 6, type: 'accessory', minLevel: 1, description: 'Стильные очки для умного образа.', imageUrl: 'https://picsum.photos/seed/glasses/100/100' },
-  { id: 'hat', name: 'Шапочка', price: 7, type: 'accessory', minLevel: 2, description: 'Уютная шапочка для прогулок.', imageUrl: 'https://picsum.photos/seed/hat/100/100' },
-  { id: 'hero_cape', name: 'Плащ героя', price: 10, type: 'accessory', minLevel: 3, description: 'Для персонажа, который готов к приключениям.', imageUrl: 'https://picsum.photos/seed/hero-cape/100/100' },
-  { id: 'star_collar', name: 'Звёздный ошейник', price: 12, type: 'accessory', minLevel: 4, description: 'Сияющий аксессуар для любимого персонажа.', imageUrl: 'https://picsum.photos/seed/star-collar/100/100' },
+  { id: 'bow', name: 'Бантик', price: 5, type: 'accessory', minLevel: 1, description: 'Милый аксессуар для персонажа.', imageUrl: getPuppyAccessoryAssetUrl('bow') || undefined },
+  { id: 'glasses', name: 'Очки', price: 6, type: 'accessory', minLevel: 1, description: 'Стильные очки для умного образа.', imageUrl: getPuppyAccessoryAssetUrl('glasses') || undefined },
+  { id: 'hat', name: 'Шапочка', price: 7, type: 'accessory', minLevel: 2, description: 'Уютная шапочка для прогулок.', imageUrl: getPuppyAccessoryAssetUrl('hat') || undefined },
+  { id: 'hero_cape', name: 'Плащ героя', price: 10, type: 'accessory', minLevel: 3, description: 'Для персонажа, который готов к приключениям.', imageUrl: getPuppyAccessoryAssetUrl('hero_cape') || undefined },
+  { id: 'star_collar', name: 'Звёздный ошейник', price: 12, type: 'accessory', minLevel: 4, description: 'Сияющий аксессуар для любимого персонажа.', imageUrl: getPuppyAccessoryAssetUrl('star_collar') || undefined },
   { id: 'crown', name: 'Корона', price: 15, type: 'accessory', minLevel: 5, description: 'Королевский аксессуар для высокого уровня.', imageUrl: 'https://picsum.photos/seed/crown/100/100' },
 
   { id: 'dog_house', name: 'Будка', price: 20, type: 'home', minLevel: 3, description: 'Домик для щенка.', imageUrl: 'https://picsum.photos/seed/dog-house/100/100', characterType: 'Puppy' },
