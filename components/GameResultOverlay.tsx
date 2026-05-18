@@ -1,0 +1,86 @@
+import React from 'react';
+import { motion } from 'motion/react';
+import { PetState } from '../types';
+import { CharacterProgressCard } from './CharacterProgressCard';
+
+interface GameResultOverlayProps {
+  isOpen: boolean;
+  status: 'won' | 'lost' | 'completed';
+  title: string;
+  subtitle?: string;
+  emoji?: string;
+  pet: PetState;
+  xpGained: number;
+  coinsGained: number;
+  primaryLabel?: string;
+  secondaryLabel?: string;
+  onPrimary: () => void;
+  onSecondary?: () => void;
+  details?: React.ReactNode;
+}
+
+const getStatusTone = (status: GameResultOverlayProps['status']) => {
+  if (status === 'won') return 'from-green-50 via-white to-indigo-50 border-green-100 text-green-700';
+  if (status === 'lost') return 'from-rose-50 via-white to-indigo-50 border-rose-100 text-rose-700';
+  return 'from-indigo-50 via-white to-purple-50 border-indigo-100 text-indigo-700';
+};
+
+export const GameResultOverlay: React.FC<GameResultOverlayProps> = ({
+  isOpen,
+  status,
+  title,
+  subtitle,
+  emoji = status === 'lost' ? '💪' : '🎉',
+  pet,
+  xpGained,
+  coinsGained,
+  primaryLabel = 'Играть снова',
+  secondaryLabel = 'В меню',
+  onPrimary,
+  onSecondary,
+  details,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-indigo-950/45 px-3 py-4 backdrop-blur-sm sm:px-4">
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        initial={{ opacity: 0, y: 18, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        className={`w-full max-w-[min(32rem,94vw)] max-h-[92vh] overflow-y-auto rounded-[2rem] border-2 bg-gradient-to-br p-4 text-center shadow-2xl sm:p-6 ${getStatusTone(status)}`}
+      >
+        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-3xl bg-white text-4xl shadow-sm sm:h-20 sm:w-20 sm:text-5xl">
+          {emoji}
+        </div>
+        <h2 className="text-2xl font-black text-indigo-950 sm:text-3xl">{title}</h2>
+        {subtitle && <p className="mx-auto mt-2 max-w-sm text-sm font-bold text-gray-500 sm:text-base">{subtitle}</p>}
+        {details && <div className="mt-4 rounded-2xl bg-white/70 p-3 text-sm font-bold text-indigo-900 border border-indigo-100">{details}</div>}
+
+        <div className="mt-5">
+          <CharacterProgressCard pet={pet} xpGained={xpGained} coinsGained={coinsGained} />
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={onPrimary}
+            className="rounded-2xl bg-indigo-600 px-5 py-3 font-black text-white shadow-lg shadow-indigo-100 transition hover:bg-indigo-700 active:scale-95"
+          >
+            {primaryLabel}
+          </button>
+          {onSecondary && (
+            <button
+              type="button"
+              onClick={onSecondary}
+              className="rounded-2xl bg-white px-5 py-3 font-black text-indigo-700 border-2 border-indigo-100 transition hover:bg-indigo-50 active:scale-95"
+            >
+              {secondaryLabel}
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
