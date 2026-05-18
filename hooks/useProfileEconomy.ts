@@ -94,15 +94,13 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
   }, [currentUserId, setUserProfile]);
 
   const updateDictionary = useCallback(async (dictionary: string[]) => {
-    setUserProfile(prev => ({ ...prev, customDictionaryEn: dictionary }));
-    if (!currentUserId) return;
-
-    try {
-      const userService = await getUserService();
-      await userService.updateUserDictionary(currentUserId, dictionary);
-    } catch (error) {
-      console.error('Failed to update custom dictionary', error);
+    if (!currentUserId) {
+      throw new Error('Для сохранения своего словаря нужно войти в аккаунт.');
     }
+
+    const userService = await getUserService();
+    const updatedProfile = await userService.updateUserDictionary(currentUserId, dictionary);
+    setUserProfile(updatedProfile);
   }, [currentUserId, setUserProfile]);
 
   return {
