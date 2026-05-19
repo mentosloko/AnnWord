@@ -18,6 +18,7 @@ interface PurchaseCelebration {
   item: ShopItem;
   title: string;
   subtitle: string;
+  source: 'purchase' | 'mystery';
 }
 
 const getProfileSyncKey = (profile: UserProfile): string =>
@@ -30,14 +31,38 @@ const getTabLabel = (tab: ShopTab): string => {
   return 'Домик';
 };
 
-const shouldCelebratePurchase = (item: ShopItem, awardedItem?: ShopItem): ShopItem | null => {
-  if (awardedItem?.type === 'accessory') return awardedItem;
-  if (item.type === 'accessory') return item;
+const getRewardDestinationText = (item: ShopItem): string => {
+  if (item.type === 'food') return 'добавлено в лакомства';
+  if (item.type === 'accessory') return 'добавлен в гардероб персонажа';
+  if (item.type === 'home') return 'добавлено в комнату персонажа';
+  return 'добавлено в инвентарь';
+};
+
+const shouldCelebratePurchase = (item: ShopItem, awardedItem?: ShopItem): PurchaseCelebration | null => {
+  if (awardedItem) {
+    return {
+      item: awardedItem,
+      source: 'mystery',
+      title: 'Секретная коробка открыта!',
+      subtitle: `Выпало: ${awardedItem.name} — ${getRewardDestinationText(awardedItem)}.`,
+    };
+  }
+
+  if (item.type === 'accessory') {
+    return {
+      item,
+      source: 'purchase',
+      title: 'Аксессуар куплен!',
+      subtitle: `${item.name} добавлен в гардероб персонажа.`,
+    };
+  }
+
   return null;
 };
 
 const PurchaseCelebrationModal: React.FC<{ celebration: PurchaseCelebration; onClose: () => void }> = ({ celebration, onClose }) => {
   const imageUrl = getShopImageUrl(celebration.item);
+  const isMystery = celebration.source === 'mystery';
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-indigo-950/45 px-4 backdrop-blur-sm">
@@ -49,18 +74,24 @@ const PurchaseCelebrationModal: React.FC<{ celebration: PurchaseCelebration; onC
         className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border-2 border-indigo-100 bg-white p-6 text-center shadow-2xl"
       >
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          {Array.from({ length: 18 }).map((_, index) => (
+          {Array.from({ length: isMystery ? 28 : 18 }).map((_, index) => (
             <span
               key={index}
               className="absolute top-3 h-2 w-2 rounded-full animate-[shopConfetti_1.4s_ease-out_infinite]"
               style={{
                 left: `${8 + ((index * 17) % 84)}%`,
-                animationDelay: `${index * 0.06}s`,
+                animationDelay: `${index * 0.045}s`,
                 backgroundColor: ['#6366f1', '#22c55e', '#f59e0b', '#ec4899'][index % 4],
               }}
             />
           ))}
         </div>
+
+        {isMystery && (
+          <div className="relative mx-auto mb-2 inline-flex items-center gap-2 rounded-full bg-purple-50 px-4 py-1 text-xs font-black uppercase tracking-widest text-purple-700 border border-purple-100">
+            🎁 Выпавший предмет
+          </div>
+        )}
 
         <div className="relative mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-[2rem] border-2 border-indigo-50 bg-white shadow-inner">
           {imageUrl ? (
@@ -135,14 +166,9 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   };
 
   const showPurchaseCelebration = (item: ShopItem, awardedItem?: ShopItem) => {
-    const celebratedItem = shouldCelebratePurchase(item, awardedItem);
-    if (!celebratedItem) return;
-
-    setCelebration({
-      item: celebratedItem,
-      title: awardedItem ? 'Аксессуар выпал!' : 'Аксессуар куплен!',
-      subtitle: `${celebratedItem.name} добавлен в гардероб персонажа.`,
-    });
+    const nextCelebration = shouldCelebratePurchase(item, awardedItem);
+    if (!nextCelebration) return;
+    setCelebration(nextCelebration);
   };
 
   const handleBuy = async (item: ShopItem) => {
