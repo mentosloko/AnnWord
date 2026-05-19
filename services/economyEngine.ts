@@ -1,10 +1,11 @@
 import { InventoryItem, PetState, ShopItem, UserProfile } from '../types';
 import { applyTreatMood } from './gamificationRules';
+import { MAX_EQUIPPED_ACCESSORIES } from './petAssets';
 import { getShopItemById } from './shopCatalog';
 
 export interface PurchaseResult {
   ok: boolean;
-  reason?: 'not_authenticated' | 'locked' | 'insufficient_funds' | 'invalid_item' | 'already_owned';
+  reason?: 'not_authenticated' | 'locked' | 'insufficient_funds' | 'invalid_item' | 'already_owned' | 'accessory_limit_reached';
   profile?: UserProfile;
   awardedItem?: ShopItem;
 }
@@ -115,8 +116,14 @@ export const applyItemUseLocally = (profile: UserProfile, itemId: string): Purch
 
   if (item.type === 'accessory') {
     const equippedIndex = pet.equippedAccessories.indexOf(item.id);
-    if (equippedIndex >= 0) pet.equippedAccessories.splice(equippedIndex, 1);
-    else pet.equippedAccessories.push(item.id);
+    if (equippedIndex >= 0) {
+      pet.equippedAccessories.splice(equippedIndex, 1);
+    } else {
+      if (pet.equippedAccessories.length >= MAX_EQUIPPED_ACCESSORIES) {
+        return { ok: false, reason: 'accessory_limit_reached' };
+      }
+      pet.equippedAccessories.push(item.id);
+    }
   }
 
   if (item.type === 'home') {
@@ -140,6 +147,7 @@ export const getPurchaseErrorMessage = (reason?: PurchaseResult['reason']): stri
     case 'not_authenticated': return 'Для покупки нужно войти в аккаунт.';
     case 'invalid_item': return 'Предмет не найден или повреждён.';
     case 'already_owned': return 'Этот предмет уже есть в инвентаре.';
+    case 'accessory_limit_reached': return 'Можно надеть максимум 2 аксессуара. Снимите один из уже надетых предметов, чтобы надеть новый.';
     default: return 'Покупка не удалась.';
   }
 };
