@@ -130,23 +130,34 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
                 <button
                   type="button"
                   onClick={onOpenPetRoom}
-                  className="rounded-2xl bg-white/10 p-4 border border-white/10 text-left hover:bg-white/15 transition overflow-hidden"
+                  className="group rounded-2xl bg-white/10 p-4 border border-white/10 text-left hover:bg-white/15 transition overflow-hidden"
                   title="Открыть комнату персонажа"
                 >
-                  <div className="h-12 mb-2 flex items-center justify-start">
-                    {characterAssetUrl ? (
-                      <img
-                        src={characterAssetUrl}
-                        alt={userProfile.pet.name}
-                        className="h-14 w-14 object-contain drop-shadow-sm"
-                        draggable={false}
-                      />
-                    ) : (
-                      <div className="text-3xl">{getPetEmoji(userProfile.pet)}</div>
-                    )}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-white/95 ring-1 ring-white/50 shadow-sm flex items-center justify-center">
+                      {characterAssetUrl ? (
+                        <img
+                          src={characterAssetUrl}
+                          alt={userProfile.pet.name}
+                          className="h-[4.25rem] w-[4.25rem] object-cover scale-125 transition-transform group-hover:scale-[1.33]"
+                          draggable={false}
+                        />
+                      ) : (
+                        <div className="text-4xl">{getPetEmoji(userProfile.pet)}</div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-black uppercase tracking-widest text-white/60">Комната</div>
+                      <div className="text-lg font-black leading-tight truncate">{userProfile.pet.name}</div>
+                    </div>
                   </div>
-                  <div className="text-2xl font-black">{userProfile.pet.level}</div>
-                  <div className="text-xs text-white/65 font-bold uppercase tracking-widest">уровень</div>
+                  <div className="flex items-end justify-between gap-2">
+                    <div>
+                      <div className="text-2xl font-black leading-none">{userProfile.pet.level}</div>
+                      <div className="mt-1 text-xs text-white/65 font-bold uppercase tracking-widest">уровень</div>
+                    </div>
+                    <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-black text-white/80 group-hover:bg-white/25 transition">Открыть</span>
+                  </div>
                 </button>
               </div>
 
