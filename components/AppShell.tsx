@@ -1,13 +1,11 @@
 import React from 'react';
 import { AppHeader } from './layout/AppHeader';
 import { AppModals } from './AppModals';
-import { PetWidget } from './PetWidget';
-import { PetState, UserProfile, ViewState } from '../types';
+import { UserProfile, ViewState } from '../types';
 
 interface AppShellProps {
   route: ViewState;
   userProfile: UserProfile;
-  pet: PetState;
   isAuthenticated: boolean;
   showLoginModal: boolean;
   showRulesModal: boolean;
@@ -31,7 +29,7 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ children, route, userProfile, pet, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onNavigateToPetRoom, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => (
+export const AppShell: React.FC<AppShellProps> = ({ children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => (
   <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
     <AppHeader
       userProfile={userProfile}
@@ -43,10 +41,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children, route, userProfile
     />
 
     {children}
-
-    {isAuthenticated && route !== 'pet_room' && route !== 'shop' && route !== 'character_onboarding' && (
-      <PetWidget pet={pet} onNavigateToPetRoom={onNavigateToPetRoom} />
-    )}
 
     <AppModals
       showLoginModal={showLoginModal}
