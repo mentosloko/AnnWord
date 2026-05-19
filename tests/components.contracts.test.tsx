@@ -73,7 +73,7 @@ describe('component contracts', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Играть: Спринт' }));
     fireEvent.click(screen.getByRole('button', { name: 'Играть: Виселица' }));
     fireEvent.click(screen.getByRole('button', { name: 'Играть: Память' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Открыть магазин' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Магазин' }));
     fireEvent.click(screen.getByRole('button', { name: 'Профиль' }));
     fireEvent.click(screen.getByTitle('Открыть комнату персонажа'));
 
