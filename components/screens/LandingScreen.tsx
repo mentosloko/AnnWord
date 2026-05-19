@@ -2,6 +2,7 @@ import React from 'react';
 import { UserProfile } from '../../types';
 import { getCharacterProgressPercent, getCharacterStageLabel, normalizeMoodScore } from '../../services/gamificationRules';
 import { getPetEmoji } from '../../services/petEngine';
+import { getPuppyCharacterAssetUrl } from '../../services/petAssets';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface LandingScreenProps {
@@ -16,6 +17,7 @@ interface LandingScreenProps {
   onOpenRules: () => void;
   onOpenLogin: () => void;
   onOpenProfile?: () => void;
+  onOpenPetRoom?: () => void;
 }
 
 const GameCard: React.FC<{
@@ -46,9 +48,11 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
   onOpenShop,
   onOpenLogin,
   onOpenProfile,
+  onOpenPetRoom,
 }) => {
   const xpProgress = getCharacterProgressPercent(userProfile.pet);
   const moodScore = normalizeMoodScore(userProfile.pet);
+  const characterAssetUrl = getPuppyCharacterAssetUrl(userProfile.pet);
 
   return (
     <ScreenContainer className="pb-24">
@@ -123,8 +127,24 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
                   <div className="text-2xl font-black">{userProfile.coins}</div>
                   <div className="text-xs text-white/65 font-bold uppercase tracking-widest">монет</div>
                 </button>
-                <button type="button" onClick={onOpenProfile} className="rounded-2xl bg-white/10 p-4 border border-white/10 text-left hover:bg-white/15 transition">
-                  <div className="text-3xl mb-2">{getPetEmoji(userProfile.pet)}</div>
+                <button
+                  type="button"
+                  onClick={onOpenPetRoom}
+                  className="rounded-2xl bg-white/10 p-4 border border-white/10 text-left hover:bg-white/15 transition overflow-hidden"
+                  title="Открыть комнату персонажа"
+                >
+                  <div className="h-12 mb-2 flex items-center justify-start">
+                    {characterAssetUrl ? (
+                      <img
+                        src={characterAssetUrl}
+                        alt={userProfile.pet.name}
+                        className="h-14 w-14 object-contain drop-shadow-sm"
+                        draggable={false}
+                      />
+                    ) : (
+                      <div className="text-3xl">{getPetEmoji(userProfile.pet)}</div>
+                    )}
+                  </div>
                   <div className="text-2xl font-black">{userProfile.pet.level}</div>
                   <div className="text-xs text-white/65 font-bold uppercase tracking-widest">уровень</div>
                 </button>
