@@ -101,6 +101,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
         onOpenRules={onOpenRules}
         onOpenLogin={onOpenLogin}
         onOpenProfile={() => onRouteChange('profile')}
+        onOpenPetRoom={() => onRouteChange('pet_room')}
       />
     ),
     setup: (
