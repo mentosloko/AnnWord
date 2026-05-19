@@ -16,8 +16,8 @@ interface LandingScreenProps {
   onOpenShop: () => void;
   onOpenRules: () => void;
   onOpenLogin: () => void;
-  onOpenProfile?: () => void;
-  onOpenPetRoom?: () => void;
+  onOpenProfile: () => void;
+  onOpenPetRoom: () => void;
 }
 
 const GAME_MODES = [
