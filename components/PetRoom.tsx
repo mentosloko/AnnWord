@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { InventoryItem, UserProfile } from '../types';
-import { applyItemUseLocally } from '../services/economyEngine';
+import { applyItemUseLocally, getPurchaseErrorMessage } from '../services/economyEngine';
 import { getCharacterProgressPercent, getCharacterProgressText, getCharacterStageLabel } from '../services/gamificationRules';
 import { getInventoryEmoji, getPetEmoji, getPetNeedSnapshot, getVisibleInventory } from '../services/petEngine';
 import { getInventoryImageUrl, getPuppyCharacterAssetUrl } from '../services/petAssets';
@@ -25,7 +25,7 @@ const getTabLabel = (tab: RoomTab): string => {
 
 const getUseHint = (tab: RoomTab): string => {
   if (tab === 'food') return 'Нажми, чтобы подарить лакомство и поднять настроение';
-  if (tab === 'accessory') return 'Нажми, чтобы надеть или снять аксессуар';
+  if (tab === 'accessory') return 'Можно надеть максимум 2 аксессуара. Нажми на надетый предмет, чтобы снять его.';
   return 'Нажми, чтобы поставить или убрать предмет домика';
 };
 
@@ -80,7 +80,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
     if (usingId) return;
     const optimisticUse = applyItemUseLocally(activeProfile, itemId);
     if (!optimisticUse.ok || !optimisticUse.profile) {
-      setRoomMessage('Предмет не найден или его нельзя использовать.');
+      setRoomMessage(getPurchaseErrorMessage(optimisticUse.reason));
       return;
     }
 
