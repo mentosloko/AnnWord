@@ -43,32 +43,48 @@ const settings: GameSettings = {
 describe('component contracts', () => {
   it('LandingScreen routes through callback props', () => {
     const onStartClassic = vi.fn();
+    const onStartAnagrams = vi.fn();
+    const onStartSprint = vi.fn();
+    const onStartHangman = vi.fn();
+    const onStartMemory = vi.fn();
     const onOpenShop = vi.fn();
     const onOpenProfile = vi.fn();
+    const onOpenPetRoom = vi.fn();
 
     render(
       <LandingScreen
         userProfile={profile}
         isAuthenticated
         onStartClassic={onStartClassic}
-        onStartAnagrams={vi.fn()}
-        onStartSprint={vi.fn()}
-        onStartHangman={vi.fn()}
-        onStartMemory={vi.fn()}
+        onStartAnagrams={onStartAnagrams}
+        onStartSprint={onStartSprint}
+        onStartHangman={onStartHangman}
+        onStartMemory={onStartMemory}
         onOpenShop={onOpenShop}
         onOpenRules={vi.fn()}
         onOpenLogin={vi.fn()}
         onOpenProfile={onOpenProfile}
+        onOpenPetRoom={onOpenPetRoom}
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Играть' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Открыть магазин' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Играть: Классика' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Играть: Анаграммы' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Играть: Спринт' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Играть: Виселица' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Играть: Память' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Магазин' }));
     fireEvent.click(screen.getByRole('button', { name: 'Профиль' }));
+    fireEvent.click(screen.getByTitle('Открыть комнату персонажа'));
 
     expect(onStartClassic).toHaveBeenCalledTimes(1);
+    expect(onStartAnagrams).toHaveBeenCalledTimes(1);
+    expect(onStartSprint).toHaveBeenCalledTimes(1);
+    expect(onStartHangman).toHaveBeenCalledTimes(1);
+    expect(onStartMemory).toHaveBeenCalledTimes(1);
     expect(onOpenShop).toHaveBeenCalledTimes(1);
     expect(onOpenProfile).toHaveBeenCalledTimes(1);
+    expect(onOpenPetRoom).toHaveBeenCalledTimes(1);
   });
 
   it('SetupScreen exposes upload and selected-mode start-game contracts for authenticated users', () => {
