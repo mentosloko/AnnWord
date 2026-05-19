@@ -135,7 +135,6 @@ const AppV2: React.FC = () => {
     <AppShell
       route={route}
       userProfile={userProfile}
-      pet={userProfile.pet}
       isAuthenticated={isAuthenticated}
       showLoginModal={showLoginModal}
       showRulesModal={showRulesModal}
@@ -148,7 +147,6 @@ const AppV2: React.FC = () => {
       onLogoutClick={handleLogout}
       onProfileClick={() => setRoute('profile')}
       onShopClick={() => setRoute('shop')}
-      onNavigateToPetRoom={() => setRoute('pet_room')}
       onCloseLogin={() => setShowLoginModal(false)}
       onCloseRules={() => setShowRulesModal(false)}
       onAuthModeChange={setAuthMode}
