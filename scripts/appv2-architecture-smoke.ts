@@ -10,6 +10,8 @@ const indexSource = read('index.tsx');
 const appSource = read('AppV2.tsx');
 const appShellSource = read('components/AppShell.tsx');
 const appScreensSource = read('components/AppScreens.tsx');
+const landingSource = read('components/screens/LandingScreen.tsx');
+const profileSource = read('components/screens/ProfileScreen.tsx');
 const shopSource = read('components/Shop.tsx');
 const petRoomSource = read('components/PetRoom.tsx');
 const petWidgetSource = read('components/PetWidget.tsx');
@@ -72,6 +74,7 @@ const requiredNavigationFragments = [
   "onStartMemory={() => openSetupFor('memory')}",
   "onOpenShop={() => onRouteChange('shop')}",
   "onOpenProfile={() => onRouteChange('profile')}",
+  "onOpenPetRoom={() => onRouteChange('pet_room')}",
   "shop: <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} />",
   "pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onClose={goHome} />",
 ];
@@ -96,14 +99,25 @@ for (const fragment of sharedSetupFragments) {
 const requiredShellFragments = [
   '<AppHeader',
   '<AppModals',
-  '<PetWidget',
-  "route !== 'pet_room' && route !== 'shop'",
-  'onNavigateToPetRoom={onNavigateToPetRoom}',
 ];
 
 for (const fragment of requiredShellFragments) {
   assert(appShellSource.includes(fragment), `AppShell must keep layout wiring: ${fragment}`);
 }
+
+const removedFloatingWidgetFragments = [
+  '<PetWidget',
+  "route !== 'pet_room' && route !== 'shop'",
+  'onNavigateToPetRoom={onNavigateToPetRoom}',
+];
+
+for (const fragment of removedFloatingWidgetFragments) {
+  assert(!appShellSource.includes(fragment), `AppShell should not render removed floating pet widget wiring: ${fragment}`);
+}
+
+assert(landingSource.includes('onOpenPetRoom'), 'LandingScreen must keep pet-room entry point');
+assert(landingSource.includes('getPuppyCharacterAssetUrl'), 'LandingScreen must show current puppy rendered state');
+assert(profileSource.includes('onOpenPetRoom'), 'ProfileScreen must keep pet-room entry point');
 
 const forbiddenLegacyFragments = [
   "./App'",
@@ -135,7 +149,7 @@ assert(shopSource.includes('onClose: () => void'), 'Shop must keep explicit onCl
 assert(shopSource.includes('onClick={onClose}'), 'Shop back buttons must close through parent callback');
 assert(petRoomSource.includes('onClose: () => void'), 'PetRoom must keep explicit onClose callback contract');
 assert(petRoomSource.includes('onClick={onClose}'), 'PetRoom back button must close through parent callback');
-assert(petWidgetSource.includes('onNavigateToPetRoom?: () => void'), 'PetWidget must keep parent-driven pet-room navigation callback');
-assert(petWidgetSource.includes('onNavigateToPetRoom?.()'), 'PetWidget must call parent-driven pet-room navigation callback');
+assert(petWidgetSource.includes('onNavigateToPetRoom?: () => void'), 'PetWidget must keep parent-driven pet-room navigation callback while component file remains available');
+assert(petWidgetSource.includes('onNavigateToPetRoom?.()'), 'PetWidget must call parent-driven pet-room navigation callback while component file remains available');
 
 console.log(JSON.stringify({ ok: true, checked: 'appv2-shell-screens-shared-setup-route-flow' }, null, 2));
