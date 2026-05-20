@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion } from 'motion/react';
@@ -11,10 +11,22 @@ interface HangmanGameProps {
   onGameReward: (input: GameRewardInput) => void | Promise<void>;
 }
 
+const normalizeHangmanWord = (entry: EnrichedWord): EnrichedWord | null => {
+  const normalizedWord = entry.word.toUpperCase().replace(/[^A-Z]/g, '');
+  if (!normalizedWord) return null;
+  return { ...entry, word: normalizedWord };
+};
+
 export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, onGameReward }) => {
-  const dictionary: EnrichedWord[] = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
-    ? userProfile.customDictionaryEn.map(w => ({ word: w.toUpperCase(), translation: '', level: 'Custom' }))
-    : COMMON_WORDS_EN;
+  const dictionary: EnrichedWord[] = useMemo(() => {
+    const sourceDictionary: EnrichedWord[] = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
+      ? userProfile.customDictionaryEn.map(w => ({ word: w, translation: '', level: 'Custom' }))
+      : COMMON_WORDS_EN;
+
+    return sourceDictionary
+      .map(normalizeHangmanWord)
+      .filter((word): word is EnrichedWord => Boolean(word));
+  }, [userProfile.customDictionaryEn]);
   const rewardAppliedRef = useRef(false);
 
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
@@ -44,13 +56,14 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
     }
   }, [status, onGameReward]);
 
-  const handleLetterClick = (letter: string) => {
-    if (status !== 'playing' || guessedLetters.includes(letter)) return;
+  const handleLetterClick = (rawLetter: string) => {
+    const letter = rawLetter.toUpperCase();
+    if (status !== 'playing' || guessedLetters.includes(letter) || !currentWord) return;
     
     const nextGuessedLetters = [...guessedLetters, letter];
     setGuessedLetters(nextGuessedLetters);
     
-    if (!currentWord?.word.includes(letter)) {
+    if (!currentWord.word.includes(letter)) {
       setMistakes(prev => {
         const newMistakes = prev + 1;
         if (newMistakes >= maxMistakes) {
@@ -128,6 +141,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
         {alphabet.map(letter => (
           <button
             key={letter}
+            type="button"
             disabled={guessedLetters.includes(letter) || status !== 'playing'}
             onClick={() => handleLetterClick(letter)}
             className={`h-9 sm:h-10 rounded-lg font-bold text-xs sm:text-sm transition-all ${
