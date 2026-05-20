@@ -7,25 +7,25 @@ interface GridProps {
   secretWord: string;
   wordLength: WordLength;
   maxGuesses: number;
-  shakeRowIndex?: number | null; // New prop for animation
+  shakeRowIndex?: number | null;
 }
 
 const Cell: React.FC<{ letter: string; status: CharStatus }> = ({ letter, status }) => {
-  const baseClasses = "flex-1 aspect-square min-w-0 max-w-[3.4rem] sm:max-w-[4rem] border-2 flex items-center justify-center text-[clamp(1.25rem,6vw,2rem)] sm:text-3xl font-black uppercase select-none transition-all duration-300 rounded-xl tracking-[0.08em] font-mono leading-none";
-  let statusClasses = "";
+  const baseClasses = 'flex-1 aspect-square min-w-0 max-w-[min(3.15rem,11.2vw,6.8dvh)] sm:max-w-[4rem] border-2 flex items-center justify-center text-[clamp(1rem,5vw,1.85rem)] sm:text-3xl font-black uppercase select-none transition-all duration-300 rounded-lg sm:rounded-xl tracking-[0.08em] font-mono leading-none';
+  let statusClasses = '';
 
   switch (status) {
     case 'correct':
-      statusClasses = "bg-green-500 border-green-500 text-white";
+      statusClasses = 'bg-green-500 border-green-500 text-white';
       break;
     case 'present':
-      statusClasses = "bg-yellow-500 border-yellow-500 text-white";
+      statusClasses = 'bg-yellow-500 border-yellow-500 text-white';
       break;
     case 'absent':
-      statusClasses = "bg-gray-500 border-gray-500 text-white";
+      statusClasses = 'bg-gray-500 border-gray-500 text-white';
       break;
     default:
-      statusClasses = letter ? "border-gray-400 text-indigo-950 scale-105 bg-white" : "border-gray-200 bg-white";
+      statusClasses = letter ? 'border-gray-400 text-indigo-950 scale-105 bg-white' : 'border-gray-200 bg-white';
       break;
   }
 
@@ -37,30 +37,24 @@ const Cell: React.FC<{ letter: string; status: CharStatus }> = ({ letter, status
 };
 
 export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, wordLength, maxGuesses, shakeRowIndex }) => {
-  // Helper to determine status of a letter in a submitted guess
-  // (Note: The main color logic is in getRowStatuses below)
-  
-  // Refined Wordle Logic for coloring a full row correctly (handling duplicates)
   const getRowStatuses = (guess: string): CharStatus[] => {
     const statuses: CharStatus[] = Array(wordLength).fill('absent');
     const secretArr = secretWord.split('');
     const guessArr = guess.split('');
 
-    // First pass: Correct
     guessArr.forEach((char, i) => {
       if (char === secretArr[i]) {
         statuses[i] = 'correct';
-        secretArr[i] = '#'; // Mark as handled
+        secretArr[i] = '#';
       }
     });
 
-    // Second pass: Present
     guessArr.forEach((char, i) => {
       if (statuses[i] !== 'correct') {
         const indexInSecret = secretArr.indexOf(char);
         if (indexInSecret !== -1) {
           statuses[i] = 'present';
-          secretArr[indexInSecret] = '#'; // Mark as handled
+          secretArr[indexInSecret] = '#';
         }
       }
     });
@@ -69,8 +63,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
   };
 
   const rows = [];
-  
-  // Render past guesses
+
   for (let i = 0; i < maxGuesses; i++) {
     let rowContent;
     const isShake = i === shakeRowIndex;
@@ -82,22 +75,20 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
         <Cell key={idx} letter={letter} status={statuses[idx]} />
       ));
     } else if (i === guesses.length) {
-      // Current row being typed
       const chars = currentGuess.split('');
       rowContent = Array.from({ length: wordLength }).map((_, idx) => (
         <Cell key={idx} letter={chars[idx] || ''} status="initial" />
       ));
     } else {
-      // Empty rows
       rowContent = Array.from({ length: wordLength }).map((_, idx) => (
         <Cell key={idx} letter="" status="initial" />
       ));
     }
 
     rows.push(
-      <div 
-        key={i} 
-        className={`flex gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 justify-center w-full ${isShake ? 'animate-shake' : ''}`}
+      <div
+        key={i}
+        className={`flex gap-[clamp(0.22rem,1vw,0.5rem)] mb-[clamp(0.22rem,1vw,0.5rem)] justify-center w-full ${isShake ? 'animate-shake' : ''}`}
         style={{ animation: isShake ? 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both' : 'none' }}
       >
         {rowContent}
@@ -115,7 +106,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
           40%, 60% { transform: translate3d(4px, 0, 0); }
         }
       `}</style>
-      <div className="flex flex-col flex-grow w-full max-w-[min(24rem,92vw)] justify-center p-1 sm:p-2 h-full">
+      <div className="flex flex-col flex-grow w-full max-w-[min(24rem,94vw)] justify-center p-0.5 sm:p-2 h-full min-h-0">
         {rows}
       </div>
     </>
