@@ -59,10 +59,10 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
   const handleLetterClick = (rawLetter: string) => {
     const letter = rawLetter.toUpperCase();
     if (status !== 'playing' || guessedLetters.includes(letter) || !currentWord) return;
-    
+
     const nextGuessedLetters = [...guessedLetters, letter];
     setGuessedLetters(nextGuessedLetters);
-    
+
     if (!currentWord.word.includes(letter)) {
       setMistakes(prev => {
         const newMistakes = prev + 1;
@@ -86,7 +86,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
   const renderWord = () => {
     if (!currentWord) return null;
     return currentWord.word.split('').map((char, i) => (
-      <div key={i} className="w-8 h-10 sm:w-10 sm:h-12 border-b-4 border-indigo-600 flex items-center justify-center text-2xl sm:text-3xl font-black text-indigo-900 mx-1">
+      <div key={i} className="h-[clamp(2.6rem,8dvh,4rem)] min-w-[clamp(2rem,10vw,3.2rem)] border-b-4 border-indigo-600 flex items-center justify-center text-[clamp(1.6rem,8vw,2.7rem)] font-black text-indigo-900 mx-0.5 sm:mx-1">
         {guessedLetters.includes(char) || status === 'lost' ? char : ''}
       </div>
     ));
@@ -94,67 +94,73 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
 
   if (dictionary.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center bg-white rounded-3xl shadow-2xl w-full max-w-md">
+      <div className="flex flex-col items-center justify-center p-6 text-center bg-white rounded-3xl w-full max-w-md">
         <div className="text-6xl mb-4">📚</div>
         <h2 className="text-2xl font-bold mb-2">Словарь пуст!</h2>
         <p className="text-gray-500 mb-6">Выбери другой словарь в настройках.</p>
-        <button onClick={onBack} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold">Назад</button>
+        <button type="button" onClick={onBack} className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold">Назад</button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center w-full max-w-md p-4 sm:p-6 bg-white rounded-3xl shadow-xl relative overflow-hidden">
-      <div className="w-full flex justify-between items-center mb-8">
-        <button 
-          onClick={onBack} 
-          className="flex items-center gap-1 text-gray-500 hover:text-indigo-600 font-bold transition px-3 py-1 bg-gray-50 rounded-lg border border-gray-200"
-        >
-          <span className="text-xl">←</span> Меню
-        </button>
-        <div className="text-sm font-bold text-indigo-600 uppercase tracking-widest">Угадай слово</div>
-        <div className="w-16"></div>
-      </div>
-
-      <div className="w-full bg-indigo-50 rounded-2xl p-4 mb-8">
-        <div className="flex justify-center gap-1 sm:gap-2 mb-2">
+    <div className="flex h-full min-h-0 w-full max-w-xl flex-col items-center justify-between gap-3 overflow-hidden">
+      <div className="w-full shrink-0 rounded-3xl bg-indigo-50 p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm font-black text-indigo-800">Ошибки: {mistakes}/{maxMistakes}</div>
+          <button
+            type="button"
+            onClick={pickNewWord}
+            className="rounded-2xl bg-white border-2 border-indigo-100 px-3 py-2 text-sm font-black text-indigo-700"
+          >
+            Новое
+          </button>
+        </div>
+        <div className="mt-3 grid grid-cols-7 gap-1.5">
           {Array.from({ length: maxMistakes }).map((_, i) => (
-            <motion.span
-              key={`heart-${i}`}
-              animate={{ opacity: i < (maxMistakes - mistakes) ? 1 : 0.3 }}
-              className="text-2xl sm:text-3xl"
-            >
-              ❤️
-            </motion.span>
+            <motion.div
+              key={`life-${i}`}
+              animate={{ opacity: i < (maxMistakes - mistakes) ? 1 : 0.25, scale: i < (maxMistakes - mistakes) ? 1 : 0.9 }}
+              className="h-3 rounded-full bg-red-400"
+            />
           ))}
         </div>
-        <div className="text-center text-xs font-bold text-indigo-400 uppercase tracking-widest">
-          Осталось попыток: {maxMistakes - mistakes}
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 w-full">
+        <div className="flex justify-center flex-wrap max-w-full px-1">
+          {renderWord()}
         </div>
+        {currentWord?.translation && status !== 'playing' && (
+          <div className="rounded-2xl bg-indigo-50 px-4 py-2 text-sm font-bold text-indigo-700">
+            {currentWord.translation}
+          </div>
+        )}
       </div>
 
-      <div className="flex justify-center mb-10 sm:mb-12 flex-wrap">
-        {renderWord()}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1.5 sm:gap-2 w-full">
-        {alphabet.map(letter => (
-          <button
-            key={letter}
-            type="button"
-            disabled={guessedLetters.includes(letter) || status !== 'playing'}
-            onClick={() => handleLetterClick(letter)}
-            className={`h-9 sm:h-10 rounded-lg font-bold text-xs sm:text-sm transition-all ${
-              guessedLetters.includes(letter)
-                ? currentWord?.word.includes(letter)
-                  ? 'bg-green-100 text-green-600 border-2 border-green-200'
-                  : 'bg-gray-100 text-gray-300 border-2 border-gray-100'
-                : 'bg-white border-2 border-gray-100 text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 shadow-sm'
-            }`}
-          >
-            {letter}
-          </button>
-        ))}
+      <div className="grid w-full grid-cols-7 gap-1.5 sm:gap-2 shrink-0 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+        {alphabet.map(letter => {
+          const isGuessed = guessedLetters.includes(letter);
+          const isCorrect = currentWord?.word.includes(letter);
+          return (
+            <button
+              key={letter}
+              type="button"
+              aria-label={`Буква ${letter}`}
+              disabled={isGuessed || status !== 'playing'}
+              onClick={() => handleLetterClick(letter)}
+              className={`h-[clamp(2.55rem,6.8dvh,3.4rem)] rounded-2xl border-2 text-[clamp(0.95rem,4vw,1.25rem)] font-black shadow-sm transition-all touch-manipulation active:scale-95 ${
+                isGuessed
+                  ? isCorrect
+                    ? 'bg-green-500 text-white border-green-500'
+                    : 'bg-gray-200 text-gray-400 border-gray-200'
+                  : 'bg-white border-indigo-100 text-indigo-950 hover:bg-indigo-50'
+              }`}
+            >
+              {letter}
+            </button>
+          );
+        })}
       </div>
 
       {rewardPreview && progressPreview && (
