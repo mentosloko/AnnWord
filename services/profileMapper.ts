@@ -1,6 +1,6 @@
 import { InventoryItem, PetState, UserProfile, UserStats } from '../types';
 import { normalizeCustomDictionary } from './dictionaryEngine';
-import { deriveCharacterLevel, deriveCharacterStage, deriveMoodFromScore, normalizeMoodScore } from './gamificationRules';
+import { deriveCharacterLevel, deriveCharacterStage, deriveMoodFromScore, getTotalXpForLevel, normalizeMoodScore } from './gamificationRules';
 
 const DEFAULT_PET: PetState = {
   name: 'Щенок',
@@ -56,8 +56,11 @@ export const normalizeStats = (value: unknown): UserStats => {
 export const normalizePet = (value: unknown): PetState => {
   if (!isPlainObject(value)) return { ...DEFAULT_PET };
 
+  const storedLevel = typeof value.level === 'number' ? Math.max(1, Math.round(value.level)) : DEFAULT_PET.level;
   const rawXp = typeof value.xp === 'number' ? Math.max(0, Math.round(value.xp)) : DEFAULT_PET.xp;
-  const level = deriveCharacterLevel(rawXp);
+  const derivedLevel = deriveCharacterLevel(rawXp);
+  const level = Math.max(storedLevel, derivedLevel);
+  const normalizedXp = Math.max(rawXp, getTotalXpForLevel(level));
   const stage = deriveCharacterStage(level);
   const basePet: PetState = {
     ...DEFAULT_PET,
@@ -65,7 +68,7 @@ export const normalizePet = (value: unknown): PetState => {
     name: typeof value.name === 'string' ? value.name : DEFAULT_PET.name,
     type: typeof value.type === 'string' ? value.type : DEFAULT_PET.type,
     level,
-    xp: rawXp,
+    xp: normalizedXp,
     hunger: typeof value.hunger === 'number' ? value.hunger : DEFAULT_PET.hunger,
     energy: typeof value.energy === 'number' ? value.energy : DEFAULT_PET.energy,
     equippedAccessories: normalizeStringArray(value.equippedAccessories),
