@@ -83,7 +83,7 @@ const AppV2: React.FC = () => {
     setRoute('landing');
   }, [logout]);
 
-  const updateClassicStats = useCallback(async (won: boolean, word: string) => {
+  const updateClassicStats = useCallback(async (won: boolean, word: string, coinsAdjustment = 0) => {
     const nextStats: UserStats = {
       ...userProfile.stats,
       wordsGuessed: { ...userProfile.stats.wordsGuessed },
@@ -96,7 +96,7 @@ const AppV2: React.FC = () => {
       nextStats.wordsGuessed[word] = (nextStats.wordsGuessed[word] || 0) + 1;
     }
 
-    await profileEconomy.applyGameReward({ type: 'wordle', won });
+    await profileEconomy.applyGameReward({ type: 'wordle', won, coinsAdjustment });
     await profileEconomy.updateStats(nextStats);
   }, [profileEconomy, userProfile.stats]);
 
