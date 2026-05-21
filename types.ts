@@ -112,7 +112,7 @@ export interface GameState {
   rowIndex: number;
   hint: string | null;
   loadingHint: boolean;
-  hintCoinsSpent: number;
+  hintCoinsSpent?: number;
   error: string | null;
 }
 
