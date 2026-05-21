@@ -36,11 +36,12 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
   const [showRules, setShowRules] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const isFinished = gameState.gameStatus === 'won' || gameState.gameStatus === 'lost';
+  const hintCoinsSpent = gameState.hintCoinsSpent ?? 0;
   const rewardPreview = isFinished
     ? calculateGameReward({
       type: 'wordle',
       won: gameState.gameStatus === 'won',
-      coinsAdjustment: -gameState.hintCoinsSpent,
+      coinsAdjustment: -hintCoinsSpent,
     })
     : null;
   const progressPreview = rewardPreview ? applyGameRewardToCharacter(userProfile.pet, rewardPreview) : null;
@@ -57,8 +58,8 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
   };
 
   return (
-    <ScreenContainer className="max-w-2xl h-[100dvh] overflow-hidden px-2 pt-2 pb-1 sm:px-4 sm:py-4">
-      <div className="relative flex h-full min-h-0 flex-col gap-1.5 sm:gap-3 overflow-hidden">
+    <ScreenContainer compact className="max-w-2xl h-[100dvh] overflow-hidden overscroll-none px-2 pt-2 pb-0 sm:px-4 sm:py-4">
+      <div className="relative flex h-full min-h-0 flex-col gap-1.5 sm:gap-3 overflow-hidden overscroll-none">
         <div className="flex items-center justify-between gap-1.5 shrink-0">
           <button
             type="button"
@@ -138,7 +139,7 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
           </div>
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col justify-start gap-1 sm:gap-2 pt-0.5 overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col justify-start gap-1 sm:gap-2 pt-0.5 overflow-hidden overscroll-none">
           <div className="rounded-[1.35rem] sm:rounded-[2rem] bg-white border-2 border-indigo-50 shadow-sm p-1 sm:p-3 flex flex-col items-center justify-center overflow-hidden shrink-0">
             <Grid
               guesses={gameState.guesses}
@@ -186,7 +187,7 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
             <span>
               Слово: <span className="font-black">{gameState.secretWord}</span>
               {gameState.secretWordData?.translation ? ` · ${gameState.secretWordData.translation}` : ''}
-              {gameState.hintCoinsSpent > 0 ? ` · подсказки: −${gameState.hintCoinsSpent} 🪙` : ''}
+              {hintCoinsSpent > 0 ? ` · подсказки: −${hintCoinsSpent} 🪙` : ''}
             </span>
           )}
         />
