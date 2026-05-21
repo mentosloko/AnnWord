@@ -191,7 +191,7 @@ export const useClassicGameController = ({
     }));
 
     if (nextStatus !== 'playing') {
-      await onStatsUpdate(nextStatus === 'won', gameState.secretWord, -gameState.hintCoinsSpent);
+      await onStatsUpdate(nextStatus === 'won', gameState.secretWord, -(gameState.hintCoinsSpent ?? 0));
     }
   }, [gameState, getValidationPool, onStatsUpdate, settings.wordLength, triggerShake]);
 
@@ -223,7 +223,7 @@ export const useClassicGameController = ({
         ...prev,
         hint: bestWord ? `Попробуйте слово: ${bestWord}` : 'Нет подходящих слов для подсказки.',
         loadingHint: false,
-        hintCoinsSpent: prev.hintCoinsSpent + WORDLE_HINT_COST,
+        hintCoinsSpent: (prev.hintCoinsSpent ?? 0) + WORDLE_HINT_COST,
       }));
     }, 500);
   }, [gameState.gameStatus, gameState.guesses, gameState.loadingHint, gameState.secretWord, getModeWords, settings.wordLength]);
