@@ -18,7 +18,7 @@ interface AppShellProps {
   onLogoutClick: () => Promise<void>;
   onProfileClick: () => void;
   onShopClick: () => void;
-  onNavigateToPetRoom: () => void;
+  onNavigateToPetRoom?: () => void;
   onCloseLogin: () => void;
   onCloseRules: () => void;
   onAuthModeChange: (mode: 'login' | 'register') => void;
@@ -29,34 +29,42 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => (
-  <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
-    <AppHeader
-      userProfile={userProfile}
-      isAuthenticated={isAuthenticated}
-      onLoginClick={onLoginClick}
-      onLogoutClick={onLogoutClick}
-      onProfileClick={onProfileClick}
-      onShopClick={onShopClick}
-    />
+const GAME_ROUTES: ViewState[] = ['game', 'anagrams', 'sprint', 'hangman', 'memory'];
 
-    {children}
+export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => {
+  const isGameRoute = GAME_ROUTES.includes(route);
 
-    <AppModals
-      showLoginModal={showLoginModal}
-      showRulesModal={showRulesModal}
-      authMode={authMode}
-      tempUsername={tempUsername}
-      tempPassword={tempPassword}
-      authError={authError}
-      isAuthLoading={isAuthLoading}
-      onCloseLogin={onCloseLogin}
-      onCloseRules={onCloseRules}
-      onAuthModeChange={onAuthModeChange}
-      onUsernameChange={onUsernameChange}
-      onPasswordChange={onPasswordChange}
-      onAuthSubmit={onAuthSubmit}
-      onYandexLogin={onYandexLogin}
-    />
-  </div>
-);
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
+      {!isGameRoute && (
+        <AppHeader
+          userProfile={userProfile}
+          isAuthenticated={isAuthenticated}
+          onLoginClick={onLoginClick}
+          onLogoutClick={onLogoutClick}
+          onProfileClick={onProfileClick}
+          onShopClick={onShopClick}
+        />
+      )}
+
+      {children}
+
+      <AppModals
+        showLoginModal={showLoginModal}
+        showRulesModal={showRulesModal}
+        authMode={authMode}
+        tempUsername={tempUsername}
+        tempPassword={tempPassword}
+        authError={authError}
+        isAuthLoading={isAuthLoading}
+        onCloseLogin={onCloseLogin}
+        onCloseRules={onCloseRules}
+        onAuthModeChange={onAuthModeChange}
+        onUsernameChange={onUsernameChange}
+        onPasswordChange={onPasswordChange}
+        onAuthSubmit={onAuthSubmit}
+        onYandexLogin={onYandexLogin}
+      />
+    </div>
+  );
+};
