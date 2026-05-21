@@ -59,8 +59,9 @@ export const normalizePet = (value: unknown): PetState => {
   const storedLevel = typeof value.level === 'number' ? Math.max(1, Math.round(value.level)) : DEFAULT_PET.level;
   const rawXp = typeof value.xp === 'number' ? Math.max(0, Math.round(value.xp)) : DEFAULT_PET.xp;
   const derivedLevel = deriveCharacterLevel(rawXp);
-  const level = Math.max(storedLevel, derivedLevel);
-  const normalizedXp = Math.max(rawXp, getTotalXpForLevel(level));
+  const shouldPreserveLegacyLevel = rawXp === 0 && storedLevel > derivedLevel;
+  const level = shouldPreserveLegacyLevel ? storedLevel : derivedLevel;
+  const normalizedXp = shouldPreserveLegacyLevel ? getTotalXpForLevel(level) : rawXp;
   const stage = deriveCharacterStage(level);
   const basePet: PetState = {
     ...DEFAULT_PET,
