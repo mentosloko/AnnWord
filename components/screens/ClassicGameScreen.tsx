@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { CharStatus, GameState, GameSettings, UserProfile } from '../../types';
-import { MAX_GUESSES } from '../../constants';
 import { applyGameRewardToCharacter, calculateGameReward } from '../../services/gamificationRules';
 import { GameResultOverlay } from '../GameResultOverlay';
 import { Grid } from '../Grid';
@@ -21,13 +20,6 @@ interface ClassicGameScreenProps {
   onBackHome: () => void;
 }
 
-const WORDLE_RULES = [
-  'Угадайте слово за несколько попыток.',
-  'Зелёная буква стоит на правильном месте, жёлтая есть в слове, серая отсутствует.',
-  'Победа даёт больше XP, но завершённая попытка тоже даёт Pity XP.',
-  'Ошибки не отнимают XP, монеты или настроение.',
-];
-
 export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
   gameState,
   settings,
@@ -42,13 +34,25 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
   onBackHome,
 }) => {
   const [showRules, setShowRules] = useState(false);
+  const [showHint, setShowHint] = useState(false);
   const isFinished = gameState.gameStatus === 'won' || gameState.gameStatus === 'lost';
   const rewardPreview = isFinished ? calculateGameReward({ type: 'wordle', won: gameState.gameStatus === 'won' }) : null;
   const progressPreview = rewardPreview ? applyGameRewardToCharacter(userProfile.pet, rewardPreview) : null;
 
+  const handleHintClick = () => {
+    setShowRules(false);
+    setShowHint(true);
+    if (!gameState.hint && !gameState.loadingHint) onHint();
+  };
+
+  const handleRulesClick = () => {
+    setShowHint(false);
+    setShowRules(prev => !prev);
+  };
+
   return (
-    <ScreenContainer className="max-w-2xl min-h-[100dvh] px-2 py-2 pb-1 sm:px-4 sm:py-4">
-      <div className="flex min-h-[calc(100dvh-0.75rem)] sm:min-h-[calc(100dvh-2rem)] flex-col gap-1.5 sm:gap-3">
+    <ScreenContainer className="max-w-2xl min-h-[100dvh] px-2 pt-2 pb-1 sm:px-4 sm:py-4">
+      <div className="relative flex min-h-[calc(100dvh-0.75rem)] sm:min-h-[calc(100dvh-2rem)] flex-col gap-1.5 sm:gap-3">
         <div className="flex items-center justify-between gap-1.5 shrink-0">
           <button
             type="button"
@@ -60,18 +64,12 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
             ←
           </button>
 
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
-            <div className="rounded-2xl bg-white border-2 border-indigo-100 px-3 py-2 text-xs sm:text-sm font-black text-indigo-800 shadow-sm">
-              {settings.difficulty}
-            </div>
-            <div className="rounded-2xl bg-white border-2 border-indigo-100 px-3 py-2 text-xs sm:text-sm font-black text-indigo-800 shadow-sm">
-              {gameState.guesses.length}/{MAX_GUESSES}
-            </div>
+          <div className="flex min-w-0 flex-1 items-center justify-center">
             <button
               type="button"
-              onClick={onHint}
-              disabled={gameState.loadingHint || isFinished}
-              className="min-w-0 rounded-2xl bg-blue-50 border-2 border-blue-100 px-3 sm:px-4 py-2 text-xs sm:text-sm font-black text-blue-700 hover:bg-blue-100 transition disabled:opacity-50 shadow-sm"
+              onClick={handleHintClick}
+              disabled={isFinished}
+              className="min-w-0 rounded-2xl bg-blue-50 border-2 border-blue-100 px-5 sm:px-6 py-2 text-sm sm:text-base font-black text-blue-700 hover:bg-blue-100 transition disabled:opacity-50 shadow-sm"
             >
               {gameState.loadingHint ? '...' : 'Подсказка'}
             </button>
@@ -80,7 +78,7 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
           <div className="flex gap-1.5">
             <button
               type="button"
-              onClick={() => setShowRules(prev => !prev)}
+              onClick={handleRulesClick}
               aria-label="Правила Wordle"
               title="Правила"
               className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-indigo-50 border-2 border-indigo-100 text-indigo-700 font-black hover:bg-indigo-100 transition shadow-sm"
@@ -100,11 +98,38 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
         </div>
 
         {showRules && (
-          <div className="shrink-0 rounded-2xl border-2 border-indigo-100 bg-indigo-50 px-4 py-3 text-xs sm:text-sm text-indigo-900">
-            <div className="font-black mb-1">Как играть</div>
-            <ul className="space-y-0.5 list-disc pl-5">
-              {WORDLE_RULES.map(rule => <li key={rule}>{rule}</li>)}
-            </ul>
+          <div className="absolute right-0 top-12 sm:top-14 z-30 w-[min(21rem,92vw)] rounded-3xl border-2 border-indigo-100 bg-white p-4 text-sm text-indigo-950 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="font-black">Как играть</div>
+              <button type="button" onClick={() => setShowRules(false)} className="font-black text-indigo-400">×</button>
+            </div>
+            <div className="space-y-3 font-bold">
+              <p>Соберите слово за 6 попыток.</p>
+              <div className="flex items-center gap-2">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500 text-lg font-black text-white">A</span>
+                <span>буква на правильном месте</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-500 text-lg font-black text-white">B</span>
+                <span>буква есть в слове, но место другое</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-500 text-lg font-black text-white">C</span>
+                <span>буквы нет в слове</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showHint && (
+          <div className="absolute left-1/2 top-12 sm:top-14 z-30 w-[min(21rem,92vw)] -translate-x-1/2 rounded-3xl border-2 border-blue-100 bg-white p-4 text-sm text-blue-950 shadow-2xl">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="font-black">Подсказка</div>
+              <button type="button" onClick={() => setShowHint(false)} className="font-black text-blue-400">×</button>
+            </div>
+            <div className="font-bold">
+              {gameState.loadingHint ? 'Готовлю подсказку...' : gameState.hint || 'Нажмите ещё раз, если подсказка не появилась.'}
+            </div>
           </div>
         )}
 
@@ -114,20 +139,14 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
           </div>
         )}
 
-        {gameState.hint && (
-          <div className="shrink-0 rounded-2xl bg-blue-50 border border-blue-100 px-3 py-2 text-xs sm:text-sm font-bold text-blue-700 text-center">
-            {gameState.hint}
-          </div>
-        )}
-
-        <div className="flex min-h-0 flex-1 flex-col justify-end gap-1.5 sm:gap-3">
-          <div className="rounded-[1.35rem] sm:rounded-[2rem] bg-white border-2 border-indigo-50 shadow-sm p-1.5 sm:p-3 flex flex-col items-center justify-center overflow-hidden min-h-0">
+        <div className="flex min-h-0 flex-1 flex-col justify-start gap-1.5 sm:gap-3 pt-1 sm:pt-2">
+          <div className="rounded-[1.35rem] sm:rounded-[2rem] bg-white border-2 border-indigo-50 shadow-sm p-1.5 sm:p-3 flex flex-col items-center justify-center overflow-hidden shrink-0">
             <Grid
               guesses={gameState.guesses}
               currentGuess={gameState.currentGuess}
               secretWord={gameState.secretWord}
               wordLength={settings.wordLength}
-              maxGuesses={MAX_GUESSES}
+              maxGuesses={6}
               shakeRowIndex={shakeRowIndex}
             />
           </div>
