@@ -11,7 +11,7 @@ interface GridProps {
 }
 
 const Cell: React.FC<{ letter: string; status: CharStatus }> = ({ letter, status }) => {
-  const baseClasses = 'flex-1 aspect-square min-w-0 max-w-[min(3.15rem,11.2vw,6.8dvh)] sm:max-w-[4rem] border-2 flex items-center justify-center text-[clamp(1rem,5vw,1.85rem)] sm:text-3xl font-black uppercase select-none transition-all duration-300 rounded-lg sm:rounded-xl tracking-[0.08em] font-mono leading-none';
+  const baseClasses = 'flex-1 aspect-square min-w-0 max-w-[min(4.15rem,16.8vw,8.6dvh)] sm:max-w-[4.75rem] border-2 flex items-center justify-center text-[clamp(1.25rem,6.5vw,2.35rem)] sm:text-4xl font-black uppercase select-none transition-all duration-300 rounded-xl sm:rounded-2xl tracking-[0.06em] font-mono leading-none';
   let statusClasses = '';
 
   switch (status) {
@@ -88,7 +88,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
     rows.push(
       <div
         key={i}
-        className={`flex gap-[clamp(0.22rem,1vw,0.5rem)] mb-[clamp(0.22rem,1vw,0.5rem)] justify-center w-full ${isShake ? 'animate-shake' : ''}`}
+        className={`flex gap-[clamp(0.28rem,1.25vw,0.6rem)] mb-[clamp(0.24rem,1vw,0.52rem)] justify-center w-full ${isShake ? 'animate-shake' : ''}`}
         style={{ animation: isShake ? 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both' : 'none' }}
       >
         {rowContent}
@@ -106,7 +106,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
           40%, 60% { transform: translate3d(4px, 0, 0); }
         }
       `}</style>
-      <div className="flex flex-col flex-grow w-full max-w-[min(24rem,94vw)] justify-center p-0.5 sm:p-2 h-full min-h-0">
+      <div className="flex flex-col flex-grow w-full max-w-[min(30rem,98vw)] justify-center p-0.5 sm:p-2 h-full min-h-0">
         {rows}
       </div>
     </>
