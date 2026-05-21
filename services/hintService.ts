@@ -1,8 +1,31 @@
 import { CharStatus } from "../types";
-import { getGuessLetterStatuses } from "../hooks/useClassicGameController";
+
+const getFeedbackStatuses = (guess: string, secretWord: string): CharStatus[] => {
+  const statuses: CharStatus[] = Array(guess.length).fill('absent');
+  const secretArr = secretWord.split('');
+  const guessArr = guess.split('');
+
+  guessArr.forEach((char, index) => {
+    if (char === secretArr[index]) {
+      statuses[index] = 'correct';
+      secretArr[index] = '#';
+    }
+  });
+
+  guessArr.forEach((char, index) => {
+    if (statuses[index] === 'correct') return;
+    const matchIndex = secretArr.indexOf(char);
+    if (matchIndex >= 0) {
+      statuses[index] = 'present';
+      secretArr[matchIndex] = '#';
+    }
+  });
+
+  return statuses;
+};
 
 const doesCandidateMatchFeedback = (candidate: string, guess: string, secretWord: string): boolean => {
-  const statuses = getGuessLetterStatuses(guess, secretWord);
+  const statuses = getFeedbackStatuses(guess, secretWord);
 
   return guess.split('').every((char, index) => {
     const status = statuses[index];
@@ -17,7 +40,7 @@ const countKnownLetters = (word: string, guesses: string[], secretWord: string):
   const knownLetters = new Set<string>();
 
   guesses.forEach(guess => {
-    const statuses = getGuessLetterStatuses(guess, secretWord);
+    const statuses = getFeedbackStatuses(guess, secretWord);
     guess.split('').forEach((char, index) => {
       if (statuses[index] === 'correct' || statuses[index] === 'present') knownLetters.add(char);
     });
@@ -31,9 +54,8 @@ const countKnownLetters = (word: string, guesses: string[], secretWord: string):
  *
  * Strategy:
  * - never suggest the secret word or an already guessed word;
- * - after successful guesses, prefer words that are compatible with known
- *   green/yellow/gray feedback;
- * - keep some variation by choosing randomly among the best scored candidates.
+ * - after guesses, prefer words that are compatible with known green/yellow/gray feedback;
+ * - keep variation by choosing randomly among the best scored candidates.
  */
 export const getBestEliminationHint = (
   secretWord: string,
