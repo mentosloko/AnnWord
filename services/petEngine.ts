@@ -1,5 +1,6 @@
 import { InventoryItem, PetState, UserProfile } from '../types';
 import { deriveMoodFromScore, normalizeMoodScore } from './gamificationRules';
+import { getShopItemById } from './shopCatalog';
 
 export type PetMood = PetState['mood'];
 
@@ -78,6 +79,21 @@ export const applyPetDecay = (pet: PetState, options: PetDecayOptions = {}): Pet
   };
 };
 
+export const getNormalizedInventoryItem = (item: InventoryItem): InventoryItem => {
+  const shopItem = getShopItemById(item.id);
+  if (!shopItem) return item;
+
+  return {
+    ...item,
+    name: shopItem.name,
+    type: shopItem.type,
+    metadata: {
+      ...(item.metadata || {}),
+      imageUrl: shopItem.imageUrl || item.metadata?.imageUrl || '',
+    },
+  };
+};
+
 export const getInventoryEmoji = (item: InventoryItem): string => {
   switch (item.id) {
     case 'apple': return '🍎';
@@ -112,4 +128,6 @@ export const getPetEmoji = (pet: PetState): string => {
 };
 
 export const getVisibleInventory = (profile: UserProfile, type: InventoryItem['type']): InventoryItem[] =>
-  (profile.inventory || []).filter(item => item.type === type && item.quantity > 0);
+  (profile.inventory || [])
+    .filter(item => item.type === type && item.quantity > 0)
+    .map(getNormalizedInventoryItem);
