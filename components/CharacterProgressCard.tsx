@@ -1,6 +1,6 @@
 import React from 'react';
 import { PetState } from '../types';
-import { CHARACTER_LEVEL_THRESHOLDS, getCurrentLevelThreshold, getNextLevelThreshold } from '../services/gamificationRules';
+import { CHARACTER_LEVEL_THRESHOLDS, getCharacterStageLabel, getCurrentLevelThreshold, getNextLevelThreshold } from '../services/gamificationRules';
 import { getPetEmoji } from '../services/petEngine';
 
 interface CharacterProgressCardProps {
@@ -55,7 +55,7 @@ export const CharacterProgressCard: React.FC<CharacterProgressCardProps> = ({
       <div className="h-3 rounded-full bg-white overflow-hidden border border-indigo-100">
         <div className="h-full bg-indigo-600 transition-all" style={{ width: `${progressPercent}%` }} />
       </div>
-      <div className="mt-2 text-xs font-bold text-indigo-400">Стадия: {pet.stage || 'stage_1'}</div>
+      <div className="mt-2 text-xs font-bold text-indigo-400">Стадия: {getCharacterStageLabel(pet.stage)}</div>
     </div>
   );
 };
