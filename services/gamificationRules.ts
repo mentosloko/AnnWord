@@ -5,6 +5,7 @@ export interface GameRewardInput {
   won?: boolean;
   guessedWords?: number;
   clicks?: number;
+  coinsAdjustment?: number;
 }
 
 export interface GameRewardResult {
@@ -51,6 +52,7 @@ export const CHARACTER_LEVEL_THRESHOLDS = Array.from({ length: 20 }, (_, index) 
 });
 
 const clamp = (value: number, min = 0, max = 100): number => Math.max(min, Math.min(max, Math.round(value)));
+const normalizeCoinsAdjustment = (value?: number): number => Math.round(value || 0);
 
 export const deriveCharacterLevel = (totalXp: number): number => {
   const normalizedXp = Math.max(0, Math.round(totalXp || 0));
@@ -108,13 +110,15 @@ export const getCurrentLevelThreshold = (level: number): number => getTotalXpFor
 const getPityXp = (won?: boolean): number => (won ? 0 : 8);
 
 export const calculateGameReward = (input: GameRewardInput): GameRewardResult => {
+  const coinsAdjustment = normalizeCoinsAdjustment(input.coinsAdjustment);
+
   switch (input.type) {
     case 'wordle': {
       const won = Boolean(input.won);
       const xp = won ? 25 : getPityXp(won);
       return {
         xp,
-        coins: won ? 3 : 1,
+        coins: (won ? 3 : 1) + coinsAdjustment,
         mood: Math.min(12, xp),
         label: won ? 'Wordle угадан' : 'Wordle завершён',
       };
@@ -124,7 +128,7 @@ export const calculateGameReward = (input: GameRewardInput): GameRewardResult =>
       const xp = guessed > 0 ? Math.min(30, guessed * 5) : 5;
       return {
         xp,
-        coins: guessed >= 3 ? 2 : guessed >= 1 ? 1 : 0,
+        coins: (guessed >= 3 ? 2 : guessed >= 1 ? 1 : 0) + coinsAdjustment,
         mood: Math.min(12, xp),
         label: 'Спринт завершён',
       };
@@ -134,7 +138,7 @@ export const calculateGameReward = (input: GameRewardInput): GameRewardResult =>
       const xp = guessed > 0 ? Math.min(25, guessed * 5) : 5;
       return {
         xp,
-        coins: guessed >= 3 ? 2 : guessed >= 1 ? 1 : 0,
+        coins: (guessed >= 3 ? 2 : guessed >= 1 ? 1 : 0) + coinsAdjustment,
         mood: Math.min(10, xp),
         label: 'Анаграммы',
       };
@@ -150,7 +154,7 @@ export const calculateGameReward = (input: GameRewardInput): GameRewardResult =>
 
       return {
         xp,
-        coins: clicks > 0 && clicks <= 16 ? 2 : clicks <= 24 ? 1 : 0,
+        coins: (clicks > 0 && clicks <= 16 ? 2 : clicks <= 24 ? 1 : 0) + coinsAdjustment,
         mood: Math.min(12, xp),
         label: 'Мемо завершено',
       };
@@ -160,13 +164,13 @@ export const calculateGameReward = (input: GameRewardInput): GameRewardResult =>
       const xp = won ? 25 : getPityXp(won);
       return {
         xp,
-        coins: won ? 2 : 1,
+        coins: (won ? 2 : 1) + coinsAdjustment,
         mood: Math.min(12, xp),
         label: won ? 'Виселица пройдена' : 'Виселица завершена',
       };
     }
     default:
-      return { xp: 0, coins: 0, mood: 0, label: 'Игра завершена' };
+      return { xp: 0, coins: coinsAdjustment, mood: 0, label: 'Игра завершена' };
   }
 };
 
