@@ -23,6 +23,7 @@ export const CharacterProgressCard: React.FC<CharacterProgressCardProps> = ({
     ? 100
     : Math.max(0, Math.min(100, (((pet.xp || 0) - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100));
   const maxLevel = CHARACTER_LEVEL_THRESHOLDS[CHARACTER_LEVEL_THRESHOLDS.length - 1].level;
+  const coinDeltaLabel = coinsGained > 0 ? `+${coinsGained}` : String(coinsGained);
 
   return (
     <div className="rounded-[2rem] bg-indigo-50 border-2 border-indigo-100 p-5 text-left w-full">
@@ -43,7 +44,7 @@ export const CharacterProgressCard: React.FC<CharacterProgressCardProps> = ({
         </div>
         <div className="rounded-2xl bg-white p-3 border border-yellow-100">
           <div className="text-xs font-black uppercase tracking-widest text-yellow-400">Монеты</div>
-          <div className="text-2xl font-black text-yellow-600">+{coinsGained} 🪙</div>
+          <div className="text-2xl font-black text-yellow-600">{coinDeltaLabel} 🪙</div>
         </div>
       </div>
 
