@@ -17,12 +17,24 @@ interface UseClassicGameControllerArgs {
 const WORDLE_HINT_COST = 1;
 
 const scrollGameViewportToTop = () => {
-  if (typeof window === 'undefined') return;
-  window.requestAnimationFrame(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+  const run = () => {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-  });
+
+    try {
+      if (typeof window.scrollTo === 'function') {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      }
+    } catch {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  };
+
+  if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(run);
+  else run();
 };
 
 export const createInitialGameState = (): GameState => ({
@@ -191,7 +203,9 @@ export const useClassicGameController = ({
     }));
 
     if (nextStatus !== 'playing') {
-      await onStatsUpdate(nextStatus === 'won', gameState.secretWord, -(gameState.hintCoinsSpent ?? 0));
+      const hintCoinsSpent = gameState.hintCoinsSpent ?? 0;
+      if (hintCoinsSpent > 0) await onStatsUpdate(nextStatus === 'won', gameState.secretWord, -hintCoinsSpent);
+      else await onStatsUpdate(nextStatus === 'won', gameState.secretWord);
     }
   }, [gameState, getValidationPool, onStatsUpdate, settings.wordLength, triggerShake]);
 
@@ -223,7 +237,7 @@ export const useClassicGameController = ({
         ...prev,
         hint: bestWord ? `Попробуйте слово: ${bestWord}` : 'Нет подходящих слов для подсказки.',
         loadingHint: false,
-        hintCoinsSpent: (prev.hintCoinsSpent ?? 0) + WORDLE_HINT_COST,
+        hintCoinsSpent: bestWord ? (prev.hintCoinsSpent ?? 0) + WORDLE_HINT_COST : (prev.hintCoinsSpent ?? 0),
       }));
     }, 500);
   }, [gameState.gameStatus, gameState.guesses, gameState.loadingHint, gameState.secretWord, getModeWords, settings.wordLength]);
