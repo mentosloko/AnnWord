@@ -1,71 +1,77 @@
 import { InventoryItem, PetState, ShopItem } from '../types';
 
-const PUPPY_BASE_ASSET_URL = '/assets/pets/puppy/base/idle.png';
-const PUPPY_ACCESSORY_STATE_BASE_PATH = '/assets/pets/puppy/with-accessories';
-
-const PUPPY_ACCESSORY_ASSET_URLS: Record<string, string> = {
-  bow: '/assets/pets/puppy/accessories/bow.png',
-  glasses: '/assets/pets/puppy/accessories/glasses.png',
-  hat: '/assets/pets/puppy/accessories/hat.png',
-  hero_cape: '/assets/pets/puppy/accessories/hero_cape.png',
-  star_collar: '/assets/pets/puppy/accessories/star_collar.png',
-  crown: '/assets/pets/puppy/accessories/crown.png',
+const ACCESSORY_IDS = ['bow', 'glasses', 'hat', 'hero_cape', 'star_collar', 'crown'] as const;
+const ACCESSORY_ORDER = [...ACCESSORY_IDS];
+const PET_ASSET_SLUGS: Record<string, string> = {
+  Puppy: 'puppy',
+  Dragon: 'dragon',
+  RoboCat: 'robocat',
 };
 
-const PUPPY_COMBO_ASSETS: Array<{ key: string; accessories: string[]; url: string }> = [
-  { key: 'bow_glasses', accessories: ['bow', 'glasses'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/bow_glasses.png` },
-  { key: 'bow_hat', accessories: ['bow', 'hat'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/bow_hat.png` },
-  { key: 'bow_hero_cape', accessories: ['bow', 'hero_cape'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/bow_hero_cape.png` },
-  { key: 'bow_star_collar', accessories: ['bow', 'star_collar'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/bow_star_collar.png` },
-  { key: 'bow_crown', accessories: ['bow', 'crown'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/bow_crown.png` },
-  { key: 'glasses_hat', accessories: ['glasses', 'hat'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/glasses_hat.png` },
-  { key: 'glasses_hero_cape', accessories: ['glasses', 'hero_cape'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/glasses_hero_cape.png` },
-  { key: 'glasses_star_collar', accessories: ['glasses', 'star_collar'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/glasses_star_collar.png` },
-  { key: 'glasses_crown', accessories: ['glasses', 'crown'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/glasses_crown.png` },
-  { key: 'hat_hero_cape', accessories: ['hat', 'hero_cape'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/hat_hero_cape.png` },
-  { key: 'hat_star_collar', accessories: ['hat', 'star_collar'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/hat_star_collar.png` },
-  { key: 'hat_crown', accessories: ['hat', 'crown'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/hat_crown.png` },
-  { key: 'hero_cape_star_collar', accessories: ['hero_cape', 'star_collar'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/hero_cape_star_collar.png` },
-  { key: 'hero_cape_crown', accessories: ['hero_cape', 'crown'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/hero_cape_crown.png` },
-  { key: 'star_collar_crown', accessories: ['star_collar', 'crown'], url: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/star_collar_crown.png` },
-];
-
-const PUPPY_SINGLE_ASSET_URLS: Record<string, string> = {
-  bow: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/bow.png`,
-  glasses: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/glasses.png`,
-  hat: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/hat.png`,
-  hero_cape: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/hero_cape.png`,
-  star_collar: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/star_collar.png`,
-  crown: `${PUPPY_ACCESSORY_STATE_BASE_PATH}/crown.png`,
+const getPetAssetSlug = (petType?: string): string | null => {
+  if (!petType) return null;
+  return PET_ASSET_SLUGS[petType] || null;
 };
+
+const getPetBaseAssetUrl = (petType?: string): string | null => {
+  const slug = getPetAssetSlug(petType);
+  return slug ? `/assets/pets/${slug}/base/idle.png` : null;
+};
+
+const getPetRenderedBasePath = (petType?: string): string | null => {
+  const slug = getPetAssetSlug(petType);
+  return slug ? `/assets/pets/${slug}/rendered` : null;
+};
+
+const getPetAccessoryBasePath = (petType?: string): string | null => {
+  const slug = getPetAssetSlug(petType);
+  return slug ? `/assets/pets/${slug}/accessories` : null;
+};
+
+const getAccessoryKey = (accessories: string[]): string =>
+  ACCESSORY_ORDER.filter(accessoryId => accessories.includes(accessoryId)).join('_');
 
 export const MAX_EQUIPPED_ACCESSORIES = 2;
 
+export const getPetAccessoryAssetUrl = (itemId: string, petType: string = 'Puppy'): string | null => {
+  if (!ACCESSORY_IDS.includes(itemId as typeof ACCESSORY_IDS[number])) return null;
+
+  const basePath = getPetAccessoryBasePath(petType);
+  if (!basePath) return null;
+
+  return `${basePath}/${itemId}.png`;
+};
+
 export const getPuppyAccessoryAssetUrl = (itemId: string): string | null =>
-  PUPPY_ACCESSORY_ASSET_URLS[itemId] || null;
+  getPetAccessoryAssetUrl(itemId, 'Puppy');
+
+export const getPetCharacterAssetUrl = (pet: PetState): string | null => {
+  const renderedBasePath = getPetRenderedBasePath(pet.type);
+  const baseAssetUrl = getPetBaseAssetUrl(pet.type);
+
+  if (!renderedBasePath || !baseAssetUrl) return null;
+
+  const equippedAccessories = (pet.equippedAccessories || []).filter(accessoryId =>
+    ACCESSORY_IDS.includes(accessoryId as typeof ACCESSORY_IDS[number]),
+  );
+
+  if (equippedAccessories.length === 0) return baseAssetUrl;
+
+  const key = getAccessoryKey(equippedAccessories);
+  return key ? `${renderedBasePath}/${key}.png` : baseAssetUrl;
+};
 
 export const getPuppyCharacterAssetUrl = (pet: PetState): string | null => {
   if (pet.type !== 'Puppy') return null;
-
-  const equippedAccessories = pet.equippedAccessories || [];
-  if (equippedAccessories.length === 1) {
-    return PUPPY_SINGLE_ASSET_URLS[equippedAccessories[0]] || PUPPY_BASE_ASSET_URL;
-  }
-
-  const equipped = new Set(equippedAccessories);
-  const matchingCombo = PUPPY_COMBO_ASSETS.find(combo =>
-    combo.accessories.every(accessoryId => equipped.has(accessoryId)),
-  );
-
-  return matchingCombo?.url || PUPPY_BASE_ASSET_URL;
+  return getPetCharacterAssetUrl(pet);
 };
 
-export const getShopImageUrl = (item: ShopItem): string | undefined => {
-  if (item.type === 'accessory') return getPuppyAccessoryAssetUrl(item.id) || item.imageUrl;
+export const getShopImageUrl = (item: ShopItem, petType: string = 'Puppy'): string | undefined => {
+  if (item.type === 'accessory') return getPetAccessoryAssetUrl(item.id, petType) || item.imageUrl;
   return item.imageUrl;
 };
 
 export const getInventoryImageUrl = (item: InventoryItem, pet?: PetState): string | null => {
-  if (item.type === 'accessory' && (!pet || pet.type === 'Puppy')) return getPuppyAccessoryAssetUrl(item.id);
+  if (item.type === 'accessory') return getPetAccessoryAssetUrl(item.id, pet?.type || 'Puppy');
   return item.metadata?.imageUrl || null;
 };
