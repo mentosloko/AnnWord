@@ -11,8 +11,19 @@ interface UseClassicGameControllerArgs {
   getValidationPool: () => string[];
   getModeWords: () => string[];
   onRouteChange: (route: ViewState) => void;
-  onStatsUpdate: (won: boolean, word: string) => Promise<void>;
+  onStatsUpdate: (won: boolean, word: string, coinsAdjustment?: number) => Promise<void>;
 }
+
+const WORDLE_HINT_COST = 1;
+
+const scrollGameViewportToTop = () => {
+  if (typeof window === 'undefined') return;
+  window.requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  });
+};
 
 export const createInitialGameState = (): GameState => ({
   secretWord: '',
@@ -24,6 +35,7 @@ export const createInitialGameState = (): GameState => ({
   rowIndex: 0,
   hint: null,
   loadingHint: false,
+  hintCoinsSpent: 0,
   error: null,
 });
 
@@ -88,6 +100,10 @@ export const useClassicGameController = ({
     setSetupError(null);
   }, [settings]);
 
+  useEffect(() => {
+    if (route === 'game') scrollGameViewportToTop();
+  }, [route, gameState.secretWord]);
+
   const startNewGame = useCallback(() => {
     setSetupError(null);
     const rawPool = getSecretWordPool();
@@ -116,6 +132,7 @@ export const useClassicGameController = ({
     });
     setKeyStatuses({});
     onRouteChange('game');
+    scrollGameViewportToTop();
   }, [getSecretWordPool, onRouteChange, settings.dictionarySource, settings.difficulty, settings.wordLength]);
 
   const handleChar = useCallback((char: string) => {
@@ -173,7 +190,9 @@ export const useClassicGameController = ({
       error: null,
     }));
 
-    if (nextStatus !== 'playing') await onStatsUpdate(nextStatus === 'won', gameState.secretWord);
+    if (nextStatus !== 'playing') {
+      await onStatsUpdate(nextStatus === 'won', gameState.secretWord, -gameState.hintCoinsSpent);
+    }
   }, [gameState, getValidationPool, onStatsUpdate, settings.wordLength, triggerShake]);
 
   useEffect(() => {
@@ -194,7 +213,7 @@ export const useClassicGameController = ({
   }, [handleChar, handleDelete, handleEnter, route]);
 
   const fetchHint = useCallback(async () => {
-    if (gameState.gameStatus !== 'playing') return;
+    if (gameState.gameStatus !== 'playing' || gameState.loadingHint) return;
     const hintPool = getModeWords().filter(word => word.length === settings.wordLength);
 
     setGameState(prev => ({ ...prev, loadingHint: true }));
@@ -204,9 +223,10 @@ export const useClassicGameController = ({
         ...prev,
         hint: bestWord ? `Попробуйте слово: ${bestWord}` : 'Нет подходящих слов для подсказки.',
         loadingHint: false,
+        hintCoinsSpent: prev.hintCoinsSpent + WORDLE_HINT_COST,
       }));
     }, 500);
-  }, [gameState.gameStatus, gameState.guesses, gameState.secretWord, getModeWords, settings.wordLength]);
+  }, [gameState.gameStatus, gameState.guesses, gameState.loadingHint, gameState.secretWord, getModeWords, settings.wordLength]);
 
   return {
     setupError,
