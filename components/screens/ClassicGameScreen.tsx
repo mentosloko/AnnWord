@@ -36,7 +36,13 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
   const [showRules, setShowRules] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const isFinished = gameState.gameStatus === 'won' || gameState.gameStatus === 'lost';
-  const rewardPreview = isFinished ? calculateGameReward({ type: 'wordle', won: gameState.gameStatus === 'won' }) : null;
+  const rewardPreview = isFinished
+    ? calculateGameReward({
+      type: 'wordle',
+      won: gameState.gameStatus === 'won',
+      coinsAdjustment: -gameState.hintCoinsSpent,
+    })
+    : null;
   const progressPreview = rewardPreview ? applyGameRewardToCharacter(userProfile.pet, rewardPreview) : null;
 
   const handleHintClick = () => {
@@ -180,6 +186,7 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
             <span>
               Слово: <span className="font-black">{gameState.secretWord}</span>
               {gameState.secretWordData?.translation ? ` · ${gameState.secretWordData.translation}` : ''}
+              {gameState.hintCoinsSpent > 0 ? ` · подсказки: −${gameState.hintCoinsSpent} 🪙` : ''}
             </span>
           )}
         />
