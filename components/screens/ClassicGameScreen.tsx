@@ -47,57 +47,81 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
   const progressPreview = rewardPreview ? applyGameRewardToCharacter(userProfile.pet, rewardPreview) : null;
 
   return (
-    <ScreenContainer className="max-w-5xl min-h-[100dvh] py-2 pb-2 sm:py-4 sm:pb-4">
-      <div className="flex min-h-[calc(100dvh-1rem)] sm:min-h-[calc(100dvh-2rem)] flex-col gap-2 sm:gap-4">
-        <div className="flex items-center justify-between gap-2 shrink-0">
+    <ScreenContainer className="max-w-2xl min-h-[100dvh] px-2 py-2 pb-1 sm:px-4 sm:py-4">
+      <div className="flex min-h-[calc(100dvh-0.75rem)] sm:min-h-[calc(100dvh-2rem)] flex-col gap-1.5 sm:gap-3">
+        <div className="flex items-center justify-between gap-1.5 shrink-0">
           <button
             type="button"
             onClick={onBackHome}
-            className="rounded-xl bg-white border-2 border-indigo-100 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-base font-bold text-indigo-700 hover:bg-indigo-50 transition"
+            aria-label="Назад"
+            title="Назад"
+            className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-white border-2 border-indigo-100 text-xl sm:text-2xl font-black text-indigo-700 hover:bg-indigo-50 transition shadow-sm"
           >
-            ← Главная
+            ←
           </button>
-          <div className="flex items-center gap-2 sm:gap-3 text-center min-w-0">
-            <div className="min-w-0">
-              <div className="hidden sm:block text-xs font-black text-indigo-300 uppercase tracking-widest">Classic</div>
-              <h1 className="text-base sm:text-2xl font-black text-indigo-950 truncate">Угадай слово</h1>
+
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
+            <div className="rounded-2xl bg-white border-2 border-indigo-100 px-3 py-2 text-xs sm:text-sm font-black text-indigo-800 shadow-sm">
+              {settings.difficulty}
             </div>
+            <div className="rounded-2xl bg-white border-2 border-indigo-100 px-3 py-2 text-xs sm:text-sm font-black text-indigo-800 shadow-sm">
+              {gameState.guesses.length}/{MAX_GUESSES}
+            </div>
+            <button
+              type="button"
+              onClick={onHint}
+              disabled={gameState.loadingHint || isFinished}
+              className="min-w-0 rounded-2xl bg-blue-50 border-2 border-blue-100 px-3 sm:px-4 py-2 text-xs sm:text-sm font-black text-blue-700 hover:bg-blue-100 transition disabled:opacity-50 shadow-sm"
+            >
+              {gameState.loadingHint ? '...' : 'Подсказка'}
+            </button>
+          </div>
+
+          <div className="flex gap-1.5">
             <button
               type="button"
               onClick={() => setShowRules(prev => !prev)}
               aria-label="Правила Wordle"
-              title="Правила режима"
-              className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 rounded-2xl bg-indigo-50 border-2 border-indigo-100 text-indigo-700 font-black hover:bg-indigo-100 transition"
+              title="Правила"
+              className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-indigo-50 border-2 border-indigo-100 text-indigo-700 font-black hover:bg-indigo-100 transition shadow-sm"
             >
               ?
             </button>
+            <button
+              type="button"
+              onClick={onRestart}
+              aria-label="Новая игра"
+              title="Новая игра"
+              className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-indigo-50 border-2 border-indigo-100 text-xl sm:text-2xl font-black text-indigo-700 hover:bg-indigo-100 transition shadow-sm"
+            >
+              ↻
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onRestart}
-            className="rounded-xl bg-indigo-50 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-base font-bold text-indigo-700 hover:bg-indigo-100 transition"
-          >
-            Новая
-          </button>
         </div>
 
         {showRules && (
-          <div className="shrink-0 rounded-2xl sm:rounded-3xl border-2 border-indigo-100 bg-indigo-50 px-4 py-3 text-xs sm:text-sm text-indigo-900">
-            <div className="font-black mb-1">Как играть и получать XP</div>
+          <div className="shrink-0 rounded-2xl border-2 border-indigo-100 bg-indigo-50 px-4 py-3 text-xs sm:text-sm text-indigo-900">
+            <div className="font-black mb-1">Как играть</div>
             <ul className="space-y-0.5 list-disc pl-5">
               {WORDLE_RULES.map(rule => <li key={rule}>{rule}</li>)}
             </ul>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-2 sm:gap-4 lg:gap-6 items-stretch min-h-0 flex-1">
-          <div className="rounded-[1.5rem] sm:rounded-[2rem] bg-white border-2 border-indigo-50 shadow-sm p-2 sm:p-4 flex flex-col items-center justify-center overflow-hidden min-h-0">
-            {gameState.error && (
-              <div className="mb-1 sm:mb-3 rounded-2xl bg-red-50 border border-red-100 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-red-600 shrink-0">
-                {gameState.error}
-              </div>
-            )}
+        {gameState.error && (
+          <div className="shrink-0 rounded-2xl bg-red-50 border border-red-100 px-3 py-2 text-xs sm:text-sm font-bold text-red-600 text-center">
+            {gameState.error}
+          </div>
+        )}
 
+        {gameState.hint && (
+          <div className="shrink-0 rounded-2xl bg-blue-50 border border-blue-100 px-3 py-2 text-xs sm:text-sm font-bold text-blue-700 text-center">
+            {gameState.hint}
+          </div>
+        )}
+
+        <div className="flex min-h-0 flex-1 flex-col justify-end gap-1.5 sm:gap-3">
+          <div className="rounded-[1.35rem] sm:rounded-[2rem] bg-white border-2 border-indigo-50 shadow-sm p-1.5 sm:p-3 flex flex-col items-center justify-center overflow-hidden min-h-0">
             <Grid
               guesses={gameState.guesses}
               currentGuess={gameState.currentGuess}
@@ -106,59 +130,25 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
               maxGuesses={MAX_GUESSES}
               shakeRowIndex={shakeRowIndex}
             />
-
-            {gameState.hint && (
-              <div className="mt-2 sm:mt-3 rounded-2xl bg-blue-50 border border-blue-100 px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-blue-700 shrink-0">
-                {gameState.hint}
-              </div>
-            )}
           </div>
 
-          <aside className="rounded-[1.5rem] sm:rounded-[2rem] bg-white border-2 border-indigo-50 shadow-sm p-3 sm:p-5 shrink-0">
-            <div className="grid grid-cols-4 lg:grid-cols-1 gap-2 sm:gap-4 items-center">
-              <div>
-                <div className="text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-widest mb-0.5 sm:mb-1">Попытки</div>
-                <div className="text-base sm:text-2xl font-black text-indigo-950">{gameState.guesses.length}/{MAX_GUESSES}</div>
-              </div>
-              <div>
-                <div className="text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-widest mb-0.5 sm:mb-1">Длина</div>
-                <div className="text-base sm:text-2xl font-black text-indigo-950">{settings.wordLength}</div>
-              </div>
-              <div>
-                <div className="text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-widest mb-0.5 sm:mb-1">Уровень</div>
-                <div className="text-base sm:text-2xl font-black text-indigo-950 truncate">{settings.difficulty}</div>
-              </div>
-              <button
-                type="button"
-                onClick={onHint}
-                disabled={gameState.loadingHint || isFinished}
-                className="w-full rounded-2xl bg-blue-50 border-2 border-blue-100 px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-base font-black text-blue-700 hover:bg-blue-100 transition disabled:opacity-50"
-              >
-                {gameState.loadingHint ? '...' : 'Подсказка'}
-              </button>
+          {isFinished && (
+            <div className={`shrink-0 rounded-2xl px-3 py-2 border-2 text-center ${gameState.gameStatus === 'won' ? 'bg-green-50 border-green-100 text-green-800' : 'bg-red-50 border-red-100 text-red-800'}`}>
+              <span className="text-sm font-black">{gameState.gameStatus === 'won' ? 'Победа' : 'Слово'}: {gameState.secretWord}</span>
+              {gameState.secretWordData?.translation && (
+                <span className="text-xs ml-2 opacity-80">{gameState.secretWordData.translation}</span>
+              )}
             </div>
+          )}
 
-            {isFinished && (
-              <div className={`mt-2 sm:mt-5 rounded-2xl p-3 sm:p-4 border-2 ${gameState.gameStatus === 'won' ? 'bg-green-50 border-green-100 text-green-800' : 'bg-red-50 border-red-100 text-red-800'}`}>
-                <div className="text-xs sm:text-sm font-black uppercase tracking-widest mb-1">
-                  {gameState.gameStatus === 'won' ? 'Победа' : 'Почти получилось'}
-                </div>
-                <div className="text-xl sm:text-2xl font-black">{gameState.secretWord}</div>
-                {gameState.secretWordData?.translation && (
-                  <div className="text-xs sm:text-sm mt-1 opacity-80">{gameState.secretWordData.translation}</div>
-                )}
-              </div>
-            )}
-          </aside>
-        </div>
-
-        <div className="flex justify-center overflow-x-hidden shrink-0">
-          <Keyboard
-            onChar={onChar}
-            onDelete={onDelete}
-            onEnter={onEnter}
-            letterStatuses={keyStatuses}
-          />
+          <div className="flex justify-center overflow-x-hidden shrink-0 -mt-0.5 sm:mt-0">
+            <Keyboard
+              onChar={onChar}
+              onDelete={onDelete}
+              onEnter={onEnter}
+              letterStatuses={keyStatuses}
+            />
+          </div>
         </div>
       </div>
 
