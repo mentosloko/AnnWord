@@ -34,6 +34,16 @@ const getPetAccessoryBasePath = (petType?: string): string | null => {
 const getAccessoryKey = (accessories: string[]): string =>
   ACCESSORY_ORDER.filter(accessoryId => accessories.includes(accessoryId)).join('_');
 
+const getAccessoryPairKeys = (): string[] => {
+  const pairKeys: string[] = [];
+  ACCESSORY_ORDER.forEach((firstAccessory, firstIndex) => {
+    ACCESSORY_ORDER.slice(firstIndex + 1).forEach(secondAccessory => {
+      pairKeys.push(`${firstAccessory}_${secondAccessory}`);
+    });
+  });
+  return pairKeys;
+};
+
 export const MAX_EQUIPPED_ACCESSORIES = 2;
 
 export const getPetAccessoryAssetUrl = (itemId: string, petType: string = 'Puppy'): string | null => {
@@ -67,6 +77,17 @@ export const getPetCharacterAssetUrl = (pet: PetState): string | null => {
 export const getPuppyCharacterAssetUrl = (pet: PetState): string | null => {
   if (pet.type !== 'Puppy') return null;
   return getPetCharacterAssetUrl(pet);
+};
+
+export const getPuppyCharacterPreloadUrls = (): string[] => {
+  const baseAssetUrl = getPetBaseAssetUrl('Puppy');
+  const renderedBasePath = getPetRenderedBasePath('Puppy');
+  if (!baseAssetUrl || !renderedBasePath) return [];
+
+  const singleAccessoryUrls = ACCESSORY_ORDER.map(accessoryId => `${renderedBasePath}/${accessoryId}.png`);
+  const pairAccessoryUrls = getAccessoryPairKeys().map(pairKey => `${renderedBasePath}/${pairKey}.png`);
+
+  return [baseAssetUrl, ...singleAccessoryUrls, ...pairAccessoryUrls];
 };
 
 export const getShopImageUrl = (item: ShopItem, petType: string = 'Puppy'): string | undefined => {
