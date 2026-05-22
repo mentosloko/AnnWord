@@ -14,6 +14,10 @@ interface PetRoomProps {
 
 type RoomTab = 'food' | 'accessory' | 'home';
 
+const ROOM_BACKGROUND_BY_PET_TYPE: Record<string, string> = {
+  Puppy: '/assets/rooms/puppy/background.webp',
+};
+
 const getProfileSyncKey = (profile: UserProfile): string =>
   `${profile.username}|${profile.pet.name}|${profile.pet.type}|${profile.pet.level}|${profile.pet.xp}|${profile.pet.moodScore}|${profile.pet.mood}|${profile.pet.activeHomeItemId || ''}|${JSON.stringify(profile.pet.equippedAccessories || [])}|${JSON.stringify(profile.inventory || [])}`;
 
@@ -124,6 +128,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
     ? getVisibleInventory(activeProfile, 'home').find(item => item.id === pet.activeHomeItemId)
     : null;
   const xpProgress = getCharacterProgressPercent(pet);
+  const roomBackgroundUrl = ROOM_BACKGROUND_BY_PET_TYPE[pet.type];
+  const hasCustomRoomBackground = Boolean(roomBackgroundUrl);
 
   const handleUse = async (itemId: string) => {
     if (usingId) return;
@@ -170,20 +176,27 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6">
         <div className="overflow-hidden rounded-[2rem] border-2 border-white bg-white shadow-sm sm:rounded-[2.5rem]">
-          <div className="relative min-h-[420px] overflow-hidden bg-gradient-to-b from-sky-100 via-indigo-50 to-amber-50 sm:min-h-[540px]">
-            <div className="absolute inset-x-0 top-0 h-[60%] bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.85),transparent_28%),radial-gradient(circle_at_82%_18%,rgba(129,140,248,0.18),transparent_26%)]" />
-            <div className="absolute left-8 top-8 h-24 w-24 rounded-[2rem] border-8 border-white bg-gradient-to-br from-cyan-100 to-blue-200 shadow-inner sm:left-12 sm:top-10 sm:h-32 sm:w-32">
-              <div className="absolute left-1/2 top-0 h-full w-1 -translate-x-1/2 bg-white/80" />
-              <div className="absolute left-0 top-1/2 h-1 w-full -translate-y-1/2 bg-white/80" />
-            </div>
-            <div className="absolute right-8 top-20 hidden h-4 w-32 rounded-full bg-indigo-200/60 sm:block" />
-            <div className="absolute right-14 top-14 hidden h-16 w-16 rounded-3xl bg-white/70 text-center text-3xl leading-[4rem] shadow-sm sm:block">📚</div>
+          <div
+            className={`relative min-h-[420px] overflow-hidden sm:min-h-[540px] ${hasCustomRoomBackground ? 'bg-sky-50 bg-cover bg-center bg-no-repeat' : 'bg-gradient-to-b from-sky-100 via-indigo-50 to-amber-50'}`}
+            style={hasCustomRoomBackground ? { backgroundImage: `url('${roomBackgroundUrl}')` } : undefined}
+          >
+            {!hasCustomRoomBackground && (
+              <>
+                <div className="absolute inset-x-0 top-0 h-[60%] bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.85),transparent_28%),radial-gradient(circle_at_82%_18%,rgba(129,140,248,0.18),transparent_26%)]" />
+                <div className="absolute left-8 top-8 h-24 w-24 rounded-[2rem] border-8 border-white bg-gradient-to-br from-cyan-100 to-blue-200 shadow-inner sm:left-12 sm:top-10 sm:h-32 sm:w-32">
+                  <div className="absolute left-1/2 top-0 h-full w-1 -translate-x-1/2 bg-white/80" />
+                  <div className="absolute left-0 top-1/2 h-1 w-full -translate-y-1/2 bg-white/80" />
+                </div>
+                <div className="absolute right-8 top-20 hidden h-4 w-32 rounded-full bg-indigo-200/60 sm:block" />
+                <div className="absolute right-14 top-14 hidden h-16 w-16 rounded-3xl bg-white/70 text-center text-3xl leading-[4rem] shadow-sm sm:block">📚</div>
 
-            <div className="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-br from-amber-100 via-orange-100 to-yellow-50">
-              <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(90deg,rgba(180,83,9,0.18)_1px,transparent_1px),linear-gradient(rgba(180,83,9,0.12)_1px,transparent_1px)] [background-size:52px_52px]" />
-            </div>
-            <div className="absolute bottom-16 left-1/2 h-24 w-[68%] -translate-x-1/2 rounded-[50%] bg-indigo-200/45 blur-sm" />
-            <div className="absolute bottom-14 left-1/2 h-20 w-[64%] -translate-x-1/2 rounded-[50%] border-4 border-white/70 bg-gradient-to-r from-indigo-100 to-purple-100 shadow-inner" />
+                <div className="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-br from-amber-100 via-orange-100 to-yellow-50">
+                  <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(90deg,rgba(180,83,9,0.18)_1px,transparent_1px),linear-gradient(rgba(180,83,9,0.12)_1px,transparent_1px)] [background-size:52px_52px]" />
+                </div>
+                <div className="absolute bottom-16 left-1/2 h-24 w-[68%] -translate-x-1/2 rounded-[50%] bg-indigo-200/45 blur-sm" />
+                <div className="absolute bottom-14 left-1/2 h-20 w-[64%] -translate-x-1/2 rounded-[50%] border-4 border-white/70 bg-gradient-to-r from-indigo-100 to-purple-100 shadow-inner" />
+              </>
+            )}
 
             {activeHomeItem && (
               <motion.div
@@ -199,6 +212,8 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
                 <span className="mt-1 max-w-[120px] truncate text-xs font-black text-indigo-700">{activeHomeItem.name}</span>
               </motion.div>
             )}
+
+            <div className="absolute bottom-[118px] left-1/2 h-12 w-48 -translate-x-1/2 rounded-[50%] bg-indigo-950/15 blur-md sm:bottom-[126px] sm:w-56" />
 
             <motion.button
               type="button"
