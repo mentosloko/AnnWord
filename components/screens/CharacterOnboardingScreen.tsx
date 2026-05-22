@@ -8,18 +8,21 @@ interface CharacterOnboardingScreenProps {
   onComplete: (character: PetState) => Promise<void> | void;
 }
 
+const VISIBLE_STARTER_CHARACTERS = STARTER_CHARACTERS.filter(character => character.type === 'Puppy');
+
 export const CharacterOnboardingScreen: React.FC<CharacterOnboardingScreenProps> = ({ onComplete }) => {
-  const [selectedType, setSelectedType] = useState(STARTER_CHARACTERS[0].type);
+  const starterCharacters = VISIBLE_STARTER_CHARACTERS.length > 0 ? VISIBLE_STARTER_CHARACTERS : [STARTER_CHARACTERS[0]];
+  const [selectedType, setSelectedType] = useState(starterCharacters[0].type);
   const selectedCharacter = useMemo(
-    () => STARTER_CHARACTERS.find(character => character.type === selectedType) || STARTER_CHARACTERS[0],
-    [selectedType],
+    () => starterCharacters.find(character => character.type === selectedType) || starterCharacters[0],
+    [selectedType, starterCharacters],
   );
   const [characterName, setCharacterName] = useState(selectedCharacter.defaultName);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSelect = (type: string) => {
-    const nextCharacter = STARTER_CHARACTERS.find(character => character.type === type) || STARTER_CHARACTERS[0];
-    setSelectedType(type);
+    const nextCharacter = starterCharacters.find(character => character.type === type) || starterCharacters[0];
+    setSelectedType(nextCharacter.type);
     setCharacterName(nextCharacter.defaultName);
   };
 
@@ -39,14 +42,14 @@ export const CharacterOnboardingScreen: React.FC<CharacterOnboardingScreenProps>
         <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 border border-indigo-100 px-4 py-2 text-xs font-black text-indigo-600 uppercase tracking-widest mb-5">
           Новый друг для слов
         </div>
-        <h1 className="text-4xl sm:text-5xl font-black text-indigo-950 mb-4">Выбери персонажа</h1>
+        <h1 className="text-4xl sm:text-5xl font-black text-indigo-950 mb-4">Твой персонаж</h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
           Он будет получать XP за игры, расти и радоваться твоим успехам.
         </p>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-        {STARTER_CHARACTERS.map(character => {
+      <section className="mx-auto grid max-w-sm grid-cols-1 gap-5 mb-8">
+        {starterCharacters.map(character => {
           const isSelected = selectedType === character.type;
           return (
             <motion.button
