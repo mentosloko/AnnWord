@@ -130,6 +130,15 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
   const xpProgress = getCharacterProgressPercent(pet);
   const roomBackgroundUrl = ROOM_BACKGROUND_BY_PET_TYPE[pet.type];
   const hasCustomRoomBackground = Boolean(roomBackgroundUrl);
+  const petSlotClassName = hasCustomRoomBackground
+    ? 'absolute bottom-[5.5rem] left-[50%] z-10 flex h-56 w-56 -translate-x-1/2 cursor-pointer items-center justify-center rounded-[3rem] focus:outline-none focus:ring-4 focus:ring-indigo-200 sm:bottom-[5.9rem] sm:h-72 sm:w-72'
+    : 'absolute bottom-24 left-1/2 z-10 flex h-56 w-56 -translate-x-1/2 cursor-pointer items-center justify-center rounded-[3rem] focus:outline-none focus:ring-4 focus:ring-indigo-200 sm:h-72 sm:w-72';
+  const petImageClassName = hasCustomRoomBackground
+    ? 'h-full w-full translate-x-[-18%] translate-y-[4%] select-none object-contain drop-shadow-sm'
+    : 'h-full w-full select-none object-contain drop-shadow-sm';
+  const petFallbackClassName = hasCustomRoomBackground
+    ? 'translate-x-[-18%] translate-y-[4%] text-[7rem] leading-none drop-shadow-sm sm:text-[9rem]'
+    : 'text-[7rem] leading-none drop-shadow-sm sm:text-[9rem]';
 
   const handleUse = async (itemId: string) => {
     if (usingId) return;
@@ -213,7 +222,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
               </motion.div>
             )}
 
-            <div className="absolute bottom-[118px] left-1/2 h-12 w-48 -translate-x-1/2 rounded-[50%] bg-indigo-950/15 blur-md sm:bottom-[126px] sm:w-56" />
+            <div className="absolute bottom-[5.2rem] left-1/2 h-12 w-48 -translate-x-1/2 rounded-[50%] bg-indigo-950/15 blur-md sm:bottom-[5.6rem] sm:w-56" />
 
             <motion.button
               type="button"
@@ -226,17 +235,17 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
                 scale: petSnapshot.mood === 'sad' ? [1, 0.99, 1] : [1, 1.025, 1],
               }}
               transition={{ repeat: Infinity, duration: petSnapshot.mood === 'sad' ? 4 : 3, ease: 'easeInOut' }}
-              className="absolute bottom-24 left-1/2 z-10 flex h-56 w-56 -translate-x-1/2 cursor-pointer items-center justify-center rounded-[3rem] focus:outline-none focus:ring-4 focus:ring-indigo-200 sm:h-72 sm:w-72"
+              className={petSlotClassName}
             >
               {puppyCharacterAssetUrl ? (
                 <img
                   src={puppyCharacterAssetUrl}
                   alt={pet.name}
-                  className="h-full w-full select-none object-contain drop-shadow-sm"
+                  className={petImageClassName}
                   draggable={false}
                 />
               ) : (
-                <div className="text-[7rem] leading-none drop-shadow-sm sm:text-[9rem]">{getPetEmoji(pet)}</div>
+                <div className={petFallbackClassName}>{getPetEmoji(pet)}</div>
               )}
             </motion.button>
 
