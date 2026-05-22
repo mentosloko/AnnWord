@@ -13,6 +13,9 @@ interface PetRoomProps {
 }
 
 type RoomTab = 'food' | 'accessory' | 'home';
+type VisibleRoomTab = Exclude<RoomTab, 'home'>;
+
+const VISIBLE_ROOM_TABS: VisibleRoomTab[] = ['food', 'accessory'];
 
 const ROOM_BACKGROUND_BY_PET_TYPE: Record<string, string> = {
   Puppy: '/assets/rooms/puppy/background.webp',
@@ -89,7 +92,7 @@ const InventoryCard: React.FC<{
 };
 
 export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClose }) => {
-  const [activeTab, setActiveTab] = useState<RoomTab>('food');
+  const [activeTab, setActiveTab] = useState<VisibleRoomTab>('food');
   const [usingId, setUsingId] = useState<string | null>(null);
   const [roomMessage, setRoomMessage] = useState<string | null>(null);
   const [speechText, setSpeechText] = useState<string>(getCharacterPhrase(userProfile));
@@ -310,7 +313,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
             <p className="mt-1 text-xs font-bold text-indigo-400">{getUseHint(activeTab)}</p>
           </div>
           <div className="flex w-fit flex-wrap gap-2 rounded-2xl bg-indigo-50 p-1">
-            {(['food', 'accessory', 'home'] as const).map(tab => (
+            {VISIBLE_ROOM_TABS.map(tab => (
               <button
                 key={tab}
                 type="button"
