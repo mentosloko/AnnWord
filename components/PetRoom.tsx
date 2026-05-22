@@ -134,10 +134,10 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
     ? 'absolute bottom-[5.5rem] left-[50%] z-10 flex h-56 w-56 -translate-x-1/2 cursor-pointer items-center justify-center rounded-[3rem] focus:outline-none focus:ring-4 focus:ring-indigo-200 sm:bottom-[5.9rem] sm:h-72 sm:w-72'
     : 'absolute bottom-24 left-1/2 z-10 flex h-56 w-56 -translate-x-1/2 cursor-pointer items-center justify-center rounded-[3rem] focus:outline-none focus:ring-4 focus:ring-indigo-200 sm:h-72 sm:w-72';
   const petImageClassName = hasCustomRoomBackground
-    ? 'h-full w-full translate-x-[-18%] translate-y-[4%] select-none object-contain drop-shadow-sm'
+    ? 'h-full w-full translate-x-[-30%] translate-y-[4%] select-none object-contain drop-shadow-sm'
     : 'h-full w-full select-none object-contain drop-shadow-sm';
   const petFallbackClassName = hasCustomRoomBackground
-    ? 'translate-x-[-18%] translate-y-[4%] text-[7rem] leading-none drop-shadow-sm sm:text-[9rem]'
+    ? 'translate-x-[-30%] translate-y-[4%] text-[7rem] leading-none drop-shadow-sm sm:text-[9rem]'
     : 'text-[7rem] leading-none drop-shadow-sm sm:text-[9rem]';
 
   const handleUse = async (itemId: string) => {
