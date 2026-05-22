@@ -13,6 +13,9 @@ interface ShopProps {
 }
 
 type ShopTab = 'food' | 'accessory' | 'home' | 'mystery';
+type VisibleShopTab = Exclude<ShopTab, 'home'>;
+
+const VISIBLE_SHOP_TABS: VisibleShopTab[] = ['food', 'accessory', 'mystery'];
 
 interface PurchaseCelebration {
   item: ShopItem;
@@ -125,7 +128,7 @@ const PurchaseCelebrationModal: React.FC<{ celebration: PurchaseCelebration; onC
 };
 
 export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
-  const [activeTab, setActiveTab] = useState<ShopTab>('food');
+  const [activeTab, setActiveTab] = useState<VisibleShopTab>('food');
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [shopMessage, setShopMessage] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<PurchaseCelebration | null>(null);
@@ -240,7 +243,7 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
       )}
 
       <div className="flex flex-wrap gap-2 mb-8 bg-indigo-50 p-1 rounded-2xl w-fit">
-        {(['food', 'accessory', 'home', 'mystery'] as const).map(tab => (
+        {VISIBLE_SHOP_TABS.map(tab => (
           <button key={tab} onClick={() => { setActiveTab(tab); setShopMessage(null); }} className={`px-4 sm:px-6 py-2 rounded-xl font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>
             {getTabLabel(tab)}
           </button>
@@ -259,80 +262,34 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
           return (
             <motion.div
               key={item.id}
-              whileHover={canBuy ? { y: -5 } : {}}
-              className={`relative rounded-3xl p-6 border-2 transition-all bg-white ${
-                isOwnedOnce
-                  ? 'border-green-200 shadow-sm ring-2 ring-green-50'
-                  : isLocked
-                    ? 'border-amber-100 shadow-sm'
-                    : canAfford
-                      ? 'border-indigo-50 shadow-sm hover:shadow-md'
-                      : 'border-gray-100 opacity-70'
-              }`}
+              whileHover={{ y: isLocked ? 0 : -4 }}
+              className={`relative rounded-3xl border-2 p-5 shadow-sm transition bg-white ${isLocked ? 'border-gray-100 opacity-70' : 'border-indigo-50 hover:border-indigo-200'}`}
             >
-              {isOwnedOnce && (
-                <div className="absolute right-4 top-4 z-10 rounded-full bg-green-500 px-3 py-1 text-xs font-black text-white shadow-sm">
-                  Приобретено
-                </div>
-              )}
-
-              <div className={`relative aspect-square mb-4 rounded-2xl overflow-hidden flex items-center justify-center border ${
-                isMystery
-                  ? 'bg-gradient-to-br from-purple-100 to-indigo-50 border-purple-100'
-                  : item.type === 'accessory'
-                    ? 'bg-white border-gray-100'
-                    : 'bg-gradient-to-br from-white to-indigo-50 border-indigo-50'
-              }`}>
-                {isMystery ? (
-                  <div className="text-7xl">🎁</div>
-                ) : imageUrl ? (
-                  <img
-                    src={imageUrl}
-                    alt={item.name}
-                    className={`${item.type === 'accessory' ? 'h-[82%] w-[82%] object-contain' : 'w-full h-full object-cover'} ${isLocked ? 'opacity-70' : ''}`}
-                    referrerPolicy="no-referrer"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className="text-6xl">🎁</div>
-                )}
-                {isLocked && <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 backdrop-blur-sm text-white"><span className="text-3xl mb-1">🔒</span><span className="text-xs font-bold uppercase tracking-wider">Уровень {item.minLevel}</span></div>}
-                {ownedQuantity > 0 && !isLocked && !isMystery && !isOwnedOnce && <div className="absolute right-2 top-2 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-indigo-700 shadow">x{ownedQuantity}</div>}
+              {isLocked && <div className="absolute top-4 right-4 bg-gray-100 text-gray-500 text-xs px-3 py-1 rounded-full font-bold">Ур. {item.minLevel}</div>}
+              {isOwnedOnce && !isLocked && <div className="absolute top-4 right-4 bg-green-50 text-green-700 text-xs px-3 py-1 rounded-full font-bold border border-green-100">Есть</div>}
+              {isMystery && !isLocked && <div className="absolute top-4 right-4 bg-purple-50 text-purple-700 text-xs px-3 py-1 rounded-full font-black border border-purple-100">?</div>}
+              <div className="w-24 h-24 mx-auto mb-4 rounded-2xl bg-indigo-50 flex items-center justify-center overflow-hidden">
+                {imageUrl ? <img src={imageUrl} alt={item.name} className="w-full h-full object-contain" draggable={false} /> : <span className="text-5xl">🎁</span>}
               </div>
-              <h3 className="text-xl font-bold text-indigo-900 mb-1">{item.name}</h3>
-              <p className="text-sm text-gray-500 mb-4 line-clamp-3">{item.description}</p>
-              {isMystery && (
-                <div className="mb-4 rounded-2xl bg-purple-50 border border-purple-100 px-3 py-2 text-xs font-bold text-purple-700">
-                  Вероятности настраиваются в каталоге магазина через веса выпадения.
-                </div>
-              )}
-              <div className="flex items-center justify-between mt-auto">
-                <div className={`flex items-center gap-1 ${!canAfford ? 'text-gray-400' : isLocked ? 'text-amber-600' : isOwnedOnce ? 'text-green-600' : 'text-indigo-600'}`}><span className="font-bold">{item.price}</span><span className="text-sm">🪙</span></div>
-                <button
-                  disabled={!canBuy}
-                  onClick={() => handleBuy(item)}
-                  className={`px-4 py-2 rounded-xl font-bold transition-all ${
-                    isOwnedOnce
-                      ? 'bg-green-50 text-green-700 cursor-default border-2 border-green-100'
-                      : isLocked
-                        ? 'bg-amber-50 text-amber-600 cursor-not-allowed border-2 border-amber-100'
-                        : !canAfford
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-gray-100'
-                          : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
-                  }`}
-                >
-                  {buyingId === item.id ? '...' : isOwnedOnce ? 'Куплено' : isLocked ? `Ур. ${item.minLevel}` : !canAfford ? 'Не хватает' : isMystery ? 'Открыть' : 'Купить'}
-                </button>
+              <h3 className="text-xl font-bold text-indigo-900 text-center mb-2">{item.name}</h3>
+              <p className="text-sm text-gray-500 text-center min-h-[48px]">{item.description}</p>
+              <div className="flex items-center justify-center gap-2 mt-4 mb-4 text-yellow-700 font-bold">
+                <span>{item.price}</span><span>🪙</span>
               </div>
+              <button
+                type="button"
+                disabled={!canBuy}
+                onClick={() => handleBuy(item)}
+                className={`w-full py-3 rounded-2xl font-bold transition ${canBuy ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+              >
+                {buyingId === item.id ? 'Покупаю...' : isOwnedOnce ? 'Уже есть' : !canAfford ? 'Не хватает монет' : isMystery ? 'Открыть' : 'Купить'}
+              </button>
             </motion.div>
           );
         })}
       </div>
-      <button onClick={onClose} className="mt-12 self-center px-5 py-3 rounded-2xl bg-indigo-50 text-indigo-700 font-bold hover:bg-indigo-100 transition">← На главный экран</button>
 
-      {celebration && (
-        <PurchaseCelebrationModal celebration={celebration} onClose={() => setCelebration(null)} />
-      )}
+      {celebration && <PurchaseCelebrationModal celebration={celebration} onClose={() => setCelebration(null)} />}
     </div>
   );
 };
