@@ -4,7 +4,7 @@ import { InventoryItem, UserProfile } from '../types';
 import { applyItemUseLocally, getPurchaseErrorMessage } from '../services/economyEngine';
 import { getCharacterProgressPercent, getCharacterProgressText, getCharacterStageLabel } from '../services/gamificationRules';
 import { getInventoryEmoji, getPetEmoji, getPetNeedSnapshot, getVisibleInventory } from '../services/petEngine';
-import { getInventoryImageUrl, getPuppyCharacterAssetUrl } from '../services/petAssets';
+import { getInventoryImageUrl, getPuppyCharacterAssetUrl, getPuppyCharacterPreloadUrls } from '../services/petAssets';
 
 interface PetRoomProps {
   userProfile: UserProfile;
@@ -19,6 +19,16 @@ const VISIBLE_ROOM_TABS: VisibleRoomTab[] = ['food', 'accessory'];
 
 const ROOM_BACKGROUND_BY_PET_TYPE: Record<string, string> = {
   Puppy: '/assets/rooms/puppy/background.webp',
+};
+
+const preloadImageUrls = (urls: string[]) => {
+  if (typeof window === 'undefined') return;
+  urls.forEach(url => {
+    const image = new Image();
+    image.decoding = 'async';
+    image.loading = 'eager';
+    image.src = url;
+  });
 };
 
 const getProfileSyncKey = (profile: UserProfile): string =>
@@ -102,10 +112,13 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
 
   useEffect(() => {
     mountedRef.current = true;
+    if (userProfile.pet.type === 'Puppy') {
+      preloadImageUrls(getPuppyCharacterPreloadUrls());
+    }
     return () => {
       mountedRef.current = false;
     };
-  }, []);
+  }, [userProfile.pet.type]);
 
   useEffect(() => {
     const nextExternalKey = getProfileSyncKey(userProfile);
