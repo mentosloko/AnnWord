@@ -9,6 +9,7 @@ import { useDictionaryUpload } from './hooks/useDictionaryUpload';
 import { useProfileEconomy } from './hooks/useProfileEconomy';
 import { DictionarySource, PetState, ShopItem, UserStats, ViewState } from './types';
 import { GameRewardInput } from './services/gamificationRules';
+import { preloadAppAssetsForProfile } from './services/assetPreloader';
 
 const AppV2: React.FC = () => {
   const [route, setRoute] = useState<ViewState>('landing');
@@ -65,6 +66,11 @@ const AppV2: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) setShowLoginModal(false);
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (bootstrapStatus !== 'ready') return;
+    preloadAppAssetsForProfile(userProfile);
+  }, [bootstrapStatus, userProfile.pet.type, userProfile.pet.characterOnboarded]);
 
   useEffect(() => {
     if (bootstrapStatus !== 'ready' || !isAuthenticated) return;
