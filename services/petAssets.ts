@@ -20,7 +20,7 @@ const getPetBaseAssetUrl = (petType?: string): string | null => {
 
 const getPetRenderedBasePath = (petType?: string): string | null => {
   const slug = getPetAssetSlug(petType);
-  return slug ? `/assets/pets/${slug}/rendered` : null;
+  return slug ? `/assets/pets/${slug}/with-accessories` : null;
 };
 
 const getPetAccessoryBasePath = (petType?: string): string | null => {
