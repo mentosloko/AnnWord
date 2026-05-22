@@ -44,32 +44,16 @@ export const getAppPreloadImageUrls = (profile: UserProfile): string[] =>
     ...getDeferredAppPreloadImageUrls(profile),
   ]);
 
-const addPreloadHint = (url: string) => {
-  if (typeof document === 'undefined') return;
-  if (document.head.querySelector(`link[rel="preload"][href="${url}"]`)) return;
-
-  const link = document.createElement('link');
-  link.rel = 'preload';
-  link.as = 'image';
-  link.href = url;
-  document.head.appendChild(link);
-};
-
-export const preloadImageUrls = (urls: string[], priority: 'high' | 'low' = 'low') => {
+export const preloadImageUrls = (urls: string[]) => {
   if (typeof window === 'undefined') return;
 
   urls.forEach(url => {
     if (!url || preloadedUrls.has(url)) return;
     preloadedUrls.add(url);
 
-    if (priority === 'high') addPreloadHint(url);
-
     const image = new Image();
     image.decoding = 'async';
-    image.loading = priority === 'high' ? 'eager' : 'lazy';
-    if ('fetchPriority' in image) {
-      (image as HTMLImageElement & { fetchPriority?: 'high' | 'low' | 'auto' }).fetchPriority = priority;
-    }
+    image.loading = 'eager';
     image.src = url;
   });
 };
@@ -77,21 +61,14 @@ export const preloadImageUrls = (urls: string[], priority: 'high' | 'low' = 'low
 const scheduleDeferredPreload = (urls: string[]) => {
   if (typeof window === 'undefined' || urls.length === 0) return;
 
-  const run = () => {
+  window.setTimeout(() => {
     urls.forEach((url, index) => {
-      window.setTimeout(() => preloadImageUrls([url], 'low'), index * 80);
+      window.setTimeout(() => preloadImageUrls([url]), index * 100);
     });
-  };
-
-  if ('requestIdleCallback' in window) {
-    (window as Window & { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number }).requestIdleCallback?.(run, { timeout: 1800 });
-    return;
-  }
-
-  window.setTimeout(run, 900);
+  }, 1200);
 };
 
 export const preloadAppAssetsForProfile = (profile: UserProfile) => {
-  preloadImageUrls(getCriticalAppPreloadImageUrls(profile), 'high');
+  preloadImageUrls(getCriticalAppPreloadImageUrls(profile));
   scheduleDeferredPreload(getDeferredAppPreloadImageUrls(profile));
 };
