@@ -1,0 +1,124 @@
+name: Optimize puppy assets
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/optimize-puppy-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install image tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick webp
+
+      - name: Convert puppy character PNG assets to optimized WebP
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          optimize_transparent_character() {
+            local src="$1"
+            local dst="$2"
+            local tmp
+            tmp="$(mktemp --suffix=.png)"
+
+            # Crop empty transparent margins, fit visible character into a mobile-friendly 768 canvas,
+            # keep true transparency, and place paws near a stable bottom baseline.
+            magick "$src" \
+              -alpha on \
+              -trim +repage \
+              -resize '680x680>' \
+              -background none \
+              -gravity south \
+              -extent 768x768 \
+              "$tmp"
+
+            cwebp -quiet -q 84 -alpha_q 95 "$tmp" -o "$dst"
+            rm -f "$tmp"
+          }
+
+          mkdir -p public/assets/pets/puppy/base
+          mkdir -p public/assets/pets/puppy/with-accessories
+
+          optimize_transparent_character \
+            public/assets/pets/puppy/base/idle.png \
+            public/assets/pets/puppy/base/idle.webp
+
+          for src in public/assets/pets/puppy/with-accessories/*.png; do
+            [ -e "$src" ] || continue
+            dst="${src%.png}.webp"
+            optimize_transparent_character "$src" "$dst"
+          done
+
+      - name: Convert treat item PNG assets to optimized WebP
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -d public/assets/items/treats ]; then
+            for src in public/assets/items/treats/*.png; do
+              [ -e "$src" ] || continue
+              dst="${src%.png}.webp"
+              tmp="$(mktemp --suffix=.png)"
+
+              magick "$src" \
+                -alpha on \
+                -trim +repage \
+                -resize '220x220>' \
+                -background none \
+                -gravity center \
+                -extent 256x256 \
+                "$tmp"
+
+              cwebp -quiet -q 84 -alpha_q 95 "$tmp" -o "$dst"
+              rm -f "$tmp"
+            done
+          fi
+
+      - name: Optimize puppy room background
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -f public/assets/rooms/puppy/background.webp ]; then
+            tmp="$(mktemp --suffix=.png)"
+            magick public/assets/rooms/puppy/background.webp \
+              -resize '1600x900>' \
+              "$tmp"
+            cwebp -quiet -q 80 "$tmp" -o public/assets/rooms/puppy/background.webp
+            rm -f "$tmp"
+          fi
+
+      - name: Print optimized asset sizes
+        run: |
+          find public/assets/pets/puppy public/assets/items/treats public/assets/rooms/puppy \
+            -type f \( -name '*.webp' -o -name '*.png' \) \
+            -exec du -h {} + | sort -h
+
+      - name: Commit optimized WebP assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/pets/puppy public/assets/items/treats public/assets/rooms/puppy
+          if git diff --cached --quiet; then
+            echo "No asset changes to commit."
+            exit 0
+          fi
+          git commit -m "Optimize puppy and treat assets to WebP"
+          git push
