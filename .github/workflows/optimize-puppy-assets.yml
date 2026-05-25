@@ -36,8 +36,7 @@ jobs:
             local tmp
             tmp="$(mktemp --suffix=.png)"
 
-            # Crop empty transparent margins, fit visible character into a mobile-friendly 768 canvas,
-            # keep true transparency, and place paws near a stable bottom baseline.
+            # Runtime export: transparent WebP, 768 canvas, visible character fit for mobile.
             magick "$src" \
               -alpha on \
               -trim +repage \
