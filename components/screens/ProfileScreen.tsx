@@ -2,7 +2,9 @@ import React from 'react';
 import { UserProfile } from '../../types';
 import { getCharacterProgressPercent, getCharacterProgressText, getCharacterStageLabel, normalizeMoodScore } from '../../services/gamificationRules';
 import { getPetEmoji, getPetNeedSnapshot } from '../../services/petEngine';
+import { getPetCharacterAssetUrl } from '../../services/petAssets';
 import { ScreenContainer } from '../layout/ScreenContainer';
+import { CoinIcon } from '../CoinIcon';
 
 interface ProfileScreenProps {
   userProfile: UserProfile;
@@ -13,28 +15,16 @@ interface ProfileScreenProps {
   onLogin: () => void;
 }
 
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({
-  userProfile,
-  isAuthenticated,
-  onBackHome,
-  onOpenShop,
-  onOpenPetRoom,
-  onLogin,
-}) => {
-  const winRate = userProfile.stats.gamesPlayed > 0
-    ? Math.round((userProfile.stats.gamesWon / userProfile.stats.gamesPlayed) * 100)
-    : 0;
+export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userProfile, isAuthenticated, onBackHome, onOpenShop, onOpenPetRoom, onLogin }) => {
+  const winRate = userProfile.stats.gamesPlayed > 0 ? Math.round((userProfile.stats.gamesWon / userProfile.stats.gamesPlayed) * 100) : 0;
   const moodScore = normalizeMoodScore(userProfile.pet);
   const petSnapshot = getPetNeedSnapshot(userProfile.pet);
   const xpProgress = getCharacterProgressPercent(userProfile.pet);
+  const characterAssetUrl = getPetCharacterAssetUrl(userProfile.pet);
 
   return (
     <ScreenContainer className="max-w-4xl pb-24">
-      <button
-        type="button"
-        onClick={onBackHome}
-        className="mb-6 rounded-xl bg-white border-2 border-indigo-100 px-4 py-2 font-bold text-indigo-700 hover:bg-indigo-50 transition"
-      >
+      <button type="button" onClick={onBackHome} className="mb-6 rounded-xl bg-white border-2 border-indigo-100 px-4 py-2 font-bold text-indigo-700 hover:bg-indigo-50 transition">
         ← На главный экран
       </button>
 
@@ -44,17 +34,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             <div className="text-xs font-black text-indigo-300 uppercase tracking-widest mb-2">Профиль</div>
             <h1 className="text-3xl sm:text-4xl font-black text-indigo-950">{userProfile.username}</h1>
             <p className="text-gray-500 mt-2">
-              {isAuthenticated
-                ? 'Прогресс, персонаж и словарь сохраняются в аккаунте.'
-                : 'Гостевой режим: зарегистрируйтесь, чтобы развивать персонажа и работать со своим словарём.'}
+              {isAuthenticated ? 'Прогресс, персонаж и словарь сохраняются в аккаунте.' : 'Гостевой режим: зарегистрируйтесь, чтобы развивать персонажа и работать со своим словарём.'}
             </p>
           </div>
           {!isAuthenticated && (
-            <button
-              type="button"
-              onClick={onLogin}
-              className="rounded-2xl bg-indigo-600 px-5 py-3 text-white font-black hover:bg-indigo-700 transition"
-            >
+            <button type="button" onClick={onLogin} className="rounded-2xl bg-indigo-600 px-5 py-3 text-white font-black hover:bg-indigo-700 transition">
               Зарегистрироваться
             </button>
           )}
@@ -76,12 +60,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             <div className="text-2xl font-black text-yellow-900">{winRate}%</div>
             <div className="text-xs font-bold text-yellow-600 uppercase tracking-widest">win rate</div>
           </div>
-          <button
-            type="button"
-            onClick={onOpenShop}
-            className="rounded-3xl bg-purple-50 border border-purple-100 p-5 text-left hover:bg-purple-100 transition"
-          >
-            <div className="text-3xl mb-2">🪙</div>
+          <button type="button" onClick={onOpenShop} className="rounded-3xl bg-purple-50 border border-purple-100 p-5 text-left hover:bg-purple-100 transition">
+            <div className="mb-2 text-3xl"><CoinIcon className="text-[2rem]" /></div>
             <div className="text-2xl font-black text-purple-900">{userProfile.coins}</div>
             <div className="text-xs font-bold text-purple-500 uppercase tracking-widest">монет</div>
           </button>
@@ -92,7 +72,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h2 className="text-xl font-black text-indigo-950">Развитие персонажа доступно в аккаунте</h2>
-                <p className="text-sm text-indigo-700 mt-1">После регистрации сохранятся XP, монеты, покупки и персональный словарь.</p>
+                <p className="text-sm text-indigo-700 mt-1">После регистрации сохранятся очки опыта, монеты, покупки и персональный словарь.</p>
               </div>
               <button type="button" onClick={onLogin} className="rounded-2xl bg-indigo-600 px-5 py-3 text-white font-black hover:bg-indigo-700 transition">
                 Создать аккаунт
@@ -104,33 +84,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         <section className="rounded-3xl bg-gray-50 border border-gray-100 p-5">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
             <h2 className="text-xl font-black text-gray-900">Персонаж</h2>
-            <button
-              type="button"
-              onClick={isAuthenticated ? onOpenPetRoom : onLogin}
-              className="rounded-2xl bg-indigo-600 px-5 py-3 text-white font-black hover:bg-indigo-700 transition"
-            >
+            <button type="button" onClick={isAuthenticated ? onOpenPetRoom : onLogin} className="rounded-2xl bg-indigo-600 px-5 py-3 text-white font-black hover:bg-indigo-700 transition">
               {isAuthenticated ? 'Открыть комнату' : 'Зарегистрироваться'}
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={isAuthenticated ? onOpenPetRoom : onLogin}
-            className="w-full rounded-[2rem] bg-white border-2 border-indigo-50 p-5 text-left hover:border-indigo-200 hover:shadow-md transition"
-          >
+          <button type="button" onClick={isAuthenticated ? onOpenPetRoom : onLogin} className="w-full rounded-[2rem] bg-white border-2 border-indigo-50 p-5 text-left hover:border-indigo-200 hover:shadow-md transition">
             <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-              <div className="text-6xl sm:text-7xl">{getPetEmoji(userProfile.pet)}</div>
+              <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-[2rem] bg-indigo-50 text-6xl sm:h-32 sm:w-32 sm:text-7xl">
+                {characterAssetUrl ? <img src={characterAssetUrl} alt={userProfile.pet.name} className="h-full w-full object-contain" draggable={false} /> : getPetEmoji(userProfile.pet)}
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="font-black text-2xl text-gray-900">{userProfile.pet.name}</div>
-                <div className="text-sm font-bold text-indigo-500 mt-1">
-                  Уровень {userProfile.pet.level} · {getCharacterStageLabel(userProfile.pet.stage)}
-                </div>
+                <div className="text-sm font-bold text-indigo-500 mt-1">Уровень {userProfile.pet.level} · {getCharacterStageLabel(userProfile.pet.stage)}</div>
 
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <div className="mb-1 flex items-center justify-between text-xs font-black text-gray-400 uppercase tracking-widest">
-                      <span>XP</span>
-                      <span title="XP даётся за завершение игр. Победы дают больше опыта, но небольшая награда есть и за попытку.">{userProfile.pet.xp}</span>
+                      <span>Очки опыта</span>
+                      <span title="Очки опыта даются за завершение игр. Победы дают больше опыта, но небольшая награда есть и за попытку.">{userProfile.pet.xp}</span>
                     </div>
                     <div className="h-3 rounded-full bg-gray-100 overflow-hidden border border-gray-200">
                       <div className="h-full bg-indigo-500" style={{ width: `${xpProgress}%` }} />
