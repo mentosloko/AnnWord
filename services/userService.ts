@@ -29,14 +29,14 @@ const toShopItemPayload = (item: ShopItem) => ({
   characterType: item.characterType || '',
 });
 
-const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+const withTimeout = async (request: any, timeoutMs: number, label: string): Promise<any> => {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error(`${label} timeout`)), timeoutMs);
   });
 
   try {
-    return await Promise.race([promise, timeout]);
+    return await Promise.race([Promise.resolve(request), timeout]);
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }
