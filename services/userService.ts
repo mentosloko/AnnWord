@@ -29,10 +29,21 @@ const toShopItemPayload = (item: ShopItem) => ({
   characterType: item.characterType || '',
 });
 
+const withTimeout = async <T,>(promise: PromiseLike<T>, timeoutMs: number, label: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`${label} timeout`)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 export const userService = {
   getOrCreateProfile: async (userId: string, defaultUsername: string = 'Guest', email?: string): Promise<UserProfile> => {
-    console.log("userService.getOrCreateProfile started for:", userId);
-
     const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map((e: string) => e.trim()).filter(Boolean);
     const role: 'admin' | 'user' = adminEmails.includes(email ?? '') ? 'admin' : 'user';
 
@@ -47,103 +58,58 @@ export const userService = {
     });
 
     try {
-      await fetch(supabase.supabaseUrl, { method: 'HEAD', mode: 'no-cors' }).catch(() => {
-        console.error("DIAGNOSTIC: Cannot reach Supabase URL. Likely blocked by AdBlock or Firewall.");
-      });
-    } catch (_) {}
-
-    try {
-      let profileData = null;
-      let fetchError: any = null;
-
-      for (let i = 0; i < 2; i++) {
-        const timeoutMs = i === 0 ? 4000 : 8000;
-        console.log(`Fetch attempt ${i + 1} (Timeout: ${timeoutMs}ms)...`);
-
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Request Timeout")), timeoutMs)
-        );
-
-        const fetchPromise = supabase
+      const { data: profileData, error: fetchError } = await withTimeout(
+        supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
-          .single();
+          .maybeSingle(),
+        3500,
+        'profile fetch',
+      );
 
-        try {
-          const result: any = await Promise.race([fetchPromise, timeoutPromise]);
-          const { data, error } = result;
+      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
+      if (profileData) return mapProfileFromDB(profileData);
 
-          if (data) {
-            console.log("Profile found on attempt", i + 1);
-            profileData = data;
-            break;
-          }
+      const newUserProfile = {
+        id: userId,
+        username: defaultUsername,
+        role,
+        custom_dictionary_en: [],
+        stats: DEFAULT_STATS,
+        pet: { ...DEFAULT_PET },
+        coins: 5,
+        inventory: []
+      };
 
-          fetchError = error;
-          console.log(`Attempt ${i + 1} failed with error code:`, error?.code);
-
-          if (error && error.code !== 'PGRST116') break;
-        } catch (e: any) {
-          console.warn(`Attempt ${i + 1} timed out or was blocked:`, e.message);
-          if (i === 1) throw e;
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-
-      if (!profileData) {
-        console.log("Profile not found, attempting insert...", fetchError?.message || 'no existing row');
-        const newUserProfile = {
-          id: userId,
-          username: defaultUsername,
-          role,
-          custom_dictionary_en: [],
-          stats: DEFAULT_STATS,
-          pet: { ...DEFAULT_PET },
-          coins: 5,
-          inventory: []
-        };
-
-        const insertPromise = supabase
+      const { data: insertedData, error: insertError } = await withTimeout(
+        supabase
           .from('profiles')
           .insert([newUserProfile])
           .select()
-          .single();
+          .single(),
+        4500,
+        'profile insert',
+      );
 
-        const insertTimeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Insert Timeout")), 7000)
-        );
-
-        try {
-          const insertResult: any = await Promise.race([insertPromise, insertTimeout]);
-          const { data: insertedData, error: insertError } = insertResult;
-
-          if (insertError) {
-            console.warn("Insert failed (likely RLS):", insertError.message);
-            return createDefault();
-          }
-          profileData = insertedData;
-        } catch (e) {
-          console.error("Insert timed out or blocked, using default profile");
-          return createDefault();
-        }
+      if (insertError) {
+        console.warn('Profile insert failed, using default profile:', insertError.message);
+        return createDefault();
       }
 
-      return mapProfileFromDB(profileData);
+      return mapProfileFromDB(insertedData);
     } catch (error) {
-      console.error("getOrCreateProfile failed, falling back to default:", error);
+      console.error('getOrCreateProfile failed, falling back to default:', error);
       return createDefault();
     }
   },
 
   updateCoins: async (userId: string, amount: number): Promise<void> => {
-    console.log(`userService.updateCoins: userId=${userId}, amount=${amount}`);
     try {
       const { error: rpcError } = await supabase.rpc('increment_coins', { user_id: userId, amount });
 
       if (rpcError) {
-        console.warn("RPC increment_coins failed, falling back to manual update:", rpcError.message);
+        console.warn('RPC increment_coins failed, falling back to manual update:', rpcError.message);
         const { data: profile, error: fetchErr } = await supabase
           .from('profiles')
           .select('coins')
@@ -161,7 +127,7 @@ export const userService = {
         if (updateError) throw updateError;
       }
     } catch (error) {
-      console.error("Error in updateCoins:", error);
+      console.error('Error in updateCoins:', error);
     }
   },
 
@@ -172,8 +138,6 @@ export const userService = {
   },
 
   buyItem: async (userId: string, item: ShopItem): Promise<UserProfile> => {
-    console.log(`userService.buyItem: userId=${userId}, item=${item.id}`);
-
     if (item.type !== 'mystery') {
       try {
         const { data, error } = await supabase.rpc('purchase_shop_item', {
@@ -181,73 +145,84 @@ export const userService = {
           p_item: toShopItemPayload(item),
         });
 
-        if (!error && data) {
-          return mapProfileFromDB(data);
-        }
-
-        console.warn("RPC purchase_shop_item failed, falling back to manual update:", error?.message);
+        if (!error && data) return mapProfileFromDB(data);
+        console.warn('RPC purchase_shop_item failed, falling back to manual update:', error?.message);
       } catch (rpcError) {
-        console.warn("RPC purchase_shop_item threw, falling back to manual update:", rpcError);
+        console.warn('RPC purchase_shop_item threw, falling back to manual update:', rpcError);
       }
     }
 
     try {
-      const { data: profile, error: fetchErr } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const { data: profile, error: fetchErr } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single(),
+        3500,
+        'purchase profile fetch',
+      );
 
       if (fetchErr) throw fetchErr;
 
       const normalizedProfile = mapProfileFromDB(profile);
       const purchase = applyPurchaseLocally(normalizedProfile, item);
-      if (!purchase.ok || !purchase.profile) {
-        throw new Error(purchase.reason || "Покупка не удалась");
-      }
+      if (!purchase.ok || !purchase.profile) throw new Error(purchase.reason || 'Покупка не удалась');
 
-      const { data: updatedProfile, error: updateError } = await supabase
-        .from('profiles')
-        .update({ coins: purchase.profile.coins, inventory: purchase.profile.inventory })
-        .eq('id', userId)
-        .select()
-        .single();
+      const { data: updatedProfile, error: updateError } = await withTimeout(
+        supabase
+          .from('profiles')
+          .update({ coins: purchase.profile.coins, inventory: purchase.profile.inventory })
+          .eq('id', userId)
+          .select()
+          .single(),
+        4500,
+        'purchase profile update',
+      );
 
       if (updateError) throw updateError;
 
       return mapProfileFromDB(updatedProfile);
     } catch (error) {
-      console.error("Error in buyItem:", error);
+      console.error('Error in buyItem:', error);
       throw error;
     }
   },
 
   useItem: async (userId: string, itemId: string): Promise<UserProfile> => {
     try {
-      const { data: profile, error: fetchErr } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const { data: profile, error: fetchErr } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single(),
+        3500,
+        'use item profile fetch',
+      );
 
       if (fetchErr) throw fetchErr;
 
       const normalizedProfile = mapProfileFromDB(profile);
       const used = applyItemUseLocally(normalizedProfile, itemId);
-      if (!used.ok || !used.profile) throw new Error("Предмет не найден");
+      if (!used.ok || !used.profile) throw new Error('Предмет не найден');
 
-      const { data: updatedProfile, error: updateError } = await supabase
-        .from('profiles')
-        .update({ inventory: used.profile.inventory, pet: normalizePet(used.profile.pet) })
-        .eq('id', userId)
-        .select()
-        .single();
+      const { data: updatedProfile, error: updateError } = await withTimeout(
+        supabase
+          .from('profiles')
+          .update({ inventory: used.profile.inventory, pet: normalizePet(used.profile.pet) })
+          .eq('id', userId)
+          .select()
+          .single(),
+        4500,
+        'use item profile update',
+      );
 
       if (updateError) throw updateError;
 
       return mapProfileFromDB(updatedProfile);
     } catch (error) {
-      console.error("Error using item:", error);
+      console.error('Error using item:', error);
       throw error;
     }
   },
@@ -260,7 +235,7 @@ export const userService = {
         .eq('id', userId);
       if (error) throw error;
     } catch (error) {
-      console.error("Supabase Error (updateUserStats):", error);
+      console.error('Supabase Error (updateUserStats):', error);
       throw error;
     }
   },
@@ -278,7 +253,7 @@ export const userService = {
       if (!data) throw new Error('Сервер не вернул обновлённый профиль.');
       return mapProfileFromDB(data);
     } catch (error) {
-      console.error("Supabase Error (updateUserDictionary):", error);
+      console.error('Supabase Error (updateUserDictionary):', error);
       throw error;
     }
   },
@@ -291,7 +266,7 @@ export const userService = {
         .eq('id', userId);
       if (error) throw error;
     } catch (error) {
-      console.error("Supabase Error (updateUserPet):", error);
+      console.error('Supabase Error (updateUserPet):', error);
       throw error;
     }
   },
@@ -304,7 +279,7 @@ export const userService = {
       if (error) throw error;
       return data.map(mapProfileFromDB);
     } catch (error) {
-      console.error("Supabase Error (getAllUsersStats):", error);
+      console.error('Supabase Error (getAllUsersStats):', error);
       throw error;
     }
   }
