@@ -1,6 +1,7 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import { PetState, ShopItem, UserProfile, UserStats } from '../types';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
+import { applyItemUseLocally } from '../services/economyEngine';
 
 interface UseProfileEconomyArgs {
   currentUserId: string | null;
@@ -15,7 +16,7 @@ const getUserService = async () => {
 
 export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }: UseProfileEconomyArgs) => {
   const winCoins = useCallback(async (amount: number) => {
-    setUserProfile(prev => ({ ...prev, coins: prev.coins + amount }));
+    setUserProfile(prev => ({ ...prev, coins: Math.max(0, prev.coins + amount) }));
     if (!currentUserId) return;
     try {
       const userService = await getUserService();
@@ -33,11 +34,24 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
   }, [currentUserId, setUserProfile]);
 
   const useItem = useCallback(async (itemId: string) => {
+    const localUse = applyItemUseLocally(userProfile, itemId);
+    if (!localUse.ok || !localUse.profile) {
+      throw new Error(localUse.reason || 'Предмет не найден');
+    }
+
+    setUserProfile(localUse.profile);
+
     if (!currentUserId) return;
-    const userService = await getUserService();
-    const updatedProfile = await userService.useItem(currentUserId, itemId);
-    setUserProfile(updatedProfile);
-  }, [currentUserId, setUserProfile]);
+
+    try {
+      const userService = await getUserService();
+      const updatedProfile = await userService.useItem(currentUserId, itemId);
+      setUserProfile(updatedProfile);
+    } catch (error) {
+      setUserProfile(userProfile);
+      throw error;
+    }
+  }, [currentUserId, setUserProfile, userProfile]);
 
   const updateCharacter = useCallback(async (pet: PetState) => {
     setUserProfile(prev => ({ ...prev, pet }));
@@ -62,7 +76,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
 
     const nextProfile: UserProfile = {
       ...userProfile,
-      coins: userProfile.coins + reward.coins,
+      coins: Math.max(0, userProfile.coins + reward.coins),
       pet: nextPet,
     };
 
