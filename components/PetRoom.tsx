@@ -10,6 +10,7 @@ interface PetRoomProps {
   userProfile: UserProfile;
   onUseItem: (itemId: string) => Promise<void>;
   onClose: () => void;
+  onOpenShop: () => void;
 }
 
 type RoomTab = 'food' | 'accessory' | 'home';
@@ -101,7 +102,7 @@ const InventoryCard: React.FC<{
   );
 };
 
-export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClose }) => {
+export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClose, onOpenShop }) => {
   const [activeTab, setActiveTab] = useState<VisibleRoomTab>('food');
   const [usingId, setUsingId] = useState<string | null>(null);
   const [roomMessage, setRoomMessage] = useState<string | null>(null);
@@ -187,14 +188,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
   return (
     <div className="mx-auto flex max-w-6xl flex-col px-3 pb-24 pt-3 sm:px-4 sm:pt-4">
       <div className="mb-4 flex items-center justify-between gap-3 sm:mb-6">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700 shadow-sm transition hover:bg-indigo-50"
-          aria-label="На главный экран"
-        >
-          ←
-        </button>
+        <button type="button" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700 shadow-sm transition hover:bg-indigo-50" aria-label="На главный экран">←</button>
         <div className="text-center">
           <h1 className="text-xl font-black text-indigo-950 sm:text-3xl">Комната питомца</h1>
           <div className="text-xs font-black uppercase tracking-widest text-indigo-300">{pet.name}</div>
@@ -204,78 +198,12 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6">
         <div className="overflow-hidden rounded-[2rem] border-2 border-white bg-white shadow-sm sm:rounded-[2.5rem]">
-          <div
-            className={`relative min-h-[420px] overflow-hidden sm:min-h-[540px] ${hasCustomRoomBackground ? 'bg-sky-50 bg-cover bg-center bg-no-repeat' : 'bg-gradient-to-b from-sky-100 via-indigo-50 to-amber-50'}`}
-            style={hasCustomRoomBackground ? { backgroundImage: `url('${roomBackgroundUrl}')` } : undefined}
-          >
-            {!hasCustomRoomBackground && (
-              <>
-                <div className="absolute inset-x-0 top-0 h-[60%] bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.85),transparent_28%),radial-gradient(circle_at_82%_18%,rgba(129,140,248,0.18),transparent_26%)]" />
-                <div className="absolute left-8 top-8 h-24 w-24 rounded-[2rem] border-8 border-white bg-gradient-to-br from-cyan-100 to-blue-200 shadow-inner sm:left-12 sm:top-10 sm:h-32 sm:w-32">
-                  <div className="absolute left-1/2 top-0 h-full w-1 -translate-x-1/2 bg-white/80" />
-                  <div className="absolute left-0 top-1/2 h-1 w-full -translate-y-1/2 bg-white/80" />
-                </div>
-                <div className="absolute right-8 top-20 hidden h-4 w-32 rounded-full bg-indigo-200/60 sm:block" />
-                <div className="absolute right-14 top-14 hidden h-16 w-16 rounded-3xl bg-white/70 text-center text-3xl leading-[4rem] shadow-sm sm:block">📚</div>
-
-                <div className="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-br from-amber-100 via-orange-100 to-yellow-50">
-                  <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(90deg,rgba(180,83,9,0.18)_1px,transparent_1px),linear-gradient(rgba(180,83,9,0.12)_1px,transparent_1px)] [background-size:52px_52px]" />
-                </div>
-                <div className="absolute bottom-16 left-1/2 h-24 w-[68%] -translate-x-1/2 rounded-[50%] bg-indigo-200/45 blur-sm" />
-                <div className="absolute bottom-14 left-1/2 h-20 w-[64%] -translate-x-1/2 rounded-[50%] border-4 border-white/70 bg-gradient-to-r from-indigo-100 to-purple-100 shadow-inner" />
-              </>
-            )}
-
-            {activeHomeItem && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="absolute bottom-24 left-6 flex flex-col items-center rounded-3xl bg-white/75 p-3 shadow-sm backdrop-blur sm:left-10"
-              >
-                {getInventoryImageUrl(activeHomeItem) ? (
-                  <img src={getInventoryImageUrl(activeHomeItem)} alt="" className="h-20 w-20 object-contain" aria-hidden="true" draggable={false} />
-                ) : (
-                  <span className="text-6xl">{getInventoryEmoji(activeHomeItem)}</span>
-                )}
-                <span className="mt-1 max-w-[120px] truncate text-xs font-black text-indigo-700">{activeHomeItem.name}</span>
-              </motion.div>
-            )}
-
+          <div className={`relative min-h-[420px] overflow-hidden sm:min-h-[540px] ${hasCustomRoomBackground ? 'bg-sky-50 bg-cover bg-center bg-no-repeat' : 'bg-gradient-to-b from-sky-100 via-indigo-50 to-amber-50'}`} style={hasCustomRoomBackground ? { backgroundImage: `url('${roomBackgroundUrl}')` } : undefined}>
             <div className="absolute bottom-[5.2rem] left-1/2 h-12 w-48 -translate-x-1/2 rounded-[50%] bg-indigo-950/15 blur-md sm:bottom-[5.6rem] sm:w-56" />
-
-            <motion.button
-              type="button"
-              aria-label="Поговорить с персонажем"
-              onClick={() => setSpeechText(getCharacterPhrase(activeProfile))}
-              whileTap={{ scale: 0.94, rotate: -2 }}
-              animate={{
-                y: petSnapshot.mood === 'sad' ? [0, -4, 0] : [0, -12, 0],
-                rotate: [-1, 1, -1],
-                scale: petSnapshot.mood === 'sad' ? [1, 0.99, 1] : [1, 1.025, 1],
-              }}
-              transition={{ repeat: Infinity, duration: petSnapshot.mood === 'sad' ? 4 : 3, ease: 'easeInOut' }}
-              className={petSlotClassName}
-            >
-              {puppyCharacterAssetUrl ? (
-                <img
-                  src={puppyCharacterAssetUrl}
-                  alt={pet.name}
-                  className={petImageClassName}
-                  draggable={false}
-                />
-              ) : (
-                <div className={petFallbackClassName}>{getPetEmoji(pet)}</div>
-              )}
+            <motion.button type="button" aria-label="Поговорить с персонажем" onClick={() => setSpeechText(getCharacterPhrase(activeProfile))} whileTap={{ scale: 0.94, rotate: -2 }} animate={{ y: petSnapshot.mood === 'sad' ? [0, -4, 0] : [0, -12, 0], rotate: [-1, 1, -1], scale: petSnapshot.mood === 'sad' ? [1, 0.99, 1] : [1, 1.025, 1] }} transition={{ repeat: Infinity, duration: petSnapshot.mood === 'sad' ? 4 : 3, ease: 'easeInOut' }} className={petSlotClassName}>
+              {puppyCharacterAssetUrl ? <img src={puppyCharacterAssetUrl} alt={pet.name} className={petImageClassName} draggable={false} /> : <div className={petFallbackClassName}>{getPetEmoji(pet)}</div>}
             </motion.button>
-
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              key={speechText}
-              className="absolute left-4 right-4 top-4 z-20 rounded-3xl border-2 border-indigo-50 bg-white/90 px-4 py-3 text-sm font-bold text-indigo-900 shadow-sm backdrop-blur sm:left-auto sm:right-6 sm:top-6 sm:w-80"
-            >
-              “{speechText}”
-            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} key={speechText} className="absolute left-4 right-4 top-4 z-20 rounded-3xl border-2 border-indigo-50 bg-white/90 px-4 py-3 text-sm font-bold text-indigo-900 shadow-sm backdrop-blur sm:left-auto sm:right-6 sm:top-6 sm:w-80">“{speechText}”</motion.div>
           </div>
         </div>
 
@@ -284,85 +212,39 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
             <div className="mb-1 text-xs font-black uppercase tracking-widest text-indigo-300">Питомец</div>
             <div className="text-2xl font-black text-indigo-950">{pet.name}</div>
             <div className="mt-1 text-sm font-bold text-indigo-500">Уровень {pet.level} · {getCharacterStageLabel(pet.stage)}</div>
-            <div className={`mt-4 w-fit rounded-full px-4 py-1 text-xs font-black uppercase tracking-widest ${
-              petSnapshot.attentionLevel === 'critical'
-                ? 'border border-red-100 bg-red-50 text-red-600'
-                : petSnapshot.attentionLevel === 'watch'
-                  ? 'border border-yellow-100 bg-yellow-50 text-yellow-700'
-                  : 'border border-green-100 bg-green-50 text-green-700'
-            }`}>
-              {petSnapshot.statusLabel}
-            </div>
+            <div className={`mt-4 w-fit rounded-full px-4 py-1 text-xs font-black uppercase tracking-widest ${petSnapshot.attentionLevel === 'critical' ? 'border border-red-100 bg-red-50 text-red-600' : petSnapshot.attentionLevel === 'watch' ? 'border border-yellow-100 bg-yellow-50 text-yellow-700' : 'border border-green-100 bg-green-50 text-green-700'}`}>{petSnapshot.statusLabel}</div>
           </div>
 
           <div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm">
-            <div className="mb-3 flex items-center justify-between text-xs font-black uppercase tracking-widest text-indigo-300">
-              <span>XP</span>
-              <span>{pet.xp}</span>
-            </div>
-            <div className="h-3 overflow-hidden rounded-full border border-indigo-100 bg-indigo-50">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${xpProgress}%` }} className="h-full bg-indigo-500" />
-            </div>
+            <div className="mb-3 flex items-center justify-between text-xs font-black uppercase tracking-widest text-indigo-300"><span>Очки опыта</span><span>{pet.xp}</span></div>
+            <div className="h-3 overflow-hidden rounded-full border border-indigo-100 bg-indigo-50"><motion.div initial={{ width: 0 }} animate={{ width: `${xpProgress}%` }} className="h-full bg-indigo-500" /></div>
             <div className="mt-2 text-xs font-bold text-indigo-500">{getCharacterProgressText(pet)}</div>
-
-            <div className="mt-5 mb-3 flex items-center justify-between text-xs font-black uppercase tracking-widest text-green-500">
-              <span>Настроение</span>
-              <span>{petSnapshot.moodScore}/100</span>
-            </div>
-            <div className="h-3 overflow-hidden rounded-full border border-green-100 bg-green-50">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${petSnapshot.moodScore}%` }} className="h-full bg-green-500" />
-            </div>
+            <div className="mt-5 mb-3 flex items-center justify-between text-xs font-black uppercase tracking-widest text-green-500"><span>Настроение</span><span>{petSnapshot.moodScore}/100</span></div>
+            <div className="h-3 overflow-hidden rounded-full border border-green-100 bg-green-50"><motion.div initial={{ width: 0 }} animate={{ width: `${petSnapshot.moodScore}%` }} className="h-full bg-green-500" /></div>
           </div>
         </aside>
       </section>
 
       <section className="mt-5 rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:mt-6 sm:p-5">
-        {roomMessage && (
-          <div className="mb-4 rounded-2xl border-2 border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">
-            {roomMessage}
-          </div>
-        )}
-
+        {roomMessage && <div className="mb-4 rounded-2xl border-2 border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">{roomMessage}</div>}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-xl font-black text-indigo-950">Предметы питомца</h2>
-            <p className="mt-1 text-xs font-bold text-indigo-400">{getUseHint(activeTab)}</p>
-          </div>
+          <div><h2 className="text-xl font-black text-indigo-950">Предметы питомца</h2><p className="mt-1 text-xs font-bold text-indigo-400">{getUseHint(activeTab)}</p></div>
           <div className="flex w-fit flex-wrap gap-2 rounded-2xl bg-indigo-50 p-1">
-            {VISIBLE_ROOM_TABS.map(tab => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => { setActiveTab(tab); setRoomMessage(null); }}
-                className={`rounded-xl px-4 py-2 font-bold transition-all ${
-                  activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'
-                }`}
-              >
-                {getTabLabel(tab)}
-              </button>
-            ))}
+            {VISIBLE_ROOM_TABS.map(tab => <button key={tab} type="button" onClick={() => { setActiveTab(tab); setRoomMessage(null); }} className={`rounded-xl px-4 py-2 font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>{getTabLabel(tab)}</button>)}
           </div>
         </div>
-
         {filteredInventory.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-indigo-100 bg-indigo-50/50 py-12 text-center text-gray-400">
+          <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-indigo-100 bg-indigo-50/50 px-4 py-12 text-center text-gray-500">
             <span className="mb-2 text-4xl">📦</span>
-            <p className="text-sm font-bold">Пока здесь пусто</p>
-            <p className="mt-1 text-xs">Сыграй в игры, заработай монеты и загляни в магазин.</p>
+            <p className="text-sm font-black text-indigo-950">{activeTab === 'food' ? 'Лакомств пока нет' : 'Пока здесь пусто'}</p>
+            <p className="mt-1 max-w-md text-xs font-bold text-indigo-400">{activeTab === 'food' ? 'Купите лакомства в магазине, чтобы угощать питомца и поднимать настроение.' : 'Заработайте монеты в играх и загляните в магазин за новыми предметами.'}</p>
+            <button type="button" onClick={onOpenShop} className="mt-5 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-indigo-100 transition hover:bg-indigo-700">Перейти в магазин</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filteredInventory.map(item => {
               const isActive = pet.equippedAccessories?.includes(item.id) || pet.activeHomeItemId === item.id;
-              return (
-                <InventoryCard
-                  key={item.id}
-                  item={item}
-                  isActive={Boolean(isActive)}
-                  isUsing={usingId === item.id}
-                  onUse={handleUse}
-                />
-              );
+              return <InventoryCard key={item.id} item={item} isActive={Boolean(isActive)} isUsing={usingId === item.id} onUse={handleUse} />;
             })}
           </div>
         )}
