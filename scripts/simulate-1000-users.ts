@@ -1,11 +1,10 @@
-import { applyGameRewardToCharacter, calculateGameReward, normalizeMoodScore } from '../services/gamificationRules';
+import { applyGameRewardToCharacter, calculateGameReward, normalizeMoodScore, GameRewardInput } from '../services/gamificationRules';
 import { applyItemUseLocally, applyPurchaseLocally } from '../services/economyEngine';
 import { SHOP_ITEMS, getShopItemById } from '../services/shopCatalog';
 import { buildSprintDictionary } from '../components/SprintGame';
 import { buildAnagramDictionary } from '../components/AnagramGame';
 import { buildMemoryDictionary, createMemoryCards } from '../components/MemoryGame';
-import { COMMON_WORDS_EN } from '../dictionaries/english';
-import { GameRewardInput, InventoryItem, PetState, UserProfile, UserStats } from '../types';
+import { InventoryItem, PetState, UserProfile, UserStats } from '../types';
 
 const USERS = Number(process.env.SIM_USERS || 1000);
 const STEPS_PER_USER = Number(process.env.SIM_STEPS || 180);
