@@ -14,7 +14,7 @@ export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, r
 
   return (
     <ScreenContainer compact className="min-h-[100dvh] max-w-none px-3 py-3 sm:px-4 sm:py-4 lg:px-6">
-      <div className="mx-auto flex min-h-[calc(100dvh-1.5rem)] w-full max-w-[88rem] flex-col gap-3 sm:min-h-[calc(100dvh-2rem)] lg:gap-4">
+      <div className="mx-auto flex min-h-[calc(100dvh-1.5rem)] w-full max-w-[88rem] flex-col gap-3 sm:min-h-[calc(100dvh-2rem)] lg:min-h-0 lg:gap-4">
         <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
           <button
             type="button"
@@ -56,7 +56,7 @@ export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, r
           </div>
         )}
 
-        <section className="flex min-h-0 flex-1 items-start justify-center overflow-x-hidden rounded-[2rem] border-2 border-indigo-50 bg-white/80 p-3 shadow-sm sm:p-5 lg:items-center lg:rounded-[2.5rem] lg:p-6">
+        <section className="flex min-h-0 flex-1 items-start justify-center overflow-x-hidden rounded-[2rem] border-2 border-indigo-50 bg-white/80 p-3 shadow-sm sm:p-5 lg:flex-none lg:items-center lg:rounded-[2.5rem] lg:p-6">
           <div className="flex w-full justify-center overflow-x-hidden">
             {children}
           </div>
