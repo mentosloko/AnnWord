@@ -14,36 +14,41 @@ export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, r
 
   return (
     <ScreenContainer className="pb-24">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={onBackHome}
-          className="w-fit rounded-xl bg-white border-2 border-indigo-100 px-4 py-2 font-bold text-indigo-700 hover:bg-indigo-50 transition"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700 shadow-sm transition hover:bg-indigo-50"
+          aria-label="Назад"
+          title="Назад"
         >
-          ← На главный экран
+          ←
         </button>
-        <div className="sm:text-right flex sm:items-end gap-3 sm:justify-end">
-          <div>
-            {subtitle && <div className="text-xs font-black text-indigo-300 uppercase tracking-widest mb-1">{subtitle}</div>}
-            <h1 className="text-3xl font-black text-indigo-950">{title}</h1>
-          </div>
-          {rules.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowRules(prev => !prev)}
-              aria-label={`Правила: ${title}`}
-              className="h-10 w-10 rounded-2xl bg-indigo-50 border-2 border-indigo-100 text-indigo-700 font-black hover:bg-indigo-100 transition"
-              title="Правила режима"
-            >
-              ?
-            </button>
-          )}
+        <div className="min-w-0 text-center">
+          {subtitle && <div className="mb-1 text-xs font-black uppercase tracking-widest text-indigo-300">{subtitle}</div>}
+          <h1 className="truncate text-2xl font-black text-indigo-950 sm:text-3xl">{title}</h1>
         </div>
+        {rules.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setShowRules(prev => !prev)}
+            aria-label={`Правила: ${title}`}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-indigo-50 font-black text-indigo-700 transition hover:bg-indigo-100"
+            title="Правила режима"
+          >
+            ?
+          </button>
+        ) : (
+          <div className="h-11 w-11" />
+        )}
       </div>
 
       {showRules && rules.length > 0 && (
-        <div className="mb-5 rounded-3xl border-2 border-indigo-100 bg-indigo-50 px-5 py-4 text-sm text-indigo-900">
-          <div className="font-black mb-2">Как играть и получать XP</div>
+        <div className="mb-4 rounded-3xl border-2 border-indigo-100 bg-indigo-50 px-5 py-4 text-sm text-indigo-900">
+          <div className="mb-2 flex items-center justify-between gap-3 font-black">
+            <span>Как играть и получать XP</span>
+            <button type="button" onClick={() => setShowRules(false)} className="text-indigo-400">×</button>
+          </div>
           <ul className="space-y-1 list-disc pl-5">
             {rules.map(rule => <li key={rule}>{rule}</li>)}
           </ul>
