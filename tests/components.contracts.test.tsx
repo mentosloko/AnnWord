@@ -71,15 +71,15 @@ describe('component contracts', () => {
     expect(onOpenProfile).toHaveBeenCalledTimes(1);
   });
 
-  it('SetupScreen exposes upload and selected-mode start-game contracts for authenticated users', () => {
+  it('SetupScreen exposes upload and selected-mode start-game contracts for authenticated custom dictionary users', () => {
     const onFileUpload = vi.fn();
     const onStartGame = vi.fn();
 
     render(
       <SetupScreen
         selectedPlayMode="memory"
-        settings={settings}
-        customWordsCount={1}
+        settings={{ ...settings, dictionarySource: 'custom', useCustomDictionary: true }}
+        customDictionaryWords={['APPLE']}
         setupError={'Ошибка словаря'}
         isUploadingDictionary={false}
         isAuthenticated
@@ -92,7 +92,7 @@ describe('component contracts', () => {
     );
 
     expect(screen.getByText('Ошибка словаря')).toBeInTheDocument();
-    expect(screen.getByText('Режим: Мемо')).toBeInTheDocument();
+    expect(screen.getByText('Мемо')).toBeInTheDocument();
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(['APPLE'], 'dict.txt', { type: 'text/plain' })] } });
@@ -102,7 +102,7 @@ describe('component contracts', () => {
     expect(onStartGame).toHaveBeenCalledTimes(1);
   });
 
-  it('SetupScreen gates custom dictionary for guests', () => {
+  it('SetupScreen routes guests to login for custom dictionary', () => {
     const onLogin = vi.fn();
     const onSettingsChange = vi.fn();
 
@@ -110,7 +110,7 @@ describe('component contracts', () => {
       <SetupScreen
         selectedPlayMode="game"
         settings={settings}
-        customWordsCount={0}
+        customDictionaryWords={[]}
         setupError={null}
         isUploadingDictionary={false}
         isAuthenticated={false}
@@ -122,11 +122,8 @@ describe('component contracts', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Зарегистрироваться/i }));
-    expect(onLogin).toHaveBeenCalledTimes(1);
-    expect(document.querySelector('input[type="file"]')).toBeNull();
-
     fireEvent.click(screen.getByRole('button', { name: /Мой словарь/i }));
+    expect(onLogin).toHaveBeenCalledTimes(1);
     expect(onSettingsChange).not.toHaveBeenCalled();
   });
 
