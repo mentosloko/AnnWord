@@ -13,7 +13,7 @@ const baseSettings: GameSettings = {
 };
 
 describe('useDictionaryPools', () => {
-  it('filters mini-game mode words by selected word length', () => {
+  it('keeps non-Wordle mode words independent from selected Wordle length by default', () => {
     const userProfile = {
       ...GUEST_PROFILE,
       customDictionaryEn: ['CAT', 'TREE', 'PLANET', 'BUTTON'],
@@ -21,10 +21,21 @@ describe('useDictionaryPools', () => {
 
     const { result } = renderHook(() => useDictionaryPools({ settings: baseSettings, userProfile }));
 
-    expect(result.current.getModeWords()).toEqual(['PLANET', 'BUTTON']);
+    expect(result.current.getModeWords()).toEqual(['CAT', 'TREE', 'PLANET', 'BUTTON']);
   });
 
-  it('keeps mini-game mode words aligned with builtin difficulty and word length', () => {
+  it('can still filter mode words by selected word length for Wordle-like needs', () => {
+    const userProfile = {
+      ...GUEST_PROFILE,
+      customDictionaryEn: ['CAT', 'TREE', 'PLANET', 'BUTTON'],
+    };
+
+    const { result } = renderHook(() => useDictionaryPools({ settings: baseSettings, userProfile }));
+
+    expect(result.current.getModeWords({ respectWordLength: true })).toEqual(['PLANET', 'BUTTON']);
+  });
+
+  it('keeps builtin mini-game words aligned with builtin difficulty without word-length filtering by default', () => {
     const settings: GameSettings = {
       ...baseSettings,
       dictionarySource: 'builtin',
@@ -37,6 +48,7 @@ describe('useDictionaryPools', () => {
     const modeWords = result.current.getModeWords();
 
     expect(modeWords.length).toBeGreaterThan(0);
-    expect(modeWords.every(word => word.length === 5)).toBe(true);
+    expect(modeWords.some(word => word.length !== 5)).toBe(true);
+    expect(result.current.getModeWords({ respectWordLength: true }).every(word => word.length === 5)).toBe(true);
   });
 });
