@@ -13,9 +13,13 @@ const getPetAssetSlug = (petType?: string): string | null => {
   return PET_ASSET_SLUGS[petType] || null;
 };
 
+const getPetCharacterExtension = (petType?: string): 'png' | 'webp' =>
+  petType === 'Puppy' ? 'webp' : 'png';
+
 const getPetBaseAssetUrl = (petType?: string): string | null => {
   const slug = getPetAssetSlug(petType);
-  return slug ? `/assets/pets/${slug}/base/idle.png` : null;
+  if (!slug) return null;
+  return `/assets/pets/${slug}/base/idle.${getPetCharacterExtension(petType)}`;
 };
 
 const getPetRenderedBasePath = (petType?: string): string | null => {
@@ -71,7 +75,7 @@ export const getPetCharacterAssetUrl = (pet: PetState): string | null => {
   if (equippedAccessories.length === 0) return baseAssetUrl;
 
   const key = getAccessoryKey(equippedAccessories);
-  return key ? `${renderedBasePath}/${key}.png` : baseAssetUrl;
+  return key ? `${renderedBasePath}/${key}.${getPetCharacterExtension(pet.type)}` : baseAssetUrl;
 };
 
 export const getPuppyCharacterAssetUrl = (pet: PetState): string | null => {
@@ -84,8 +88,9 @@ export const getPuppyCharacterPreloadUrls = (): string[] => {
   const renderedBasePath = getPetRenderedBasePath('Puppy');
   if (!baseAssetUrl || !renderedBasePath) return [];
 
-  const singleAccessoryUrls = ACCESSORY_ORDER.map(accessoryId => `${renderedBasePath}/${accessoryId}.png`);
-  const pairAccessoryUrls = getAccessoryPairKeys().map(pairKey => `${renderedBasePath}/${pairKey}.png`);
+  const extension = getPetCharacterExtension('Puppy');
+  const singleAccessoryUrls = ACCESSORY_ORDER.map(accessoryId => `${renderedBasePath}/${accessoryId}.${extension}`);
+  const pairAccessoryUrls = getAccessoryPairKeys().map(pairKey => `${renderedBasePath}/${pairKey}.${extension}`);
 
   return [baseAssetUrl, ...singleAccessoryUrls, ...pairAccessoryUrls];
 };
