@@ -77,7 +77,6 @@ const renderScreens = (overrides: Partial<React.ComponentProps<typeof AppScreens
     onOpenRules: vi.fn(),
     onBuy: vi.fn().mockResolvedValue(undefined),
     onUseItem: vi.fn().mockResolvedValue(undefined),
-    onWinCoins: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
@@ -99,7 +98,8 @@ describe('shared setup flow for all game modes', () => {
   it('starts selected mini-game from setup with current dictionary settings', () => {
     const { onRouteChange } = renderScreens({ route: 'setup', selectedPlayMode: 'sprint' });
 
-    expect(screen.getByText('Режим: Спринт')).toBeInTheDocument();
+    expect(screen.getByText('Спринт')).toBeInTheDocument();
+    expect(screen.getByText('Настройка игры')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Играть: Спринт' }));
 
     expect(onRouteChange).toHaveBeenCalledWith('sprint');
