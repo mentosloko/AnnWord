@@ -33,6 +33,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
   const [guessedLetters, setGuessedLetters] = useState<string[]>([]);
   const [mistakes, setMistakes] = useState(0);
+  const [finalMistakes, setFinalMistakes] = useState(0);
   const [status, setStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const maxMistakes = 7;
 
@@ -42,6 +43,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
     setCurrentWord(word);
     setGuessedLetters([]);
     setMistakes(0);
+    setFinalMistakes(0);
     setStatus('playing');
     rewardAppliedRef.current = false;
   }, [dictionary]);
@@ -53,9 +55,9 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
   useEffect(() => {
     if ((status === 'won' || status === 'lost') && !rewardAppliedRef.current) {
       rewardAppliedRef.current = true;
-      void onGameReward({ type: 'hangman', won: status === 'won' });
+      void onGameReward({ type: 'hangman', won: status === 'won', mistakes: finalMistakes, maxMistakes });
     }
-  }, [status, onGameReward]);
+  }, [status, finalMistakes, maxMistakes, onGameReward]);
 
   const handleLetterClick = (rawLetter: string) => {
     const letter = rawLetter.toUpperCase();
@@ -68,6 +70,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
       setMistakes(prev => {
         const newMistakes = prev + 1;
         if (newMistakes >= maxMistakes) {
+          setFinalMistakes(newMistakes);
           setStatus('lost');
         }
         return newMistakes;
@@ -75,14 +78,17 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
     } else {
       const allGuessed = currentWord.word.split('').every(char => nextGuessedLetters.includes(char));
       if (allGuessed) {
+        setFinalMistakes(mistakes);
         setStatus('won');
       }
     }
   };
 
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-  const rewardPreview = status === 'playing' ? null : calculateGameReward({ type: 'hangman', won: status === 'won' });
+  const rewardInput = { type: 'hangman' as const, won: status === 'won', mistakes: finalMistakes, maxMistakes };
+  const rewardPreview = status === 'playing' ? null : calculateGameReward(rewardInput);
   const progressPreview = rewardPreview ? applyGameRewardToCharacter(userProfile.pet, rewardPreview) : null;
+  const remainingAttempts = Math.max(0, maxMistakes - finalMistakes);
 
   const renderWord = () => {
     if (!currentWord) return null;
@@ -163,7 +169,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
           isOpen={status !== 'playing'}
           status={status === 'won' ? 'won' : 'lost'}
           title={status === 'won' ? 'Победа!' : 'Почти получилось'}
-          subtitle={status === 'won' ? 'Слово угадано по буквам.' : 'Слово открылось — можно попробовать снова.'}
+          subtitle={status === 'won' ? `Слово угадано. Осталось попыток: ${remainingAttempts}.` : 'Слово открылось — можно попробовать снова.'}
           emoji={status === 'won' ? '🎉' : '💪'}
           pet={progressPreview.pet}
           xpGained={rewardPreview.xp}
@@ -174,6 +180,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
             <span>
               Слово: <span className="font-black">{currentWord?.word}</span>
               {currentWord?.translation ? ` · ${currentWord.translation}` : ''}
+              {status === 'won' ? ` · бонус за попытки: +${rewardPreview.coins} монет` : ''}
             </span>
           )}
         />
