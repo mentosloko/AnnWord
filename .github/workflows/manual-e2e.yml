@@ -1,0 +1,56 @@
+name: Manual production E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Base URL for E2E tests'
+        required: true
+        default: 'https://ann-word-44xjpe5t4-mentosloko-1417s-projects.vercel.app'
+  push:
+    paths:
+      - '.github/workflows/manual-e2e.yml'
+
+jobs:
+  e2e:
+    name: Playwright E2E against production-equivalent URL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://ann-word-44xjpe5t4-mentosloko-1417s-projects.vercel.app' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Show target URL
+        run: echo "Running E2E against $E2E_BASE_URL"
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+
+      - name: Upload Playwright test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          if-no-files-found: ignore
