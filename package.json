@@ -9,6 +9,10 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "test:simulation": "tsx scripts/simulate-1000-users.ts",
     "check:unit": "npm run test:run",
     "dictionary:smoke": "tsx scripts/dictionary-engine-smoke.ts",
     "navigation:smoke": "tsx scripts/navigation-smoke.ts",
@@ -39,6 +43,7 @@
     "tsx": "^4.21.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^22.14.0",
