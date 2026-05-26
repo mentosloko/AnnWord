@@ -4,6 +4,7 @@ import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion, AnimatePresence } from 'motion/react';
 import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
+import { getUnusedSessionWord } from '../services/sessionWordHistory';
 
 interface SprintGameProps {
   onBack: () => void;
@@ -67,7 +68,7 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
   const pickNewWord = useCallback(() => {
     const activeDictionary = getPlayableSprintDictionary(activeDictionaryRef.current);
     if (activeDictionary.length === 0) return;
-    const word = activeDictionary[Math.floor(Math.random() * activeDictionary.length)];
+    const word = getUnusedSessionWord('sprint', activeDictionary) || activeDictionary[Math.floor(Math.random() * activeDictionary.length)];
     setCurrentWord(word);
 
     const correctAnswer = word.translation;
