@@ -1,7 +1,14 @@
 import { expect, test } from '@playwright/test';
 
-const DEFAULT_E2E_BASE_URL = 'https://ann-word-44xjpe5t4-mentosloko-1417s-projects.vercel.app';
-const getBaseUrl = (): string => (process.env.E2E_BASE_URL || DEFAULT_E2E_BASE_URL).replace(/\/$/, '');
+const DEFAULT_E2E_BASE_URL = 'https://ann-word-git-main-mentosloko-1417s-projects.vercel.app';
+
+const normalizeBaseUrl = (rawUrl: string): string => {
+  const trimmed = rawUrl.trim().replace(/\/$/, '');
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+};
+
+const getBaseUrl = (): string => normalizeBaseUrl(process.env.E2E_BASE_URL || DEFAULT_E2E_BASE_URL);
 
 const goHome = async (page: import('@playwright/test').Page) => {
   await page.goto(`${getBaseUrl()}/`);
