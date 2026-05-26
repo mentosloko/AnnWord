@@ -225,14 +225,20 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   };
 
   return (
-    <div className="flex flex-col p-3 sm:p-4 max-w-5xl mx-auto pb-24">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <button type="button" onClick={onClose} className="w-fit px-4 py-2 rounded-xl bg-white border-2 border-indigo-100 text-indigo-700 font-bold hover:bg-indigo-50 transition shadow-sm">← На главный экран</button>
-          <h2 className="text-3xl font-bold text-indigo-900">Магазин</h2>
-        </div>
-        <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-2xl border-2 border-yellow-200 w-fit">
-          <span className="text-xl font-bold text-yellow-700">{activeProfile.coins}</span><span className="text-lg">🪙</span>
+    <div className="mx-auto flex max-w-5xl flex-col p-3 pb-24 sm:p-4">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="На главный экран"
+          title="Назад"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700 shadow-sm transition hover:bg-indigo-50"
+        >
+          ←
+        </button>
+        <h2 className="min-w-0 flex-1 text-center text-3xl font-black text-indigo-900">Магазин</h2>
+        <div className="flex h-11 shrink-0 items-center gap-2 rounded-2xl border-2 border-yellow-200 bg-yellow-50 px-3">
+          <span className="text-lg font-black text-yellow-700">{activeProfile.coins}</span><span className="text-lg">🪙</span>
         </div>
       </div>
 
@@ -242,14 +248,14 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 mb-8 bg-indigo-50 p-1 rounded-2xl w-fit">
+      <div className="mb-6 flex w-fit flex-wrap gap-2 rounded-2xl bg-indigo-50 p-1">
         {VISIBLE_SHOP_TABS.map(tab => (
-          <button key={tab} onClick={() => { setActiveTab(tab); setShopMessage(null); }} className={`px-4 sm:px-6 py-2 rounded-xl font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>
+          <button key={tab} onClick={() => { setActiveTab(tab); setShopMessage(null); }} className={`rounded-xl px-4 py-2 font-bold transition-all sm:px-6 ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>
             {getTabLabel(tab)}
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {filteredItems.map(item => {
           const isLocked = (activeProfile.pet.level || 1) < item.minLevel || Boolean(item.characterType && item.characterType !== activeProfile.pet.type);
           const canAfford = activeProfile.coins >= item.price;
@@ -263,7 +269,7 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
             <motion.div
               key={item.id}
               whileHover={{ y: isLocked ? 0 : -4 }}
-              className={`relative rounded-3xl border-2 p-5 shadow-sm transition bg-white ${isLocked ? 'border-gray-100 opacity-70' : 'border-indigo-50 hover:border-indigo-200'}`}
+              className={`relative rounded-3xl border-2 bg-white p-5 shadow-sm transition ${isLocked ? 'border-gray-100 opacity-70' : 'border-indigo-50 hover:border-indigo-200'}`}
             >
               {isLocked && <div className="absolute top-4 right-4 bg-gray-100 text-gray-500 text-xs px-3 py-1 rounded-full font-bold">Ур. {item.minLevel}</div>}
               {isOwnedOnce && !isLocked && <div className="absolute top-4 right-4 bg-green-50 text-green-700 text-xs px-3 py-1 rounded-full font-bold border border-green-100">Есть</div>}
