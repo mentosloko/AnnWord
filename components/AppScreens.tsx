@@ -108,7 +108,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
       <SetupScreen
         selectedPlayMode={selectedPlayMode}
         settings={settings}
-        customWordsCount={userProfile.customDictionaryEn.length}
+        customDictionaryWords={userProfile.customDictionaryEn}
         setupError={setupError}
         isUploadingDictionary={dictionaryUpload.isUploadingDictionary}
         isAuthenticated={isAuthenticated}
