@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { MAX_GUESSES } from '../constants';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { getBestEliminationHint } from '../services/hintService';
+import { getUnusedSessionWord } from '../services/sessionWordHistory';
 import { CharStatus, EnrichedWord, GameSettings, GameState, ViewState } from '../types';
 
 interface UseClassicGameControllerArgs {
@@ -136,7 +137,8 @@ export const useClassicGameController = ({
       return;
     }
 
-    const randomEntry: EnrichedWord = filteredPool[Math.floor(Math.random() * filteredPool.length)];
+    const bucketKey = `wordle:${settings.dictionarySource}:${settings.difficulty}:${settings.wordLength}`;
+    const randomEntry = getUnusedSessionWord(bucketKey, filteredPool) || filteredPool[Math.floor(Math.random() * filteredPool.length)];
     setGameState({
       ...createInitialGameState(),
       secretWord: randomEntry.word,
