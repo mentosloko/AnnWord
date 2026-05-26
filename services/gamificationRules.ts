@@ -5,6 +5,8 @@ export interface GameRewardInput {
   won?: boolean;
   guessedWords?: number;
   clicks?: number;
+  mistakes?: number;
+  maxMistakes?: number;
   coinsAdjustment?: number;
 }
 
@@ -163,11 +165,15 @@ export const calculateGameReward = (input: GameRewardInput): GameRewardResult =>
     }
     case 'hangman': {
       const won = Boolean(input.won);
-      const xp = won ? 25 : getPityXp(won);
+      const maxMistakes = Math.max(1, Math.round(input.maxMistakes || 7));
+      const mistakes = Math.max(0, Math.min(maxMistakes, Math.round(input.mistakes || 0)));
+      const remainingAttempts = Math.max(0, maxMistakes - mistakes);
+      const xp = won ? 25 + Math.min(10, remainingAttempts) : getPityXp(won);
+      const baseCoins = won ? Math.max(2, Math.min(6, remainingAttempts)) : 1;
       return {
         xp,
-        coins: clampCoinsReward(won ? 2 : 1, coinsAdjustment),
-        mood: Math.min(12, xp),
+        coins: clampCoinsReward(baseCoins, coinsAdjustment),
+        mood: Math.min(14, xp),
         label: won ? 'Виселица пройдена' : 'Виселица завершена',
       };
     }
