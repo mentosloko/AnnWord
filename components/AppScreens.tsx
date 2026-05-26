@@ -72,6 +72,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
 }) => {
   const goHome = () => onRouteChange('landing');
   const setupError = classicGame.setupError || dictionaryUpload.error;
+  const openShop = () => onRouteChange('shop');
 
   const openSetupFor = (mode: PlayableModeRoute) => {
     onSelectedPlayModeChange(mode);
@@ -97,7 +98,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
         onStartSprint={() => openSetupFor('sprint')}
         onStartHangman={() => openSetupFor('hangman')}
         onStartMemory={() => openSetupFor('memory')}
-        onOpenShop={() => onRouteChange('shop')}
+        onOpenShop={openShop}
         onOpenRules={onOpenRules}
         onOpenLogin={onOpenLogin}
         onOpenProfile={() => onRouteChange('profile')}
@@ -139,7 +140,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
         userProfile={userProfile}
         isAuthenticated={isAuthenticated}
         onBackHome={goHome}
-        onOpenShop={() => onRouteChange('shop')}
+        onOpenShop={openShop}
         onOpenPetRoom={() => onRouteChange('pet_room')}
         onLogin={onOpenLogin}
       />
@@ -149,7 +150,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
     memory: <MemoryScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
     hangman: <HangmanScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
     shop: <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} />,
-    pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onClose={goHome} />,
+    pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onClose={goHome} onOpenShop={openShop} />,
   };
 
   return <AppRouter route={route} screens={screens} fallback={screens.landing} />;
