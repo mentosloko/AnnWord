@@ -5,7 +5,7 @@ on:
     inputs:
       base_url:
         description: 'Base URL for E2E tests'
-        required: true
+        required: false
         default: 'https://ann-word-44xjpe5t4-mentosloko-1417s-projects.vercel.app'
   push:
     paths:
@@ -16,8 +16,6 @@ jobs:
     name: Playwright E2E against production-equivalent URL
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://ann-word-44xjpe5t4-mentosloko-1417s-projects.vercel.app' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,14 +25,21 @@ jobs:
         with:
           node-version: 22
 
+      - name: Resolve target URL
+        shell: bash
+        run: |
+          TARGET_URL="${{ github.event.inputs.base_url }}"
+          if [ -z "$TARGET_URL" ]; then
+            TARGET_URL="https://ann-word-44xjpe5t4-mentosloko-1417s-projects.vercel.app"
+          fi
+          echo "E2E_BASE_URL=$TARGET_URL" >> "$GITHUB_ENV"
+          echo "Running E2E against $TARGET_URL"
+
       - name: Install dependencies
         run: npm install
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
-
-      - name: Show target URL
-        run: echo "Running E2E against $E2E_BASE_URL"
 
       - name: Run E2E tests
         run: npm run test:e2e
