@@ -18,13 +18,13 @@ describe('AnagramGame dictionary', () => {
     ]);
   });
 
-  it('shows fallback translation when builtin translation is unavailable', () => {
+  it('falls back to the word itself when builtin translation is unavailable', () => {
     const dictionary = buildAnagramDictionary(['CUSTOMWORD'], COMMON_WORDS_EN);
 
     expect(dictionary).toEqual([
       expect.objectContaining({
         word: 'CUSTOMWORD',
-        translation: 'Перевод недоступен',
+        translation: 'CUSTOMWORD',
       }),
     ]);
   });
