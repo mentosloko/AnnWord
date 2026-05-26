@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { DictionarySource, DifficultyLevel, GameSettings, WordLength } from '../../types';
 import { ScreenContainer } from '../layout/ScreenContainer';
 import { PlayableModeRoute } from '../AppScreens';
+import { getWordsMissingTranslations } from '../../services/translationCoverage';
 
 interface SetupScreenProps {
   selectedPlayMode: PlayableModeRoute;
   settings: GameSettings;
-  customWordsCount: number;
+  customDictionaryWords: string[];
   setupError: string | null;
   isUploadingDictionary: boolean;
   isAuthenticated: boolean;
@@ -31,7 +32,7 @@ const MODE_LABELS: Record<PlayableModeRoute, string> = {
 export const SetupScreen: React.FC<SetupScreenProps> = ({
   selectedPlayMode,
   settings,
-  customWordsCount,
+  customDictionaryWords,
   setupError,
   isUploadingDictionary,
   isAuthenticated,
@@ -41,168 +42,191 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   onBack,
   onLogin,
 }) => {
+  const isWordleMode = selectedPlayMode === 'game';
   const isCustomDictionary = settings.dictionarySource === 'custom';
+  const customWordsCount = customDictionaryWords.length;
+  const missingTranslationWords = useMemo(
+    () => getWordsMissingTranslations(customDictionaryWords),
+    [customDictionaryWords],
+  );
+  const canStart = !isCustomDictionary || customWordsCount > 0;
 
   const updateSetting = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => {
     onSettingsChange({ ...settings, [key]: value });
   };
 
   const selectDictionarySource = (source: DictionarySource) => {
-    if (source === 'custom' && !isAuthenticated) return;
+    if (source === 'custom' && !isAuthenticated) {
+      onLogin();
+      return;
+    }
     updateSetting('dictionarySource', source);
   };
 
   return (
-    <ScreenContainer className="max-w-4xl">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-6 rounded-xl bg-white border-2 border-indigo-100 px-4 py-2 font-bold text-indigo-700 hover:bg-indigo-50 transition"
-      >
-        ← На главный экран
-      </button>
-
-      <div className="rounded-[2rem] bg-white border-2 border-indigo-50 shadow-sm p-6 sm:p-8">
-        <div className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-indigo-500 mb-4">
-            Режим: {MODE_LABELS[selectedPlayMode]}
-          </div>
-          <h1 className="text-3xl font-black text-indigo-950 mb-2">Настройка игры</h1>
-          <p className="text-gray-500">Выберите длину слова, источник словаря и уровень для встроенного словаря.</p>
+    <ScreenContainer className="max-w-3xl px-3 pb-20 pt-3 sm:px-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700 shadow-sm transition hover:bg-indigo-50"
+          aria-label="Назад"
+          title="Назад"
+        >
+          ←
+        </button>
+        <div className="min-w-0 text-center">
+          <div className="text-xs font-black uppercase tracking-widest text-indigo-400">{MODE_LABELS[selectedPlayMode]}</div>
+          <h1 className="text-2xl font-black text-indigo-950 sm:text-3xl">Настройка игры</h1>
         </div>
+        <div className="h-11 w-11" />
+      </div>
 
+      <div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:p-6">
         {setupError && (
-          <div className="mb-6 rounded-2xl bg-red-50 border-2 border-red-100 px-4 py-3 text-red-700 font-bold">
+          <div className="mb-4 rounded-2xl border-2 border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
             {setupError}
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-4">
+          {isWordleMode && (
+            <section>
+              <h2 className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Длина слова</h2>
+              <div className="grid grid-cols-3 gap-2">
+                {WORD_LENGTHS.map(length => (
+                  <button
+                    type="button"
+                    key={length}
+                    onClick={() => updateSetting('wordLength', length)}
+                    className={`rounded-2xl py-3 font-black transition ${
+                      settings.wordLength === length
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'border-2 border-indigo-100 bg-white text-indigo-700 hover:bg-indigo-50'
+                    }`}
+                  >
+                    {length}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
           <section>
-            <h2 className="text-sm font-black text-indigo-400 uppercase tracking-widest mb-3">Длина слова</h2>
-            <div className="grid grid-cols-3 gap-2">
-              {WORD_LENGTHS.map(length => (
-                <button
-                  type="button"
-                  key={length}
-                  onClick={() => updateSetting('wordLength', length)}
-                  className={`rounded-2xl py-3 font-black border-2 transition ${
-                    settings.wordLength === length
-                      ? 'bg-indigo-600 border-indigo-600 text-white'
-                      : 'bg-white border-indigo-100 text-indigo-700 hover:bg-indigo-50'
-                  }`}
-                >
-                  {length}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className={isCustomDictionary ? 'opacity-60' : ''}>
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <h2 className="text-sm font-black text-indigo-400 uppercase tracking-widest">Уровень</h2>
-              {isCustomDictionary && (
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-gray-400">
-                  Только для встроенного
-                </span>
-              )}
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {DIFFICULTIES.map(level => (
-                <button
-                  type="button"
-                  key={level}
-                  disabled={isCustomDictionary}
-                  onClick={() => {
-                    if (!isCustomDictionary) updateSetting('difficulty', level);
-                  }}
-                  className={`rounded-2xl py-3 font-black border-2 transition ${
-                    settings.difficulty === level
-                      ? 'bg-indigo-600 border-indigo-600 text-white'
-                      : 'bg-white border-indigo-100 text-indigo-700 hover:bg-indigo-50'
-                  } ${isCustomDictionary ? 'cursor-not-allowed hover:bg-white disabled:text-gray-400 disabled:border-gray-100 disabled:bg-gray-50' : ''}`}
-                >
-                  {level}
-                </button>
-              ))}
-            </div>
-            {isCustomDictionary && (
-              <p className="mt-2 text-xs font-bold text-gray-400">
-                Для своего словаря уровень не выбирается: игра берёт слова из загруженного файла, а длина слова остаётся активной.
-              </p>
-            )}
-          </section>
-
-          <section className="lg:col-span-2">
-            <h2 className="text-sm font-black text-indigo-400 uppercase tracking-widest mb-3">Словарь</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <h2 className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Словарь</h2>
+            <div className="grid grid-cols-2 gap-2">
               {(['builtin', 'custom'] as DictionarySource[]).map(source => {
-                const isCustomLocked = source === 'custom' && !isAuthenticated;
+                const isSelected = settings.dictionarySource === source;
+                const isCustom = source === 'custom';
                 return (
                   <button
                     type="button"
                     key={source}
-                    disabled={isCustomLocked}
                     onClick={() => selectDictionarySource(source)}
-                    className={`rounded-3xl p-5 text-left border-2 transition relative ${
-                      settings.dictionarySource === source
-                        ? 'bg-indigo-50 border-indigo-300 text-indigo-950'
-                        : 'bg-white border-indigo-100 text-gray-700 hover:bg-indigo-50'
-                    } ${isCustomLocked ? 'opacity-70 cursor-not-allowed hover:bg-white' : ''}`}
+                    className={`rounded-2xl border-2 p-3 text-left transition ${
+                      isSelected
+                        ? 'border-indigo-300 bg-indigo-50 text-indigo-950'
+                        : 'border-indigo-100 bg-white text-gray-700 hover:bg-indigo-50'
+                    }`}
                   >
-                    <div className="text-2xl mb-2">{source === 'builtin' ? '📚' : '🔒'}</div>
-                    <div className="font-black mb-1">{source === 'builtin' ? 'Встроенный словарь' : 'Мой словарь'}</div>
-                    <div className="text-xs text-gray-500">
-                      {source === 'builtin'
-                        ? 'Базовый словарь с уровнями сложности.'
-                        : isCustomLocked
-                          ? 'Доступен после регистрации.'
-                          : `${customWordsCount} слов загружено.`}
+                    <div className="mb-1 text-xl">{isCustom ? '🧩' : '📚'}</div>
+                    <div className="text-sm font-black">{isCustom ? 'Мой словарь' : 'Встроенный'}</div>
+                    <div className="mt-1 text-[11px] font-bold text-gray-400">
+                      {isCustom
+                        ? isAuthenticated
+                          ? `${customWordsCount} слов`
+                          : 'нужен аккаунт'
+                        : 'уровни сложности'}
                     </div>
                   </button>
                 );
               })}
             </div>
+          </section>
 
-            {!isAuthenticated ? (
-              <div className="mt-4 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/70 p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <span className="text-2xl">🔐</span>
-                  <span className="flex-1">
-                    <span className="block font-black text-indigo-900">Свой словарь доступен после регистрации</span>
-                    <span className="block text-xs text-gray-500">Войдите в аккаунт, чтобы загружать TXT/CSV и играть по своим словам.</span>
-                  </span>
+          {!isCustomDictionary && (
+            <section>
+              <h2 className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Уровень</h2>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                {DIFFICULTIES.map(level => (
+                  <button
+                    type="button"
+                    key={level}
+                    onClick={() => updateSetting('difficulty', level)}
+                    className={`rounded-2xl py-2.5 text-sm font-black transition ${
+                      settings.difficulty === level
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'border-2 border-indigo-100 bg-white text-indigo-700 hover:bg-indigo-50'
+                    }`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {isCustomDictionary && (
+            <section className="rounded-2xl border-2 border-dashed border-indigo-100 bg-indigo-50/50 p-4">
+              {!isAuthenticated ? (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex-1">
+                    <div className="font-black text-indigo-950">Войдите в аккаунт</div>
+                    <div className="text-xs font-bold text-gray-500">Так можно загрузить свой TXT/CSV словарь.</div>
+                  </div>
                   <button
                     type="button"
                     onClick={onLogin}
-                    className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-black text-white hover:bg-indigo-700 transition"
+                    className="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-indigo-700"
                   >
-                    Зарегистрироваться
+                    Войти
                   </button>
                 </div>
+              ) : (
+                <label className="flex cursor-pointer flex-col gap-3 sm:flex-row sm:items-center">
+                  <input type="file" accept=".txt,.csv" onChange={onFileUpload} className="hidden" />
+                  <span className="text-2xl">📄</span>
+                  <span className="flex-1">
+                    <span className="block font-black text-indigo-950">
+                      {customWordsCount > 0 ? 'Обновить словарь' : 'Загрузить словарь'}
+                    </span>
+                    <span className="block text-xs font-bold text-gray-500">TXT/CSV: слова через пробел, строку или запятую.</span>
+                  </span>
+                  <span className="rounded-xl border border-indigo-100 bg-white px-3 py-2 text-sm font-bold text-indigo-700">
+                    {isUploadingDictionary ? 'Загрузка...' : 'Выбрать файл'}
+                  </span>
+                </label>
+              )}
+            </section>
+          )}
+
+          {isCustomDictionary && customWordsCount > 0 && (
+            <section className="rounded-2xl border-2 border-amber-100 bg-amber-50 p-4">
+              <div className="mb-2 text-sm font-black text-amber-800">
+                Слова без перевода: {missingTranslationWords.length}
               </div>
-            ) : (
-              <label className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 p-4 cursor-pointer hover:bg-indigo-50 transition">
-                <input type="file" accept=".txt,.csv" onChange={onFileUpload} className="hidden" />
-                <span className="text-2xl">📄</span>
-                <span className="flex-1">
-                  <span className="block font-black text-indigo-900">Загрузить словарь</span>
-                  <span className="block text-xs text-gray-500">TXT/CSV, слова через пробел, перенос строки или запятую.</span>
-                </span>
-                <span className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-indigo-700 border border-indigo-100">
-                  {isUploadingDictionary ? 'Загрузка...' : 'Выбрать файл'}
-                </span>
-              </label>
-            )}
-          </section>
+              {missingTranslationWords.length > 0 ? (
+                <div className="max-h-28 overflow-auto rounded-xl bg-white/70 p-2 text-xs font-bold text-amber-900">
+                  {missingTranslationWords.join(', ')}
+                </div>
+              ) : (
+                <div className="text-xs font-bold text-amber-700">Для всех слов найден перевод во встроенном словаре.</div>
+              )}
+            </section>
+          )}
         </div>
 
         <button
           type="button"
           onClick={onStartGame}
-          className="mt-8 w-full rounded-2xl bg-indigo-600 py-4 text-white font-black hover:bg-indigo-700 transition shadow-lg shadow-indigo-100"
+          disabled={!canStart}
+          className={`mt-5 w-full rounded-2xl py-4 font-black transition shadow-lg ${
+            canStart
+              ? 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700'
+              : 'cursor-not-allowed bg-gray-100 text-gray-400 shadow-none'
+          }`}
         >
-          Играть: {MODE_LABELS[selectedPlayMode]}
+          {canStart ? `Играть: ${MODE_LABELS[selectedPlayMode]}` : 'Сначала загрузите словарь'}
         </button>
       </div>
     </ScreenContainer>
