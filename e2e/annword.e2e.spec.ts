@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+const DEFAULT_E2E_BASE_URL = 'https://ann-word-44xjpe5t4-mentosloko-1417s-projects.vercel.app';
+const getBaseUrl = (): string => (process.env.E2E_BASE_URL || DEFAULT_E2E_BASE_URL).replace(/\/$/, '');
+
 const goHome = async (page: import('@playwright/test').Page) => {
-  await page.goto('/');
+  await page.goto(`${getBaseUrl()}/`);
   await expect(page.getByRole('heading', { name: /Учите английские слова через игру/i })).toBeVisible();
 };
 
