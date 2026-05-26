@@ -208,7 +208,8 @@ export const applyGameRewardToCharacter = (pet: PetState, reward: Pick<GameRewar
 export const applyTreatMood = (pet: PetState, moodDelta: number, moodCap = 100): PetState => {
   const currentMoodScore = normalizeMoodScore(pet);
   const requestedMoodScore = currentMoodScore + Math.max(0, Math.round(moodDelta || 0));
-  const moodScore = Math.max(currentMoodScore, Math.min(100, Math.max(requestedMoodScore, clamp(moodCap))));
+  const safeCap = Math.max(currentMoodScore, clamp(moodCap));
+  const moodScore = Math.max(currentMoodScore, Math.min(safeCap, requestedMoodScore));
   return {
     ...pet,
     moodScore,
