@@ -130,6 +130,7 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   const [localProfile, setLocalProfile] = useState<UserProfile>(userProfile);
   const lastExternalProfileKey = useRef(getProfileSyncKey(userProfile));
   const mountedRef = useRef(true);
+  const purchaseInFlightRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -174,23 +175,29 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   };
 
   const handleBuy = async (item: ShopItem) => {
-    if (buyingId) return;
+    if (purchaseInFlightRef.current) return;
+    purchaseInFlightRef.current = true;
+    setBuyingId(item.id);
+
     const purchaseCheck = canPurchaseItem(activeProfile, item);
     if (!purchaseCheck.ok) {
       setShopMessage(getPurchaseErrorMessage(purchaseCheck.reason));
+      purchaseInFlightRef.current = false;
+      setBuyingId(null);
       return;
     }
 
     const optimisticPurchase = applyPurchaseLocally(activeProfile, item);
     if (!optimisticPurchase.ok || !optimisticPurchase.profile) {
       setShopMessage(getPurchaseErrorMessage(optimisticPurchase.reason));
+      purchaseInFlightRef.current = false;
+      setBuyingId(null);
       return;
     }
 
     setLocalAndRemember(optimisticPurchase.profile);
-    setShopMessage(optimisticPurchase.awardedItem ? `Секретная коробка открыта: ${optimisticPurchase.awardedItem.name}!` : null);
+    setShopMessage('Покупка сохранится в аккаунте. Уже можно продолжать играть.');
     showQuantityPulse(optimisticPurchase.awardedItem?.id || item.id);
-    setBuyingId(item.id);
 
     try {
       const serverProfile = await syncPurchase(item);
@@ -214,14 +221,15 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
         } catch (fallbackError: any) {
           if (mountedRef.current) {
             setLocalAndRemember(userProfile);
-            setShopMessage(fallbackError?.message || 'Покупка не удалась.');
+            setShopMessage(fallbackError?.message || 'Покупка не удалась. Изменения отменены.');
           }
         }
       } else if (mountedRef.current) {
         setLocalAndRemember(userProfile);
-        setShopMessage(message || 'Покупка не удалась.');
+        setShopMessage(message || 'Покупка не удалась. Изменения отменены.');
       }
     } finally {
+      purchaseInFlightRef.current = false;
       if (mountedRef.current) setBuyingId(null);
     }
   };
@@ -242,7 +250,7 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
 
       <div className="mb-6 flex w-fit flex-wrap gap-2 rounded-2xl bg-indigo-50 p-1">
         {VISIBLE_SHOP_TABS.map(tab => (
-          <button key={tab} onClick={() => { setActiveTab(tab); setShopMessage(null); }} className={`rounded-xl px-4 py-2 font-bold transition-all sm:px-6 ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>
+          <button key={tab} disabled={Boolean(buyingId)} onClick={() => { setActiveTab(tab); setShopMessage(null); }} className={`rounded-xl px-4 py-2 font-bold transition-all sm:px-6 ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'} disabled:opacity-50 disabled:cursor-not-allowed`}>
             {getTabLabel(tab)}
           </button>
         ))}
@@ -256,7 +264,7 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
           const isOwnedOnce = ownedQuantity > 0 && item.type !== 'food' && item.type !== 'mystery';
           const isMystery = item.type === 'mystery';
           const imageUrl = getShopImageUrl(item);
-          const canBuy = !isLocked && canAfford && !isOwnedOnce && buyingId !== item.id;
+          const canBuy = !isLocked && canAfford && !isOwnedOnce && !buyingId;
           const shouldPulse = pulseItemId === item.id;
 
           return (
@@ -276,7 +284,7 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
                 <span>{item.price}</span><CoinIcon />
               </div>
               <button type="button" disabled={!canBuy} onClick={() => handleBuy(item)} className={`w-full py-3 rounded-2xl font-bold transition ${canBuy ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
-                {buyingId === item.id ? 'Покупаю...' : isOwnedOnce ? 'Уже есть' : !canAfford ? 'Не хватает монет' : isMystery ? 'Открыть' : 'Купить'}
+                {buyingId === item.id ? 'Сохраняю...' : isOwnedOnce ? 'Уже есть' : !canAfford ? 'Не хватает монет' : isMystery ? 'Открыть' : 'Купить'}
               </button>
             </motion.div>
           );
