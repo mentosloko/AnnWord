@@ -158,6 +158,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
 
   const handleUse = async (itemId: string) => {
     if (usingId) return;
+    const selectedItem = activeProfile.inventory.find(item => item.id === itemId);
     const optimisticUse = applyItemUseLocally(activeProfile, itemId);
     if (!optimisticUse.ok || !optimisticUse.profile) {
       setRoomMessage(getPurchaseErrorMessage(optimisticUse.reason));
@@ -170,7 +171,9 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
 
     try {
       await onUseItem(itemId);
-      if (mountedRef.current) setRoomMessage('Готово: комната обновлена.');
+      if (mountedRef.current && selectedItem?.type !== 'accessory') {
+        setRoomMessage('Готово: комната обновлена.');
+      }
     } catch (error: any) {
       if (mountedRef.current) {
         setLocalAndRemember(userProfile);
