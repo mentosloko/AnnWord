@@ -3,6 +3,7 @@ import { User } from '@supabase/supabase-js';
 import { authService } from '../services/authService';
 import { GUEST_PROFILE } from '../constants/profileDefaults';
 import { GameSettings, UserProfile } from '../types';
+import { profileCache } from '../services/profileCache';
 
 export type AuthMode = 'login' | 'register';
 export type AuthBootstrapStatus = 'loading' | 'ready' | 'error';
@@ -16,10 +17,13 @@ export const createInitialSettings = (): GameSettings => ({
 });
 
 export const useAuthProfile = () => {
-  const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus>('loading');
+  const cachedProfile = profileCache.read();
+  const initialProfile = cachedProfile || GUEST_PROFILE;
+  const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus>('ready');
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<GameSettings>(createInitialSettings);
-  const [userProfile, setUserProfile] = useState<UserProfile>(GUEST_PROFILE);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
+  const [settings, setSettings] = useState<GameSettings>(() => ({ ...createInitialSettings(), username: initialProfile.username }));
+  const [userProfile, setUserProfileState] = useState<UserProfile>(initialProfile);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [tempUsername, setTempUsername] = useState('');
@@ -27,9 +31,18 @@ export const useAuthProfile = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
+  const setUserProfile = useCallback((next: UserProfile | ((prev: UserProfile) => UserProfile)) => {
+    setUserProfileState(prev => {
+      const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(prev) : next;
+      profileCache.write(resolved, currentUser?.id ?? null);
+      return resolved;
+    });
+  }, [currentUser?.id]);
+
   const resetToGuest = useCallback(() => {
     setCurrentUser(null);
-    setUserProfile(GUEST_PROFILE);
+    profileCache.clear();
+    setUserProfileState(GUEST_PROFILE);
     setSettings(createInitialSettings());
   }, []);
 
@@ -40,7 +53,8 @@ export const useAuthProfile = () => {
       user.user_metadata?.full_name || user.user_metadata?.name || 'Guest',
       user.email || undefined,
     );
-    setUserProfile(profile);
+    profileCache.write(profile, user.id);
+    setUserProfileState(profile);
     setSettings(prev => ({ ...prev, username: profile.username }));
   }, []);
 
@@ -51,6 +65,7 @@ export const useAuthProfile = () => {
       if (cancelled) return;
       setBootstrapStatus(status);
       setBootstrapError(error);
+      setIsRestoringSession(false);
     };
 
     authService.getInitialSession()
@@ -75,7 +90,7 @@ export const useAuthProfile = () => {
         } catch (error) {
           console.error('Failed to load user profile after auth change', error);
         }
-      } else {
+      } else if (!isRestoringSession) {
         resetToGuest();
       }
 
@@ -147,11 +162,13 @@ export const useAuthProfile = () => {
     resetToGuest();
     setBootstrapError(null);
     setBootstrapStatus('ready');
+    setIsRestoringSession(false);
   }, [resetToGuest]);
 
   return {
     bootstrapStatus,
     bootstrapError,
+    isRestoringSession,
     continueAsGuestAfterBootstrapError,
     settings,
     setSettings,
