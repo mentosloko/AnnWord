@@ -10,8 +10,14 @@ interface GridProps {
   shakeRowIndex?: number | null;
 }
 
-const Cell: React.FC<{ letter: string; status: CharStatus }> = ({ letter, status }) => {
-  const baseClasses = 'flex-1 aspect-square min-w-0 max-w-[min(4.15rem,16.8vw,8.6dvh)] sm:max-w-[4.75rem] border-2 flex items-center justify-center text-[clamp(1.25rem,6.5vw,2.35rem)] sm:text-4xl font-black uppercase select-none transition-all duration-300 rounded-xl sm:rounded-2xl tracking-[0.06em] font-mono leading-none';
+const getCellSizeClass = (wordLength: WordLength): string => {
+  if (wordLength === 6) return 'w-[min(13.8vw,8.8dvh,4.25rem)]';
+  if (wordLength === 4) return 'w-[min(17vw,9.6dvh,4.9rem)]';
+  return 'w-[min(15.5vw,9.2dvh,4.55rem)]';
+};
+
+const Cell: React.FC<{ letter: string; status: CharStatus; wordLength: WordLength }> = ({ letter, status, wordLength }) => {
+  const baseClasses = `${getCellSizeClass(wordLength)} aspect-square min-w-0 border-2 flex items-center justify-center text-[clamp(1.25rem,5.6vw,2.35rem)] font-black uppercase select-none transition-all duration-300 rounded-xl sm:rounded-2xl tracking-[0.06em] font-mono leading-none`;
   let statusClasses = '';
 
   switch (status) {
@@ -72,23 +78,23 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
       const guess = guesses[i];
       const statuses = getRowStatuses(guess);
       rowContent = guess.split('').map((letter, idx) => (
-        <Cell key={idx} letter={letter} status={statuses[idx]} />
+        <Cell key={idx} letter={letter} status={statuses[idx]} wordLength={wordLength} />
       ));
     } else if (i === guesses.length) {
       const chars = currentGuess.split('');
       rowContent = Array.from({ length: wordLength }).map((_, idx) => (
-        <Cell key={idx} letter={chars[idx] || ''} status="initial" />
+        <Cell key={idx} letter={chars[idx] || ''} status="initial" wordLength={wordLength} />
       ));
     } else {
       rowContent = Array.from({ length: wordLength }).map((_, idx) => (
-        <Cell key={idx} letter="" status="initial" />
+        <Cell key={idx} letter="" status="initial" wordLength={wordLength} />
       ));
     }
 
     rows.push(
       <div
         key={i}
-        className={`flex gap-[clamp(0.28rem,1.25vw,0.6rem)] mb-[clamp(0.24rem,1vw,0.52rem)] justify-center w-full ${isShake ? 'animate-shake' : ''}`}
+        className={`flex w-full justify-center gap-[min(1.15vw,0.55rem)] ${isShake ? 'animate-shake' : ''}`}
         style={{ animation: isShake ? 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both' : 'none' }}
       >
         {rowContent}
@@ -106,7 +112,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
           40%, 60% { transform: translate3d(4px, 0, 0); }
         }
       `}</style>
-      <div className="flex flex-col w-full max-w-[min(30rem,98vw)] justify-center p-0.5 sm:p-2 min-h-0">
+      <div className="flex w-full max-w-[min(34rem,96vw)] flex-col items-center justify-center gap-[min(0.85dvh,0.48rem)] p-0.5">
         {rows}
       </div>
     </>
