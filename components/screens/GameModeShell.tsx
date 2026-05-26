@@ -13,50 +13,54 @@ export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, r
   const [showRules, setShowRules] = useState(false);
 
   return (
-    <ScreenContainer className="pb-24">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onBackHome}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700 shadow-sm transition hover:bg-indigo-50"
-          aria-label="Назад"
-          title="Назад"
-        >
-          ←
-        </button>
-        <div className="min-w-0 text-center">
-          {subtitle && <div className="mb-1 text-xs font-black uppercase tracking-widest text-indigo-300">{subtitle}</div>}
-          <h1 className="truncate text-2xl font-black text-indigo-950 sm:text-3xl">{title}</h1>
-        </div>
-        {rules.length > 0 ? (
+    <ScreenContainer compact className="min-h-[100dvh] max-w-none px-3 py-3 sm:px-4 sm:py-4 lg:px-6">
+      <div className="mx-auto flex min-h-[calc(100dvh-1.5rem)] w-full max-w-[88rem] flex-col gap-3 sm:min-h-[calc(100dvh-2rem)] lg:gap-4">
+        <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
           <button
             type="button"
-            onClick={() => setShowRules(prev => !prev)}
-            aria-label={`Правила: ${title}`}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-indigo-50 font-black text-indigo-700 transition hover:bg-indigo-100"
-            title="Правила режима"
+            onClick={onBackHome}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700 shadow-sm transition hover:bg-indigo-50"
+            aria-label="Назад"
+            title="Назад"
           >
-            ?
+            ←
           </button>
-        ) : (
-          <div className="h-11 w-11" />
-        )}
-      </div>
-
-      {showRules && rules.length > 0 && (
-        <div className="mb-4 rounded-3xl border-2 border-indigo-100 bg-indigo-50 px-5 py-4 text-sm text-indigo-900">
-          <div className="mb-2 flex items-center justify-between gap-3 font-black">
-            <span>Как играть и получать XP</span>
-            <button type="button" onClick={() => setShowRules(false)} className="text-indigo-400">×</button>
+          <div className="min-w-0 text-center">
+            {subtitle && <div className="mb-0.5 text-[11px] font-black uppercase tracking-widest text-indigo-300 sm:text-xs">{subtitle}</div>}
+            <h1 className="truncate text-2xl font-black text-indigo-950 sm:text-3xl">{title}</h1>
           </div>
-          <ul className="space-y-1 list-disc pl-5">
-            {rules.map(rule => <li key={rule}>{rule}</li>)}
-          </ul>
-        </div>
-      )}
+          {rules.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowRules(prev => !prev)}
+              aria-label={`Правила: ${title}`}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-indigo-50 font-black text-indigo-700 transition hover:bg-indigo-100"
+              title="Правила режима"
+            >
+              ?
+            </button>
+          ) : (
+            <div className="h-11 w-11" />
+          )}
+        </header>
 
-      <div className="rounded-[2rem] bg-white border-2 border-indigo-50 shadow-sm p-3 sm:p-6 overflow-x-hidden">
-        {children}
+        {showRules && rules.length > 0 && (
+          <div className="rounded-3xl border-2 border-indigo-100 bg-indigo-50 px-5 py-4 text-sm text-indigo-900 shadow-sm">
+            <div className="mb-2 flex items-center justify-between gap-3 font-black">
+              <span>Как играть и получать XP</span>
+              <button type="button" onClick={() => setShowRules(false)} className="text-xl leading-none text-indigo-400">×</button>
+            </div>
+            <ul className="list-disc space-y-1 pl-5">
+              {rules.map(rule => <li key={rule}>{rule}</li>)}
+            </ul>
+          </div>
+        )}
+
+        <section className="flex min-h-0 flex-1 items-start justify-center overflow-x-hidden rounded-[2rem] border-2 border-indigo-50 bg-white/80 p-3 shadow-sm sm:p-5 lg:items-center lg:rounded-[2.5rem] lg:p-6">
+          <div className="flex w-full justify-center overflow-x-hidden">
+            {children}
+          </div>
+        </section>
       </div>
     </ScreenContainer>
   );
