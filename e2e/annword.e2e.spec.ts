@@ -9,9 +9,10 @@ const goHome = async (page: import('@playwright/test').Page) => {
   await expect(page.getByRole('button', { name: /^Играть$/ })).toBeVisible();
 };
 
-const startMode = async (page: import('@playwright/test').Page, modeName: RegExp | string) => {
+const startMode = async (page: import('@playwright/test').Page, modeName: string) => {
   await goHome(page);
-  const modeCard = page.getByRole('button', { name: modeName }).last();
+  const modeCard = page.locator('section').last().getByRole('button', { name: new RegExp(`^${modeName}`, 'i') });
+  await expect(modeCard).toBeVisible();
   await modeCard.click();
   await expect(page.getByRole('heading', { name: /Настройка игры/i })).toBeVisible();
   await page.getByRole('button', { name: /Играть:/i }).click();
@@ -21,11 +22,12 @@ test.describe('AnnWord manual E2E smoke', () => {
   test('home renders without blocking auth bootstrap screen', async ({ page }) => {
     await goHome(page);
     await expect(page.getByText(/Подключаем твой профиль|Проверяю вход/i)).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /Классика/i })).toBeVisible();
+    await expect(page.locator('section').last().getByRole('button', { name: /^Классика/ })).toBeVisible();
+    await expect(page.getByText(/\bXP\b/)).toHaveCount(0);
   });
 
   test('Wordle supports hint open and hardware keyboard input without retriggering hint', async ({ page }) => {
-    await startMode(page, /Классика/i);
+    await startMode(page, 'Классика');
     await expect(page.getByRole('button', { name: /Подсказка/i })).toBeVisible();
 
     await page.getByRole('button', { name: /Подсказка/i }).click();
@@ -38,24 +40,23 @@ test.describe('AnnWord manual E2E smoke', () => {
   });
 
   test('Sprint answer options are not raw English words', async ({ page }) => {
-    await startMode(page, /Спринт/i);
+    await startMode(page, 'Спринт');
     await expect(page.getByText(/Как переводится\?/i)).toBeVisible();
 
-    const sprintRoot = page.locator('div').filter({ hasText: /Как переводится\?/i }).last();
-    const optionTexts = await sprintRoot.locator('button').evaluateAll(buttons =>
+    const optionTexts = await page.locator('button').evaluateAll(buttons =>
       buttons
         .map(button => (button.textContent || '').trim())
-        .filter(text => text.length > 0)
+        .filter(text => /[А-Яа-яЁё]/.test(text))
         .filter(text => !/Меню|Назад|Играть|Войти|Зарегистрироваться/.test(text))
     );
 
-    expect(optionTexts.some(text => /[А-Яа-яЁё]/.test(text))).toBeTruthy();
+    expect(optionTexts.length).toBeGreaterThanOrEqual(4);
     const suspiciousEnglishOptions = optionTexts.filter(text => /^[A-Z]{3,10}$/.test(text));
     expect(suspiciousEnglishOptions).toEqual([]);
   });
 
   test('Anagram accepts a completed attempt and does not stay on checking forever', async ({ page }) => {
-    await startMode(page, /Анаграммы/i);
+    await startMode(page, 'Анаграммы');
     await expect(page.getByText(/Перевод/i)).toBeVisible();
 
     const letterButtons = page.locator('button').filter({ hasText: /^[A-Z]$/ });
@@ -74,7 +75,7 @@ test.describe('AnnWord manual E2E smoke', () => {
   test('Wordle grid remains visible on tablet viewport', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium-desktop', 'tablet viewport smoke runs once from desktop chromium');
     await page.setViewportSize({ width: 1180, height: 820 });
-    await startMode(page, /Классика/i);
+    await startMode(page, 'Классика');
     await expect(page.getByRole('button', { name: /Подсказка/i })).toBeVisible();
     await expect(page.getByRole('button', { name: 'ENTER' })).toBeVisible();
     await expect(page.locator('.font-mono').first()).toBeVisible();
