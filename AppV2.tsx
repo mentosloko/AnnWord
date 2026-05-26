@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AuthBootstrapGate } from './components/AuthBootstrapGate';
 import { AppShell } from './components/AppShell';
 import { AppScreens, PlayableModeRoute } from './components/AppScreens';
 import { useAuthProfile } from './hooks/useAuthProfile';
@@ -20,8 +19,6 @@ const AppV2: React.FC = () => {
   const authProfile = useAuthProfile();
   const {
     bootstrapStatus,
-    bootstrapError,
-    continueAsGuestAfterBootstrapError,
     settings,
     setSettings,
     userProfile,
@@ -68,9 +65,8 @@ const AppV2: React.FC = () => {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (bootstrapStatus !== 'ready') return;
     preloadAppAssetsForProfile(userProfile);
-  }, [bootstrapStatus, userProfile.pet.type, userProfile.pet.characterOnboarded]);
+  }, [userProfile.pet.type, userProfile.pet.characterOnboarded]);
 
   useEffect(() => {
     if (bootstrapStatus !== 'ready' || !isAuthenticated) return;
@@ -127,15 +123,6 @@ const AppV2: React.FC = () => {
     await profileEconomy.updateCharacter(character);
     setRoute('landing');
   }, [profileEconomy]);
-
-  if (bootstrapStatus === 'loading' || bootstrapStatus === 'error') {
-    return (
-      <AuthBootstrapGate
-        error={bootstrapError}
-        onContinueAsGuest={bootstrapStatus === 'error' ? continueAsGuestAfterBootstrapError : undefined}
-      />
-    );
-  }
 
   return (
     <AppShell
