@@ -58,37 +58,37 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
   };
 
   return (
-    <ScreenContainer compact className="max-w-2xl h-[100dvh] overflow-hidden overscroll-none px-2 pt-2 pb-0 sm:px-4 sm:py-4">
-      <div className="relative flex h-full min-h-0 flex-col gap-1.5 sm:gap-3 overflow-hidden overscroll-none">
-        <div className="flex items-center justify-between gap-1.5 shrink-0">
+    <ScreenContainer compact className="h-[100dvh] max-w-none overflow-hidden px-2 py-2 sm:px-4 sm:py-3 lg:px-6">
+      <div className="relative mx-auto grid h-full min-h-0 w-full max-w-[88rem] grid-rows-[auto_minmax(0,1fr)_auto] gap-2 overflow-hidden lg:gap-3">
+        <header className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
           <button
             type="button"
             onClick={onBackHome}
             aria-label="Назад"
             title="Назад"
-            className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-white border-2 border-indigo-100 text-xl sm:text-2xl font-black text-indigo-700 hover:bg-indigo-50 transition shadow-sm"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-xl font-black text-indigo-700 shadow-sm transition hover:bg-indigo-50 sm:h-12 sm:w-12 sm:text-2xl"
           >
             ←
           </button>
 
-          <div className="flex min-w-0 flex-1 items-center justify-center">
+          <div className="flex min-w-0 justify-center">
             <button
               type="button"
               onClick={handleHintClick}
               disabled={isFinished}
-              className="min-w-0 rounded-2xl bg-blue-50 border-2 border-blue-100 px-5 sm:px-6 py-2 text-sm sm:text-base font-black text-blue-700 hover:bg-blue-100 transition disabled:opacity-50 shadow-sm"
+              className="min-w-[8.5rem] rounded-2xl border-2 border-blue-100 bg-blue-50 px-5 py-2 text-sm font-black text-blue-700 shadow-sm transition hover:bg-blue-100 disabled:opacity-50 sm:min-w-[10rem] sm:px-6 sm:text-base"
             >
               {gameState.loadingHint ? '...' : 'Подсказка'}
             </button>
           </div>
 
-          <div className="flex gap-1.5">
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={handleRulesClick}
               aria-label="Правила Wordle"
               title="Правила"
-              className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-indigo-50 border-2 border-indigo-100 text-indigo-700 font-black hover:bg-indigo-100 transition shadow-sm"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-indigo-50 font-black text-indigo-700 shadow-sm transition hover:bg-indigo-100 sm:h-12 sm:w-12"
             >
               ?
             </button>
@@ -97,15 +97,15 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
               onClick={onRestart}
               aria-label="Новая игра"
               title="Новая игра"
-              className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-indigo-50 border-2 border-indigo-100 text-xl sm:text-2xl font-black text-indigo-700 hover:bg-indigo-100 transition shadow-sm"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-indigo-50 text-xl font-black text-indigo-700 shadow-sm transition hover:bg-indigo-100 sm:h-12 sm:w-12 sm:text-2xl"
             >
               ↻
             </button>
           </div>
-        </div>
+        </header>
 
         {showRules && (
-          <div className="absolute right-0 top-12 sm:top-14 z-30 w-[min(21rem,92vw)] rounded-3xl border-2 border-indigo-100 bg-white p-4 text-sm text-indigo-950 shadow-2xl">
+          <div className="absolute right-0 top-12 z-30 w-[min(21rem,92vw)] rounded-3xl border-2 border-indigo-100 bg-white p-4 text-sm text-indigo-950 shadow-2xl sm:top-14">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="font-black">Как играть</div>
               <button type="button" onClick={() => setShowRules(false)} className="font-black text-indigo-400">×</button>
@@ -129,7 +129,7 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
         )}
 
         {showHint && (
-          <div className="absolute left-1/2 top-12 sm:top-14 z-30 w-[min(21rem,92vw)] -translate-x-1/2 rounded-3xl border-2 border-blue-100 bg-white p-4 text-sm text-blue-950 shadow-2xl">
+          <div className="absolute left-1/2 top-12 z-30 w-[min(21rem,92vw)] -translate-x-1/2 rounded-3xl border-2 border-blue-100 bg-white p-4 text-sm text-blue-950 shadow-2xl sm:top-14">
             <div className="flex items-start justify-between gap-3">
               <div className="font-bold">
                 {gameState.loadingHint ? 'Готовлю подсказку...' : gameState.hint || 'Подсказка скоро появится.'}
@@ -139,36 +139,34 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
           </div>
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col justify-start gap-1 sm:gap-2 pt-0.5 overflow-hidden overscroll-none">
-          <div className="rounded-[1.35rem] sm:rounded-[2rem] bg-white border-2 border-indigo-50 shadow-sm p-1 sm:p-3 flex flex-col items-center justify-center overflow-hidden shrink-0">
-            <Grid
-              guesses={gameState.guesses}
-              currentGuess={gameState.currentGuess}
-              secretWord={gameState.secretWord}
-              wordLength={settings.wordLength}
-              maxGuesses={6}
-              shakeRowIndex={shakeRowIndex}
-            />
-          </div>
+        <section className="flex min-h-0 items-center justify-center overflow-hidden rounded-[1.5rem] border-2 border-indigo-50 bg-white/85 px-2 py-2 shadow-sm sm:rounded-[2rem] sm:px-4 lg:bg-transparent lg:border-0 lg:shadow-none lg:px-0">
+          <Grid
+            guesses={gameState.guesses}
+            currentGuess={gameState.currentGuess}
+            secretWord={gameState.secretWord}
+            wordLength={settings.wordLength}
+            maxGuesses={6}
+            shakeRowIndex={shakeRowIndex}
+          />
+        </section>
 
-          {isFinished && (
-            <div className={`shrink-0 rounded-2xl px-3 py-2 border-2 text-center ${gameState.gameStatus === 'won' ? 'bg-green-50 border-green-100 text-green-800' : 'bg-red-50 border-red-100 text-red-800'}`}>
-              <span className="text-sm font-black">{gameState.gameStatus === 'won' ? 'Победа' : 'Слово'}: {gameState.secretWord}</span>
-              {gameState.secretWordData?.translation && (
-                <span className="text-xs ml-2 opacity-80">{gameState.secretWordData.translation}</span>
-              )}
-            </div>
-          )}
+        <footer className="flex shrink-0 justify-center overflow-hidden pb-[max(0.15rem,env(safe-area-inset-bottom))]">
+          <Keyboard
+            onChar={onChar}
+            onDelete={onDelete}
+            onEnter={onEnter}
+            letterStatuses={keyStatuses}
+          />
+        </footer>
 
-          <div className="flex justify-center overflow-x-hidden shrink-0 -mt-0.5 sm:mt-0">
-            <Keyboard
-              onChar={onChar}
-              onDelete={onDelete}
-              onEnter={onEnter}
-              letterStatuses={keyStatuses}
-            />
+        {isFinished && (
+          <div className={`absolute left-1/2 top-[4.2rem] z-20 w-[min(30rem,92vw)] -translate-x-1/2 rounded-2xl border-2 px-3 py-2 text-center shadow-lg ${gameState.gameStatus === 'won' ? 'bg-green-50 border-green-100 text-green-800' : 'bg-red-50 border-red-100 text-red-800'}`}>
+            <span className="text-sm font-black">{gameState.gameStatus === 'won' ? 'Победа' : 'Слово'}: {gameState.secretWord}</span>
+            {gameState.secretWordData?.translation && (
+              <span className="ml-2 text-xs opacity-80">{gameState.secretWordData.translation}</span>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
       {isFinished && rewardPreview && progressPreview && (
