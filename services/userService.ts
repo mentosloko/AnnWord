@@ -29,7 +29,7 @@ const toShopItemPayload = (item: ShopItem) => ({
   characterType: item.characterType || '',
 });
 
-const withTimeout = async <T,>(promise: PromiseLike<T>, timeoutMs: number, label: string): Promise<T> => {
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error(`${label} timeout`)), timeoutMs);
