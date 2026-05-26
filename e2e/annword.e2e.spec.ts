@@ -5,7 +5,7 @@ const getBaseUrl = (): string => (process.env.E2E_BASE_URL || DEFAULT_E2E_BASE_U
 
 const goHome = async (page: import('@playwright/test').Page) => {
   await page.goto(`${getBaseUrl()}/`);
-  await expect(page.getByText(/AnnWord/i)).toBeVisible();
+  await expect(page.getByText('AnnWord', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Играть$/ })).toBeVisible();
 };
 
@@ -71,8 +71,8 @@ test.describe('AnnWord manual E2E smoke', () => {
     await expect(page.getByText(/Проверяем слово/i)).toHaveCount(0, { timeout: 2500 });
   });
 
-  test('Wordle grid remains visible on tablet viewport', async ({ page, browserName }) => {
-    test.skip(browserName !== 'chromium', 'single viewport smoke is enough for manual layout guard');
+  test('Wordle grid remains visible on tablet viewport', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium-desktop', 'tablet viewport smoke runs once from desktop chromium');
     await page.setViewportSize({ width: 1180, height: 820 });
     await startMode(page, /Классика/i);
     await expect(page.getByRole('button', { name: /Подсказка/i })).toBeVisible();
