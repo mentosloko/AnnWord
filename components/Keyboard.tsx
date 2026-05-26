@@ -16,11 +16,11 @@ export const Keyboard: React.FC<KeyboardProps> = ({ onChar, onDelete, onEnter, l
     let base = 'min-w-0 flex items-center justify-center rounded-xl sm:rounded-2xl font-black cursor-pointer select-none transition-colors active:scale-95 touch-manipulation shadow-sm border-2 ';
 
     if (isControlKey) {
-      base += 'h-[clamp(2.7rem,8dvh,3.85rem)] flex-[1.5] px-1 text-[clamp(0.86rem,3.1vw,1.08rem)] ';
+      base += 'h-[clamp(2.3rem,6.2dvh,3.25rem)] sm:h-[clamp(2.2rem,5.8dvh,3.1rem)] flex-[1.45] px-1 text-[clamp(0.74rem,2.55vw,0.98rem)] ';
       return base + 'bg-indigo-100 hover:bg-indigo-200 text-indigo-950 border-indigo-200';
     }
 
-    base += 'h-[clamp(2.7rem,8dvh,3.85rem)] flex-1 text-[clamp(1rem,3.65vw,1.25rem)] ';
+    base += 'h-[clamp(2.3rem,6.2dvh,3.25rem)] sm:h-[clamp(2.2rem,5.8dvh,3.1rem)] flex-1 text-[clamp(0.92rem,3vw,1.12rem)] ';
 
     if (status === 'correct') return base + 'bg-green-500 text-white border-green-500';
     if (status === 'present') return base + 'bg-yellow-500 text-white border-yellow-500';
@@ -49,11 +49,11 @@ export const Keyboard: React.FC<KeyboardProps> = ({ onChar, onDelete, onEnter, l
   };
 
   return (
-    <div className="w-full max-w-none px-0 pb-[max(0.15rem,env(safe-area-inset-bottom))]">
+    <div className="w-full max-w-[min(100%,48rem)] px-0 pb-[max(0.1rem,env(safe-area-inset-bottom))]">
       {KEYBOARD_LAYOUT_EN.map((row, i) => (
         <div
           key={i}
-          className="flex gap-[clamp(0.16rem,0.65vw,0.38rem)] mb-[clamp(0.18rem,0.7vw,0.38rem)] justify-stretch w-full"
+          className="flex gap-[clamp(0.14rem,0.55vw,0.32rem)] mb-[clamp(0.14rem,0.55vw,0.32rem)] justify-stretch w-full last:mb-0"
         >
           {row.map(renderKey)}
         </div>
