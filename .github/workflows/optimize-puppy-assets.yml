@@ -1,11 +1,6 @@
 name: Optimize puppy assets
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/optimize-puppy-assets.yml'
   workflow_dispatch:
 
 permissions:
@@ -24,6 +19,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick webp
+          if command -v magick >/dev/null 2>&1; then
+            echo "IM_CMD=magick" >> "$GITHUB_ENV"
+          elif command -v convert >/dev/null 2>&1; then
+            echo "IM_CMD=convert" >> "$GITHUB_ENV"
+          else
+            echo "Neither magick nor convert is available" >&2
+            exit 127
+          fi
+          cwebp -version
 
       - name: Convert puppy character PNG assets to optimized WebP
         shell: bash
@@ -37,7 +41,7 @@ jobs:
             tmp="$(mktemp --suffix=.png)"
 
             # Runtime export: transparent WebP, 768 canvas, visible character fit for mobile.
-            magick "$src" \
+            "$IM_CMD" "$src" \
               -alpha on \
               -trim +repage \
               -resize '680x680>' \
@@ -74,7 +78,7 @@ jobs:
               dst="${src%.png}.webp"
               tmp="$(mktemp --suffix=.png)"
 
-              magick "$src" \
+              "$IM_CMD" "$src" \
                 -alpha on \
                 -trim +repage \
                 -resize '220x220>' \
@@ -95,7 +99,7 @@ jobs:
 
           if [ -f public/assets/rooms/puppy/background.webp ]; then
             tmp="$(mktemp --suffix=.png)"
-            magick public/assets/rooms/puppy/background.webp \
+            "$IM_CMD" public/assets/rooms/puppy/background.webp \
               -resize '1600x900>' \
               "$tmp"
             cwebp -quiet -q 80 "$tmp" -o public/assets/rooms/puppy/background.webp
