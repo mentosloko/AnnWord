@@ -7,6 +7,10 @@ interface UseDictionaryPoolsArgs {
   userProfile: UserProfile;
 }
 
+type ModeWordPoolOptions = {
+  respectWordLength?: boolean;
+};
+
 export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPoolsArgs) => {
   const getSecretWordPool = useCallback((): EnrichedWord[] => {
     let pool: EnrichedWord[] = [];
@@ -43,11 +47,13 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
     return Array.from(new Set(combinedPool));
   }, [settings.wordLength, userProfile.customDictionaryEn]);
 
-  const getModeWords = useCallback((): string[] => {
+  const getModeWords = useCallback((options: ModeWordPoolOptions = {}): string[] => {
     const secretPool = getSecretWordPool();
-    return secretPool
-      .filter(entry => entry.word.length === settings.wordLength)
-      .map(entry => entry.word);
+    const filteredPool = options.respectWordLength
+      ? secretPool.filter(entry => entry.word.length === settings.wordLength)
+      : secretPool;
+
+    return filteredPool.map(entry => entry.word);
   }, [getSecretWordPool, settings.wordLength]);
 
   return {
