@@ -12,25 +12,25 @@ interface SprintGameProps {
 }
 
 const hasRussianText = (value: string | undefined): boolean => Boolean(value && /[А-Яа-яЁё]/.test(value));
+const getPlayableSprintDictionary = (entries: EnrichedWord[]): EnrichedWord[] => {
+  const playable = entries.filter(entry => hasRussianText(entry.translation));
+  if (playable.length >= 4) return playable;
+  return COMMON_WORDS_EN.filter(entry => hasRussianText(entry.translation));
+};
 
 export const buildSprintDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => {
-  const fallbackWithTranslations = fallbackDictionary.filter(entry => hasRussianText(entry.translation));
-  if (customDictionaryEn.length === 0) return fallbackWithTranslations;
+  if (customDictionaryEn.length === 0) return fallbackDictionary;
 
-  const customWithTranslations = customDictionaryEn
-    .map(word => {
-      const normalizedWord = word.toUpperCase();
-      const builtinEntry = fallbackDictionary.find(entry => entry.word.toUpperCase() === normalizedWord && hasRussianText(entry.translation));
-      if (!builtinEntry) return null;
-      return {
-        word: normalizedWord,
-        translation: builtinEntry.translation,
-        level: builtinEntry.level || 'Custom',
-      };
-    })
-    .filter((entry): entry is EnrichedWord => Boolean(entry));
+  return customDictionaryEn.map(word => {
+    const normalizedWord = word.toUpperCase();
+    const builtinEntry = fallbackDictionary.find(entry => entry.word.toUpperCase() === normalizedWord);
 
-  return customWithTranslations.length >= 4 ? customWithTranslations : fallbackWithTranslations;
+    return {
+      word: normalizedWord,
+      translation: builtinEntry?.translation || word,
+      level: builtinEntry?.level || 'Custom',
+    };
+  });
 };
 
 export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onGameReward }) => {
@@ -65,7 +65,7 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
   }, []);
 
   const pickNewWord = useCallback(() => {
-    const activeDictionary = activeDictionaryRef.current.filter(entry => hasRussianText(entry.translation));
+    const activeDictionary = getPlayableSprintDictionary(activeDictionaryRef.current);
     if (activeDictionary.length === 0) return;
     const word = activeDictionary[Math.floor(Math.random() * activeDictionary.length)];
     setCurrentWord(word);
