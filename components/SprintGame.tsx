@@ -11,19 +11,26 @@ interface SprintGameProps {
   onGameReward: (input: GameRewardInput) => void | Promise<void>;
 }
 
+const hasRussianText = (value: string | undefined): boolean => Boolean(value && /[А-Яа-яЁё]/.test(value));
+
 export const buildSprintDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => {
-  if (customDictionaryEn.length === 0) return fallbackDictionary;
+  const fallbackWithTranslations = fallbackDictionary.filter(entry => hasRussianText(entry.translation));
+  if (customDictionaryEn.length === 0) return fallbackWithTranslations;
 
-  return customDictionaryEn.map(word => {
-    const normalizedWord = word.toUpperCase();
-    const builtinEntry = fallbackDictionary.find(entry => entry.word.toUpperCase() === normalizedWord);
+  const customWithTranslations = customDictionaryEn
+    .map(word => {
+      const normalizedWord = word.toUpperCase();
+      const builtinEntry = fallbackDictionary.find(entry => entry.word.toUpperCase() === normalizedWord && hasRussianText(entry.translation));
+      if (!builtinEntry) return null;
+      return {
+        word: normalizedWord,
+        translation: builtinEntry.translation,
+        level: builtinEntry.level || 'Custom',
+      };
+    })
+    .filter((entry): entry is EnrichedWord => Boolean(entry));
 
-    return {
-      word: normalizedWord,
-      translation: builtinEntry?.translation || word,
-      level: builtinEntry?.level || 'Custom',
-    };
-  });
+  return customWithTranslations.length >= 4 ? customWithTranslations : fallbackWithTranslations;
 };
 
 export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onGameReward }) => {
@@ -58,13 +65,12 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
   }, []);
 
   const pickNewWord = useCallback(() => {
-    const activeDictionary = activeDictionaryRef.current;
+    const activeDictionary = activeDictionaryRef.current.filter(entry => hasRussianText(entry.translation));
     if (activeDictionary.length === 0) return;
     const word = activeDictionary[Math.floor(Math.random() * activeDictionary.length)];
     setCurrentWord(word);
 
-    const correctAnswer = word.translation || word.word;
-
+    const correctAnswer = word.translation;
     const wrongOptions: string[] = [];
     const maxAttempts = activeDictionary.length * 3;
     let attempts = 0;
@@ -72,17 +78,24 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
     while (wrongOptions.length < 3 && attempts < maxAttempts) {
       attempts++;
       const randomWord = activeDictionary[Math.floor(Math.random() * activeDictionary.length)];
-      const candidate = randomWord.translation || randomWord.word;
-      if (candidate !== correctAnswer && !wrongOptions.includes(candidate)) {
+      const candidate = randomWord.translation;
+      if (hasRussianText(candidate) && candidate !== correctAnswer && !wrongOptions.includes(candidate)) {
         wrongOptions.push(candidate);
       }
     }
 
+    const fallbackOptions = COMMON_WORDS_EN
+      .map(entry => entry.translation)
+      .filter(candidate => hasRussianText(candidate) && candidate !== correctAnswer && !wrongOptions.includes(candidate));
+
+    while (wrongOptions.length < 3 && fallbackOptions.length > 0) {
+      const candidate = fallbackOptions[Math.floor(Math.random() * fallbackOptions.length)];
+      if (!wrongOptions.includes(candidate)) wrongOptions.push(candidate);
+    }
+
     while (wrongOptions.length < 3) {
       const placeholder = `Вариант ${wrongOptions.length + 1}`;
-      if (!wrongOptions.includes(placeholder)) {
-        wrongOptions.push(placeholder);
-      }
+      if (!wrongOptions.includes(placeholder)) wrongOptions.push(placeholder);
     }
 
     const allOptions = [...wrongOptions, correctAnswer].sort(() => Math.random() - 0.5);
@@ -135,7 +148,7 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
     }
   }, [status, score, onGameReward]);
 
-  const correctAnswer = currentWord?.translation || currentWord?.word || '';
+  const correctAnswer = currentWord?.translation || '';
   const rewardPreview = calculateGameReward({ type: 'sprint', guessedWords: score });
   const progressPreview = applyGameRewardToCharacter(userProfile.pet, rewardPreview);
 
