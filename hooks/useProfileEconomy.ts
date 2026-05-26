@@ -1,7 +1,7 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import { PetState, ShopItem, UserProfile, UserStats } from '../types';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
-import { applyItemUseLocally } from '../services/economyEngine';
+import { applyItemUseLocally, applyPurchaseLocally } from '../services/economyEngine';
 
 interface UseProfileEconomyArgs {
   currentUserId: string | null;
@@ -27,11 +27,24 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
   }, [currentUserId, setUserProfile]);
 
   const buyItem = useCallback(async (item: ShopItem) => {
+    const localPurchase = applyPurchaseLocally(userProfile, item);
+    if (!localPurchase.ok || !localPurchase.profile) {
+      throw new Error(localPurchase.reason || 'Покупка не удалась');
+    }
+
+    setUserProfile(localPurchase.profile);
+
     if (!currentUserId) return;
-    const userService = await getUserService();
-    const updatedProfile = await userService.buyItem(currentUserId, item);
-    setUserProfile(updatedProfile);
-  }, [currentUserId, setUserProfile]);
+
+    try {
+      const userService = await getUserService();
+      const updatedProfile = await userService.buyItem(currentUserId, item);
+      setUserProfile(updatedProfile);
+    } catch (error) {
+      setUserProfile(userProfile);
+      throw error;
+    }
+  }, [currentUserId, setUserProfile, userProfile]);
 
   const useItem = useCallback(async (itemId: string) => {
     const localUse = applyItemUseLocally(userProfile, itemId);
