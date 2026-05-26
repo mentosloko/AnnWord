@@ -3,6 +3,7 @@ import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion, AnimatePresence } from 'motion/react';
 import { GameRewardInput } from '../services/gamificationRules';
+import { getUnusedSessionWord } from '../services/sessionWordHistory';
 
 interface AnagramGameProps {
   onBack: () => void;
@@ -37,11 +38,12 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     [userProfile.customDictionaryEn],
   );
   const nextWordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isCheckingRef = useRef(false);
 
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
   const [shuffledLetters, setShuffledLetters] = useState<LetterSlot[]>([]);
   const [userGuess, setUserGuess] = useState<{ char: string, slotIndex: number }[]>([]);
-  const [status, setStatus] = useState<'playing' | 'success' | 'error'>('playing');
+  const [status, setStatus] = useState<'playing' | 'checking' | 'success' | 'error'>('playing');
   const [message, setMessage] = useState('');
   const [solvedCount, setSolvedCount] = useState(0);
 
@@ -66,7 +68,8 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
 
   const pickNewWord = useCallback(() => {
     if (dictionary.length === 0) return;
-    const word = dictionary[Math.floor(Math.random() * dictionary.length)];
+    isCheckingRef.current = false;
+    const word = getUnusedSessionWord('anagram', dictionary) || dictionary[Math.floor(Math.random() * dictionary.length)];
     setCurrentWord(word);
     
     const letters = word.word.split('');
@@ -112,28 +115,35 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     setShuffledLetters(newShuffled);
   };
 
-  const checkGuess = async () => {
-    if (!currentWord) return;
+  const checkGuess = () => {
+    if (!currentWord || isCheckingRef.current || status !== 'playing') return;
     const guess = userGuess.map(g => g.char).join('');
+    isCheckingRef.current = true;
+    setStatus('checking');
+    setMessage('Проверяем слово...');
+
     if (guess === currentWord.word) {
       const nextSolvedCount = solvedCount + 1;
       setSolvedCount(nextSolvedCount);
       setStatus('success');
-      setMessage(`Правильно! +1 XP персонажу. Всего слов: ${nextSolvedCount}`);
-      await onGameReward({ type: 'anagram', guessedWords: 1 });
+      setMessage(`Правильно! +1 очко опыта персонажу. Всего слов: ${nextSolvedCount}`);
+      void Promise.resolve(onGameReward({ type: 'anagram', guessedWords: 1 })).catch(error => {
+        console.error('Failed to apply anagram reward', error);
+      });
       clearNextWordTimeout();
-      nextWordTimeoutRef.current = setTimeout(pickNewWord, 2000);
+      nextWordTimeoutRef.current = setTimeout(pickNewWord, 900);
     } else {
       setStatus('error');
       setMessage('Неверно, попробуй еще раз!');
       clearNextWordTimeout();
       nextWordTimeoutRef.current = setTimeout(() => {
+        isCheckingRef.current = false;
         setStatus('playing');
         setMessage('');
         const resetShuffled = shuffledLetters.map(s => ({ ...s, isUsed: false }));
         setShuffledLetters(resetShuffled);
         setUserGuess([]);
-      }, 1500);
+      }, 1000);
     }
   };
 
@@ -211,7 +221,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className={`mb-6 text-center font-bold ${status === 'success' ? 'text-green-600' : 'text-red-500'}`}
+          className={`mb-6 text-center font-bold ${status === 'success' ? 'text-green-600' : status === 'error' ? 'text-red-500' : 'text-indigo-500'}`}
         >
           {message}
         </motion.div>
@@ -224,7 +234,8 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
             setShuffledLetters(resetShuffled);
             setUserGuess([]);
           }}
-          className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition"
+          disabled={status !== 'playing'}
+          className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Сброс
         </button>
@@ -237,7 +248,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
           }`}
         >
-          Проверить
+          {status === 'checking' ? 'Проверяем...' : 'Проверить'}
         </button>
       </div>
     </div>
