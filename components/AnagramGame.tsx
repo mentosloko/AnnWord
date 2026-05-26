@@ -25,7 +25,7 @@ export const buildAnagramDictionary = (customDictionaryEn: string[] = [], fallba
 
     return {
       word: normalizedWord,
-      translation: builtinEntry?.translation || 'Перевод недоступен',
+      translation: builtinEntry?.translation || normalizedWord,
       level: builtinEntry?.level || 'Custom',
     };
   });
@@ -163,7 +163,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
 
       <div className="mb-8 text-center">
         <div className="text-sm text-gray-400 mb-1 uppercase tracking-tighter">Перевод</div>
-        <div className="text-2xl font-bold text-indigo-900">{currentWord?.translation || 'Перевод недоступен'}</div>
+        <div className="text-2xl font-bold text-indigo-900">{currentWord?.translation || currentWord?.word}</div>
       </div>
 
       <div className="flex flex-wrap justify-center gap-2 mb-8 min-h-[60px] p-4 bg-indigo-50 rounded-2xl w-full border-2 border-dashed border-indigo-200">
