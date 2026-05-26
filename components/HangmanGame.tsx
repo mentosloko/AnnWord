@@ -4,6 +4,7 @@ import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { motion } from 'motion/react';
 import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
+import { getUnusedSessionWord } from '../services/sessionWordHistory';
 
 interface HangmanGameProps {
   onBack: () => void;
@@ -37,7 +38,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
 
   const pickNewWord = useCallback(() => {
     if (dictionary.length === 0) return;
-    const word = dictionary[Math.floor(Math.random() * dictionary.length)];
+    const word = getUnusedSessionWord('hangman', dictionary) || dictionary[Math.floor(Math.random() * dictionary.length)];
     setCurrentWord(word);
     setGuessedLetters([]);
     setMistakes(0);
