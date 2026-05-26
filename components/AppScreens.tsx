@@ -86,6 +86,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
     onRouteChange(selectedPlayMode);
   };
 
+  // Smoke contract reference: pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onClose={goHome} />
   const screens: Partial<Record<ViewState, React.ReactNode>> = {
     character_onboarding: <CharacterOnboardingScreen onComplete={onCharacterOnboardingComplete} />,
     landing: (
