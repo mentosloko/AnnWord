@@ -4,6 +4,7 @@ import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
+import { getUnusedSessionWord } from '../services/sessionWordHistory';
 
 interface Card {
   id: number;
@@ -37,8 +38,29 @@ export const buildMemoryDictionary = (customDictionaryEn: string[] = [], fallbac
 };
 
 export const createMemoryCards = (dictionary: EnrichedWord[], random: () => number = Math.random): Card[] => {
-  const shuffled = [...dictionary].sort(() => 0.5 - random());
-  const selectedWords = shuffled.slice(0, 6);
+  const selectedWords: EnrichedWord[] = [];
+  const selectedSet = new Set<string>();
+  const maxPairs = Math.min(6, dictionary.length);
+
+  while (selectedWords.length < maxPairs) {
+    const selected = getUnusedSessionWord('memory', dictionary);
+    if (!selected) break;
+    const key = selected.word.toUpperCase();
+    if (selectedSet.has(key)) break;
+    selectedSet.add(key);
+    selectedWords.push(selected);
+  }
+
+  if (selectedWords.length < maxPairs) {
+    const shuffled = [...dictionary].sort(() => 0.5 - random());
+    for (const word of shuffled) {
+      if (selectedWords.length >= maxPairs) break;
+      const key = word.word.toUpperCase();
+      if (selectedSet.has(key)) continue;
+      selectedSet.add(key);
+      selectedWords.push(word);
+    }
+  }
 
   const gameCards: Card[] = [];
   selectedWords.forEach((wordData, index) => {
