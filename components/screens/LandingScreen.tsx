@@ -66,7 +66,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
           </h1>
           <p className="text-base sm:text-lg text-gray-600 leading-relaxed max-w-2xl mb-7">
             Wordle, анаграммы, спринт, виселица и память — с единым словарём,
-            монетами и персонажем, который растёт от XP.
+            монетами и персонажем, который растёт от очков опыта.
           </p>
 
           <div className="flex flex-wrap gap-3">
@@ -109,7 +109,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
               <div className="text-5xl mb-3">{getPetEmoji(userProfile.pet)}</div>
               <h2 className="text-xl font-black mb-2">Сохраните своего персонажа</h2>
               <p className="text-sm text-white/75 leading-relaxed mb-4">
-                Зарегистрируйтесь, чтобы копить XP, покупать предметы и работать со своим словарём.
+                Зарегистрируйтесь, чтобы копить очки опыта, покупать предметы и работать со своим словарём.
               </p>
               <button
                 type="button"
@@ -163,8 +163,8 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
 
               <div className="mt-4 rounded-3xl bg-white/10 border border-white/10 p-4">
                 <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/65 mb-2">
-                  <span>XP</span>
-                  <span title="XP даётся за игры. Победы дают больше опыта, но попытки тоже поощряются.">{userProfile.pet.xp}</span>
+                  <span>Очки опыта</span>
+                  <span title="Очки опыта даются за игры. Победы дают больше опыта, но попытки тоже поощряются.">{userProfile.pet.xp}</span>
                 </div>
                 <div className="h-3 rounded-full bg-white/15 overflow-hidden mb-3">
                   <div className="h-full bg-white" style={{ width: `${xpProgress}%` }} />
