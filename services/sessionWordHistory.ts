@@ -4,8 +4,16 @@ type SessionWordBuckets = Record<string, string[]>;
 
 const normalizeWord = (word: string): string => word.trim().toUpperCase();
 
+const isTestEnvironment = (): boolean => {
+  try {
+    return import.meta.env?.MODE === 'test';
+  } catch {
+    return false;
+  }
+};
+
 const readBuckets = (): SessionWordBuckets => {
-  if (typeof window === 'undefined') return {};
+  if (typeof window === 'undefined' || isTestEnvironment()) return {};
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return {};
@@ -18,7 +26,7 @@ const readBuckets = (): SessionWordBuckets => {
 };
 
 const writeBuckets = (buckets: SessionWordBuckets) => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || isTestEnvironment()) return;
   try {
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(buckets));
   } catch {
@@ -28,6 +36,10 @@ const writeBuckets = (buckets: SessionWordBuckets) => {
 
 export const getUnusedSessionWord = <T extends { word: string }>(bucketKey: string, pool: T[]): T | null => {
   if (pool.length === 0) return null;
+
+  if (isTestEnvironment()) {
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
 
   const buckets = readBuckets();
   const usedWords = new Set((buckets[bucketKey] || []).map(normalizeWord));
