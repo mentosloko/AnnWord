@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { PetState } from '../types';
 import { CharacterProgressCard } from './CharacterProgressCard';
+import { normalizeMoodScore } from '../services/gamificationRules';
 
 interface GameResultOverlayProps {
   isOpen: boolean;
@@ -25,6 +26,14 @@ const getStatusTone = (status: GameResultOverlayProps['status']) => {
   return 'from-indigo-50 via-white to-purple-50 border-indigo-100 text-indigo-700';
 };
 
+const getFeedingPrompt = (pet: PetState, coinsGained: number): string | null => {
+  if (coinsGained <= 0) return null;
+  const moodScore = normalizeMoodScore(pet);
+  if (moodScore <= 45) return `${pet.name} проголодался. На заработанные монеты можно купить лакомство и покормить питомца.`;
+  if (moodScore <= 70) return `${pet.name} будет рад лакомству после игры. Загляните в магазин за угощением.`;
+  return 'Монеты начислены. Можно накопить на новые лакомства или аксессуары.';
+};
+
 export const GameResultOverlay: React.FC<GameResultOverlayProps> = ({
   isOpen,
   status,
@@ -41,6 +50,7 @@ export const GameResultOverlay: React.FC<GameResultOverlayProps> = ({
   details,
 }) => {
   if (!isOpen) return null;
+  const feedingPrompt = getFeedingPrompt(pet, coinsGained);
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-indigo-950/45 px-3 py-4 backdrop-blur-sm sm:px-4">
@@ -57,6 +67,11 @@ export const GameResultOverlay: React.FC<GameResultOverlayProps> = ({
         <h2 className="text-2xl font-black text-indigo-950 sm:text-3xl">{title}</h2>
         {subtitle && <p className="mx-auto mt-2 max-w-sm text-sm font-bold text-gray-500 sm:text-base">{subtitle}</p>}
         {details && <div className="mt-4 rounded-2xl bg-white/70 p-3 text-sm font-bold text-indigo-900 border border-indigo-100">{details}</div>}
+        {feedingPrompt && (
+          <div className="mt-4 rounded-2xl border-2 border-amber-100 bg-amber-50 p-3 text-sm font-black text-amber-800">
+            🍪 {feedingPrompt}
+          </div>
+        )}
 
         <div className="mt-5">
           <CharacterProgressCard pet={pet} xpGained={xpGained} coinsGained={coinsGained} />
