@@ -5,7 +5,8 @@ const getBaseUrl = (): string => (process.env.E2E_BASE_URL || DEFAULT_E2E_BASE_U
 
 const goHome = async (page: import('@playwright/test').Page) => {
   await page.goto(`${getBaseUrl()}/`);
-  await expect(page.getByRole('heading', { name: /Учите английские слова через игру/i })).toBeVisible();
+  await expect(page.getByText(/AnnWord/i)).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Играть$/ })).toBeVisible();
 };
 
 const startMode = async (page: import('@playwright/test').Page, modeName: RegExp | string) => {
@@ -20,7 +21,6 @@ test.describe('AnnWord manual E2E smoke', () => {
   test('home renders without blocking auth bootstrap screen', async ({ page }) => {
     await goHome(page);
     await expect(page.getByText(/Подключаем твой профиль|Проверяю вход/i)).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /^Играть$/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /Классика/i })).toBeVisible();
   });
 
@@ -41,17 +41,16 @@ test.describe('AnnWord manual E2E smoke', () => {
     await startMode(page, /Спринт/i);
     await expect(page.getByText(/Как переводится\?/i)).toBeVisible();
 
-    const optionButtons = page.locator('button').filter({ hasText: /[А-Яа-яЁё]/ });
-    await expect(optionButtons.first()).toBeVisible();
-
-    const visibleOptions = await page.locator('button').evaluateAll(buttons =>
+    const sprintRoot = page.locator('div').filter({ hasText: /Как переводится\?/i }).last();
+    const optionTexts = await sprintRoot.locator('button').evaluateAll(buttons =>
       buttons
         .map(button => (button.textContent || '').trim())
         .filter(text => text.length > 0)
         .filter(text => !/Меню|Назад|Играть|Войти|Зарегистрироваться/.test(text))
     );
 
-    const suspiciousEnglishOptions = visibleOptions.filter(text => /^[A-Z]{3,10}$/.test(text));
+    expect(optionTexts.some(text => /[А-Яа-яЁё]/.test(text))).toBeTruthy();
+    const suspiciousEnglishOptions = optionTexts.filter(text => /^[A-Z]{3,10}$/.test(text));
     expect(suspiciousEnglishOptions).toEqual([]);
   });
 
