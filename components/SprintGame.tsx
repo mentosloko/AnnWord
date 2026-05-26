@@ -31,6 +31,8 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
     () => buildSprintDictionary(userProfile.customDictionaryEn),
     [userProfile.customDictionaryEn],
   );
+  const activeDictionaryRef = useRef<EnrichedWord[]>(dictionary);
+  const latestDictionaryRef = useRef<EnrichedWord[]>(dictionary);
   const nextWordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rewardAppliedRef = useRef(false);
 
@@ -41,14 +43,12 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
   const [status, setStatus] = useState<'playing' | 'ended'>('playing');
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
 
-  const restartGame = () => {
-    clearNextWordTimeout();
-    rewardAppliedRef.current = false;
-    setScore(0);
-    setTimeLeft(60);
-    setFeedback(null);
-    setStatus('playing');
-  };
+  useEffect(() => {
+    latestDictionaryRef.current = dictionary;
+    if (activeDictionaryRef.current.length === 0 && dictionary.length > 0) {
+      activeDictionaryRef.current = dictionary;
+    }
+  }, [dictionary]);
 
   const clearNextWordTimeout = useCallback(() => {
     if (nextWordTimeoutRef.current) {
@@ -58,19 +58,20 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
   }, []);
 
   const pickNewWord = useCallback(() => {
-    if (dictionary.length === 0) return;
-    const word = dictionary[Math.floor(Math.random() * dictionary.length)];
+    const activeDictionary = activeDictionaryRef.current;
+    if (activeDictionary.length === 0) return;
+    const word = activeDictionary[Math.floor(Math.random() * activeDictionary.length)];
     setCurrentWord(word);
 
     const correctAnswer = word.translation || word.word;
 
     const wrongOptions: string[] = [];
-    const maxAttempts = dictionary.length * 3;
+    const maxAttempts = activeDictionary.length * 3;
     let attempts = 0;
 
     while (wrongOptions.length < 3 && attempts < maxAttempts) {
       attempts++;
-      const randomWord = dictionary[Math.floor(Math.random() * dictionary.length)];
+      const randomWord = activeDictionary[Math.floor(Math.random() * activeDictionary.length)];
       const candidate = randomWord.translation || randomWord.word;
       if (candidate !== correctAnswer && !wrongOptions.includes(candidate)) {
         wrongOptions.push(candidate);
@@ -87,12 +88,28 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
     const allOptions = [...wrongOptions, correctAnswer].sort(() => Math.random() - 0.5);
     setOptions(allOptions);
     setFeedback(null);
-  }, [dictionary]);
+  }, []);
+
+  const restartGame = () => {
+    clearNextWordTimeout();
+    activeDictionaryRef.current = latestDictionaryRef.current;
+    rewardAppliedRef.current = false;
+    setCurrentWord(null);
+    setOptions([]);
+    setScore(0);
+    setTimeLeft(60);
+    setFeedback(null);
+    setStatus('playing');
+  };
+
+  useEffect(() => {
+    if (status !== 'playing') return;
+    if (!currentWord) pickNewWord();
+  }, [status, currentWord, pickNewWord]);
 
   useEffect(() => {
     if (status !== 'playing') return;
 
-    pickNewWord();
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -109,7 +126,7 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
       clearInterval(timer);
       clearNextWordTimeout();
     };
-  }, [status, pickNewWord, clearNextWordTimeout]);
+  }, [status, clearNextWordTimeout]);
 
   useEffect(() => {
     if (status === 'ended' && !rewardAppliedRef.current) {
@@ -151,7 +168,7 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
   return (
     <div className="flex flex-col items-center w-full max-w-md p-4 sm:p-6 bg-white rounded-3xl shadow-xl relative overflow-hidden">
       <div className="absolute top-0 left-0 h-2 bg-indigo-100 w-full">
-        <motion.div 
+        <motion.div
           className="h-full bg-indigo-600"
           initial={{ width: '100%' }}
           animate={{ width: `${(timeLeft / 60) * 100}%` }}
@@ -160,8 +177,8 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
       </div>
 
       <div className="w-full flex justify-between items-center mb-6 mt-4 gap-3">
-        <button 
-          onClick={onBack} 
+        <button
+          onClick={onBack}
           className="flex items-center gap-1 text-gray-500 hover:text-indigo-600 font-bold transition px-3 py-1 bg-gray-50 rounded-lg border border-gray-200"
         >
           <span className="text-xl">←</span> Меню
