@@ -1,7 +1,7 @@
 import { UserProfile, UserStats, PetState, ShopItem } from "../types";
 import { supabase } from "../supabase";
 import { mapProfileFromDB, normalizeDictionaryField, normalizePet, normalizeStats } from "./profileMapper";
-import { applyItemUseLocally, applyPurchaseLocally } from "./economyEngine";
+import { applyPurchaseLocally } from "./economyEngine";
 
 const DEFAULT_PET: PetState = {
   name: 'Щенок',
@@ -189,38 +189,36 @@ export const userService = {
     }
   },
 
-  useItem: async (userId: string, itemId: string): Promise<UserProfile> => {
+  useItem: async (userId: string, itemId: string, optimisticProfile?: UserProfile): Promise<UserProfile> => {
     try {
+      if (optimisticProfile) {
+        const { data: updatedProfile, error: updateError } = await withTimeout(
+          supabase
+            .from('profiles')
+            .update({ inventory: optimisticProfile.inventory, pet: normalizePet(optimisticProfile.pet) })
+            .eq('id', userId)
+            .select()
+            .single(),
+          8000,
+          'use item profile update',
+        );
+
+        if (updateError) throw updateError;
+        return mapProfileFromDB(updatedProfile);
+      }
+
       const { data: profile, error: fetchErr } = await withTimeout(
         supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .single(),
-        3500,
+        8000,
         'use item profile fetch',
       );
 
       if (fetchErr) throw fetchErr;
-
-      const normalizedProfile = mapProfileFromDB(profile);
-      const used = applyItemUseLocally(normalizedProfile, itemId);
-      if (!used.ok || !used.profile) throw new Error('Предмет не найден');
-
-      const { data: updatedProfile, error: updateError } = await withTimeout(
-        supabase
-          .from('profiles')
-          .update({ inventory: used.profile.inventory, pet: normalizePet(used.profile.pet) })
-          .eq('id', userId)
-          .select()
-          .single(),
-        4500,
-        'use item profile update',
-      );
-
-      if (updateError) throw updateError;
-
-      return mapProfileFromDB(updatedProfile);
+      return mapProfileFromDB(profile);
     } catch (error) {
       console.error('Error using item:', error);
       throw error;
