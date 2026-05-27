@@ -150,7 +150,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
     memory: <MemoryScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
     hangman: <HangmanScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
     shop: <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} />,
-    pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onClose={goHome} onOpenShop={() => onRouteChange('shop')} />,
+    pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onBuy={onBuy} onClose={goHome} onOpenShop={() => onRouteChange('shop')} />,
   };
 
   return <AppRouter route={route} screens={screens} fallback={screens.landing} />;
