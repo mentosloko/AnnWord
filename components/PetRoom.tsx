@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { InventoryItem, UserProfile } from '../types';
-import { applyItemUseLocally, getPurchaseErrorMessage } from '../services/economyEngine';
+import { InventoryItem, ShopItem, UserProfile } from '../types';
+import { applyItemUseLocally } from '../services/economyEngine';
 import { getCharacterProgressPercent, getCharacterProgressText, getCharacterStageLabel } from '../services/gamificationRules';
 import { getInventoryEmoji, getPetEmoji, getPetNeedSnapshot, getVisibleInventory } from '../services/petEngine';
-import { getInventoryImageUrl, getPuppyCharacterAssetUrl, getPuppyCharacterPreloadUrls } from '../services/petAssets';
+import { getInventoryImageUrl, getPuppyCharacterAssetUrl, getPuppyCharacterPreloadUrls, getShopImageUrl } from '../services/petAssets';
+import { getShopItemsByType } from '../services/shopCatalog';
+import { CoinIcon } from './CoinIcon';
 
 interface PetRoomProps {
   userProfile: UserProfile;
@@ -35,8 +37,9 @@ const getUseHint = (tab: RoomTab): string => tab === 'food'
 
 const getCharacterPhrase = (profile: UserProfile): string => {
   const snapshot = getPetNeedSnapshot(profile.pet);
-  if (snapshot.moodScore <= 20) return 'Я соскучился. Давай сыграем и поднимем настроение?';
-  if (snapshot.moodScore <= 45) return 'Я готов к спокойной тренировке слов.';
+  const hasFood = profile.inventory.some(item => item.type === 'food' && item.quantity > 0);
+  if (snapshot.moodScore <= 20) return hasFood ? 'Я очень хочу лакомство. Можно меня покормить?' : 'Я проголодался. Заработай монеты и купи мне лакомство?';
+  if (snapshot.moodScore <= 45) return hasFood ? 'Кажется, лакомство сейчас очень поможет.' : 'Я бы не отказался от угощения после следующей игры.';
   if (snapshot.moodScore <= 70) return 'Отличный момент для новой игры!';
   if ((profile.pet.level || 1) >= 5) return 'Я уже сильный знаток слов. Хочу новый вызов!';
   return 'Супернастроение! Давай продолжим учиться.';
@@ -54,10 +57,27 @@ const InventoryCard: React.FC<{ item: InventoryItem; isActive: boolean; isUsing:
   );
 };
 
-export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClose, onOpenShop }) => {
+const PurchasableMutedCard: React.FC<{ item: ShopItem }> = ({ item }) => {
+  const imageUrl = getShopImageUrl(item);
+  return (
+    <div className="relative flex min-h-[108px] items-center gap-4 rounded-3xl border-2 border-dashed border-indigo-100 bg-indigo-50/45 p-4 text-left opacity-60 grayscale shadow-sm">
+      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/80">
+        {imageUrl ? <img src={imageUrl} alt="" className="h-16 w-16 object-contain" aria-hidden="true" draggable={false} /> : <span className="text-4xl">🎁</span>}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-base font-black leading-tight text-indigo-950">{item.name}</div>
+        <div className="mt-1 flex items-center gap-1 text-xs font-black text-yellow-700">
+          <span>{item.price}</span><CoinIcon />
+        </div>
+      </div>
+      <div className="absolute right-3 top-3 rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-indigo-400">можно купить</div>
+    </div>
+  );
+};
+
+export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClose }) => {
   const [activeTab, setActiveTab] = useState<VisibleRoomTab>('food');
   const [usingId, setUsingId] = useState<string | null>(null);
-  const [roomMessage, setRoomMessage] = useState<string | null>(null);
   const [speechText, setSpeechText] = useState<string>(getCharacterPhrase(userProfile));
   const [localProfile, setLocalProfile] = useState<UserProfile>(userProfile);
   const lastExternalProfileKey = useRef(getProfileSyncKey(userProfile));
@@ -80,6 +100,12 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
   const petSnapshot = getPetNeedSnapshot(pet);
   const puppyCharacterAssetUrl = getPuppyCharacterAssetUrl(pet);
   const filteredInventory = getVisibleInventory(activeProfile, activeTab as InventoryItem['type']);
+  const ownedIds = new Set(activeProfile.inventory.map(item => item.id));
+  const purchasableItems = getShopItemsByType(activeTab)
+    .filter(item => !item.characterType || item.characterType === activeProfile.pet.type)
+    .filter(item => (activeProfile.pet.level || 1) >= item.minLevel)
+    .filter(item => activeProfile.coins >= item.price)
+    .filter(item => item.type === 'food' || !ownedIds.has(item.id));
   const xpProgress = getCharacterProgressPercent(pet);
   const roomBackgroundUrl = ROOM_BACKGROUND_BY_PET_TYPE[pet.type];
   const hasCustomRoomBackground = Boolean(roomBackgroundUrl);
@@ -89,23 +115,18 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
 
   const handleUse = async (itemId: string) => {
     if (usingId) return;
-    const selectedItem = activeProfile.inventory.find(item => item.id === itemId);
     const optimisticUse = applyItemUseLocally(activeProfile, itemId);
-    if (!optimisticUse.ok || !optimisticUse.profile) { setRoomMessage(getPurchaseErrorMessage(optimisticUse.reason)); return; }
+    if (!optimisticUse.ok || !optimisticUse.profile) return;
     setLocalAndRemember(optimisticUse.profile);
-    setRoomMessage(null);
     setUsingId(itemId);
     try {
       await onUseItem(itemId);
-      if (mountedRef.current && selectedItem?.type !== 'accessory') setRoomMessage('Готово: комната обновлена.');
-    } catch (error: any) {
-      if (mountedRef.current) { setLocalAndRemember(userProfile); setRoomMessage(error?.message || 'Не удалось использовать предмет.'); }
+    } catch {
+      // Keep optimistic state; server sync errors should not disturb the room UI.
     } finally {
       if (mountedRef.current) setUsingId(null);
     }
   };
-
-  const handleOpenShop = () => { if (onOpenShop) onOpenShop(); else onClose(); };
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col px-3 pb-24 pt-3 sm:px-4 sm:pt-4">
@@ -115,9 +136,12 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
         <aside className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1"><div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm"><div className="mb-1 text-xs font-black uppercase tracking-widest text-indigo-300">Питомец</div><div className="text-2xl font-black text-indigo-950">{pet.name}</div><div className="mt-1 text-sm font-bold text-indigo-500">Уровень {pet.level} · {getCharacterStageLabel(pet.stage)}</div><div className={`mt-4 w-fit rounded-full px-4 py-1 text-xs font-black uppercase tracking-widest ${petSnapshot.attentionLevel === 'critical' ? 'border border-red-100 bg-red-50 text-red-600' : petSnapshot.attentionLevel === 'watch' ? 'border border-yellow-100 bg-yellow-50 text-yellow-700' : 'border border-green-100 bg-green-50 text-green-700'}`}>{petSnapshot.statusLabel}</div></div><div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm"><div className="mb-3 flex items-center justify-between text-xs font-black uppercase tracking-widest text-indigo-300"><span>Очки опыта</span><span>{pet.xp}</span></div><div className="h-3 overflow-hidden rounded-full border border-indigo-100 bg-indigo-50"><motion.div initial={{ width: 0 }} animate={{ width: `${xpProgress}%` }} className="h-full bg-indigo-500" /></div><div className="mt-2 text-xs font-bold text-indigo-500">{getCharacterProgressText(pet)}</div><div className="mt-5 mb-3 flex items-center justify-between text-xs font-black uppercase tracking-widest text-green-500"><span>Настроение</span><span>{petSnapshot.moodScore}/100</span></div><div className="h-3 overflow-hidden rounded-full border border-green-100 bg-green-50"><motion.div initial={{ width: 0 }} animate={{ width: `${petSnapshot.moodScore}%` }} className="h-full bg-green-500" /></div></div></aside>
       </section>
       <section className="mt-5 rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:mt-6 sm:p-5">
-        {roomMessage && <div className="mb-4 rounded-2xl border-2 border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">{roomMessage}</div>}
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-xl font-black text-indigo-950">Предметы питомца</h2><p className="mt-1 text-xs font-bold text-indigo-400">{getUseHint(activeTab)}</p></div><div className="flex w-fit flex-wrap gap-2 rounded-2xl bg-indigo-50 p-1">{VISIBLE_ROOM_TABS.map(tab => <button key={tab} type="button" onClick={() => { setActiveTab(tab); setRoomMessage(null); }} className={`rounded-xl px-4 py-2 font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>{getTabLabel(tab)}</button>)}</div></div>
-        {filteredInventory.length === 0 ? <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-indigo-100 bg-indigo-50/50 px-4 py-12 text-center text-gray-500"><span className="mb-2 text-4xl">📦</span><p className="text-sm font-black text-indigo-950">{activeTab === 'food' ? 'Лакомств пока нет' : 'Пока здесь пусто'}</p><p className="mt-1 max-w-md text-xs font-bold text-indigo-400">{activeTab === 'food' ? 'Купите лакомства в магазине, чтобы угощать питомца и поднимать настроение.' : 'Заработайте монеты в играх и загляните в магазин за новыми предметами.'}</p><button type="button" onClick={handleOpenShop} className="mt-5 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-indigo-100 transition hover:bg-indigo-700">Перейти в магазин</button></div> : <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{filteredInventory.map(item => { const isActive = pet.equippedAccessories?.includes(item.id) || pet.activeHomeItemId === item.id; return <InventoryCard key={item.id} item={item} isActive={Boolean(isActive)} isUsing={usingId === item.id} onUse={handleUse} />; })}</div>}
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-xl font-black text-indigo-950">Предметы питомца</h2><p className="mt-1 text-xs font-bold text-indigo-400">{getUseHint(activeTab)}</p></div><div className="flex w-fit flex-wrap gap-2 rounded-2xl bg-indigo-50 p-1">{VISIBLE_ROOM_TABS.map(tab => <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`rounded-xl px-4 py-2 font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>{getTabLabel(tab)}</button>)}</div></div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredInventory.map(item => { const isActive = pet.equippedAccessories?.includes(item.id) || pet.activeHomeItemId === item.id; return <InventoryCard key={item.id} item={item} isActive={Boolean(isActive)} isUsing={usingId === item.id} onUse={handleUse} />; })}
+          {purchasableItems.map(item => <PurchasableMutedCard key={`buyable-${item.id}`} item={item} />)}
+          {filteredInventory.length === 0 && purchasableItems.length === 0 && <div className="col-span-full flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-indigo-100 bg-indigo-50/50 px-4 py-12 text-center text-gray-500"><span className="mb-2 text-4xl">📦</span><p className="text-sm font-black text-indigo-950">{activeTab === 'food' ? 'Лакомств пока нет' : 'Пока здесь пусто'}</p></div>}
+        </div>
       </section>
     </div>
   );
