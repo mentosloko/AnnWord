@@ -58,11 +58,10 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
 
     try {
       const userService = await getUserService();
-      const updatedProfile = await userService.useItem(currentUserId, itemId);
+      const updatedProfile = await userService.useItem(currentUserId, itemId, localUse.profile);
       setUserProfile(updatedProfile);
     } catch (error) {
-      setUserProfile(userProfile);
-      throw error;
+      console.error('Failed to sync item usage to server; optimistic local state kept', error);
     }
   }, [currentUserId, setUserProfile, userProfile]);
 
