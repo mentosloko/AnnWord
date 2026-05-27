@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { InventoryItem, ShopItem, UserProfile } from '../types';
-import { applyItemUseLocally } from '../services/economyEngine';
+import { applyItemUseLocally, applyPurchaseLocally } from '../services/economyEngine';
 import { getCharacterProgressPercent, getCharacterProgressText, getCharacterStageLabel } from '../services/gamificationRules';
 import { getInventoryEmoji, getPetEmoji, getPetNeedSnapshot, getVisibleInventory } from '../services/petEngine';
 import { getInventoryImageUrl, getPuppyCharacterAssetUrl, getPuppyCharacterPreloadUrls, getShopImageUrl } from '../services/petAssets';
@@ -11,6 +11,7 @@ import { CoinIcon } from './CoinIcon';
 interface PetRoomProps {
   userProfile: UserProfile;
   onUseItem: (itemId: string) => Promise<void>;
+  onBuy: (item: ShopItem) => Promise<void>;
   onClose: () => void;
   onOpenShop?: () => void;
 }
@@ -26,7 +27,7 @@ const preloadImageUrls = (urls: string[]) => {
 };
 
 const getProfileSyncKey = (profile: UserProfile): string =>
-  `${profile.username}|${profile.pet.name}|${profile.pet.type}|${profile.pet.level}|${profile.pet.xp}|${profile.pet.moodScore}|${profile.pet.mood}|${profile.pet.activeHomeItemId || ''}|${JSON.stringify(profile.pet.equippedAccessories || [])}|${JSON.stringify(profile.inventory || [])}`;
+  `${profile.username}|${profile.coins}|${profile.pet.name}|${profile.pet.type}|${profile.pet.level}|${profile.pet.xp}|${profile.pet.moodScore}|${profile.pet.mood}|${profile.pet.activeHomeItemId || ''}|${JSON.stringify(profile.pet.equippedAccessories || [])}|${JSON.stringify(profile.inventory || [])}`;
 
 const getTabLabel = (tab: RoomTab): string => tab === 'food' ? 'Лакомства' : tab === 'accessory' ? 'Гардероб' : 'Комната';
 const getUseHint = (tab: RoomTab): string => tab === 'food'
@@ -57,31 +58,40 @@ const InventoryCard: React.FC<{ item: InventoryItem; isActive: boolean; isUsing:
   );
 };
 
-const PurchasableMutedCard: React.FC<{ item: ShopItem }> = ({ item }) => {
+const PurchasableCard: React.FC<{ item: ShopItem; isBuying: boolean; disabled: boolean; onBuy: (item: ShopItem) => void; }> = ({ item, isBuying, disabled, onBuy }) => {
   const imageUrl = getShopImageUrl(item);
   return (
-    <div className="relative flex min-h-[108px] items-center gap-4 rounded-3xl border-2 border-dashed border-indigo-100 bg-indigo-50/45 p-4 text-left opacity-60 grayscale shadow-sm">
-      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/80">
+    <div className="relative flex min-h-[126px] items-center gap-4 rounded-3xl border-2 border-dashed border-indigo-200 bg-indigo-50/60 p-4 text-left shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50">
+      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/90 grayscale">
         {imageUrl ? <img src={imageUrl} alt="" className="h-16 w-16 object-contain" aria-hidden="true" draggable={false} /> : <span className="text-4xl">🎁</span>}
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 pr-1">
         <div className="text-base font-black leading-tight text-indigo-950">{item.name}</div>
         <div className="mt-1 flex items-center gap-1 text-xs font-black text-yellow-700">
           <span>{item.price}</span><CoinIcon />
         </div>
+        <button
+          type="button"
+          disabled={disabled || isBuying}
+          onClick={() => onBuy(item)}
+          className="mt-3 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-200"
+        >
+          {isBuying ? 'Покупаю...' : 'Можно купить'}
+        </button>
       </div>
-      <div className="absolute right-3 top-3 rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-indigo-400">можно купить</div>
     </div>
   );
 };
 
-export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClose }) => {
+export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onBuy, onClose }) => {
   const [activeTab, setActiveTab] = useState<VisibleRoomTab>('food');
   const [usingId, setUsingId] = useState<string | null>(null);
+  const [buyingId, setBuyingId] = useState<string | null>(null);
   const [speechText, setSpeechText] = useState<string>(getCharacterPhrase(userProfile));
   const [localProfile, setLocalProfile] = useState<UserProfile>(userProfile);
   const lastExternalProfileKey = useRef(getProfileSyncKey(userProfile));
   const mountedRef = useRef(true);
+  const purchaseInFlightRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -114,7 +124,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
   const petFallbackClassName = hasCustomRoomBackground ? 'translate-x-[-30%] translate-y-[4%] text-[7rem] leading-none drop-shadow-sm sm:text-[9rem]' : 'text-[7rem] leading-none drop-shadow-sm sm:text-[9rem]';
 
   const handleUse = async (itemId: string) => {
-    if (usingId) return;
+    if (usingId || buyingId) return;
     const optimisticUse = applyItemUseLocally(activeProfile, itemId);
     if (!optimisticUse.ok || !optimisticUse.profile) return;
     setLocalAndRemember(optimisticUse.profile);
@@ -125,6 +135,23 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
       // Keep optimistic state; server sync errors should not disturb the room UI.
     } finally {
       if (mountedRef.current) setUsingId(null);
+    }
+  };
+
+  const handleBuy = async (item: ShopItem) => {
+    if (purchaseInFlightRef.current || usingId) return;
+    const optimisticPurchase = applyPurchaseLocally(activeProfile, item);
+    if (!optimisticPurchase.ok || !optimisticPurchase.profile) return;
+    purchaseInFlightRef.current = true;
+    setBuyingId(item.id);
+    setLocalAndRemember(optimisticPurchase.profile);
+    try {
+      await onBuy(item);
+    } catch {
+      if (mountedRef.current) setLocalAndRemember(userProfile);
+    } finally {
+      purchaseInFlightRef.current = false;
+      if (mountedRef.current) setBuyingId(null);
     }
   };
 
@@ -139,7 +166,7 @@ export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onClos
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-xl font-black text-indigo-950">Предметы питомца</h2><p className="mt-1 text-xs font-bold text-indigo-400">{getUseHint(activeTab)}</p></div><div className="flex w-fit flex-wrap gap-2 rounded-2xl bg-indigo-50 p-1">{VISIBLE_ROOM_TABS.map(tab => <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`rounded-xl px-4 py-2 font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'}`}>{getTabLabel(tab)}</button>)}</div></div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filteredInventory.map(item => { const isActive = pet.equippedAccessories?.includes(item.id) || pet.activeHomeItemId === item.id; return <InventoryCard key={item.id} item={item} isActive={Boolean(isActive)} isUsing={usingId === item.id} onUse={handleUse} />; })}
-          {purchasableItems.map(item => <PurchasableMutedCard key={`buyable-${item.id}`} item={item} />)}
+          {purchasableItems.map(item => <PurchasableCard key={`buyable-${item.id}`} item={item} isBuying={buyingId === item.id} disabled={Boolean(buyingId || usingId)} onBuy={handleBuy} />)}
           {filteredInventory.length === 0 && purchasableItems.length === 0 && <div className="col-span-full flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-indigo-100 bg-indigo-50/50 px-4 py-12 text-center text-gray-500"><span className="mb-2 text-4xl">📦</span><p className="text-sm font-black text-indigo-950">{activeTab === 'food' ? 'Лакомств пока нет' : 'Пока здесь пусто'}</p></div>}
         </div>
       </section>
