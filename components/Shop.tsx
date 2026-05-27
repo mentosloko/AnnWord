@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { ShopItem, UserProfile } from '../types';
 import { getShopItemsByType } from '../services/shopCatalog';
-import { applyPurchaseLocally, canPurchaseItem, getInventoryQuantity, getPurchaseErrorMessage } from '../services/economyEngine';
+import { applyPurchaseLocally, canPurchaseItem, getInventoryQuantity } from '../services/economyEngine';
 import { getShopImageUrl } from '../services/petAssets';
 import { getInventoryEmoji } from '../services/petEngine';
 import { userService } from '../services/userService';
@@ -124,7 +124,6 @@ const PurchaseCelebrationModal: React.FC<{ celebration: PurchaseCelebration; onC
 export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
   const [activeTab, setActiveTab] = useState<VisibleShopTab>('food');
   const [buyingId, setBuyingId] = useState<string | null>(null);
-  const [shopMessage, setShopMessage] = useState<string | null>(null);
   const [pulseItemId, setPulseItemId] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<PurchaseCelebration | null>(null);
   const [localProfile, setLocalProfile] = useState<UserProfile>(userProfile);
@@ -181,7 +180,6 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
 
     const purchaseCheck = canPurchaseItem(activeProfile, item);
     if (!purchaseCheck.ok) {
-      setShopMessage(getPurchaseErrorMessage(purchaseCheck.reason));
       purchaseInFlightRef.current = false;
       setBuyingId(null);
       return;
@@ -189,21 +187,18 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
 
     const optimisticPurchase = applyPurchaseLocally(activeProfile, item);
     if (!optimisticPurchase.ok || !optimisticPurchase.profile) {
-      setShopMessage(getPurchaseErrorMessage(optimisticPurchase.reason));
       purchaseInFlightRef.current = false;
       setBuyingId(null);
       return;
     }
 
     setLocalAndRemember(optimisticPurchase.profile);
-    setShopMessage('Покупка сохранится в аккаунте. Уже можно продолжать играть.');
     showQuantityPulse(optimisticPurchase.awardedItem?.id || item.id);
 
     try {
       const serverProfile = await syncPurchase(item);
       if (serverProfile && mountedRef.current) setLocalAndRemember(serverProfile);
       if (mountedRef.current) {
-        setShopMessage(optimisticPurchase.awardedItem ? `Секретная коробка открыта: ${optimisticPurchase.awardedItem.name}!` : null);
         showQuantityPulse(optimisticPurchase.awardedItem?.id || item.id);
         showPurchaseCelebration(item, optimisticPurchase.awardedItem);
       }
@@ -214,19 +209,14 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
           const serverProfile = await userService.buyCurrentUserItem(item);
           if (serverProfile && mountedRef.current) setLocalAndRemember(serverProfile);
           if (mountedRef.current) {
-            setShopMessage(null);
             showQuantityPulse(optimisticPurchase.awardedItem?.id || item.id);
             showPurchaseCelebration(item, optimisticPurchase.awardedItem);
           }
-        } catch (fallbackError: any) {
-          if (mountedRef.current) {
-            setLocalAndRemember(userProfile);
-            setShopMessage(fallbackError?.message || 'Покупка не удалась. Изменения отменены.');
-          }
+        } catch {
+          if (mountedRef.current) setLocalAndRemember(userProfile);
         }
       } else if (mountedRef.current) {
         setLocalAndRemember(userProfile);
-        setShopMessage(message || 'Покупка не удалась. Изменения отменены.');
       }
     } finally {
       purchaseInFlightRef.current = false;
@@ -246,11 +236,9 @@ export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose }) => {
         </div>
       </div>
 
-      {shopMessage && <div className="mb-5 rounded-2xl border-2 border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">{shopMessage}</div>}
-
       <div className="mb-6 flex w-fit flex-wrap gap-2 rounded-2xl bg-indigo-50 p-1">
         {VISIBLE_SHOP_TABS.map(tab => (
-          <button key={tab} disabled={Boolean(buyingId)} onClick={() => { setActiveTab(tab); setShopMessage(null); }} className={`rounded-xl px-4 py-2 font-bold transition-all sm:px-6 ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'} disabled:opacity-50 disabled:cursor-not-allowed`}>
+          <button key={tab} disabled={Boolean(buyingId)} onClick={() => setActiveTab(tab)} className={`rounded-xl px-4 py-2 font-bold transition-all sm:px-6 ${activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-400 hover:text-indigo-600'} disabled:opacity-50 disabled:cursor-not-allowed`}>
             {getTabLabel(tab)}
           </button>
         ))}
