@@ -7,10 +7,16 @@ import { useClassicGameController } from './hooks/useClassicGameController';
 import { useDictionaryPools } from './hooks/useDictionaryPools';
 import { useDictionaryUpload } from './hooks/useDictionaryUpload';
 import { useProfileEconomy } from './hooks/useProfileEconomy';
-import { DictionarySource, PetState, ShopItem, UserStats, ViewState } from './types';
+import { DictionarySource, GameRewardType, PetState, ShopItem, UserStats, ViewState } from './types';
 import { analyticsService } from './services/analyticsService';
 import { GameRewardInput } from './services/gamificationRules';
 import { preloadAppAssetsForProfile } from './services/assetPreloader';
+
+const toAnalyticsGameType = (mode: PlayableModeRoute): GameRewardType => {
+  if (mode === 'game') return 'wordle';
+  if (mode === 'anagrams') return 'anagram';
+  return mode;
+};
 
 const AppV2: React.FC = () => {
   const [route, setRouteState] = useState<ViewState>('landing');
@@ -200,7 +206,7 @@ const AppV2: React.FC = () => {
       userId: currentUserId,
       eventType: 'game',
       eventName: 'game_started',
-      gameType: mode === 'game' ? 'wordle' : mode,
+      gameType: toAnalyticsGameType(mode),
       route: mode,
       payload: {
         wordLength: settings.wordLength,
