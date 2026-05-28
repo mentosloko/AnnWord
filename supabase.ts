@@ -13,7 +13,10 @@ const configurationError = {
 const fakeQuery = {
   select: () => fakeQuery,
   eq: () => fakeQuery,
+  order: () => fakeQuery,
+  limit: () => fakeQuery,
   single: async () => ({ data: null, error: configurationError }),
+  maybeSingle: async () => ({ data: null, error: configurationError }),
   insert: () => fakeQuery,
   update: () => fakeQuery
 };
