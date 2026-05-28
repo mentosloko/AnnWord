@@ -60,7 +60,7 @@ const AppV2: React.FC = () => {
   const setRoute = useCallback((nextRoute: ViewState) => {
     setRouteState(previousRoute => {
       if (previousRoute !== nextRoute) {
-        void analyticsService.trackEvent({
+        analyticsService.trackEvent({
           userId: currentUserId,
           eventType: 'navigation',
           eventName: 'route_changed',
@@ -110,12 +110,13 @@ const AppV2: React.FC = () => {
   }, [openLoginMode]);
 
   const handleLogout = useCallback(async () => {
-    await analyticsService.trackEvent({
+    analyticsService.trackEvent({
       userId: currentUserId,
       eventType: 'auth',
       eventName: 'logout',
       route,
     });
+    await analyticsService.flush();
     await logout();
     setRoute('landing');
   }, [currentUserId, logout, route, setRoute]);
@@ -133,7 +134,7 @@ const AppV2: React.FC = () => {
       nextStats.wordsGuessed[word] = (nextStats.wordsGuessed[word] || 0) + 1;
     }
 
-    await analyticsService.trackEvent({
+    const gameEvent = analyticsService.createEvent({
       userId: currentUserId,
       eventType: 'game',
       eventName: 'game_finished',
@@ -151,8 +152,10 @@ const AppV2: React.FC = () => {
       },
     });
 
-    await profileEconomy.applyGameReward({ type: 'wordle', won, coinsAdjustment });
-    await profileEconomy.updateStats(nextStats);
+    await profileEconomy.applyGameReward(
+      { type: 'wordle', won, coinsAdjustment },
+      { stats: nextStats, analyticsEvents: [gameEvent] },
+    );
   }, [currentUserId, profileEconomy, settings.dictionarySource, settings.difficulty, settings.wordLength, userProfile.stats]);
 
   const classicGame = useClassicGameController({
@@ -170,7 +173,7 @@ const AppV2: React.FC = () => {
   const handleBuy = useCallback(async (item: ShopItem) => profileEconomy.buyItem(item), [profileEconomy]);
   const handleUseItem = useCallback(async (itemId: string) => profileEconomy.useItem(itemId), [profileEconomy]);
   const handleGameReward = useCallback(async (input: GameRewardInput) => {
-    await analyticsService.trackEvent({
+    const gameEvent = analyticsService.createEvent({
       userId: currentUserId,
       eventType: 'game',
       eventName: 'game_finished',
@@ -183,11 +186,11 @@ const AppV2: React.FC = () => {
         difficulty: settings.difficulty,
       },
     });
-    await profileEconomy.applyGameReward(input);
+    await profileEconomy.applyGameReward(input, { analyticsEvents: [gameEvent] });
   }, [currentUserId, profileEconomy, route, settings.dictionarySource, settings.difficulty, settings.wordLength]);
 
   const handleCharacterOnboardingComplete = useCallback(async (character: PetState) => {
-    await analyticsService.trackEvent({
+    analyticsService.trackEvent({
       userId: currentUserId,
       eventType: 'character',
       eventName: 'character_selected',
@@ -202,7 +205,7 @@ const AppV2: React.FC = () => {
   }, [currentUserId, profileEconomy, setRoute]);
 
   const startTrackedGame = useCallback((mode: PlayableModeRoute) => {
-    void analyticsService.trackEvent({
+    analyticsService.trackEvent({
       userId: currentUserId,
       eventType: 'game',
       eventName: 'game_started',
