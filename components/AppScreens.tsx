@@ -5,6 +5,7 @@ import { SetupScreen } from './screens/SetupScreen';
 import { ClassicGameScreen } from './screens/ClassicGameScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { CharacterOnboardingScreen } from './screens/CharacterOnboardingScreen';
+import { AdminAnalyticsScreen } from './screens/AdminAnalyticsScreen';
 import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from './screens/ModeScreens';
 import { Shop } from './Shop';
 import { PetRoom } from './PetRoom';
@@ -49,6 +50,7 @@ export interface AppScreensProps {
   onUseItem: (itemId: string) => Promise<void>;
   onGameReward: (input: GameRewardInput) => Promise<void>;
   onCharacterOnboardingComplete: (character: PetState) => Promise<void>;
+  onGameStarted?: (mode: PlayableModeRoute) => void;
 }
 
 export const AppScreens: React.FC<AppScreensProps> = ({
@@ -69,6 +71,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
   onUseItem,
   onGameReward,
   onCharacterOnboardingComplete,
+  onGameStarted,
 }) => {
   const goHome = () => onRouteChange('landing');
   const setupError = classicGame.setupError || dictionaryUpload.error;
@@ -79,6 +82,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
   };
 
   const startSelectedMode = () => {
+    onGameStarted?.(selectedPlayMode);
     if (selectedPlayMode === 'game') {
       classicGame.startNewGame();
       return;
@@ -88,6 +92,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
 
   // Smoke contract reference: pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onClose={goHome} />
   const screens: Partial<Record<ViewState, React.ReactNode>> = {
+    admin: <AdminAnalyticsScreen userProfile={userProfile} onBackHome={goHome} />,
     character_onboarding: <CharacterOnboardingScreen onComplete={onCharacterOnboardingComplete} />,
     landing: (
       <LandingScreen
