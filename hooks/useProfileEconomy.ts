@@ -1,5 +1,6 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import { PetState, ShopItem, UserProfile, UserStats } from '../types';
+import { analyticsService } from '../services/analyticsService';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 import { applyItemUseLocally, applyPurchaseLocally } from '../services/economyEngine';
 
@@ -34,6 +35,23 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
 
     setUserProfile(localPurchase.profile);
 
+    await analyticsService.trackEvent({
+      userId: currentUserId,
+      eventType: 'economy',
+      eventName: 'shop_item_bought',
+      route: 'shop',
+      payload: {
+        itemId: item.id,
+        itemName: item.name,
+        itemType: item.type,
+        price: item.price,
+        coinsBefore: userProfile.coins,
+        coinsAfter: localPurchase.profile.coins,
+        inventoryBefore: userProfile.inventory.length,
+        inventoryAfter: localPurchase.profile.inventory.length,
+      },
+    });
+
     if (!currentUserId) return;
 
     try {
@@ -53,6 +71,25 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     }
 
     setUserProfile(localUse.profile);
+
+    const usedItem = userProfile.inventory.find(item => item.id === itemId);
+    await analyticsService.trackEvent({
+      userId: currentUserId,
+      eventType: 'inventory',
+      eventName: 'inventory_item_used',
+      route: 'pet_room',
+      payload: {
+        itemId,
+        itemName: usedItem?.name || itemId,
+        itemType: usedItem?.type || null,
+        quantityBefore: usedItem?.quantity || 0,
+        petType: userProfile.pet.type,
+        moodBefore: userProfile.pet.moodScore ?? null,
+        moodAfter: localUse.profile.pet.moodScore ?? null,
+        levelBefore: userProfile.pet.level,
+        levelAfter: localUse.profile.pet.level,
+      },
+    });
 
     if (!currentUserId) return;
 
@@ -94,6 +131,28 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
 
     setUserProfile(nextProfile);
 
+    await analyticsService.trackEvent({
+      userId: currentUserId,
+      eventType: 'reward',
+      eventName: 'reward_granted',
+      gameType: input.type,
+      payload: {
+        input,
+        label: reward.label,
+        xp: reward.xp,
+        coins: reward.coins,
+        mood: reward.mood,
+        coinsBefore: userProfile.coins,
+        coinsAfter: nextProfile.coins,
+        previousLevel: progress.previousLevel,
+        newLevel: progress.newLevel,
+        previousStage: progress.previousStage,
+        newStage: progress.newStage,
+        leveledUp: progress.leveledUp,
+        stagedUp: progress.stagedUp,
+      },
+    });
+
     if (currentUserId) {
       try {
         const userService = await getUserService();
@@ -127,6 +186,16 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     const userService = await getUserService();
     const updatedProfile = await userService.updateUserDictionary(currentUserId, dictionary);
     setUserProfile(updatedProfile);
+
+    await analyticsService.trackEvent({
+      userId: currentUserId,
+      eventType: 'dictionary',
+      eventName: 'dictionary_uploaded',
+      route: 'setup',
+      payload: {
+        wordsCount: dictionary.length,
+      },
+    });
   }, [currentUserId, setUserProfile]);
 
   return {
