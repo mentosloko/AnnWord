@@ -1,8 +1,9 @@
 /// <reference types="vite/client" />
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const viteEnv = ((import.meta as any).env || {}) as Record<string, string | undefined>;
+const supabaseUrl = viteEnv.VITE_SUPABASE_URL;
+const supabaseAnonKey = viteEnv.VITE_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -21,6 +22,15 @@ const fakeQuery = {
   update: () => fakeQuery
 };
 
+const scheduleInitialSession = (callback: any): void => {
+  const emit = () => callback('INITIAL_SESSION', null);
+  if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
+    window.setTimeout(emit, 0);
+    return;
+  }
+  setTimeout(emit, 0);
+};
+
 const fakeSupabaseClient = {
   supabaseUrl: '',
   auth: {
@@ -29,9 +39,7 @@ const fakeSupabaseClient = {
       // loading screen. If Supabase env vars are missing, the fake client must
       // still emit an INITIAL_SESSION event; otherwise the app stays stuck on
       // "Загрузка..." forever, including in incognito mode.
-      window.setTimeout(() => {
-        callback('INITIAL_SESSION', null);
-      }, 0);
+      scheduleInitialSession(callback);
 
       return { data: { subscription: { unsubscribe: () => undefined } } };
     },
@@ -45,7 +53,7 @@ const fakeSupabaseClient = {
   rpc: async () => ({ data: null, error: configurationError })
 };
 
-if (!isSupabaseConfigured) {
+if (!isSupabaseConfigured && typeof console !== 'undefined') {
   console.warn(configurationError.message);
 }
 
