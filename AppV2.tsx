@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppShell } from './components/AppShell';
 import { AppScreens, PlayableModeRoute } from './components/AppScreens';
+import { AuthBootstrapGate } from './components/AuthBootstrapGate';
 import { useAuthProfile } from './hooks/useAuthProfile';
 import { useClassicGameController } from './hooks/useClassicGameController';
 import { useDictionaryPools } from './hooks/useDictionaryPools';
@@ -19,6 +20,7 @@ const AppV2: React.FC = () => {
   const authProfile = useAuthProfile();
   const {
     bootstrapStatus,
+    bootstrapError,
     settings,
     setSettings,
     userProfile,
@@ -65,8 +67,9 @@ const AppV2: React.FC = () => {
   }, [isAuthenticated]);
 
   useEffect(() => {
+    if (bootstrapStatus !== 'ready') return;
     preloadAppAssetsForProfile(userProfile);
-  }, [userProfile.pet.type, userProfile.pet.characterOnboarded]);
+  }, [bootstrapStatus, userProfile.pet.type, userProfile.pet.characterOnboarded]);
 
   useEffect(() => {
     if (bootstrapStatus !== 'ready' || !isAuthenticated) return;
@@ -123,6 +126,10 @@ const AppV2: React.FC = () => {
     await profileEconomy.updateCharacter(character);
     setRoute('landing');
   }, [profileEconomy]);
+
+  if (bootstrapStatus !== 'ready') {
+    return <AuthBootstrapGate error={bootstrapError} onRetry={() => window.location.reload()} />;
+  }
 
   return (
     <AppShell
