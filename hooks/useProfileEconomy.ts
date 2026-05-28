@@ -1,6 +1,6 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import { PetState, ShopItem, UserProfile, UserStats } from '../types';
-import { analyticsService } from '../services/analyticsService';
+import { analyticsService, QueuedAnalyticsEvent } from '../services/analyticsService';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 import { applyItemUseLocally, applyPurchaseLocally } from '../services/economyEngine';
 
@@ -8,6 +8,11 @@ interface UseProfileEconomyArgs {
   currentUserId: string | null;
   userProfile: UserProfile;
   setUserProfile: Dispatch<SetStateAction<UserProfile>>;
+}
+
+interface ApplyGameRewardOptions {
+  stats?: UserStats;
+  analyticsEvents?: QueuedAnalyticsEvent[];
 }
 
 const getUserService = async () => {
@@ -33,9 +38,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
       throw new Error(localPurchase.reason || 'Покупка не удалась');
     }
 
-    setUserProfile(localPurchase.profile);
-
-    await analyticsService.trackEvent({
+    const purchaseEvent = analyticsService.createEvent({
       userId: currentUserId,
       eventType: 'economy',
       eventName: 'shop_item_bought',
@@ -49,14 +52,27 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
         coinsAfter: localPurchase.profile.coins,
         inventoryBefore: userProfile.inventory.length,
         inventoryAfter: localPurchase.profile.inventory.length,
+        awardedItemId: localPurchase.awardedItem?.id || null,
+        awardedItemName: localPurchase.awardedItem?.name || null,
       },
     });
 
-    if (!currentUserId) return;
+    setUserProfile(localPurchase.profile);
+
+    if (!currentUserId) {
+      analyticsService.trackEvent({
+        userId: null,
+        eventType: 'economy',
+        eventName: 'shop_item_bought',
+        route: 'shop',
+        payload: purchaseEvent.payload,
+      });
+      return;
+    }
 
     try {
       const userService = await getUserService();
-      const updatedProfile = await userService.buyItem(currentUserId, item);
+      const updatedProfile = await userService.buyItem(currentUserId, item, localPurchase.profile, [purchaseEvent]);
       setUserProfile(updatedProfile);
     } catch (error) {
       setUserProfile(userProfile);
@@ -70,10 +86,8 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
       throw new Error(localUse.reason || 'Предмет не найден');
     }
 
-    setUserProfile(localUse.profile);
-
     const usedItem = userProfile.inventory.find(item => item.id === itemId);
-    await analyticsService.trackEvent({
+    const useEvent = analyticsService.createEvent({
       userId: currentUserId,
       eventType: 'inventory',
       eventName: 'inventory_item_used',
@@ -91,11 +105,22 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
       },
     });
 
-    if (!currentUserId) return;
+    setUserProfile(localUse.profile);
+
+    if (!currentUserId) {
+      analyticsService.trackEvent({
+        userId: null,
+        eventType: 'inventory',
+        eventName: 'inventory_item_used',
+        route: 'pet_room',
+        payload: useEvent.payload,
+      });
+      return;
+    }
 
     try {
       const userService = await getUserService();
-      const updatedProfile = await userService.useItem(currentUserId, itemId, localUse.profile);
+      const updatedProfile = await userService.useItem(currentUserId, itemId, localUse.profile, [useEvent]);
       setUserProfile(updatedProfile);
     } catch (error) {
       console.error('Failed to sync item usage to server; optimistic local state kept', error);
@@ -118,20 +143,20 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     await updateCharacter(progress.pet);
   }, [updateCharacter, userProfile.pet]);
 
-  const applyGameReward = useCallback(async (input: GameRewardInput) => {
+  const applyGameReward = useCallback(async (input: GameRewardInput, options: ApplyGameRewardOptions = {}) => {
     const reward = calculateGameReward(input);
     const progress = applyGameRewardToCharacter(userProfile.pet, reward);
     const nextPet: PetState = progress.pet;
+    const nextStats = options.stats || userProfile.stats;
 
     const nextProfile: UserProfile = {
       ...userProfile,
+      stats: nextStats,
       coins: Math.max(0, userProfile.coins + reward.coins),
       pet: nextPet,
     };
 
-    setUserProfile(nextProfile);
-
-    await analyticsService.trackEvent({
+    const rewardEvent = analyticsService.createEvent({
       userId: currentUserId,
       eventType: 'reward',
       eventName: 'reward_granted',
@@ -153,14 +178,40 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
       },
     });
 
+    setUserProfile(nextProfile);
+
     if (currentUserId) {
       try {
         const userService = await getUserService();
-        if (reward.coins !== 0) await userService.updateCoins(currentUserId, reward.coins);
-        if (reward.xp !== 0 || reward.mood !== 0) await userService.updateUserPet(currentUserId, nextPet);
+        const updatedProfile = await userService.applyGameResult(
+          currentUserId,
+          nextStats,
+          nextPet,
+          reward.coins,
+          [...(options.analyticsEvents || []), rewardEvent],
+        );
+        setUserProfile(updatedProfile);
       } catch (error) {
         console.error('Failed to sync game reward', error);
       }
+    } else {
+      for (const event of options.analyticsEvents || []) {
+        analyticsService.trackEvent({
+          userId: null,
+          eventType: event.event_type,
+          eventName: event.event_name,
+          gameType: event.game_type,
+          route: event.route,
+          payload: event.payload,
+        });
+      }
+      analyticsService.trackEvent({
+        userId: null,
+        eventType: 'reward',
+        eventName: 'reward_granted',
+        gameType: input.type,
+        payload: rewardEvent.payload,
+      });
     }
 
     return { reward, progress };
@@ -187,7 +238,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     const updatedProfile = await userService.updateUserDictionary(currentUserId, dictionary);
     setUserProfile(updatedProfile);
 
-    await analyticsService.trackEvent({
+    analyticsService.trackEvent({
       userId: currentUserId,
       eventType: 'dictionary',
       eventName: 'dictionary_uploaded',
