@@ -13,13 +13,13 @@ export const createInitialSettings = (): GameSettings => ({
   useCustomDictionary: false,
   dictionarySource: 'builtin',
   difficulty: 'ALL',
-  username: 'Guest',
+  username: 'Гость',
 });
 
 export const useAuthProfile = () => {
   const cachedProfile = profileCache.read();
   const initialProfile = cachedProfile || GUEST_PROFILE;
-  const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus>('ready');
+  const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus>('loading');
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [settings, setSettings] = useState<GameSettings>(() => ({ ...createInitialSettings(), username: initialProfile.username }));
@@ -50,7 +50,7 @@ export const useAuthProfile = () => {
     const { userService } = await import('../services/userService');
     const profile = await userService.getOrCreateProfile(
       user.id,
-      user.user_metadata?.full_name || user.user_metadata?.name || 'Guest',
+      user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Пользователь',
       user.email || undefined,
     );
     profileCache.write(profile, user.id);
@@ -68,33 +68,44 @@ export const useAuthProfile = () => {
       setIsRestoringSession(false);
     };
 
+    const failBootstrap = (error: any, fallbackMessage: string) => {
+      console.error(fallbackMessage, error);
+      finishBootstrap('error', error?.message || fallbackMessage);
+    };
+
     authService.getInitialSession()
       .then(async ({ user }) => {
         if (cancelled) return;
+        if (!user) {
+          resetToGuest();
+          finishBootstrap('ready');
+          return;
+        }
+
         setCurrentUser(user);
-        if (user) await loadProfileForUser(user);
+        await loadProfileForUser(user);
         finishBootstrap('ready');
       })
-      .catch(error => {
-        console.error('Initial auth bootstrap failed', error);
-        finishBootstrap('error', error?.message || 'Не удалось восстановить сессию.');
-      });
+      .catch(error => failBootstrap(error, 'Не удалось восстановить сессию.'));
 
     const unsubscribe = authService.onAuthStateChange(async (_session, user) => {
-      setCurrentUser(user);
       setIsAuthLoading(false);
 
-      if (user) {
-        try {
-          await loadProfileForUser(user);
-        } catch (error) {
-          console.error('Failed to load user profile after auth change', error);
-        }
-      } else if (!isRestoringSession) {
+      if (!user) {
         resetToGuest();
+        finishBootstrap('ready');
+        return;
       }
 
-      finishBootstrap('ready');
+      try {
+        setBootstrapStatus('loading');
+        setBootstrapError(null);
+        setCurrentUser(user);
+        await loadProfileForUser(user);
+        finishBootstrap('ready');
+      } catch (error) {
+        failBootstrap(error, 'Не удалось загрузить профиль пользователя.');
+      }
     });
 
     return () => {
@@ -158,18 +169,10 @@ export const useAuthProfile = () => {
     }
   }, [resetToGuest]);
 
-  const continueAsGuestAfterBootstrapError = useCallback(() => {
-    resetToGuest();
-    setBootstrapError(null);
-    setBootstrapStatus('ready');
-    setIsRestoringSession(false);
-  }, [resetToGuest]);
-
   return {
     bootstrapStatus,
     bootstrapError,
     isRestoringSession,
-    continueAsGuestAfterBootstrapError,
     settings,
     setSettings,
     userProfile,
