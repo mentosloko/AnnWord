@@ -2,6 +2,9 @@ import { UserProfile, UserStats, PetState, ShopItem } from "../types";
 import { supabase } from "../supabase";
 import { mapProfileFromDB, normalizeDictionaryField, normalizePet, normalizeStats } from "./profileMapper";
 import { applyPurchaseLocally } from "./economyEngine";
+import { QueuedAnalyticsEvent } from "./analyticsService";
+
+const PROFILE_COLUMNS = 'id, username, role, custom_dictionary_en, stats, pet, coins, inventory';
 
 const DEFAULT_PET: PetState = {
   name: 'Щенок',
@@ -51,7 +54,7 @@ export const userService = {
       const { data: profileData, error: fetchError } = await withTimeout(
         supabase
           .from('profiles')
-          .select('*')
+          .select(PROFILE_COLUMNS)
           .eq('id', userId)
           .maybeSingle(),
         3500,
@@ -76,7 +79,7 @@ export const userService = {
         supabase
           .from('profiles')
           .insert([newUserProfile])
-          .select()
+          .select(PROFILE_COLUMNS)
           .single(),
         4500,
         'profile insert',
@@ -90,6 +93,52 @@ export const userService = {
       console.error('getOrCreateProfile failed:', error);
       throw error;
     }
+  },
+
+  applyGameResult: async (
+    userId: string,
+    stats: UserStats,
+    pet: PetState,
+    coinsDelta: number,
+    analyticsEvents: QueuedAnalyticsEvent[] = [],
+  ): Promise<UserProfile> => {
+    const { data, error } = await withTimeout(
+      supabase.rpc('apply_game_result', {
+        p_user_id: userId,
+        p_stats: normalizeStats(stats),
+        p_pet: normalizePet(pet),
+        p_coins_delta: Math.round(coinsDelta || 0),
+        p_analytics_events: analyticsEvents,
+      }),
+      5000,
+      'apply game result',
+    );
+
+    if (error) throw error;
+    if (!data) throw new Error('Сервер не вернул обновлённый профиль.');
+    return mapProfileFromDB(data);
+  },
+
+  syncProfileState: async (
+    userId: string,
+    profile: Pick<UserProfile, 'inventory' | 'pet' | 'coins'>,
+    analyticsEvents: QueuedAnalyticsEvent[] = [],
+  ): Promise<UserProfile> => {
+    const { data, error } = await withTimeout(
+      supabase.rpc('sync_profile_state', {
+        p_user_id: userId,
+        p_inventory: profile.inventory,
+        p_pet: normalizePet(profile.pet),
+        p_coins: Math.max(0, Math.round(profile.coins || 0)),
+        p_analytics_events: analyticsEvents,
+      }),
+      5000,
+      'sync profile state',
+    );
+
+    if (error) throw error;
+    if (!data) throw new Error('Сервер не вернул обновлённый профиль.');
+    return mapProfileFromDB(data);
   },
 
   updateCoins: async (userId: string, amount: number): Promise<void> => {
@@ -125,7 +174,11 @@ export const userService = {
     return userService.buyItem(data.user.id, item);
   },
 
-  buyItem: async (userId: string, item: ShopItem): Promise<UserProfile> => {
+  buyItem: async (userId: string, item: ShopItem, optimisticProfile?: UserProfile, analyticsEvents: QueuedAnalyticsEvent[] = []): Promise<UserProfile> => {
+    if (optimisticProfile) {
+      return userService.syncProfileState(userId, optimisticProfile, analyticsEvents);
+    }
+
     if (item.type !== 'mystery') {
       try {
         const { data, error } = await supabase.rpc('purchase_shop_item', {
@@ -144,7 +197,7 @@ export const userService = {
       const { data: profile, error: fetchErr } = await withTimeout(
         supabase
           .from('profiles')
-          .select('*')
+          .select(PROFILE_COLUMNS)
           .eq('id', userId)
           .single(),
         3500,
@@ -157,48 +210,23 @@ export const userService = {
       const purchase = applyPurchaseLocally(normalizedProfile, item);
       if (!purchase.ok || !purchase.profile) throw new Error(purchase.reason || 'Покупка не удалась');
 
-      const { data: updatedProfile, error: updateError } = await withTimeout(
-        supabase
-          .from('profiles')
-          .update({ coins: purchase.profile.coins, inventory: purchase.profile.inventory })
-          .eq('id', userId)
-          .select()
-          .single(),
-        4500,
-        'purchase profile update',
-      );
-
-      if (updateError) throw updateError;
-
-      return mapProfileFromDB(updatedProfile);
+      return userService.syncProfileState(userId, purchase.profile, analyticsEvents);
     } catch (error) {
       console.error('Error in buyItem:', error);
       throw error;
     }
   },
 
-  useItem: async (userId: string, itemId: string, optimisticProfile?: UserProfile): Promise<UserProfile> => {
+  useItem: async (userId: string, itemId: string, optimisticProfile?: UserProfile, analyticsEvents: QueuedAnalyticsEvent[] = []): Promise<UserProfile> => {
     try {
       if (optimisticProfile) {
-        const { data: updatedProfile, error: updateError } = await withTimeout(
-          supabase
-            .from('profiles')
-            .update({ inventory: optimisticProfile.inventory, pet: normalizePet(optimisticProfile.pet) })
-            .eq('id', userId)
-            .select()
-            .single(),
-          8000,
-          'use item profile update',
-        );
-
-        if (updateError) throw updateError;
-        return mapProfileFromDB(updatedProfile);
+        return userService.syncProfileState(userId, optimisticProfile, analyticsEvents);
       }
 
       const { data: profile, error: fetchErr } = await withTimeout(
         supabase
           .from('profiles')
-          .select('*')
+          .select(PROFILE_COLUMNS)
           .eq('id', userId)
           .single(),
         8000,
@@ -233,7 +261,7 @@ export const userService = {
         .from('profiles')
         .update({ custom_dictionary_en: normalizedDictionary, updated_at: new Date().toISOString() })
         .eq('id', userId)
-        .select()
+        .select(PROFILE_COLUMNS)
         .single();
       if (error) throw error;
       if (!data) throw new Error('Сервер не вернул обновлённый профиль.');
@@ -261,7 +289,7 @@ export const userService = {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*');
+        .select(PROFILE_COLUMNS);
       if (error) throw error;
       return data.map(mapProfileFromDB);
     } catch (error) {
