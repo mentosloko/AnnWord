@@ -8,11 +8,12 @@ import { useDictionaryPools } from './hooks/useDictionaryPools';
 import { useDictionaryUpload } from './hooks/useDictionaryUpload';
 import { useProfileEconomy } from './hooks/useProfileEconomy';
 import { DictionarySource, PetState, ShopItem, UserStats, ViewState } from './types';
+import { analyticsService } from './services/analyticsService';
 import { GameRewardInput } from './services/gamificationRules';
 import { preloadAppAssetsForProfile } from './services/assetPreloader';
 
 const AppV2: React.FC = () => {
-  const [route, setRoute] = useState<ViewState>('landing');
+  const [route, setRouteState] = useState<ViewState>('landing');
   const [selectedPlayMode, setSelectedPlayMode] = useState<PlayableModeRoute>('game');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
@@ -41,13 +42,32 @@ const AppV2: React.FC = () => {
     logout,
   } = authProfile;
 
+  const currentUserId = currentUser?.id ?? null;
   const { getSecretWordPool, getValidationPool, getModeWords } = useDictionaryPools({ settings, userProfile });
 
   const profileEconomy = useProfileEconomy({
-    currentUserId: currentUser?.id ?? null,
+    currentUserId,
     userProfile,
     setUserProfile,
   });
+
+  const setRoute = useCallback((nextRoute: ViewState) => {
+    setRouteState(previousRoute => {
+      if (previousRoute !== nextRoute) {
+        void analyticsService.trackEvent({
+          userId: currentUserId,
+          eventType: 'navigation',
+          eventName: 'route_changed',
+          route: nextRoute,
+          payload: {
+            previousRoute,
+            nextRoute,
+          },
+        });
+      }
+      return nextRoute;
+    });
+  }, [currentUserId]);
 
   const setDictionarySource = useCallback((source: DictionarySource) => {
     setSettings(prev => ({
@@ -76,7 +96,7 @@ const AppV2: React.FC = () => {
     if (route !== 'character_onboarding' && !userProfile.pet.characterOnboarded) {
       setRoute('character_onboarding');
     }
-  }, [bootstrapStatus, isAuthenticated, route, userProfile.pet.characterOnboarded]);
+  }, [bootstrapStatus, isAuthenticated, route, setRoute, userProfile.pet.characterOnboarded]);
 
   const openLogin = useCallback(() => {
     openLoginMode();
@@ -84,9 +104,15 @@ const AppV2: React.FC = () => {
   }, [openLoginMode]);
 
   const handleLogout = useCallback(async () => {
+    await analyticsService.trackEvent({
+      userId: currentUserId,
+      eventType: 'auth',
+      eventName: 'logout',
+      route,
+    });
     await logout();
     setRoute('landing');
-  }, [logout]);
+  }, [currentUserId, logout, route, setRoute]);
 
   const updateClassicStats = useCallback(async (won: boolean, word: string, coinsAdjustment = 0) => {
     const nextStats: UserStats = {
@@ -101,9 +127,27 @@ const AppV2: React.FC = () => {
       nextStats.wordsGuessed[word] = (nextStats.wordsGuessed[word] || 0) + 1;
     }
 
+    await analyticsService.trackEvent({
+      userId: currentUserId,
+      eventType: 'game',
+      eventName: 'game_finished',
+      gameType: 'wordle',
+      route: 'game',
+      payload: {
+        won,
+        word,
+        coinsAdjustment,
+        wordLength: settings.wordLength,
+        dictionarySource: settings.dictionarySource,
+        difficulty: settings.difficulty,
+        gamesPlayedBefore: userProfile.stats.gamesPlayed,
+        gamesWonBefore: userProfile.stats.gamesWon,
+      },
+    });
+
     await profileEconomy.applyGameReward({ type: 'wordle', won, coinsAdjustment });
     await profileEconomy.updateStats(nextStats);
-  }, [profileEconomy, userProfile.stats]);
+  }, [currentUserId, profileEconomy, settings.dictionarySource, settings.difficulty, settings.wordLength, userProfile.stats]);
 
   const classicGame = useClassicGameController({
     route,
@@ -120,12 +164,52 @@ const AppV2: React.FC = () => {
   const handleBuy = useCallback(async (item: ShopItem) => profileEconomy.buyItem(item), [profileEconomy]);
   const handleUseItem = useCallback(async (itemId: string) => profileEconomy.useItem(itemId), [profileEconomy]);
   const handleGameReward = useCallback(async (input: GameRewardInput) => {
+    await analyticsService.trackEvent({
+      userId: currentUserId,
+      eventType: 'game',
+      eventName: 'game_finished',
+      gameType: input.type,
+      route: input.type === 'other' ? route : input.type,
+      payload: {
+        ...input,
+        wordLength: settings.wordLength,
+        dictionarySource: settings.dictionarySource,
+        difficulty: settings.difficulty,
+      },
+    });
     await profileEconomy.applyGameReward(input);
-  }, [profileEconomy]);
+  }, [currentUserId, profileEconomy, route, settings.dictionarySource, settings.difficulty, settings.wordLength]);
+
   const handleCharacterOnboardingComplete = useCallback(async (character: PetState) => {
+    await analyticsService.trackEvent({
+      userId: currentUserId,
+      eventType: 'character',
+      eventName: 'character_selected',
+      route: 'character_onboarding',
+      payload: {
+        characterType: character.type,
+        characterName: character.name,
+      },
+    });
     await profileEconomy.updateCharacter(character);
     setRoute('landing');
-  }, [profileEconomy]);
+  }, [currentUserId, profileEconomy, setRoute]);
+
+  const startTrackedGame = useCallback((mode: PlayableModeRoute) => {
+    void analyticsService.trackEvent({
+      userId: currentUserId,
+      eventType: 'game',
+      eventName: 'game_started',
+      gameType: mode === 'game' ? 'wordle' : mode,
+      route: mode,
+      payload: {
+        wordLength: settings.wordLength,
+        dictionarySource: settings.dictionarySource,
+        difficulty: settings.difficulty,
+        wordsAvailable: modeWords.length,
+      },
+    });
+  }, [currentUserId, modeWords.length, settings.dictionarySource, settings.difficulty, settings.wordLength]);
 
   if (bootstrapStatus !== 'ready') {
     return <AuthBootstrapGate error={bootstrapError} onRetry={() => window.location.reload()} />;
@@ -147,6 +231,7 @@ const AppV2: React.FC = () => {
       onLogoutClick={handleLogout}
       onProfileClick={() => setRoute('profile')}
       onShopClick={() => setRoute('shop')}
+      onAdminClick={() => setRoute('admin')}
       onCloseLogin={() => setShowLoginModal(false)}
       onCloseRules={() => setShowRulesModal(false)}
       onAuthModeChange={setAuthMode}
@@ -177,6 +262,7 @@ const AppV2: React.FC = () => {
         onUseItem={handleUseItem}
         onGameReward={handleGameReward}
         onCharacterOnboardingComplete={handleCharacterOnboardingComplete}
+        onGameStarted={startTrackedGame}
       />
     </AppShell>
   );
