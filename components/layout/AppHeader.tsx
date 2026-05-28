@@ -8,6 +8,7 @@ interface AppHeaderProps {
   onLogoutClick: () => void;
   onProfileClick?: () => void;
   onShopClick?: () => void;
+  onAdminClick?: () => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -17,7 +18,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onLogoutClick,
   onProfileClick,
   onShopClick,
+  onAdminClick,
 }) => {
+  const isAdmin = userProfile.role === 'admin';
+
   return (
     <header className="w-full flex items-center justify-between gap-3 px-3 sm:px-4 py-3 bg-white/80 backdrop-blur border-b border-indigo-50 sticky top-0 z-40">
       <div className="flex items-center gap-3 min-w-0">
@@ -29,6 +33,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
+        {isAuthenticated && isAdmin && onAdminClick && (
+          <button
+            type="button"
+            onClick={onAdminClick}
+            className="hidden md:flex rounded-xl bg-purple-50 border border-purple-100 px-3 py-2 text-sm font-black text-purple-700 hover:bg-purple-100 transition"
+          >
+            Admin
+          </button>
+        )}
+
         {isAuthenticated && (
           <button
             type="button"
