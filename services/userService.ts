@@ -43,19 +43,9 @@ const withTimeout = async (request: any, timeoutMs: number, label: string): Prom
 };
 
 export const userService = {
-  getOrCreateProfile: async (userId: string, defaultUsername: string = 'Guest', email?: string): Promise<UserProfile> => {
+  getOrCreateProfile: async (userId: string, defaultUsername: string = 'Пользователь', email?: string): Promise<UserProfile> => {
     const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',').map((e: string) => e.trim()).filter(Boolean);
     const role: 'admin' | 'user' = adminEmails.includes(email ?? '') ? 'admin' : 'user';
-
-    const createDefault = (): UserProfile => ({
-      username: defaultUsername,
-      role,
-      customDictionaryEn: [],
-      stats: { ...DEFAULT_STATS },
-      pet: { ...DEFAULT_PET },
-      coins: 5,
-      inventory: []
-    });
 
     try {
       const { data: profileData, error: fetchError } = await withTimeout(
@@ -92,15 +82,13 @@ export const userService = {
         'profile insert',
       );
 
-      if (insertError) {
-        console.warn('Profile insert failed, using default profile:', insertError.message);
-        return createDefault();
-      }
+      if (insertError) throw insertError;
+      if (!insertedData) throw new Error('Сервер не вернул созданный профиль.');
 
       return mapProfileFromDB(insertedData);
     } catch (error) {
-      console.error('getOrCreateProfile failed, falling back to default:', error);
-      return createDefault();
+      console.error('getOrCreateProfile failed:', error);
+      throw error;
     }
   },
 
