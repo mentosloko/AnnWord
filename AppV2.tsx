@@ -33,6 +33,7 @@ const AppV2: React.FC = () => {
     userProfile,
     setUserProfile,
     currentUser,
+    cachedUserId,
     isAuthenticated,
     authMode,
     setAuthMode,
@@ -48,7 +49,7 @@ const AppV2: React.FC = () => {
     logout,
   } = authProfile;
 
-  const currentUserId = currentUser?.id ?? null;
+  const currentUserId = currentUser?.id ?? cachedUserId ?? null;
   const { getSecretWordPool, getValidationPool, getModeWords } = useDictionaryPools({ settings, userProfile });
 
   const profileEconomy = useProfileEconomy({
