@@ -12,6 +12,11 @@ interface CachedProfilePayload {
   profile: UserProfile;
 }
 
+export interface CachedProfileSnapshot {
+  profile: UserProfile;
+  userId: string | null;
+}
+
 const isBrowser = (): boolean => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
 const normalizeProfile = (profile: UserProfile): UserProfile => {
@@ -30,18 +35,32 @@ const normalizeProfile = (profile: UserProfile): UserProfile => {
   }
 };
 
+const readPayload = (): CachedProfilePayload | null => {
+  if (!isBrowser()) return null;
+  try {
+    const raw = window.localStorage.getItem(PROFILE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedProfilePayload;
+    if (!parsed || parsed.version !== PROFILE_CACHE_VERSION || !parsed.profile) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
 export const profileCache = {
   read: (): UserProfile | null => {
-    if (!isBrowser()) return null;
-    try {
-      const raw = window.localStorage.getItem(PROFILE_CACHE_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as CachedProfilePayload;
-      if (!parsed || parsed.version !== PROFILE_CACHE_VERSION || !parsed.profile) return null;
-      return normalizeProfile(parsed.profile);
-    } catch {
-      return null;
-    }
+    const payload = readPayload();
+    return payload ? normalizeProfile(payload.profile) : null;
+  },
+
+  readSnapshot: (): CachedProfileSnapshot | null => {
+    const payload = readPayload();
+    if (!payload) return null;
+    return {
+      profile: normalizeProfile(payload.profile),
+      userId: payload.userId || null,
+    };
   },
 
   write: (profile: UserProfile, userId?: string | null): void => {
