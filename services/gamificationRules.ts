@@ -1,239 +1,28 @@
-import { CharacterMood, CharacterStage, GameRewardType, PetState } from '../types';
-
-export interface GameRewardInput {
-  type: GameRewardType;
-  won?: boolean;
-  guessedWords?: number;
-  clicks?: number;
-  mistakes?: number;
-  maxMistakes?: number;
-  coinsAdjustment?: number;
-}
-
-export interface GameRewardResult {
-  xp: number;
-  coins: number;
-  mood: number;
-  label: string;
-}
-
-export interface CharacterProgressResult {
-  pet: PetState;
-  previousLevel: number;
-  newLevel: number;
-  previousStage: CharacterStage;
-  newStage: CharacterStage;
-  leveledUp: boolean;
-  stagedUp: boolean;
-}
-
-const getStageForLevel = (level: number): CharacterStage => {
-  if (level >= 15) return 'stage_4';
-  if (level >= 9) return 'stage_3';
-  if (level >= 3) return 'stage_2';
-  return 'stage_1';
-};
-
-export const getTotalXpForLevel = (level: number): number => {
-  const normalizedLevel = Math.max(1, Math.round(level || 1));
-  if (normalizedLevel === 1) return 0;
-  if (normalizedLevel === 2) return 50;
-  if (normalizedLevel === 3) return 120;
-  if (normalizedLevel === 4) return 220;
-  if (normalizedLevel === 5) return 360;
-  return 360 + (normalizedLevel - 5) * normalizedLevel * 180;
-};
-
-export const CHARACTER_LEVEL_THRESHOLDS = Array.from({ length: 20 }, (_, index) => {
-  const level = index + 1;
-  return {
-    level,
-    totalXp: getTotalXpForLevel(level),
-    stage: getStageForLevel(level),
-  };
-});
-
-const clamp = (value: number, min = 0, max = 100): number => Math.max(min, Math.min(max, Math.round(value)));
-const normalizeCoinsAdjustment = (value?: number): number => Math.round(value || 0);
-const clampCoinsReward = (baseCoins: number, coinsAdjustment = 0): number =>
-  Math.max(0, Math.round(baseCoins + coinsAdjustment));
-
-export const deriveCharacterLevel = (totalXp: number): number => {
-  const normalizedXp = Math.max(0, Math.round(totalXp || 0));
-  let level = 1;
-
-  for (let candidate = 1; candidate <= 100; candidate += 1) {
-    if (normalizedXp >= getTotalXpForLevel(candidate)) level = candidate;
-    else break;
-  }
-
-  return level;
-};
-
-export const deriveCharacterStage = (level: number): CharacterStage => getStageForLevel(level);
-
-export const getCharacterStageLabel = (stage: CharacterStage | undefined): string => {
-  switch (stage) {
-    case 'stage_2': return 'Юный исследователь';
-    case 'stage_3': return 'Знаток слов';
-    case 'stage_4': return 'Мастер слов';
-    case 'stage_1':
-    default:
-      return 'Малыш';
-  }
-};
-
-export const deriveMoodFromScore = (moodScore: number): CharacterMood => {
-  const score = clamp(moodScore);
-  if (score <= 20) return 'sad';
-  if (score <= 45) return 'calm';
-  if (score <= 70) return 'happy';
-  if (score <= 90) return 'joyful';
-  return 'super_happy';
-};
-
-export const normalizeMoodScore = (pet: PetState): number => {
-  if (typeof pet.moodScore === 'number') return clamp(pet.moodScore);
-
-  switch (pet.mood) {
-    case 'sad': return 15;
-    case 'neutral':
-    case 'calm': return 40;
-    case 'happy': return 60;
-    case 'excited':
-    case 'joyful': return 80;
-    case 'super_happy': return 95;
-    default: return 50;
-  }
-};
-
-export const getNextLevelThreshold = (level: number): number | null => getTotalXpForLevel(level + 1);
-
-export const getCurrentLevelThreshold = (level: number): number => getTotalXpForLevel(level);
-
-const getPityXp = (won?: boolean): number => (won ? 0 : 8);
-
-export const calculateGameReward = (input: GameRewardInput): GameRewardResult => {
-  const coinsAdjustment = normalizeCoinsAdjustment(input.coinsAdjustment);
-
-  switch (input.type) {
-    case 'wordle': {
-      const won = Boolean(input.won);
-      const xp = won ? 25 : getPityXp(won);
-      return {
-        xp,
-        coins: clampCoinsReward(won ? 3 : 1, coinsAdjustment),
-        mood: Math.min(12, xp),
-        label: won ? 'Wordle угадан' : 'Wordle завершён',
-      };
-    }
-    case 'sprint': {
-      const guessed = Math.max(0, Math.round(input.guessedWords || 0));
-      const xp = guessed > 0 ? Math.min(30, guessed * 5) : 5;
-      return {
-        xp,
-        coins: clampCoinsReward(guessed >= 3 ? 2 : guessed >= 1 ? 1 : 0, coinsAdjustment),
-        mood: Math.min(12, xp),
-        label: 'Спринт завершён',
-      };
-    }
-    case 'anagram': {
-      const guessed = Math.max(0, Math.round(input.guessedWords || 0));
-      const xp = guessed > 0 ? Math.min(25, guessed * 5) : 5;
-      return {
-        xp,
-        coins: clampCoinsReward(guessed >= 3 ? 2 : guessed >= 1 ? 1 : 0, coinsAdjustment),
-        mood: Math.min(10, xp),
-        label: 'Анаграммы',
-      };
-    }
-    case 'memory': {
-      const clicks = Math.max(0, Math.round(input.clicks || 0));
-      let xp = 8;
-      if (clicks > 0 && clicks <= 12) xp = 30;
-      else if (clicks <= 16) xp = 25;
-      else if (clicks <= 20) xp = 20;
-      else if (clicks <= 24) xp = 15;
-      else if (clicks > 24) xp = 10;
-
-      return {
-        xp,
-        coins: clampCoinsReward(clicks > 0 && clicks <= 16 ? 2 : clicks <= 24 ? 1 : 0, coinsAdjustment),
-        mood: Math.min(12, xp),
-        label: 'Мемо завершено',
-      };
-    }
-    case 'hangman': {
-      const won = Boolean(input.won);
-      const maxMistakes = Math.max(1, Math.round(input.maxMistakes || 7));
-      const mistakes = Math.max(0, Math.min(maxMistakes, Math.round(input.mistakes || 0)));
-      const remainingAttempts = Math.max(0, maxMistakes - mistakes);
-      const xp = won ? 25 + Math.min(10, remainingAttempts) : getPityXp(won);
-      const baseCoins = won ? Math.max(2, Math.min(6, remainingAttempts)) : 1;
-      return {
-        xp,
-        coins: clampCoinsReward(baseCoins, coinsAdjustment),
-        mood: Math.min(14, xp),
-        label: won ? 'Виселица пройдена' : 'Виселица завершена',
-      };
-    }
-    default:
-      return { xp: 0, coins: Math.max(0, coinsAdjustment), mood: 0, label: 'Игра завершена' };
-  }
-};
-
-export const applyGameRewardToCharacter = (pet: PetState, reward: Pick<GameRewardResult, 'xp' | 'mood'>): CharacterProgressResult => {
-  const currentTotalXp = Math.max(0, Math.round(pet.xp || 0));
-  const previousLevel = deriveCharacterLevel(currentTotalXp);
-  const previousStage = deriveCharacterStage(previousLevel);
-  const nextTotalXp = currentTotalXp + Math.max(0, Math.round(reward.xp || 0));
-  const newLevel = deriveCharacterLevel(nextTotalXp);
-  const newStage = deriveCharacterStage(newLevel);
-  const moodScore = Math.min(70, normalizeMoodScore(pet) + Math.max(0, Math.round(reward.mood || 0)));
-
-  const nextPet: PetState = {
-    ...pet,
-    xp: nextTotalXp,
-    level: newLevel,
-    stage: newStage,
-    moodScore,
-    mood: deriveMoodFromScore(moodScore),
-  };
-
-  return {
-    pet: nextPet,
-    previousLevel,
-    newLevel,
-    previousStage,
-    newStage,
-    leveledUp: newLevel > previousLevel,
-    stagedUp: newStage !== previousStage,
-  };
-};
-
-export const applyTreatMood = (pet: PetState, moodDelta: number, moodCap = 100): PetState => {
-  const currentMoodScore = normalizeMoodScore(pet);
-  const requestedMoodScore = currentMoodScore + Math.max(0, Math.round(moodDelta || 0));
-  const safeCap = Math.max(currentMoodScore, clamp(moodCap));
-  const moodScore = Math.max(currentMoodScore, Math.min(safeCap, requestedMoodScore));
-  return {
-    ...pet,
-    moodScore,
-    mood: deriveMoodFromScore(moodScore),
-  };
-};
-
-export const getCharacterProgressText = (pet: PetState): string => {
-  const level = deriveCharacterLevel(pet.xp || 0);
-  const nextThreshold = getNextLevelThreshold(level);
-  if (nextThreshold === null) return 'Максимальный уровень';
-  return `До следующего уровня: ${Math.max(0, nextThreshold - (pet.xp || 0))} очков опыта`;
-};
-
-export const getCharacterProgressPercent = (pet: PetState): number => {
-  const level = deriveCharacterLevel(pet.xp || 0);
-  const currentThreshold = getCurrentLevelThreshold(level);
-  const nextThreshold = getNextLevelThreshold(level);
-  if (nextThreshold === null || nextThreshold <= currentThreshold) return 100;
-  return clamp(((pet.xp || 0) - currentThreshold) / (nextThreshold - currentThreshold) * 100);
-};
+import { CharacterMood, CharacterStage, PetState } from '../types';
+import { ECONOMY_COIN_REWARDS as C } from './economyConfig';
+export type GameRewardInput = any;
+export type GameRewardResult = any;
+export type CharacterProgressResult = any;
+const T=[0,120,300,600,1000,1500,2200,3000,4000,5200,6800,8600];
+const cl=(v:number,a=0,b=100)=>Math.max(a,Math.min(b,Math.round(v)));
+const st=(l:number):CharacterStage=>l>=10?'stage_4':l>=7?'stage_3':l>=4?'stage_2':'stage_1';
+export const getTotalXpForLevel=(l:number)=>{const n=Math.max(1,Math.round(l||1));if(n<=T.length)return T[n-1];const e=n-T.length;return T[T.length-1]+e*2000+e*(e-1)*150};
+export const CHARACTER_LEVEL_THRESHOLDS=Array.from({length:20},(_,i)=>({level:i+1,totalXp:getTotalXpForLevel(i+1),stage:st(i+1)}));
+export const deriveCharacterLevel=(xp:number)=>{let l=1;while(l<100&&Math.max(0,Math.round(xp||0))>=getTotalXpForLevel(l+1))l++;return l};
+export const deriveCharacterStage=(l:number)=>st(l);
+export const getCharacterStageLabel=(s?:CharacterStage)=>({stage_1:'Малыш',stage_2:'Юный исследователь',stage_3:'Знаток слов',stage_4:'Мастер слов'}[s||'stage_1']);
+export const deriveMoodFromScore=(n:number):CharacterMood=>{const v=cl(n);return v<=20?'sad':v<=45?'calm':v<=70?'happy':v<=90?'joyful':'super_happy'};
+export const normalizeMoodScore=(p:PetState)=>typeof p.moodScore==='number'?cl(p.moodScore):({sad:15,neutral:40,calm:40,happy:60,excited:80,joyful:80,super_happy:95}[p.mood]||50);
+export const getNextLevelThreshold=(l:number)=>getTotalXpForLevel(l+1);
+export const getCurrentLevelThreshold=(l:number)=>getTotalXpForLevel(l);
+export const calculateGameReward=(i:GameRewardInput):GameRewardResult=>{const a=Math.round(i.coinsAdjustment||0),r=(xp:number,c:number,m:number,label:string)=>({xp,coins:c+a,mood:m,label});
+if(i.type==='wordle')return i.won?r(25,C.wordle.win,12,'Wordle win'):r(8,C.wordle.loss,8,'Wordle done');
+if(i.type==='sprint'){const n=Math.max(0,Math.round(i.guessedWords||0)),x=n?Math.min(30,n*5):5;return r(x,n>=6?C.sprint.great:n>=3?C.sprint.good:C.sprint.low,Math.min(12,x),'Sprint done')}
+if(i.type==='anagram'){const n=Math.max(0,Math.round(i.guessedWords||0)),x=n?Math.min(25,n*5):5;return r(x,C.anagram.success,Math.min(10,x),'Anagram done')}
+if(i.type==='memory'){const n=Math.max(0,Math.round(i.clicks||0)),x=n>0&&n<=12?30:n<=16?25:n<=20?20:n<=24?15:n>24?10:8;return r(x,n>0&&n<=16?C.memory.great:n<=24?C.memory.good:C.memory.low,Math.min(12,x),'Memory done')}
+if(i.type==='hangman'){const w=!!i.won,m=Math.max(1,Math.round(i.maxMistakes||7)),e=Math.max(0,Math.min(m,Math.round(i.mistakes||0))),x=w?25+Math.min(10,m-e):8;return r(x,w?(e<=1?C.hangman.perfect:C.hangman.win):C.hangman.loss,Math.min(14,x),'Hangman done')}
+return r(0,0,0,'Done')};
+export const applyGameRewardToCharacter=(p:PetState,r:any):CharacterProgressResult=>{const previousLevel=deriveCharacterLevel(p.xp||0),xp=Math.max(0,Math.round(p.xp||0))+Math.max(0,Math.round(r.xp||0)),newLevel=deriveCharacterLevel(xp),moodScore=Math.min(70,normalizeMoodScore(p)+Math.max(0,Math.round(r.mood||0))),pet={...p,xp,level:newLevel,stage:st(newLevel),moodScore,mood:deriveMoodFromScore(moodScore)};return{pet,previousLevel,newLevel,previousStage:st(previousLevel),newStage:st(newLevel),leveledUp:newLevel>previousLevel,stagedUp:st(newLevel)!==st(previousLevel)}};
+export const applyTreatMood=(p:PetState,d:number,_cap?:number):PetState=>{const moodScore=Math.min(100,normalizeMoodScore(p)+Math.max(0,Math.round(d||0)));return{...p,moodScore,mood:deriveMoodFromScore(moodScore)}};
+export const getCharacterProgressText=(p:PetState)=>`До следующего уровня: ${Math.max(0,getNextLevelThreshold(deriveCharacterLevel(p.xp||0))-(p.xp||0))} очков опыта`;
+export const getCharacterProgressPercent=(p:PetState)=>{const l=deriveCharacterLevel(p.xp||0),a=getCurrentLevelThreshold(l),b=getNextLevelThreshold(l);return b<=a?100:cl(((p.xp||0)-a)/(b-a)*100)};
