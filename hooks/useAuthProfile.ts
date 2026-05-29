@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { User } from '@supabase/supabase-js';
-import { authService } from '../services/authService';
+import { authService, AuthEventName } from '../services/authService';
 import { GUEST_PROFILE } from '../constants/profileDefaults';
 import { GameSettings, UserProfile } from '../types';
 import { profileCache } from '../services/profileCache';
@@ -30,16 +30,19 @@ export const useAuthProfile = () => {
   const [tempPassword, setTempPassword] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const bootstrapCompleteRef = useRef(false);
+  const currentUserIdRef = useRef<string | null>(null);
 
   const setUserProfile = useCallback((next: UserProfile | ((prev: UserProfile) => UserProfile)) => {
     setUserProfileState(prev => {
       const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(prev) : next;
-      profileCache.write(resolved, currentUser?.id ?? null);
+      profileCache.write(resolved, currentUserIdRef.current);
       return resolved;
     });
-  }, [currentUser?.id]);
+  }, []);
 
   const resetToGuest = useCallback(() => {
+    currentUserIdRef.current = null;
     setCurrentUser(null);
     profileCache.clear();
     setUserProfileState(GUEST_PROFILE);
@@ -63,12 +66,13 @@ export const useAuthProfile = () => {
 
     const finishBootstrap = (status: AuthBootstrapStatus, error: string | null = null) => {
       if (cancelled) return;
+      bootstrapCompleteRef.current = true;
       setBootstrapStatus(status);
       setBootstrapError(error);
       setIsRestoringSession(false);
     };
 
-    const failBootstrap = (error: any, fallbackMessage: string) => {
+    const failInitialBootstrap = (error: any, fallbackMessage: string) => {
       console.error(fallbackMessage, error);
       finishBootstrap('error', error?.message || fallbackMessage);
     };
@@ -82,30 +86,58 @@ export const useAuthProfile = () => {
           return;
         }
 
+        currentUserIdRef.current = user.id;
         setCurrentUser(user);
         await loadProfileForUser(user);
         finishBootstrap('ready');
       })
-      .catch(error => failBootstrap(error, 'Не удалось восстановить сессию.'));
+      .catch(error => failInitialBootstrap(error, 'Не удалось восстановить сессию.'));
 
-    const unsubscribe = authService.onAuthStateChange(async (_session, user) => {
-      setIsAuthLoading(false);
+    const silentlySyncAuthenticatedUser = async (event: AuthEventName, user: User) => {
+      const isFreshLogin = event === 'SIGNED_IN' && currentUserIdRef.current !== user.id;
 
-      if (!user) {
+      try {
+        if (event === 'TOKEN_REFRESHED') {
+          currentUserIdRef.current = user.id;
+          setCurrentUser(user);
+          return;
+        }
+
+        if (isFreshLogin) {
+          await loadProfileForUser(user);
+          if (cancelled) return;
+          currentUserIdRef.current = user.id;
+          setCurrentUser(user);
+          return;
+        }
+
+        currentUserIdRef.current = user.id;
+        setCurrentUser(user);
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          await loadProfileForUser(user);
+        }
+      } catch (error: any) {
+        console.error('Не удалось синхронизировать профиль пользователя.', error);
+        if (isFreshLogin && !cancelled) {
+          setAuthError(error?.message || 'Не удалось загрузить профиль пользователя.');
+        }
+      } finally {
+        if (event === 'SIGNED_IN' && !cancelled) setIsAuthLoading(false);
+      }
+    };
+
+    const unsubscribe = authService.onAuthStateChange((event, _session, user) => {
+      if (event === 'INITIAL_SESSION') return;
+
+      if (event === 'SIGNED_OUT' || !user) {
+        setIsAuthLoading(false);
         resetToGuest();
-        finishBootstrap('ready');
+        if (!bootstrapCompleteRef.current) finishBootstrap('ready');
         return;
       }
 
-      try {
-        setBootstrapStatus('loading');
-        setBootstrapError(null);
-        setCurrentUser(user);
-        await loadProfileForUser(user);
-        finishBootstrap('ready');
-      } catch (error) {
-        failBootstrap(error, 'Не удалось загрузить профиль пользователя.');
-      }
+      if (!bootstrapCompleteRef.current) return;
+      void silentlySyncAuthenticatedUser(event, user);
     });
 
     return () => {
@@ -127,14 +159,18 @@ export const useAuthProfile = () => {
 
     setIsAuthLoading(true);
     setAuthError(null);
+    let profileWillLoadFromAuthEvent = false;
 
     try {
       if (authMode === 'login') {
         await authService.signInWithEmail(tempUsername, tempPassword);
+        profileWillLoadFromAuthEvent = true;
       } else {
         const result = await authService.signUpWithEmail(tempUsername, tempPassword);
         if (result.needsEmailConfirmation) {
           setAuthError('На ваш email отправлено письмо для подтверждения. Пожалуйста, подтвердите его перед входом.');
+        } else {
+          profileWillLoadFromAuthEvent = true;
         }
       }
       setTempUsername('');
@@ -144,7 +180,7 @@ export const useAuthProfile = () => {
       setAuthError(error?.message || 'Ошибка авторизации');
       return false;
     } finally {
-      setIsAuthLoading(false);
+      if (!profileWillLoadFromAuthEvent) setIsAuthLoading(false);
     }
   }, [authMode, tempPassword, tempUsername]);
 

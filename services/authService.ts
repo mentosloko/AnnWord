@@ -6,6 +6,8 @@ export interface AuthBootstrapResult {
   user: User | null;
 }
 
+export type AuthEventName = 'INITIAL_SESSION' | 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_REFRESHED' | 'USER_UPDATED' | 'PASSWORD_RECOVERY' | 'MFA_CHALLENGE_VERIFIED' | string;
+
 export const authService = {
   getInitialSession: async (): Promise<AuthBootstrapResult> => {
     const { data, error } = await supabase.auth.getSession();
@@ -50,9 +52,9 @@ export const authService = {
     if (error) throw error;
   },
 
-  onAuthStateChange: (callback: (session: Session | null, user: User | null) => void) => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      callback(session, session?.user ?? null);
+  onAuthStateChange: (callback: (event: AuthEventName, session: Session | null, user: User | null) => void) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      callback(event, session, session?.user ?? null);
     });
     return () => subscription.unsubscribe();
   },
