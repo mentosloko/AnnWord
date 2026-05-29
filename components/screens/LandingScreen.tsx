@@ -23,15 +23,21 @@ interface LandingScreenProps {
 const GameCard: React.FC<{
   title: string;
   description: string;
-  icon: string;
+  iconSrc: string;
   onClick: () => void;
-}> = ({ title, description, icon, onClick }) => (
+}> = ({ title, description, iconSrc, onClick }) => (
   <button
     type="button"
     onClick={onClick}
     className="group flex min-h-[7.25rem] flex-col rounded-2xl border-2 border-indigo-50 bg-white p-3 text-left shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl sm:min-h-0 sm:rounded-3xl sm:p-5"
   >
-    <div className="mb-2 text-3xl transition-transform origin-left group-hover:scale-110 sm:mb-4 sm:text-4xl">{icon}</div>
+    <img
+      src={iconSrc}
+      alt=""
+      aria-hidden="true"
+      className="mb-2 h-14 w-14 origin-left object-contain transition-transform group-hover:scale-110 sm:mb-4 sm:h-20 sm:w-20"
+      draggable={false}
+    />
     <h3 className="text-base font-black text-indigo-950 sm:mb-2 sm:text-xl">{title}</h3>
     <p className="mt-1 hidden text-sm leading-relaxed text-gray-500 sm:block">{description}</p>
   </button>
@@ -144,11 +150,11 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
       </section>
 
       <section className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-2 sm:gap-4 lg:grid-cols-5">
-        <GameCard title="Классика" description="Угадайте слово." icon="🧩" onClick={onStartClassic} />
-        <GameCard title="Анаграммы" description="Соберите слово." icon="🔀" onClick={onStartAnagrams} />
-        <GameCard title="Спринт" description="Выбирайте быстро." icon="⚡" onClick={onStartSprint} />
-        <GameCard title="Виселица" description="Угадайте буквы." icon="🎯" onClick={onStartHangman} />
-        <GameCard title="Память" description="Найдите пары." icon="🧠" onClick={onStartMemory} />
+        <GameCard title="Классика" description="Угадайте слово." iconSrc="/assets/games/game_classic.webp" onClick={onStartClassic} />
+        <GameCard title="Анаграммы" description="Соберите слово." iconSrc="/assets/games/game_anagrams.webp" onClick={onStartAnagrams} />
+        <GameCard title="Спринт" description="Выбирайте быстро." iconSrc="/assets/games/game_sprint.webp" onClick={onStartSprint} />
+        <GameCard title="Виселица" description="Угадайте буквы." iconSrc="/assets/games/game_hangman.webp" onClick={onStartHangman} />
+        <GameCard title="Память" description="Найдите пары." iconSrc="/assets/games/game_memory.webp" onClick={onStartMemory} />
       </section>
     </ScreenContainer>
   );
