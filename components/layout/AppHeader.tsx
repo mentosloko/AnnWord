@@ -5,6 +5,7 @@ import { CoinIcon } from '../CoinIcon';
 interface AppHeaderProps {
   userProfile: UserProfile;
   isAuthenticated: boolean;
+  onHomeClick: () => void;
   onLoginClick: () => void;
   onLogoutClick: () => void;
   onProfileClick?: () => void;
@@ -15,6 +16,7 @@ interface AppHeaderProps {
 export const AppHeader: React.FC<AppHeaderProps> = ({
   userProfile,
   isAuthenticated,
+  onHomeClick,
   onLoginClick,
   onLogoutClick,
   onProfileClick,
@@ -25,8 +27,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 flex w-full items-center justify-between gap-2 border-b border-indigo-50 bg-white/85 px-3 py-2.5 backdrop-blur sm:gap-3 sm:px-4 sm:py-3">
-      <a
-        href="/"
+      <button
+        type="button"
+        onClick={onHomeClick}
         aria-label="AnnWord — на главную"
         className="flex min-w-0 items-center gap-2 rounded-xl transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 sm:gap-2.5"
       >
@@ -38,7 +41,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           draggable={false}
         />
         <span className="truncate text-lg font-black leading-none text-[#121821] sm:text-xl">AnnWord</span>
-      </a>
+      </button>
 
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         {isAuthenticated && (
