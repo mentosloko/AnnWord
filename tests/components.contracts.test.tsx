@@ -62,8 +62,8 @@ describe('component contracts', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Играть' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Открыть магазин' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Играть в классику' }));
+    fireEvent.click(screen.getByRole('button', { name: /100.*монет/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Профиль' }));
 
     expect(onStartClassic).toHaveBeenCalledTimes(1);
@@ -92,11 +92,11 @@ describe('component contracts', () => {
     );
 
     expect(screen.getByText('Ошибка словаря')).toBeInTheDocument();
-    expect(screen.getByText('Мемо')).toBeInTheDocument();
+    expect(screen.getByText('Память')).toBeInTheDocument();
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(['APPLE'], 'dict.txt', { type: 'text/plain' })] } });
-    fireEvent.click(screen.getByRole('button', { name: 'Играть: Мемо' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Начать: Память' }));
 
     expect(onFileUpload).toHaveBeenCalledTimes(1);
     expect(onStartGame).toHaveBeenCalledTimes(1);
@@ -140,7 +140,7 @@ describe('component contracts', () => {
   it('PetRoom closes through explicit callback', () => {
     const onClose = vi.fn();
 
-    render(<PetRoom userProfile={profile} onUseItem={vi.fn().mockResolvedValue(undefined)} onClose={onClose} />);
+    render(<PetRoom userProfile={profile} onUseItem={vi.fn().mockResolvedValue(undefined)} onBuy={vi.fn().mockResolvedValue(undefined)} onClose={onClose} />);
 
     fireEvent.click(screen.getByRole('button', { name: /На главный экран/i }));
 
