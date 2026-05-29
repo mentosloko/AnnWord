@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { UserProfile } from '../../types';
 import { getCharacterProgressPercent, getCharacterStageLabel, normalizeMoodScore } from '../../services/gamificationRules';
 import { getPetEmoji } from '../../services/petEngine';
@@ -59,6 +59,20 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
   const xpProgress = getCharacterProgressPercent(userProfile.pet);
   const moodScore = normalizeMoodScore(userProfile.pet);
   const characterAssetUrl = getPuppyCharacterAssetUrl(userProfile.pet);
+  const [isMobileGamePickerOpen, setIsMobileGamePickerOpen] = useState(false);
+
+  const mobileGameOptions = [
+    { title: 'Классика', description: 'Угадайте слово', iconSrc: '/assets/games/game_classic.webp', onStart: onStartClassic },
+    { title: 'Анаграммы', description: 'Соберите слово', iconSrc: '/assets/games/game_anagrams.webp', onStart: onStartAnagrams },
+    { title: 'Спринт', description: 'Выбирайте быстро', iconSrc: '/assets/games/game_sprint.webp', onStart: onStartSprint },
+    { title: 'Виселица', description: 'Угадайте буквы', iconSrc: '/assets/games/game_hangman.webp', onStart: onStartHangman },
+    { title: 'Память', description: 'Найдите пары', iconSrc: '/assets/games/game_memory.webp', onStart: onStartMemory },
+  ];
+
+  const startMobileGame = (onStart: () => void) => {
+    setIsMobileGamePickerOpen(false);
+    onStart();
+  };
 
   return (
     <ScreenContainer className="pb-24">
@@ -74,7 +88,10 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
                 Играйте, собирайте монеты и развивайте {userProfile.pet.name}.
               </p>
               <div className="flex flex-wrap gap-3">
-                <button type="button" onClick={onStartClassic} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700">
+                <button type="button" onClick={() => setIsMobileGamePickerOpen(true)} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 sm:hidden">
+                  Играть
+                </button>
+                <button type="button" onClick={onStartClassic} className="hidden rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 sm:inline-flex">
                   Играть в классику
                 </button>
                 <button type="button" onClick={onOpenPetRoom} className="rounded-2xl border-2 border-indigo-100 bg-white px-5 py-3.5 font-black text-indigo-700 transition hover:bg-indigo-50">
@@ -94,7 +111,8 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
                 Играйте сразу без регистрации. Аккаунт понадобится, чтобы сохранить прогресс, питомца, покупки и свой словарь.
               </p>
               <div className="flex flex-wrap gap-3">
-                <button type="button" onClick={onStartClassic} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700">Играть</button>
+                <button type="button" onClick={() => setIsMobileGamePickerOpen(true)} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 sm:hidden">Играть</button>
+                <button type="button" onClick={onStartClassic} className="hidden rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 sm:inline-flex">Играть</button>
                 <button type="button" onClick={onOpenLogin} className="rounded-2xl bg-gray-950 px-6 py-4 font-black text-white transition hover:bg-gray-800">Сохранить прогресс</button>
               </div>
             </>
@@ -156,6 +174,51 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
         <GameCard title="Виселица" description="Угадайте буквы." iconSrc="/assets/games/game_hangman.webp" onClick={onStartHangman} />
         <GameCard title="Память" description="Найдите пары." iconSrc="/assets/games/game_memory.webp" onClick={onStartMemory} />
       </section>
+
+      {isMobileGamePickerOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-indigo-950/35 p-3 sm:hidden"
+          role="presentation"
+          onClick={() => setIsMobileGamePickerOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Выбор игры"
+            className="w-full rounded-[2rem] bg-white px-4 pb-5 pt-4 shadow-2xl"
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black text-indigo-950">Выберите игру</h2>
+                <p className="mt-1 text-sm font-medium text-gray-500">Листайте и нажимайте для старта</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileGamePickerOpen(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-xl font-black text-indigo-700"
+                aria-label="Закрыть"
+              >
+                ×
+              </button>
+            </div>
+            <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2">
+              {mobileGameOptions.map(game => (
+                <button
+                  key={game.title}
+                  type="button"
+                  onClick={() => startMobileGame(game.onStart)}
+                  className="flex min-w-[8.8rem] snap-start flex-col rounded-2xl border-2 border-indigo-50 bg-indigo-50/40 p-3 text-left active:border-indigo-300 active:bg-indigo-50"
+                >
+                  <img src={game.iconSrc} alt="" aria-hidden="true" className="mb-2 h-16 w-16 object-contain" draggable={false} />
+                  <span className="text-sm font-black text-indigo-950">{game.title}</span>
+                  <span className="mt-1 text-xs font-medium text-gray-500">{game.description}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
     </ScreenContainer>
   );
 };
