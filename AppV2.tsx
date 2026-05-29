@@ -11,6 +11,7 @@ import { DictionarySource, GameRewardType, PetState, ShopItem, UserStats, ViewSt
 import { analyticsService } from './services/analyticsService';
 import { GameRewardInput } from './services/gamificationRules';
 import { preloadAppAssetsForProfile } from './services/assetPreloader';
+import { WORDLE_HINT_COST, getWordleHintBalanceDelta } from './services/wordleEconomy';
 
 const toAnalyticsGameType = (mode: PlayableModeRoute): GameRewardType => {
   if (mode === 'game') return 'wordle';
@@ -159,6 +160,12 @@ const AppV2: React.FC = () => {
     );
   }, [currentUserId, profileEconomy, settings.dictionarySource, settings.difficulty, settings.wordLength, userProfile.stats]);
 
+  const chargeWordleHint = useCallback(async (): Promise<boolean> => {
+    if (userProfile.coins < WORDLE_HINT_COST) return false;
+    await profileEconomy.winCoins(getWordleHintBalanceDelta());
+    return true;
+  }, [profileEconomy, userProfile.coins]);
+
   const classicGame = useClassicGameController({
     route,
     settings,
@@ -167,6 +174,8 @@ const AppV2: React.FC = () => {
     getModeWords,
     onRouteChange: setRoute,
     onStatsUpdate: updateClassicStats,
+    availableCoins: userProfile.coins,
+    onHintCharge: chargeWordleHint,
   });
 
   const modeWords = useMemo(() => getModeWords(), [getModeWords]);
