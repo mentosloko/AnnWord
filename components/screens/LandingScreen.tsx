@@ -75,7 +75,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
   };
 
   return (
-    <ScreenContainer className="pb-24">
+    <ScreenContainer className="pb-6 sm:pb-24">
       <section className="grid grid-cols-1 items-center gap-5 py-4 sm:py-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-8">
         <div>
           {isAuthenticated ? (
@@ -167,7 +167,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
         </aside>
       </section>
 
-      <section className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-2 sm:gap-4 lg:grid-cols-5">
+      <section className="mt-8 hidden grid-cols-2 gap-4 sm:grid lg:grid-cols-5">
         <GameCard title="Классика" description="Угадайте слово." iconSrc="/assets/games/game_classic.webp" onClick={onStartClassic} />
         <GameCard title="Анаграммы" description="Соберите слово." iconSrc="/assets/games/game_anagrams.webp" onClick={onStartAnagrams} />
         <GameCard title="Спринт" description="Выбирайте быстро." iconSrc="/assets/games/game_sprint.webp" onClick={onStartSprint} />
@@ -185,13 +185,13 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
             role="dialog"
             aria-modal="true"
             aria-label="Выбор игры"
-            className="w-full rounded-[2rem] bg-white px-4 pb-5 pt-4 shadow-2xl"
+            className="flex max-h-[85dvh] w-full flex-col rounded-[2rem] bg-white px-4 pb-5 pt-4 shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex shrink-0 items-center justify-between">
               <div>
                 <h2 className="text-xl font-black text-indigo-950">Выберите игру</h2>
-                <p className="mt-1 text-sm font-medium text-gray-500">Листайте и нажимайте для старта</p>
+                <p className="mt-1 text-sm font-medium text-gray-500">Прокручивайте список и начинайте</p>
               </div>
               <button
                 type="button"
@@ -202,17 +202,20 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
                 ×
               </button>
             </div>
-            <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2">
+            <div className="flex flex-col gap-2 overflow-y-auto pb-1">
               {mobileGameOptions.map(game => (
                 <button
                   key={game.title}
                   type="button"
                   onClick={() => startMobileGame(game.onStart)}
-                  className="flex min-w-[8.8rem] snap-start flex-col rounded-2xl border-2 border-indigo-50 bg-indigo-50/40 p-3 text-left active:border-indigo-300 active:bg-indigo-50"
+                  className="flex shrink-0 items-center gap-3 rounded-2xl border-2 border-indigo-50 bg-indigo-50/40 p-3 text-left active:border-indigo-300 active:bg-indigo-50"
                 >
-                  <img src={game.iconSrc} alt="" aria-hidden="true" className="mb-2 h-16 w-16 object-contain" draggable={false} />
-                  <span className="text-sm font-black text-indigo-950">{game.title}</span>
-                  <span className="mt-1 text-xs font-medium text-gray-500">{game.description}</span>
+                  <img src={game.iconSrc} alt="" aria-hidden="true" className="h-14 w-14 shrink-0 object-contain" draggable={false} />
+                  <span className="min-w-0">
+                    <span className="block text-base font-black text-indigo-950">{game.title}</span>
+                    <span className="mt-0.5 block text-sm font-medium text-gray-500">{game.description}</span>
+                  </span>
+                  <span aria-hidden="true" className="ml-auto text-xl font-black text-indigo-300">›</span>
                 </button>
               ))}
             </div>
