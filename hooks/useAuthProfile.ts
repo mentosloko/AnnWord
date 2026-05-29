@@ -17,21 +17,25 @@ export const createInitialSettings = (): GameSettings => ({
 });
 
 export const useAuthProfile = () => {
-  const cachedProfile = profileCache.read();
-  const initialProfile = cachedProfile || GUEST_PROFILE;
-  const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus>('loading');
+  const [initialSnapshot] = useState(() => profileCache.readSnapshot());
+  const initialProfile = initialSnapshot?.profile || GUEST_PROFILE;
+  const hasCachedProfile = Boolean(initialSnapshot);
+  const initialCachedUserId = initialSnapshot?.userId || null;
+  const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus>(() => hasCachedProfile ? 'ready' : 'loading');
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
-  const [isRestoringSession, setIsRestoringSession] = useState(true);
+  const [isRestoringSession, setIsRestoringSession] = useState(!hasCachedProfile);
   const [settings, setSettings] = useState<GameSettings>(() => ({ ...createInitialSettings(), username: initialProfile.username }));
   const [userProfile, setUserProfileState] = useState<UserProfile>(initialProfile);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [cachedUserId, setCachedUserId] = useState<string | null>(initialCachedUserId);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [tempUsername, setTempUsername] = useState('');
   const [tempPassword, setTempPassword] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
-  const bootstrapCompleteRef = useRef(false);
-  const currentUserIdRef = useRef<string | null>(null);
+  const bootstrapCompleteRef = useRef(hasCachedProfile);
+  const initialSessionCheckedRef = useRef(false);
+  const currentUserIdRef = useRef<string | null>(initialCachedUserId);
 
   const setUserProfile = useCallback((next: UserProfile | ((prev: UserProfile) => UserProfile)) => {
     setUserProfileState(prev => {
@@ -43,6 +47,7 @@ export const useAuthProfile = () => {
 
   const resetToGuest = useCallback(() => {
     currentUserIdRef.current = null;
+    setCachedUserId(null);
     setCurrentUser(null);
     profileCache.clear();
     setUserProfileState(GUEST_PROFILE);
@@ -64,17 +69,22 @@ export const useAuthProfile = () => {
   useEffect(() => {
     let cancelled = false;
 
-    const finishBootstrap = (status: AuthBootstrapStatus, error: string | null = null) => {
+    const finishInitialCheck = (status: AuthBootstrapStatus, error: string | null = null) => {
       if (cancelled) return;
+      initialSessionCheckedRef.current = true;
       bootstrapCompleteRef.current = true;
       setBootstrapStatus(status);
       setBootstrapError(error);
       setIsRestoringSession(false);
     };
 
-    const failInitialBootstrap = (error: any, fallbackMessage: string) => {
+    const failInitialCheck = (error: any, fallbackMessage: string) => {
       console.error(fallbackMessage, error);
-      finishBootstrap('error', error?.message || fallbackMessage);
+      if (hasCachedProfile) {
+        finishInitialCheck('ready');
+      } else {
+        finishInitialCheck('error', error?.message || fallbackMessage);
+      }
     };
 
     authService.getInitialSession()
@@ -82,16 +92,17 @@ export const useAuthProfile = () => {
         if (cancelled) return;
         if (!user) {
           resetToGuest();
-          finishBootstrap('ready');
+          finishInitialCheck('ready');
           return;
         }
 
         currentUserIdRef.current = user.id;
+        setCachedUserId(user.id);
         setCurrentUser(user);
         await loadProfileForUser(user);
-        finishBootstrap('ready');
+        finishInitialCheck('ready');
       })
-      .catch(error => failInitialBootstrap(error, 'Не удалось восстановить сессию.'));
+      .catch(error => failInitialCheck(error, 'Не удалось восстановить сессию.'));
 
     const silentlySyncAuthenticatedUser = async (event: AuthEventName, user: User) => {
       const isFreshLogin = event === 'SIGNED_IN' && currentUserIdRef.current !== user.id;
@@ -99,6 +110,7 @@ export const useAuthProfile = () => {
       try {
         if (event === 'TOKEN_REFRESHED') {
           currentUserIdRef.current = user.id;
+          setCachedUserId(user.id);
           setCurrentUser(user);
           return;
         }
@@ -107,11 +119,13 @@ export const useAuthProfile = () => {
           await loadProfileForUser(user);
           if (cancelled) return;
           currentUserIdRef.current = user.id;
+          setCachedUserId(user.id);
           setCurrentUser(user);
           return;
         }
 
         currentUserIdRef.current = user.id;
+        setCachedUserId(user.id);
         setCurrentUser(user);
         if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           await loadProfileForUser(user);
@@ -132,11 +146,11 @@ export const useAuthProfile = () => {
       if (event === 'SIGNED_OUT' || !user) {
         setIsAuthLoading(false);
         resetToGuest();
-        if (!bootstrapCompleteRef.current) finishBootstrap('ready');
+        if (!initialSessionCheckedRef.current) finishInitialCheck('ready');
         return;
       }
 
-      if (!bootstrapCompleteRef.current) return;
+      if (!initialSessionCheckedRef.current) return;
       void silentlySyncAuthenticatedUser(event, user);
     });
 
@@ -144,7 +158,7 @@ export const useAuthProfile = () => {
       cancelled = true;
       unsubscribe();
     };
-  }, [loadProfileForUser, resetToGuest]);
+  }, [hasCachedProfile, loadProfileForUser, resetToGuest]);
 
   const openLoginMode = useCallback(() => {
     setAuthMode('login');
@@ -214,7 +228,8 @@ export const useAuthProfile = () => {
     userProfile,
     setUserProfile,
     currentUser,
-    isAuthenticated: Boolean(currentUser),
+    cachedUserId,
+    isAuthenticated: Boolean(currentUser) || Boolean(cachedUserId),
     authMode,
     setAuthMode,
     tempUsername,
