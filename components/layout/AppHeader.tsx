@@ -25,9 +25,15 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 flex w-full items-center justify-between gap-2 border-b border-indigo-50 bg-white/85 px-3 py-2.5 backdrop-blur sm:gap-3 sm:px-4 sm:py-3">
-      <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 font-black text-white shadow-sm sm:h-10 sm:w-10 sm:rounded-2xl">A</div>
-        <div className="truncate text-lg font-black leading-none text-indigo-950 sm:text-xl">AnnWord</div>
+      <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+        <img
+          src="/assets/branding/annword-logo-mark.svg"
+          alt=""
+          aria-hidden="true"
+          className="h-10 w-10 shrink-0 object-contain sm:h-11 sm:w-11"
+          draggable={false}
+        />
+        <div className="truncate text-lg font-black leading-none text-[#121821] sm:text-xl">AnnWord</div>
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
