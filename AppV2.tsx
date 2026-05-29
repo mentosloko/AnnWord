@@ -237,6 +237,7 @@ const AppV2: React.FC = () => {
       tempPassword={tempPassword}
       authError={authError}
       isAuthLoading={isAuthLoading}
+      onHomeClick={() => setRoute('landing')}
       onLoginClick={openLogin}
       onLogoutClick={handleLogout}
       onProfileClick={() => setRoute('profile')}
