@@ -19,8 +19,8 @@ export interface ClassicGameScreenBindings {
   gameState: GameState;
   keyStatuses: Record<string, CharStatus>;
   shakeRowIndex: number | null;
-  hasActiveGame: boolean;
-  resumeGame: () => boolean;
+  hasActiveGame?: boolean;
+  resumeGame?: () => boolean;
   startNewGame: () => void;
   handleChar: (char: string) => void;
   handleDelete: () => void;
@@ -62,12 +62,10 @@ export const AppScreens: React.FC<AppScreensProps> = ({
 }) => {
   const goHome = () => onRouteChange('landing');
   const setupError = classicGame.setupError || dictionaryUpload.error;
+  const hasActiveClassicGame = Boolean(classicGame.hasActiveGame);
 
   const openSetupFor = (mode: PlayableModeRoute) => {
-    if (mode === 'game' && classicGame.hasActiveGame) {
-      classicGame.resumeGame();
-      return;
-    }
+    if (mode === 'game' && hasActiveClassicGame && classicGame.resumeGame?.()) return;
     onSelectedPlayModeChange(mode);
     onRouteChange('setup');
   };
@@ -88,7 +86,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
       <LandingScreen
         userProfile={userProfile}
         isAuthenticated={isAuthenticated}
-        hasActiveClassicGame={classicGame.hasActiveGame}
+        hasActiveClassicGame={hasActiveClassicGame}
         onStartClassic={() => openSetupFor('game')}
         onStartAnagrams={() => openSetupFor('anagrams')}
         onStartSprint={() => openSetupFor('sprint')}
