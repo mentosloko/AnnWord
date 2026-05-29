@@ -25,7 +25,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 flex w-full items-center justify-between gap-2 border-b border-indigo-50 bg-white/85 px-3 py-2.5 backdrop-blur sm:gap-3 sm:px-4 sm:py-3">
-      <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+      <a
+        href="/"
+        aria-label="AnnWord — на главную"
+        className="flex min-w-0 items-center gap-2 rounded-xl transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 sm:gap-2.5"
+      >
         <img
           src="/assets/branding/annword-logo-mark.svg"
           alt=""
@@ -33,8 +37,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           className="h-10 w-10 shrink-0 object-contain sm:h-11 sm:w-11"
           draggable={false}
         />
-        <div className="truncate text-lg font-black leading-none text-[#121821] sm:text-xl">AnnWord</div>
-      </div>
+        <span className="truncate text-lg font-black leading-none text-[#121821] sm:text-xl">AnnWord</span>
+      </a>
 
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         {isAuthenticated && (
