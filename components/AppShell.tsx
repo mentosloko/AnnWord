@@ -14,6 +14,7 @@ interface AppShellProps {
   tempPassword: string;
   authError: string | null;
   isAuthLoading: boolean;
+  onHomeClick: () => void;
   onLoginClick: () => void;
   onLogoutClick: () => Promise<void>;
   onProfileClick: () => void;
@@ -32,7 +33,7 @@ interface AppShellProps {
 
 const GAME_ROUTES: ViewState[] = ['game', 'anagrams', 'sprint', 'hangman', 'memory'];
 
-export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onAdminClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => {
+export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onHomeClick, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onAdminClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => {
   const isGameRoute = GAME_ROUTES.includes(route);
 
   return (
@@ -41,6 +42,7 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
         <AppHeader
           userProfile={userProfile}
           isAuthenticated={isAuthenticated}
+          onHomeClick={onHomeClick}
           onLoginClick={onLoginClick}
           onLogoutClick={onLogoutClick}
           onProfileClick={onProfileClick}
