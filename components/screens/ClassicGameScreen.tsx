@@ -47,7 +47,7 @@ export const ClassicGameScreen: React.FC<ClassicGameScreenProps> = ({
   const isFinished = gameState.gameStatus === 'won' || gameState.gameStatus === 'lost';
   const hintCoinsSpent = gameState.hintCoinsSpent ?? 0;
   const rewardPreview = isFinished
-    ? calculateGameReward({ type: 'wordle', won: gameState.gameStatus === 'won', coinsAdjustment: -hintCoinsSpent })
+    ? calculateGameReward({ type: 'wordle', won: gameState.gameStatus === 'won' })
     : null;
   const progressPreview = rewardPreview ? applyGameRewardToCharacter(userProfile.pet, rewardPreview) : null;
 
