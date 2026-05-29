@@ -77,6 +77,7 @@ const renderScreens = (overrides: Partial<React.ComponentProps<typeof AppScreens
     onOpenRules: vi.fn(),
     onBuy: vi.fn().mockResolvedValue(undefined),
     onUseItem: vi.fn().mockResolvedValue(undefined),
+    onCharacterOnboardingComplete: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
@@ -99,8 +100,8 @@ describe('shared setup flow for all game modes', () => {
     const { onRouteChange } = renderScreens({ route: 'setup', selectedPlayMode: 'sprint' });
 
     expect(screen.getByText('Спринт')).toBeInTheDocument();
-    expect(screen.getByText('Настройка игры')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Играть: Спринт' }));
+    expect(screen.getByText('Перед стартом')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Начать: Спринт' }));
 
     expect(onRouteChange).toHaveBeenCalledWith('sprint');
   });
@@ -113,7 +114,7 @@ describe('shared setup flow for all game modes', () => {
       classicGame: { ...classicGame, startNewGame },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Играть: Wordle' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Начать: Классика' }));
 
     expect(startNewGame).toHaveBeenCalledTimes(1);
   });
