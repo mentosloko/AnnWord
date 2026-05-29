@@ -5,66 +5,10 @@ import { getPetEmoji } from '../services/petEngine';
 import { getPetCharacterAssetUrl } from '../services/petAssets';
 import { CoinIcon } from './CoinIcon';
 
-interface CharacterProgressCardProps {
-  pet: PetState;
-  xpGained: number;
-  coinsGained: number;
-  title?: string;
-}
-
-export const CharacterProgressCard: React.FC<CharacterProgressCardProps> = ({
-  pet,
-  xpGained,
-  coinsGained,
-  title = 'Прогресс персонажа',
-}) => {
-  const currentLevelXp = getCurrentLevelThreshold(pet.level || 1);
-  const nextLevelXp = getNextLevelThreshold(pet.level || 1);
-  const isMaxLevel = nextLevelXp === null;
-  const progressPercent = isMaxLevel
-    ? 100
-    : Math.max(0, Math.min(100, (((pet.xp || 0) - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100));
-  const maxLevel = CHARACTER_LEVEL_THRESHOLDS[CHARACTER_LEVEL_THRESHOLDS.length - 1].level;
-  const coinDeltaLabel = coinsGained > 0 ? `+${coinsGained}` : String(coinsGained);
-  const characterAssetUrl = getPetCharacterAssetUrl(pet);
-
-  return (
-    <div className="rounded-[2rem] bg-indigo-50 border-2 border-indigo-100 p-5 text-left w-full">
-      <div className="flex items-center gap-4 mb-4">
-        <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-3xl shadow-sm overflow-hidden">
-          {characterAssetUrl ? (
-            <img src={characterAssetUrl} alt={pet.name} className="h-full w-full object-contain" draggable={false} />
-          ) : (
-            getPetEmoji(pet)
-          )}
-        </div>
-        <div>
-          <div className="text-xs font-black uppercase tracking-widest text-indigo-400">{title}</div>
-          <div className="text-xl font-black text-indigo-950">{pet.name}</div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="rounded-2xl bg-white p-3 border border-indigo-100">
-          <div className="text-xs font-black uppercase tracking-widest text-indigo-300">Очки опыта</div>
-          <div className="text-2xl font-black text-indigo-700">+{xpGained}</div>
-        </div>
-        <div className="rounded-2xl bg-white p-3 border border-yellow-100">
-          <div className="text-xs font-black uppercase tracking-widest text-yellow-400">Монеты</div>
-          <div className="flex items-center gap-1 text-2xl font-black text-yellow-600">
-            <span>{coinDeltaLabel}</span><CoinIcon />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-sm font-black text-indigo-900">Уровень {pet.level}</div>
-        <div className="text-xs font-bold text-indigo-400">{isMaxLevel ? `Макс. уровень ${maxLevel}` : `${pet.xp}/${nextLevelXp} очков опыта`}</div>
-      </div>
-      <div className="h-3 rounded-full bg-white overflow-hidden border border-indigo-100">
-        <div className="h-full bg-indigo-600 transition-all" style={{ width: `${progressPercent}%` }} />
-      </div>
-      <div className="mt-2 text-xs font-bold text-indigo-400">Стадия: {getCharacterStageLabel(pet.stage)}</div>
-    </div>
-  );
+interface CharacterProgressCardProps { pet: PetState; xpGained: number; coinsGained: number; title?: string; }
+export const CharacterProgressCard: React.FC<CharacterProgressCardProps> = ({ pet, xpGained, coinsGained, title = 'Прогресс персонажа' }) => {
+  const currentLevelXp = getCurrentLevelThreshold(pet.level || 1), nextLevelXp = getNextLevelThreshold(pet.level || 1), isMaxLevel = nextLevelXp === null;
+  const progressPercent = isMaxLevel ? 100 : Math.max(0, Math.min(100, (((pet.xp || 0) - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100));
+  const maxLevel = CHARACTER_LEVEL_THRESHOLDS[CHARACTER_LEVEL_THRESHOLDS.length - 1].level, coinDeltaLabel = coinsGained > 0 ? `+${coinsGained}` : String(coinsGained), characterAssetUrl = getPetCharacterAssetUrl(pet);
+  return <div className="w-full rounded-[2rem] border-2 border-indigo-100 bg-indigo-50 p-5 text-left"><div className="mb-4 flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white text-3xl shadow-sm">{characterAssetUrl ? <img src={characterAssetUrl} alt={pet.name} className="h-full w-full object-contain" draggable={false}/> : getPetEmoji(pet)}</div><div><div className="text-xs font-black uppercase tracking-widest text-indigo-400">{title}</div><div className="text-xl font-black text-indigo-950">{pet.name}</div></div></div><div className="mb-4 grid grid-cols-2 gap-3"><div className="rounded-2xl border border-indigo-100 bg-white p-3"><div className="text-xs font-black uppercase tracking-widest text-indigo-300">Очки опыта</div><div className="text-2xl font-black text-indigo-700">+{xpGained}</div></div><div className="rounded-2xl border border-yellow-100 bg-white p-3"><div className="text-xs font-black uppercase tracking-widest text-yellow-400">Рубли</div><div className="flex items-center gap-1 text-2xl font-black text-yellow-600"><span>{coinDeltaLabel}</span><CoinIcon /></div></div></div><div className="mb-2 flex items-center justify-between"><div className="text-sm font-black text-indigo-900">Уровень {pet.level}</div><div className="text-xs font-bold text-indigo-400">{isMaxLevel ? `Макс. уровень ${maxLevel}` : `${pet.xp}/${nextLevelXp} очков опыта`}</div></div><div className="h-3 overflow-hidden rounded-full border border-indigo-100 bg-white"><div className="h-full bg-indigo-600 transition-all" style={{ width: `${progressPercent}%` }}/></div><div className="mt-2 text-xs font-bold text-indigo-400">Стадия: {getCharacterStageLabel(pet.stage)}</div></div>;
 };

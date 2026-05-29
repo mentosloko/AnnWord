@@ -19,6 +19,8 @@ export interface ClassicGameScreenBindings {
   gameState: GameState;
   keyStatuses: Record<string, CharStatus>;
   shakeRowIndex: number | null;
+  hasActiveGame?: boolean;
+  resumeGame?: () => boolean;
   startNewGame: () => void;
   handleChar: (char: string) => void;
   handleDelete: () => void;
@@ -54,29 +56,16 @@ export interface AppScreensProps {
 }
 
 export const AppScreens: React.FC<AppScreensProps> = ({
-  route,
-  userProfile,
-  isAuthenticated,
-  settings,
-  modeWords,
-  selectedPlayMode,
-  classicGame,
-  dictionaryUpload,
-  onRouteChange,
-  onSelectedPlayModeChange,
-  onSettingsChange,
-  onOpenLogin,
-  onOpenRules,
-  onBuy,
-  onUseItem,
-  onGameReward,
-  onCharacterOnboardingComplete,
-  onGameStarted,
+  route, userProfile, isAuthenticated, settings, modeWords, selectedPlayMode, classicGame,
+  dictionaryUpload, onRouteChange, onSelectedPlayModeChange, onSettingsChange, onOpenLogin,
+  onOpenRules, onBuy, onUseItem, onGameReward, onCharacterOnboardingComplete, onGameStarted,
 }) => {
   const goHome = () => onRouteChange('landing');
   const setupError = classicGame.setupError || dictionaryUpload.error;
+  const hasActiveClassicGame = Boolean(classicGame.hasActiveGame);
 
   const openSetupFor = (mode: PlayableModeRoute) => {
+    if (mode === 'game' && hasActiveClassicGame && classicGame.resumeGame?.()) return;
     onSelectedPlayModeChange(mode);
     onRouteChange('setup');
   };
@@ -90,7 +79,6 @@ export const AppScreens: React.FC<AppScreensProps> = ({
     onRouteChange(selectedPlayMode);
   };
 
-  // Smoke contract reference: pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onClose={goHome} />
   const screens: Partial<Record<ViewState, React.ReactNode>> = {
     admin: <AdminAnalyticsScreen userProfile={userProfile} onBackHome={goHome} />,
     character_onboarding: <CharacterOnboardingScreen onComplete={onCharacterOnboardingComplete} />,
@@ -98,6 +86,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
       <LandingScreen
         userProfile={userProfile}
         isAuthenticated={isAuthenticated}
+        hasActiveClassicGame={hasActiveClassicGame}
         onStartClassic={() => openSetupFor('game')}
         onStartAnagrams={() => openSetupFor('anagrams')}
         onStartSprint={() => openSetupFor('sprint')}
@@ -140,16 +129,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
         onBackHome={goHome}
       />
     ),
-    profile: (
-      <ProfileScreen
-        userProfile={userProfile}
-        isAuthenticated={isAuthenticated}
-        onBackHome={goHome}
-        onOpenShop={() => onRouteChange('shop')}
-        onOpenPetRoom={() => onRouteChange('pet_room')}
-        onLogin={onOpenLogin}
-      />
-    ),
+    profile: <ProfileScreen userProfile={userProfile} isAuthenticated={isAuthenticated} onBackHome={goHome} onOpenShop={() => onRouteChange('shop')} onOpenPetRoom={() => onRouteChange('pet_room')} onLogin={onOpenLogin} />,
     anagrams: <AnagramsScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
     sprint: <SprintScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
     memory: <MemoryScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
