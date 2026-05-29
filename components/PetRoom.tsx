@@ -1,36 +1,74 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { InventoryItem, ShopItem, UserProfile } from '../types';
+import { ShopItem, UserProfile } from '../types';
 import { applyItemUseLocally, applyPurchaseLocally } from '../services/economyEngine';
-import { getCharacterProgressPercent, getCharacterProgressText, getCharacterStageLabel } from '../services/gamificationRules';
-import { getInventoryEmoji, getPetEmoji, getPetNeedSnapshot, getVisibleInventory } from '../services/petEngine';
-import { getInventoryImageUrl, getPuppyCharacterAssetUrl, getPuppyCharacterPreloadUrls, getShopImageUrl } from '../services/petAssets';
+import { getCharacterProgressPercent, getCharacterStageLabel } from '../services/gamificationRules';
+import { getPetEmoji, getPetNeedSnapshot, getVisibleInventory } from '../services/petEngine';
+import { getInventoryImageUrl, getPuppyCharacterAssetUrl, getShopImageUrl } from '../services/petAssets';
 import { getShopItemsByType } from '../services/shopCatalog';
 import { CoinIcon } from './CoinIcon';
 
-interface PetRoomProps { userProfile: UserProfile; onUseItem: (itemId: string) => Promise<void>; onBuy: (item: ShopItem) => Promise<void>; onClose: () => void; onOpenShop?: () => void; }
-type VisibleRoomTab = 'food' | 'accessory';
-const VISIBLE_ROOM_TABS: VisibleRoomTab[] = ['food', 'accessory'];
-const ROOM_BACKGROUND_BY_PET_TYPE: Record<string, string> = { Puppy: '/assets/rooms/puppy/background.webp' };
-const preloadImageUrls = (urls: string[]) => { if (typeof window === 'undefined') return; urls.forEach(url => { const image = new Image(); image.decoding = 'async'; image.src = url; }); };
-const getProfileSyncKey = (profile: UserProfile) => `${profile.username}|${profile.coins}|${profile.pet.name}|${profile.pet.type}|${profile.pet.level}|${profile.pet.xp}|${profile.pet.moodScore}|${JSON.stringify(profile.pet.equippedAccessories || [])}|${JSON.stringify(profile.inventory || [])}`;
-const getTabLabel = (tab: VisibleRoomTab) => tab === 'food' ? 'Лакомства' : 'Гардероб';
-const getUseHint = (tab: VisibleRoomTab) => tab === 'food' ? 'Нажмите на лакомство, чтобы угостить.' : 'Нажмите, чтобы надеть или снять.';
-const getCharacterPhrase = (profile: UserProfile) => { const snapshot = getPetNeedSnapshot(profile.pet); const hasFood = profile.inventory.some(item => item.type === 'food' && item.quantity > 0); if (snapshot.moodScore <= 20) return hasFood ? 'Можно лакомство?' : 'Купим лакомство?'; if (snapshot.moodScore <= 45) return hasFood ? 'Лакомство меня порадует!' : 'Сыграем и заглянем в магазин?'; if (snapshot.moodScore <= 70) return 'Сыграем ещё?'; return (profile.pet.level || 1) >= 5 ? 'Готов к новому вызову!' : 'Отличное настроение!'; };
+interface Props {
+  userProfile: UserProfile;
+  onUseItem: (itemId: string) => Promise<void>;
+  onBuy: (item: ShopItem) => Promise<void>;
+  onClose: () => void;
+  onOpenShop?: () => void;
+}
+type Tab = 'food' | 'accessory';
+const tabs: Tab[] = ['food', 'accessory'];
+const label = (tab: Tab) => tab === 'food' ? 'Лакомства' : 'Гардероб';
+const phrase = (profile: UserProfile) => getPetNeedSnapshot(profile.pet).moodScore <= 45 ? 'Купим лакомство?' : 'Сыграем ещё?';
 
-const InventoryCard: React.FC<{ item: InventoryItem; isActive: boolean; isUsing: boolean; onUse: (itemId: string) => void }> = ({ item, isActive, isUsing, onUse }) => { const url = getInventoryImageUrl(item); return <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={() => onUse(item.id)} className={`relative flex min-h-[100px] items-center gap-3 rounded-3xl border-2 p-3 text-left shadow-sm ${isActive ? 'border-indigo-500 bg-indigo-600 text-white' : 'border-indigo-100 bg-white text-indigo-950'}`}><div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${isActive ? 'bg-white/15' : 'bg-indigo-50'}`}>{url ? <img src={url} alt="" className="h-14 w-14 object-contain" /> : <span className="text-4xl">{getInventoryEmoji(item)}</span>}</div><div className="flex-1"><div className="font-black">{item.name}</div><div className={`mt-1 text-xs font-bold ${isActive ? 'text-white/75' : 'text-indigo-400'}`}>{isActive ? 'Надето' : item.type === 'food' ? 'Угостить' : 'Надеть'}</div></div>{item.quantity > 1 && <div className="absolute right-3 top-3 rounded-full bg-red-500 px-2 py-1 text-xs font-black text-white">{item.quantity}</div>}{isUsing && <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-white/55"><div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" /></div>}</motion.button>; };
-const PurchasableCard: React.FC<{ item: ShopItem; isBuying: boolean; disabled: boolean; onBuy: (item: ShopItem) => void }> = ({ item, isBuying, disabled, onBuy }) => { const url = getShopImageUrl(item); return <div className="flex min-h-[116px] items-center gap-3 rounded-3xl border-2 border-dashed border-indigo-200 bg-indigo-50/60 p-3"><div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/90 grayscale">{url ? <img src={url} alt="" className="h-14 w-14 object-contain" /> : <span className="text-4xl">🎁</span>}</div><div className="flex-1"><div className="font-black text-indigo-950">{item.name}</div><div className="mt-1 flex items-center gap-1 text-xs font-black text-yellow-700"><span>{item.price}</span><CoinIcon /></div><button type="button" disabled={disabled || isBuying} onClick={() => onBuy(item)} className="mt-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white disabled:bg-indigo-200">{isBuying ? 'Сохраняю...' : 'Купить'}</button></div></div>; };
+export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClose, onOpenShop }) => {
+  const [profile, setProfile] = useState(userProfile);
+  const [tab, setTab] = useState<Tab>('food');
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [speech, setSpeech] = useState(phrase(userProfile));
+  useEffect(() => { setProfile(userProfile); setSpeech(phrase(userProfile)); }, [userProfile]);
+  const pet = profile.pet;
+  const mood = getPetNeedSnapshot(pet);
+  const inventory = getVisibleInventory(profile, tab);
+  const characterUrl = getPuppyCharacterAssetUrl(pet);
+  const xp = getCharacterProgressPercent(pet);
+  const roomUrl = pet.type === 'Puppy' ? '/assets/rooms/puppy/background.webp' : null;
+  const owned = new Set(profile.inventory.map(item => item.id));
+  const available = getShopItemsByType(tab).filter(item => pet.level >= item.minLevel && profile.coins >= item.price && (item.type === 'food' || !owned.has(item.id)));
 
-export const PetRoom: React.FC<PetRoomProps> = ({ userProfile, onUseItem, onBuy, onClose, onOpenShop }) => {
-  const [activeTab, setActiveTab] = useState<VisibleRoomTab>('food'); const [usingId, setUsingId] = useState<string | null>(null); const [buyingId, setBuyingId] = useState<string | null>(null); const [purchaseError, setPurchaseError] = useState<string | null>(null); const [speechText, setSpeechText] = useState(getCharacterPhrase(userProfile)); const [localProfile, setLocalProfile] = useState(userProfile);
-  const lastExternalProfileKey = useRef(getProfileSyncKey(userProfile)); const mountedRef = useRef(true); const purchaseInFlightRef = useRef(false);
-  useEffect(() => { mountedRef.current = true; if (userProfile.pet.type === 'Puppy') preloadImageUrls(getPuppyCharacterPreloadUrls()); return () => { mountedRef.current = false; }; }, [userProfile.pet.type]);
-  useEffect(() => { const key = getProfileSyncKey(userProfile); if (key !== lastExternalProfileKey.current) { lastExternalProfileKey.current = key; setLocalProfile(userProfile); setSpeechText(getCharacterPhrase(userProfile)); } }, [userProfile]);
-  const setLocalAndRemember = (profile: UserProfile) => { setLocalProfile(profile); lastExternalProfileKey.current = getProfileSyncKey(profile); setSpeechText(getCharacterPhrase(profile)); };
-  const profile = localProfile, pet = profile.pet, snapshot = getPetNeedSnapshot(pet), characterUrl = getPuppyCharacterAssetUrl(pet), inventory = getVisibleInventory(profile, activeTab), ownedIds = new Set(profile.inventory.map(item => item.id));
-  const purchasable = getShopItemsByType(activeTab).filter(item => (!item.characterType || item.characterType === pet.type) && pet.level >= item.minLevel && profile.coins >= item.price && (item.type === 'food' || !ownedIds.has(item.id)));
-  const xpProgress = getCharacterProgressPercent(pet), roomBackgroundUrl = ROOM_BACKGROUND_BY_PET_TYPE[pet.type], customRoom = Boolean(roomBackgroundUrl);
-  const handleUse = async (itemId: string) => { if (usingId || buyingId) return; const optimistic = applyItemUseLocally(profile, itemId); if (!optimistic.ok || !optimistic.profile) return; setLocalAndRemember(optimistic.profile); setUsingId(itemId); try { await onUseItem(itemId); } finally { if (mountedRef.current) setUsingId(null); } };
-  const handleBuy = async (item: ShopItem) => { if (purchaseInFlightRef.current || usingId) return; setPurchaseError(null); const optimistic = applyPurchaseLocally(profile, item); if (!optimistic.ok || !optimistic.profile) return; purchaseInFlightRef.current = true; setBuyingId(item.id); setLocalAndRemember(optimistic.profile); try { await onBuy(item); } catch (error: any) { if (mountedRef.current) { setLocalAndRemember(userProfile); setPurchaseError(String(error?.message || 'Покупка не сохранилась. Попробуйте ещё раз.')); } } finally { purchaseInFlightRef.current = false; if (mountedRef.current) setBuyingId(null); } };
-  return <div className="mx-auto flex max-w-6xl flex-col px-3 pb-24 pt-3 sm:px-4 sm:pt-4"><div className="mb-4 flex items-center justify-between gap-3 sm:mb-6"><button type="button" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button><div className="text-center"><h1 className="text-xl font-black text-indigo-950 sm:text-3xl">Комната питомца</h1><div className="text-xs font-black uppercase tracking-widest text-indigo-300">{pet.name}</div></div><div className="h-11 w-11" /></div>{purchaseError && <div role="alert" className="mb-4 flex items-center justify-between rounded-2xl border-2 border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700"><span>{purchaseError}</span><button onClick={() => setPurchaseError(null)} className="font-black">×</button></div>}<section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6"><div className="overflow-x-auto rounded-[2rem] border-2 border-white bg-white shadow-sm sm:overflow-hidden"><div className={`relative min-h-[420px] w-[660px] sm:min-h-[540px] sm:w-full ${customRoom ? 'bg-sky-50 bg-cover bg-center bg-no-repeat' : 'bg-gradient-to-b from-sky-100 via-indigo-50 to-amber-50'}`} style={customRoom ? { backgroundImage: `url('${roomBackgroundUrl}')` } : undefined}><motion.button type="button" onClick={() => setSpeechText(getCharacterPhrase(profile))} animate={{ y: snapshot.mood === 'sad' ? [0, -4, 0] : [0, -12, 0] }} transition={{ repeat: Infinity, duration: 3 }} className="absolute bottom-[5.5rem] left-1/2 z-10 flex h-56 w-56 -translate-x-1/2 items-center justify-center sm:h-72 sm:w-72">{characterUrl ? <img src={characterUrl} alt={pet.name} className="h-full w-full select-none object-contain" /> : <span className="text-[7rem]">{getPetEmoji(pet)}</span>}</motion.button><motion.div key={speechText} className="absolute right-4 top-4 z-20 rounded-3xl border-2 border-indigo-50 bg-white/90 px-4 py-3 text-sm font-bold text-indigo-900">“{speechText}”</motion.div></div><p className="px-3 py-2 text-center text-xs font-bold text-indigo-400 sm:hidden">Проведите по комнате влево или вправо</p></div><aside className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1"><div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5"><div className="text-xs font-black uppercase text-indigo-300">Питомец</div><div className="text-2xl font-black text-indigo-950">{pet.name}</div><div className="text-sm font-bold text-indigo-500">Уровень {pet.level} · {getCharacterStageLabel(pet.stage)}</div></div><div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5"><div className="mb-3 flex justify-between text-xs font-black uppercase text-indigo-300"><span>Опыт</span><span>{pet.xp}</span></div><div className="h-3 rounded-full bg-indigo-50"><motion.div animate={{ width: `${xpProgress}%` }} className="h-full rounded-full bg-indigo-500" /></div><div className="mt-2 text-xs font-bold text-indigo-500">{getCharacterProgressText(pet)}</div></div></aside></section><section className="mt-5 rounded-[2rem] border-2 border-indigo-50 bg-white p-4"><div className="mb-4 flex justify-between gap-3"><div><h2 className="text-xl font-black text-indigo-950">Мои предметы</h2><p className="text-xs font-bold text-indigo-400">{getUseHint(activeTab)}</p></div><div className="flex rounded-2xl bg-indigo-50 p-1">{VISIBLE_ROOM_TABS.map(tab => <button key={tab} onClick={() => setActiveTab(tab)} className={`rounded-xl px-4 py-2 font-bold ${activeTab === tab ? 'bg-white text-indigo-900' : 'text-indigo-400'}`}>{getTabLabel(tab)}</button>)}</div></div>{inventory.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{inventory.map(item => <InventoryCard key={item.id} item={item} isActive={pet.equippedAccessories?.includes(item.id) || pet.activeHomeItemId === item.id} isUsing={usingId === item.id} onUse={handleUse} />)}</div> : <div className="rounded-3xl border-2 border-dashed border-indigo-100 bg-indigo-50/50 p-8 text-center"><p className="font-black text-indigo-950">{activeTab === 'food' ? 'Лакомств пока нет' : 'Гардероб пока пуст'}</p>{onOpenShop && <button onClick={onOpenShop} className="mt-4 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white">В магазин</button>}</div>}{purchasable.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{purchasable.map(item => <PurchasableCard key={item.id} item={item} isBuying={buyingId === item.id} disabled={Boolean(buyingId || usingId)} onBuy={handleBuy} />)}</div>}</section></div>;
+  const useItem = async (itemId: string) => {
+    const optimistic = applyItemUseLocally(profile, itemId);
+    if (!optimistic.ok || !optimistic.profile) return;
+    setProfile(optimistic.profile); setBusy(itemId);
+    try { await onUseItem(itemId); } finally { setBusy(null); }
+  };
+  const buy = async (item: ShopItem) => {
+    setError(null);
+    const optimistic = applyPurchaseLocally(profile, item);
+    if (!optimistic.ok || !optimistic.profile) return;
+    setProfile(optimistic.profile); setBusy(item.id);
+    try { await onBuy(item); }
+    catch (reason: unknown) { setProfile(userProfile); setError(reason instanceof Error ? reason.message : 'Покупка не сохранилась. Попробуйте ещё раз.'); }
+    finally { setBusy(null); }
+  };
+
+  return <div className="mx-auto max-w-6xl px-3 pb-24 pt-3 sm:px-4">
+    <header className="mb-4 flex items-center justify-between"><button type="button" onClick={onClose} className="h-11 w-11 rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button><div className="text-center"><h1 className="text-xl font-black text-indigo-950 sm:text-3xl">Комната питомца</h1><p className="text-xs font-black uppercase text-indigo-300">{pet.name}</p></div><div className="h-11 w-11" /></header>
+    {error && <div role="alert" className="mb-4 flex justify-between rounded-2xl border-2 border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700"><span>{error}</span><button type="button" onClick={() => setError(null)}>×</button></div>}
+    <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="overflow-x-auto rounded-[2rem] border-2 border-white bg-white shadow-sm sm:overflow-hidden">
+        <div className={`relative min-h-[420px] w-[660px] sm:min-h-[540px] sm:w-full ${roomUrl ? 'bg-cover bg-center bg-no-repeat' : 'bg-gradient-to-b from-sky-100 to-amber-50'}`} style={roomUrl ? { backgroundImage: `url('${roomUrl}')` } : undefined}>
+          <motion.button type="button" onClick={() => setSpeech(phrase(profile))} animate={{ y: mood.mood === 'sad' ? [0, -4, 0] : [0, -10, 0] }} transition={{ repeat: Infinity, duration: 3 }} className="absolute bottom-20 left-1/2 h-56 w-56 -translate-x-1/2 sm:h-72 sm:w-72">{characterUrl ? <img src={characterUrl} alt={pet.name} className="h-full w-full object-contain" /> : <span className="text-8xl">{getPetEmoji(pet)}</span>}</motion.button>
+          <div className="absolute right-4 top-4 rounded-3xl bg-white/90 px-4 py-3 text-sm font-bold text-indigo-900">“{speech}”</div>
+        </div>
+        <p className="py-2 text-center text-xs font-bold text-indigo-400 sm:hidden">Проведите по комнате влево или вправо</p>
+      </div>
+      <aside className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5"><h2 className="text-2xl font-black text-indigo-950">{pet.name}</h2><p className="text-sm font-bold text-indigo-500">Уровень {pet.level} · {getCharacterStageLabel(pet.stage)}</p><div className="mt-5 flex justify-between text-xs font-black uppercase text-indigo-300"><span>Опыт</span><span>{pet.xp}</span></div><div className="mt-2 h-3 rounded-full bg-indigo-50"><div className="h-full rounded-full bg-indigo-500" style={{ width: `${xp}%` }} /></div></aside>
+    </section>
+    <section className="mt-5 rounded-[2rem] border-2 border-indigo-50 bg-white p-4">
+      <div className="mb-4 flex items-center justify-between gap-3"><h2 className="text-xl font-black text-indigo-950">Мои предметы</h2><div className="flex rounded-2xl bg-indigo-50 p-1">{tabs.map(value => <button key={value} type="button" onClick={() => setTab(value)} className={`rounded-xl px-4 py-2 font-bold ${value === tab ? 'bg-white text-indigo-900' : 'text-indigo-400'}`}>{label(value)}</button>)}</div></div>
+      {inventory.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{inventory.map(item => { const image = getInventoryImageUrl(item); return <button type="button" key={item.id} onClick={() => void useItem(item.id)} className="flex items-center gap-3 rounded-3xl border-2 border-indigo-100 p-3 text-left"><div className="h-16 w-16 rounded-2xl bg-indigo-50">{image && <img src={image} alt="" className="h-full w-full object-contain" />}</div><div className="font-black text-indigo-950">{item.name}</div>{busy === item.id && <span className="ml-auto text-xs text-indigo-400">…</span>}</button>; })}</div> : <div className="rounded-3xl border-2 border-dashed border-indigo-100 bg-indigo-50/50 p-8 text-center"><p className="font-black text-indigo-950">{tab === 'food' ? 'Лакомств пока нет' : 'Гардероб пока пуст'}</p>{onOpenShop && <button type="button" onClick={onOpenShop} className="mt-4 rounded-xl bg-indigo-600 px-4 py-2 text-white">В магазин</button>}</div>}
+      {available.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{available.map(item => { const image = getShopImageUrl(item); return <div key={item.id} className="flex items-center gap-3 rounded-3xl border-2 border-dashed border-indigo-200 p-3"><div className="h-16 w-16 rounded-2xl bg-white">{image && <img src={image} alt="" className="h-full w-full object-contain" />}</div><div><div className="font-black">{item.name}</div><div className="flex items-center gap-1 text-sm font-black text-yellow-700">{item.price}<CoinIcon /></div><button type="button" disabled={Boolean(busy)} onClick={() => void buy(item)} className="mt-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white disabled:bg-indigo-200">{busy === item.id ? 'Сохраняю...' : 'Купить'}</button></div></div>; })}</div>}
+    </section>
+  </div>;
 };
