@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { UserProfile } from '../../types';
 import { getCharacterProgressPercent, getCharacterStageLabel, normalizeMoodScore } from '../../services/gamificationRules';
 import { getPetEmoji } from '../../services/petEngine';
@@ -22,12 +22,18 @@ interface LandingScreenProps {
   onOpenPetRoom?: () => void;
 }
 
-const GameCard: React.FC<{ title: string; description: string; iconSrc: string; badge?: string; onClick: () => void }> = ({ title, description, iconSrc, badge, onClick }) => (
-  <button type="button" onClick={onClick} className="group relative flex min-h-[7.25rem] flex-col rounded-2xl border-2 border-indigo-50 bg-white p-3 text-left shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl sm:min-h-0 sm:rounded-3xl sm:p-5">
-    {badge && <span className="absolute right-3 top-3 rounded-full bg-green-50 px-2 py-1 text-[10px] font-black uppercase text-green-700">{badge}</span>}
-    <img src={iconSrc} alt="" aria-hidden="true" className="mb-2 h-14 w-14 origin-left object-contain transition-transform group-hover:scale-110 sm:mb-4 sm:h-20 sm:w-20" draggable={false} />
-    <h3 className="text-base font-black text-indigo-950 sm:mb-2 sm:text-xl">{title}</h3>
-    <p className="mt-1 hidden text-sm leading-relaxed text-gray-500 sm:block">{description}</p>
+interface GameOption {
+  title: string;
+  iconSrc: string;
+  onStart: () => void;
+  badge?: string;
+}
+
+const GameIconButton: React.FC<GameOption> = ({ title, iconSrc, onStart, badge }) => (
+  <button type="button" onClick={onStart} className="group relative flex min-w-0 flex-col items-center rounded-2xl border-2 border-indigo-50 bg-white px-1.5 py-2.5 text-center shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg sm:rounded-3xl sm:px-2 sm:py-3">
+    {badge && <span className="absolute -right-1 -top-2 rounded-full bg-green-50 px-1.5 py-0.5 text-[8px] font-black uppercase text-green-700 sm:right-1 sm:top-1 sm:text-[9px]">{badge}</span>}
+    <img src={iconSrc} alt="" aria-hidden="true" className="h-12 w-12 object-contain transition-transform group-hover:scale-110 sm:h-16 sm:w-16 lg:h-20 lg:w-20" draggable={false} />
+    <span className="mt-1 block max-w-full truncate text-[11px] font-black text-indigo-950 sm:mt-2 sm:text-sm lg:text-base">{title}</span>
   </button>
 );
 
@@ -38,51 +44,43 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
   const xpProgress = getCharacterProgressPercent(userProfile.pet);
   const moodScore = normalizeMoodScore(userProfile.pet);
   const characterAssetUrl = getPuppyCharacterAssetUrl(userProfile.pet);
-  const [isMobileGamePickerOpen, setIsMobileGamePickerOpen] = useState(false);
-  const classicTitle = hasActiveClassicGame ? 'Продолжить классику' : 'Классика';
-  const classicDescription = hasActiveClassicGame ? 'Незавершённая партия сохранена' : 'Угадайте слово';
-  const mobileGameOptions = [
-    { title: classicTitle, description: classicDescription, iconSrc: '/assets/games/game_classic.webp', onStart: onStartClassic, badge: hasActiveClassicGame ? 'Сохранено' : undefined },
-    { title: 'Анаграммы', description: 'Соберите слово', iconSrc: '/assets/games/game_anagrams.webp', onStart: onStartAnagrams },
-    { title: 'Спринт', description: 'Выбирайте быстро', iconSrc: '/assets/games/game_sprint.webp', onStart: onStartSprint },
-    { title: 'Виселица', description: 'Угадайте буквы', iconSrc: '/assets/games/game_hangman.webp', onStart: onStartHangman },
-    { title: 'Память', description: 'Найдите пары', iconSrc: '/assets/games/game_memory.webp', onStart: onStartMemory },
+  const classicTitle = hasActiveClassicGame ? 'Продолжить' : 'Классика';
+  const gameOptions: GameOption[] = [
+    { title: classicTitle, iconSrc: '/assets/games/game_classic.webp', onStart: onStartClassic, badge: hasActiveClassicGame ? 'Сохранено' : undefined },
+    { title: 'Анаграммы', iconSrc: '/assets/games/game_anagrams.webp', onStart: onStartAnagrams },
+    { title: 'Спринт', iconSrc: '/assets/games/game_sprint.webp', onStart: onStartSprint },
+    { title: 'Виселица', iconSrc: '/assets/games/game_hangman.webp', onStart: onStartHangman },
+    { title: 'Память', iconSrc: '/assets/games/game_memory.webp', onStart: onStartMemory },
   ];
-  const startMobileGame = (onStart: () => void) => { setIsMobileGamePickerOpen(false); onStart(); };
 
   return (
     <ScreenContainer className="pb-6 sm:pb-24">
       <section className="grid grid-cols-1 items-center gap-5 py-4 sm:py-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-8">
         <div>
           {isAuthenticated ? <>
-            <div className="mb-3 text-sm font-black uppercase tracking-widest text-indigo-400">С возвращением, {userProfile.username}</div>
             <h1 className="mb-4 text-3xl font-black leading-tight text-indigo-950 sm:text-5xl">Во что сыграем сегодня?</h1>
             <p className="mb-6 max-w-xl text-base leading-relaxed text-gray-600 sm:text-lg">Играйте, собирайте ₽ и развивайте {userProfile.pet.name}.</p>
-            <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={() => setIsMobileGamePickerOpen(true)} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 sm:hidden">Играть</button>
-              <button type="button" onClick={onStartClassic} className="hidden rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 sm:inline-flex">{hasActiveClassicGame ? 'Продолжить игру' : 'Играть в классику'}</button>
-              <button type="button" onClick={onOpenPetRoom} className="rounded-2xl border-2 border-indigo-100 bg-white px-5 py-3.5 font-black text-indigo-700 transition hover:bg-indigo-50">К питомцу</button>
-            </div>
           </> : <>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-indigo-600">Игра для английских слов</div>
             <h1 className="mb-4 text-4xl font-black leading-tight text-indigo-950 sm:text-6xl">Учите английские слова через игру</h1>
             <p className="mb-6 max-w-2xl text-base leading-relaxed text-gray-600 sm:text-lg">Играйте сразу без регистрации. Аккаунт понадобится, чтобы сохранить прогресс, питомца, покупки и свой словарь.</p>
-            <div className="flex flex-wrap gap-3"><button type="button" onClick={() => setIsMobileGamePickerOpen(true)} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 sm:hidden">Играть</button><button type="button" onClick={onStartClassic} className="hidden rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 sm:inline-flex">{hasActiveClassicGame ? 'Продолжить игру' : 'Играть'}</button><button type="button" onClick={onOpenLogin} className="rounded-2xl bg-gray-950 px-6 py-4 font-black text-white transition hover:bg-gray-800">Сохранить прогресс</button></div>
           </>}
+          <div className="grid grid-cols-5 gap-1.5 sm:gap-3">
+            {gameOptions.map(game => <GameIconButton key={game.title} {...game} />)}
+          </div>
+          {!isAuthenticated && <button type="button" onClick={onOpenLogin} className="mt-5 rounded-2xl bg-gray-950 px-6 py-4 font-black text-white transition hover:bg-gray-800">Сохранить прогресс</button>}
         </div>
         <aside className="rounded-[2rem] bg-gradient-to-br from-indigo-600 to-purple-700 p-5 text-white shadow-2xl sm:p-6">
           <div className="mb-4 flex items-start justify-between gap-4"><div><div className="text-sm font-bold uppercase tracking-widest text-white/70">{isAuthenticated ? 'Ваш питомец' : 'Без аккаунта'}</div>{!isAuthenticated && <div className="mt-1 text-2xl font-black">Попробуйте игру</div>}</div><button type="button" onClick={isAuthenticated ? onOpenProfile : onOpenLogin} className="rounded-2xl bg-white/15 px-4 py-2 text-sm font-black transition hover:bg-white/25">{isAuthenticated ? 'Профиль' : 'Войти'}</button></div>
           {!isAuthenticated ? <div className="rounded-3xl border border-white/10 bg-white/10 p-5"><div className="mb-3 text-5xl">{getPetEmoji(userProfile.pet)}</div><h2 className="mb-2 text-xl font-black">Сохраните своего питомца</h2><p className="mb-4 text-sm leading-relaxed text-white/75">После входа будут сохраняться ₽, покупки, опыт и личный словарь.</p><button type="button" onClick={onOpenLogin} className="w-full rounded-2xl bg-white py-3 font-black text-indigo-700 transition hover:bg-indigo-50">Создать аккаунт</button></div> : <>
             <div className="grid grid-cols-2 gap-3">
               <button type="button" onClick={onOpenShop} className="flex min-h-[8.25rem] flex-col justify-between rounded-2xl border border-white/10 bg-white/10 p-4 text-left transition hover:bg-white/15"><CoinIcon className="text-3xl" label="рубли" /><div><div className="text-2xl font-black">{userProfile.coins}</div><div className="text-xs font-bold uppercase tracking-widest text-white/65">рублей</div></div></button>
-              <div className="flex min-h-[8.25rem] flex-col justify-between rounded-2xl border border-white/10 bg-white/10 p-3"><div className="flex items-end justify-between"><span className="text-[10px] font-black uppercase tracking-widest text-white/65">Уровень</span><span className="text-xl font-black">{userProfile.pet.level}</span></div><div><div className="mb-1 flex justify-between text-[10px] font-black uppercase tracking-widest text-white/65"><span>Опыт</span><span>{userProfile.pet.xp}</span></div><div className="h-2 overflow-hidden rounded-full bg-white/15"><div className="h-full bg-white" style={{ width: `${xpProgress}%` }} /></div></div><div><div className="mb-1 flex justify-between text-[10px] font-black uppercase tracking-widest text-white/65"><span>Радость</span><span>{moodScore}</span></div><div className="h-2 overflow-hidden rounded-full bg-white/15"><div className="h-full bg-white/80" style={{ width: `${moodScore}%` }} /></div></div></div>
+              <div className="flex min-h-[8.25rem] flex-col justify-between rounded-2xl border border-white/10 bg-white/10 p-3"><div className="flex items-end justify-between"><span className="text-[10px] font-black uppercase tracking-widest text-white/65">Уровень</span><span className="text-xl font-black">{userProfile.pet.level}</span></div><div><div className="mb-1 flex justify-between text-[10px] font-black uppercase tracking-widest text-white/65"><span>Опыт</span><span>{userProfile.pet.xp}</span></div><div className="h-2 overflow-hidden rounded-full bg-white/15"><div className="h-full bg-white" style={{ width: `${xpProgress}%` }} /></div></div></div><div><div className="mb-1 flex justify-between text-[10px] font-black uppercase tracking-widest text-white/65"><span>Радость</span><span>{moodScore}</span></div><div className="h-2 overflow-hidden rounded-full bg-white/15"><div className="h-full bg-white/80" style={{ width: `${moodScore}%` }} /></div></div></div>
             </div>
             <button type="button" onClick={onOpenPetRoom} className="group mt-3 flex w-full items-center gap-4 overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-3 text-left transition hover:bg-white/15" title="Открыть комнату питомца"><div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/95 ring-1 ring-white/50 shadow-sm">{characterAssetUrl ? <img src={characterAssetUrl} alt={userProfile.pet.name} className="h-[6.5rem] w-[6.5rem] scale-125 object-cover transition-transform group-hover:scale-[1.33]" draggable={false} /> : <div className="text-5xl">{getPetEmoji(userProfile.pet)}</div>}</div><div className="min-w-0 flex-1"><div className="text-[11px] font-black uppercase tracking-widest text-white/60">Комната питомца</div><div className="mt-1 truncate text-2xl font-black leading-tight">{userProfile.pet.name}</div><div className="mt-2 text-sm font-bold text-white/70">{getCharacterStageLabel(userProfile.pet.stage)}</div></div><span aria-hidden="true" className="rounded-full bg-white/15 px-3 py-2 text-xl font-black text-white/80">›</span></button>
           </>}
         </aside>
       </section>
-      <section className="mt-8 hidden grid-cols-2 gap-4 sm:grid lg:grid-cols-5"><GameCard title={classicTitle} description={classicDescription} badge={hasActiveClassicGame ? 'Сохранено' : undefined} iconSrc="/assets/games/game_classic.webp" onClick={onStartClassic} /><GameCard title="Анаграммы" description="Соберите слово." iconSrc="/assets/games/game_anagrams.webp" onClick={onStartAnagrams} /><GameCard title="Спринт" description="Выбирайте быстро." iconSrc="/assets/games/game_sprint.webp" onClick={onStartSprint} /><GameCard title="Виселица" description="Угадайте буквы." iconSrc="/assets/games/game_hangman.webp" onClick={onStartHangman} /><GameCard title="Память" description="Найдите пары." iconSrc="/assets/games/game_memory.webp" onClick={onStartMemory} /></section>
-      {isMobileGamePickerOpen && <div className="fixed inset-0 z-50 flex items-end bg-indigo-950/35 p-3 sm:hidden" onClick={() => setIsMobileGamePickerOpen(false)}><section role="dialog" className="flex max-h-[85dvh] w-full flex-col rounded-[2rem] bg-white px-4 pb-5 pt-4 shadow-2xl" onClick={event => event.stopPropagation()}><div className="mb-4 flex items-center justify-between"><div><h2 className="text-xl font-black text-indigo-950">Выберите игру</h2><p className="mt-1 text-sm font-medium text-gray-500">Прокручивайте список и начинайте</p></div><button type="button" onClick={() => setIsMobileGamePickerOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-xl font-black text-indigo-700">×</button></div><div className="flex flex-col gap-2 overflow-y-auto">{mobileGameOptions.map(game => <button key={game.title} type="button" onClick={() => startMobileGame(game.onStart)} className="flex items-center gap-3 rounded-2xl border-2 border-indigo-50 bg-indigo-50/40 p-3 text-left"><img src={game.iconSrc} alt="" className="h-14 w-14 object-contain" /><span><span className="block text-base font-black text-indigo-950">{game.title}</span><span className="block text-sm text-gray-500">{game.description}</span></span>{game.badge && <span className="ml-auto rounded-full bg-green-50 px-2 py-1 text-[10px] font-black text-green-700">{game.badge}</span>}</button>)}</div></section></div>}
     </ScreenContainer>
   );
 };
