@@ -21,6 +21,8 @@ const EXTRA_VALID_GUESSES = ['MEOW', 'WOOF'];
 export const normalizeWord = (value: string): string =>
   value.trim().toUpperCase().replace(/[^A-Z]/g, '');
 
+const BUILTIN_WORD_SET = new Set(ALL_WORDS_EN.map(normalizeWord).filter(Boolean));
+
 export const normalizeCustomDictionary = (words: string[] = []): string[] => {
   const seen = new Set<string>();
   const normalized: string[] = [];
@@ -33,8 +35,11 @@ export const normalizeCustomDictionary = (words: string[] = []): string[] => {
   return normalized;
 };
 
+export const getCustomWordsAvailableInBuiltinDictionary = (words: string[] = []): string[] =>
+  normalizeCustomDictionary(words).filter(word => BUILTIN_WORD_SET.has(word));
+
 export const toCustomEnrichedWords = (words: string[] = []): EnrichedWord[] =>
-  normalizeCustomDictionary(words).map(word => ({ word, translation: '', level: CUSTOM_LEVEL }));
+  getCustomWordsAvailableInBuiltinDictionary(words).map(word => ({ word, translation: '', level: CUSTOM_LEVEL }));
 
 export const isAllowedSecretWord = (word: string): boolean => {
   const clean = normalizeWord(word);
@@ -57,7 +62,7 @@ export const getSecretWordPool = (selection: DictionarySelection): EnrichedWord[
 
 export const getValidationPool = (selection: Pick<DictionarySelection, 'wordLength' | 'customDictionaryEn'>): string[] => {
   const builtin = ALL_WORDS_EN.map(normalizeWord).filter(word => word.length === selection.wordLength);
-  const custom = normalizeCustomDictionary(selection.customDictionaryEn).filter(word => word.length === selection.wordLength);
+  const custom = getCustomWordsAvailableInBuiltinDictionary(selection.customDictionaryEn).filter(word => word.length === selection.wordLength);
   const extras = EXTRA_VALID_GUESSES.filter(word => word.length === selection.wordLength);
   return Array.from(new Set([...builtin, ...custom, ...extras]));
 };
