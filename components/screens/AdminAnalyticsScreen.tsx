@@ -80,6 +80,10 @@ export const AdminAnalyticsScreen: React.FC<AdminAnalyticsScreenProps> = ({ user
     };
   }, [snapshot]);
 
+  const unsupportedWordsCount = useMemo(() =>
+    (snapshot?.unsupportedDictionaryWords || []).reduce((sum, row) => sum + row.words.length, 0),
+  [snapshot]);
+
   if (!isAdmin) {
     return (
       <main className="mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center justify-center px-4 text-center">
@@ -99,7 +103,7 @@ export const AdminAnalyticsScreen: React.FC<AdminAnalyticsScreenProps> = ({ user
         <div>
           <div className="text-xs font-black uppercase tracking-[0.25em] text-indigo-300">Admin dashboard</div>
           <h1 className="mt-2 text-3xl font-black text-indigo-950 sm:text-4xl">Аналитика AnnWord</h1>
-          <p className="mt-2 text-sm font-semibold text-gray-500">Игры, награды, покупки и использование предметов.</p>
+          <p className="mt-2 text-sm font-semibold text-gray-500">Игры, награды, покупки, предметы и словари пользователей.</p>
         </div>
         <button onClick={onBackHome} className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-indigo-700 shadow-sm border border-indigo-100 hover:bg-indigo-50">
           На главную
@@ -186,6 +190,39 @@ export const AdminAnalyticsScreen: React.FC<AdminAnalyticsScreenProps> = ({ user
                   </tbody>
                 </table>
               </div>
+            </div>
+          </section>
+
+          <section className="rounded-[2rem] border border-amber-100 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-xl font-black text-indigo-950">Слова пользователей вне общего словаря</h2>
+                <p className="mt-1 text-sm font-semibold text-gray-500">Эти слова сохранены в пользовательских словарях, но не участвуют в играх.</p>
+              </div>
+              <div className="rounded-2xl bg-amber-50 px-4 py-2 text-sm font-black text-amber-800">{unsupportedWordsCount} слов</div>
+            </div>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[520px] text-left text-sm">
+                <thead className="text-xs uppercase tracking-widest text-indigo-300">
+                  <tr>
+                    <th className="py-3">Пользователь</th>
+                    <th>Количество</th>
+                    <th>Слова</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-indigo-50 font-semibold text-gray-600">
+                  {snapshot.unsupportedDictionaryWords.map(row => (
+                    <tr key={row.userId}>
+                      <td className="py-3 font-black text-indigo-900">{row.username}</td>
+                      <td>{row.words.length}</td>
+                      <td className="max-w-xl break-words">{row.words.join(', ')}</td>
+                    </tr>
+                  ))}
+                  {snapshot.unsupportedDictionaryWords.length === 0 && (
+                    <tr><td colSpan={3} className="py-6 text-center text-gray-400">Все загруженные слова входят в общий словарь.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </section>
 
