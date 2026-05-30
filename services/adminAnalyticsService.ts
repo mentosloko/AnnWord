@@ -1,4 +1,6 @@
+import { ALL_WORDS_EN } from '../dictionaries/english';
 import { supabase } from '../supabase';
+import { normalizeCustomDictionary, normalizeWord } from './dictionaryEngine';
 
 export interface AdminDailyGameStat {
   day: string;
@@ -23,17 +25,36 @@ export interface AdminEventSummary {
   count: number;
 }
 
+export interface AdminUnsupportedDictionaryRow {
+  userId: string;
+  username: string;
+  words: string[];
+}
+
 export interface AdminAnalyticsSnapshot {
   gameStats: AdminDailyGameStat[];
   economyStats: AdminEconomyStat[];
   eventSummary: AdminEventSummary[];
+  unsupportedDictionaryWords: AdminUnsupportedDictionaryRow[];
+}
+
+interface AdminCustomDictionaryRow {
+  user_id: string;
+  username: string | null;
+  custom_dictionary_en: unknown;
 }
 
 const parseNumber = (value: unknown): number => Number(value || 0);
+const builtinWords = new Set(ALL_WORDS_EN.map(normalizeWord).filter(Boolean));
+
+const parseCustomDictionary = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return normalizeCustomDictionary(value.filter((word): word is string => typeof word === 'string'));
+};
 
 export const adminAnalyticsService = {
   loadSnapshot: async (): Promise<AdminAnalyticsSnapshot> => {
-    const [gameStatsResult, economyStatsResult, eventSummaryResult] = await Promise.all([
+    const [gameStatsResult, economyStatsResult, eventSummaryResult, customDictionaryResult] = await Promise.all([
       supabase
         .from('admin_daily_game_stats')
         .select('*')
@@ -49,11 +70,13 @@ export const adminAnalyticsService = {
         .select('event_type,event_name')
         .order('occurred_at', { ascending: false })
         .limit(1000),
+      supabase.rpc('get_admin_custom_dictionaries'),
     ]);
 
     if (gameStatsResult.error) throw gameStatsResult.error;
     if (economyStatsResult.error) throw economyStatsResult.error;
     if (eventSummaryResult.error) throw eventSummaryResult.error;
+    if (customDictionaryResult.error) throw customDictionaryResult.error;
 
     const summaryMap = new Map<string, AdminEventSummary>();
     for (const event of eventSummaryResult.data || []) {
@@ -66,6 +89,17 @@ export const adminAnalyticsService = {
       current.count += 1;
       summaryMap.set(key, current);
     }
+
+    const unsupportedDictionaryWords = ((customDictionaryResult.data || []) as AdminCustomDictionaryRow[])
+      .map(row => ({
+        userId: row.user_id,
+        username: row.username || 'Без имени',
+        words: parseCustomDictionary(row.custom_dictionary_en)
+          .filter(word => !builtinWords.has(word))
+          .sort((first, second) => first.localeCompare(second)),
+      }))
+      .filter(row => row.words.length > 0)
+      .sort((first, second) => first.username.localeCompare(second.username));
 
     return {
       gameStats: (gameStatsResult.data || []).map(row => ({
@@ -84,6 +118,7 @@ export const adminAnalyticsService = {
         items_used: parseNumber(row.items_used),
       })),
       eventSummary: Array.from(summaryMap.values()).sort((a, b) => b.count - a.count),
+      unsupportedDictionaryWords,
     };
   },
 };
