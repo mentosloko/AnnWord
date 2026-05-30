@@ -1,8 +1,7 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { DictionarySource, DifficultyLevel, GameSettings, WordLength } from '../../types';
 import { ScreenContainer } from '../layout/ScreenContainer';
 import { PlayableModeRoute } from '../AppScreens';
-import { getWordsMissingTranslations } from '../../services/translationCoverage';
 
 interface SetupScreenProps {
   selectedPlayMode: PlayableModeRoute;
@@ -52,7 +51,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   const isWordleMode = selectedPlayMode === 'game';
   const isCustomDictionary = settings.dictionarySource === 'custom';
   const customWordsCount = customDictionaryWords.length;
-  const missingTranslationWords = useMemo(() => getWordsMissingTranslations(customDictionaryWords), [customDictionaryWords]);
   const canStart = !isCustomDictionary || customWordsCount > 0;
 
   const updateSetting = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => {
@@ -133,13 +131,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                   <span className="rounded-xl border border-indigo-100 bg-white px-3 py-2 text-sm font-bold text-indigo-700">{isUploadingDictionary ? 'Загрузка...' : 'Выбрать файл'}</span>
                 </label>
               )}
-            </section>
-          )}
-
-          {isCustomDictionary && customWordsCount > 0 && missingTranslationWords.length > 0 && (
-            <section className="rounded-2xl border-2 border-amber-100 bg-amber-50 p-4">
-              <div className="mb-2 text-sm font-black text-amber-800">Без перевода: {missingTranslationWords.length}</div>
-              <div className="max-h-28 overflow-auto rounded-xl bg-white/70 p-2 text-xs font-bold text-amber-900">{missingTranslationWords.join(', ')}</div>
             </section>
           )}
         </div>
