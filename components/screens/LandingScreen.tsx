@@ -30,10 +30,10 @@ interface GameOption {
 }
 
 const GameIconButton: React.FC<GameOption> = ({ title, iconSrc, onStart, badge }) => (
-  <button type="button" onClick={onStart} className="group relative flex min-w-0 flex-col items-center rounded-2xl border-2 border-indigo-50 bg-white px-1.5 py-2.5 text-center shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg sm:rounded-3xl sm:px-2 sm:py-3">
-    {badge && <span className="absolute -right-1 -top-2 rounded-full bg-green-50 px-1.5 py-0.5 text-[8px] font-black uppercase text-green-700 sm:right-1 sm:top-1 sm:text-[9px]">{badge}</span>}
+  <button type="button" aria-label={title} onClick={onStart} className="group relative flex min-w-0 flex-col items-center rounded-2xl border-2 border-indigo-50 bg-white px-1.5 py-2.5 text-center shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg sm:rounded-3xl sm:px-2 sm:py-3">
+    {badge && <span aria-hidden="true" className="absolute -right-1 -top-2 rounded-full bg-green-50 px-1.5 py-0.5 text-[8px] font-black uppercase text-green-700 sm:right-1 sm:top-1 sm:text-[9px]">{badge}</span>}
     <img src={iconSrc} alt="" aria-hidden="true" className="h-12 w-12 object-contain transition-transform group-hover:scale-110 sm:h-16 sm:w-16 lg:h-20 lg:w-20" draggable={false} />
-    <span className="mt-1 block max-w-full truncate text-[11px] font-black text-indigo-950 sm:mt-2 sm:text-sm lg:text-base">{title}</span>
+    <span aria-hidden="true" className="mt-1 block max-w-full truncate text-[11px] font-black text-indigo-950 sm:mt-2 sm:text-sm lg:text-base">{title}</span>
   </button>
 );
 
