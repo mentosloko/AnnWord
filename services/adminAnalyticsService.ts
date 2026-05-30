@@ -1,4 +1,4 @@
-import { ALL_WORDS_EN } from '../dictionaries/english';
+import { ALL_WORDS_EN } from '../dictionaries/mainEnglish';
 import { supabase } from '../supabase';
 import { normalizeCustomDictionary, normalizeWord } from './dictionaryEngine';
 
@@ -55,21 +55,9 @@ const parseCustomDictionary = (value: unknown): string[] => {
 export const adminAnalyticsService = {
   loadSnapshot: async (): Promise<AdminAnalyticsSnapshot> => {
     const [gameStatsResult, economyStatsResult, eventSummaryResult, customDictionaryResult] = await Promise.all([
-      supabase
-        .from('admin_daily_game_stats')
-        .select('*')
-        .order('day', { ascending: false })
-        .limit(30),
-      supabase
-        .from('admin_economy_stats')
-        .select('*')
-        .order('day', { ascending: false })
-        .limit(30),
-      supabase
-        .from('analytics_events')
-        .select('event_type,event_name')
-        .order('occurred_at', { ascending: false })
-        .limit(1000),
+      supabase.from('admin_daily_game_stats').select('*').order('day', { ascending: false }).limit(30),
+      supabase.from('admin_economy_stats').select('*').order('day', { ascending: false }).limit(30),
+      supabase.from('analytics_events').select('event_type,event_name').order('occurred_at', { ascending: false }).limit(1000),
       supabase.rpc('get_admin_custom_dictionaries'),
     ]);
 
@@ -81,11 +69,7 @@ export const adminAnalyticsService = {
     const summaryMap = new Map<string, AdminEventSummary>();
     for (const event of eventSummaryResult.data || []) {
       const key = `${event.event_type}:${event.event_name}`;
-      const current = summaryMap.get(key) || {
-        event_type: event.event_type,
-        event_name: event.event_name,
-        count: 0,
-      };
+      const current = summaryMap.get(key) || { event_type: event.event_type, event_name: event.event_name, count: 0 };
       current.count += 1;
       summaryMap.set(key, current);
     }
@@ -103,19 +87,10 @@ export const adminAnalyticsService = {
 
     return {
       gameStats: (gameStatsResult.data || []).map(row => ({
-        day: row.day,
-        game_type: row.game_type,
-        games_started: parseNumber(row.games_started),
-        games_finished: parseNumber(row.games_finished),
-        games_won: parseNumber(row.games_won),
-        unique_users: parseNumber(row.unique_users),
+        day: row.day, game_type: row.game_type, games_started: parseNumber(row.games_started), games_finished: parseNumber(row.games_finished), games_won: parseNumber(row.games_won), unique_users: parseNumber(row.unique_users),
       })),
       economyStats: (economyStatsResult.data || []).map(row => ({
-        day: row.day,
-        coins_earned: parseNumber(row.coins_earned),
-        coins_spent: parseNumber(row.coins_spent),
-        purchases: parseNumber(row.purchases),
-        items_used: parseNumber(row.items_used),
+        day: row.day, coins_earned: parseNumber(row.coins_earned), coins_spent: parseNumber(row.coins_spent), purchases: parseNumber(row.purchases), items_used: parseNumber(row.items_used),
       })),
       eventSummary: Array.from(summaryMap.values()).sort((a, b) => b.count - a.count),
       unsupportedDictionaryWords,
