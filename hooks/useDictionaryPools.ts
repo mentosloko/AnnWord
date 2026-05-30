@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { ALL_WORDS_EN, COMMON_WORDS_EN } from '../dictionaries/english';
+import { getCustomWordsAvailableInBuiltinDictionary } from '../services/dictionaryEngine';
 import { EnrichedWord, GameSettings, UserProfile } from '../types';
 
 interface UseDictionaryPoolsArgs {
@@ -16,8 +17,8 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
     let pool: EnrichedWord[] = [];
 
     if (settings.dictionarySource === 'custom') {
-      pool = userProfile.customDictionaryEn.map(word => ({
-        word: word.toUpperCase(),
+      pool = getCustomWordsAvailableInBuiltinDictionary(userProfile.customDictionaryEn).map(word => ({
+        word,
         translation: '',
         level: 'Custom',
       }));
@@ -38,9 +39,8 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
       .map(word => word.toUpperCase());
 
     if (userProfile.customDictionaryEn.length > 0) {
-      const customFiltered = userProfile.customDictionaryEn
-        .filter(word => word.length === settings.wordLength)
-        .map(word => word.toUpperCase());
+      const customFiltered = getCustomWordsAvailableInBuiltinDictionary(userProfile.customDictionaryEn)
+        .filter(word => word.length === settings.wordLength);
       combinedPool = [...combinedPool, ...customFiltered];
     }
 
