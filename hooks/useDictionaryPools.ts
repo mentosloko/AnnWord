@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ALL_WORDS_EN, COMMON_WORDS_EN } from '../dictionaries/english';
+import { ALL_WORDS_EN, COMMON_WORDS_EN } from '../dictionaries/mainEnglish';
 import { getCustomWordsAvailableInBuiltinDictionary } from '../services/dictionaryEngine';
 import { EnrichedWord, GameSettings, UserProfile } from '../types';
 
