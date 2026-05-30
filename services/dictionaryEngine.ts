@@ -1,4 +1,4 @@
-import { ALL_WORDS_EN, COMMON_WORDS_EN } from '../dictionaries/english';
+import { ALL_WORDS_EN, COMMON_WORDS_EN } from '../dictionaries/mainEnglish';
 import { DifficultyLevel, DictionarySource, EnrichedWord, WordLength } from '../types';
 
 export interface DictionarySelection {
