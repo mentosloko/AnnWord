@@ -137,7 +137,10 @@ export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClos
               return <button type="button" key={item.id} onClick={() => void use(item.id)} aria-pressed={isEquipped} className={`relative flex items-center gap-3 rounded-3xl border-2 p-3 text-left transition ${isEquipped ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100' : 'border-indigo-100 bg-white hover:bg-indigo-50/40'}`}>
                 {isEquipped && <span className="absolute right-3 top-2 rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-black uppercase text-white">Надето</span>}
                 <div className="h-16 w-16 shrink-0 rounded-2xl bg-indigo-50">{image && <img src={image} alt="" className="h-full w-full object-contain" />}</div>
-                <div className={`font-black ${isEquipped ? 'text-indigo-700' : 'text-indigo-950'}`}>{item.name}</div>
+                <div className={`min-w-0 font-black ${isEquipped ? 'text-indigo-700' : 'text-indigo-950'}`}>
+                  <span className="block">{item.name}</span>
+                  {tab === 'food' && <span className="mt-1 inline-flex rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs text-indigo-700" aria-label={`Количество: ${item.quantity}`}>×{item.quantity}</span>}
+                </div>
                 {busy === item.id && <span className="ml-auto">…</span>}
               </button>;
             })}
