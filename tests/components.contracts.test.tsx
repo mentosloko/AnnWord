@@ -62,7 +62,7 @@ describe('component contracts', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Играть в классику' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Классика' }));
     fireEvent.click(screen.getByRole('button', { name: /рубли.*100|100.*рублей/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Профиль' }));
 
