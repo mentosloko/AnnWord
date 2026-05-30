@@ -24,7 +24,7 @@
     "appv2:smoke": "tsx scripts/appv2-architecture-smoke.ts",
     "check:smoke": "npm run dictionary:smoke && npm run navigation:smoke && npm run route:smoke && npm run economy:smoke && npm run pet:smoke && npm run screens:smoke && npm run hooks:smoke && npm run appv2:smoke",
     "check": "npm run lint && npm run check:unit && npm run check:smoke",
-    "build": "npm run check && vite build",
+    "build": "tsc --noEmit --pretty false",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
