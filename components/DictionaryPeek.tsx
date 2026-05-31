@@ -1,16 +1,23 @@
 import React, { useMemo, useState } from 'react';
+import { WordLength } from '../types';
 
 interface DictionaryPeekProps {
   words?: string[];
+  wordLength?: WordLength;
   compact?: boolean;
   iconOnly?: boolean;
 }
 
-export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], compact = false, iconOnly = false }) => {
+export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], wordLength, compact = false, iconOnly = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const normalizedWords = useMemo(
-    () => Array.from(new Set(words.map(word => word.trim().toUpperCase()).filter(Boolean))).sort(),
-    [words],
+    () => Array.from(new Set(
+      words
+        .map(word => word.trim().toUpperCase())
+        .filter(Boolean)
+        .filter(word => wordLength === undefined || word.length === wordLength),
+    )).sort(),
+    [words, wordLength],
   );
 
   return (
@@ -36,7 +43,9 @@ export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], comp
               <div>
                 <div className="text-[11px] font-black uppercase tracking-widest text-indigo-400">Во время игры</div>
                 <h2 className="text-2xl font-black text-indigo-950 sm:text-3xl">Мой словарь</h2>
-                <p className="mt-1 text-sm font-bold text-gray-500">{normalizedWords.length} слов</p>
+                <p className="mt-1 text-sm font-bold text-gray-500">
+                  {wordLength ? `Слова из ${wordLength} букв · ` : ''}{normalizedWords.length} слов
+                </p>
               </div>
               <button type="button" aria-label="Закрыть словарь" onClick={() => setIsOpen(false)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-2xl font-black text-indigo-600">×</button>
             </header>
@@ -53,7 +62,9 @@ export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], comp
                 </div>
               </div>
             ) : (
-              <div className="m-6 rounded-2xl bg-gray-50 p-6 text-center text-base font-bold text-gray-500">Личный словарь пока не загружен.</div>
+              <div className="m-6 rounded-2xl bg-gray-50 p-6 text-center text-base font-bold text-gray-500">
+                {wordLength ? `В личном словаре нет слов из ${wordLength} букв.` : 'Личный словарь пока не загружен.'}
+              </div>
             )}
           </div>
         </div>
