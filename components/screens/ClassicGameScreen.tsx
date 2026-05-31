@@ -71,7 +71,7 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
             </button>
           </div>
           <div className="flex items-center gap-1">
-            <DictionaryPeek words={userProfile.customDictionaryEn} iconOnly />
+            <DictionaryPeek words={userProfile.customDictionaryEn} wordLength={settings.wordLength} iconOnly />
             <button type="button" onClick={() => { blur(); setShowHint(false); setShowRules(value => !value); }} className={`flex h-9 w-9 items-center justify-center rounded-xl border font-black ${seen ? 'border-indigo-50 bg-white text-indigo-300' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}`}>?</button>
             <button type="button" onClick={onRestart} className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 text-lg font-black text-indigo-700">↻</button>
           </div>
