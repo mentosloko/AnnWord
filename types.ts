@@ -10,6 +10,7 @@ export interface UserStats {
   gamesPlayed: number;
   gamesWon: number;
   wordsGuessed: Record<string, number>; // Word -> count of times guessed correctly
+  wordsToReview?: Record<string, number>; // Word -> count of times player selected "Не знаю"
 }
 
 // --- Character gamification types ---
