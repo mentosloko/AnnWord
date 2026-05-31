@@ -1,9 +1,34 @@
 import { CharacterMood, CharacterStage, PetState } from '../types';
 import { ECONOMY_COIN_REWARDS as C } from './economyConfig';
 
-export type GameRewardInput = any;
-export type GameRewardResult = any;
-export type CharacterProgressResult = any;
+interface RewardAdjustment {
+  coinsAdjustment?: number;
+}
+
+export type GameRewardInput =
+  | ({ type: 'wordle'; won: boolean; attempts?: number } & RewardAdjustment)
+  | ({ type: 'sprint'; guessedWords: number } & RewardAdjustment)
+  | ({ type: 'anagram'; guessedWords: number } & RewardAdjustment)
+  | ({ type: 'memory'; clicks: number } & RewardAdjustment)
+  | ({ type: 'hangman'; won: boolean; mistakes: number; maxMistakes: number } & RewardAdjustment)
+  | ({ type: 'other' } & RewardAdjustment);
+
+export interface GameRewardResult {
+  xp: number;
+  coins: number;
+  mood: number;
+  label: string;
+}
+
+export interface CharacterProgressResult {
+  pet: PetState;
+  previousLevel: number;
+  newLevel: number;
+  previousStage: CharacterStage;
+  newStage: CharacterStage;
+  leveledUp: boolean;
+  stagedUp: boolean;
+}
 
 const T = [0, 120, 300, 600, 1000, 1500, 2200, 3000, 4000, 5200, 6800, 8600];
 const cl = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, Math.round(value)));
@@ -27,7 +52,7 @@ export const getCurrentLevelThreshold = (level: number) => getTotalXpForLevel(le
 
 export const calculateGameReward = (input: GameRewardInput): GameRewardResult => {
   const coinAdjustment = Math.round(input.coinsAdjustment || 0);
-  const reward = (xp: number, coins: number, label: string) => ({ xp, coins: coins + coinAdjustment, mood: 0, label });
+  const reward = (xp: number, coins: number, label: string): GameRewardResult => ({ xp, coins: coins + coinAdjustment, mood: 0, label });
 
   if (input.type === 'wordle') return input.won ? reward(25, C.wordle.win, 'Wordle win') : reward(8, C.wordle.loss, 'Wordle done');
   if (input.type === 'sprint') {
@@ -46,11 +71,10 @@ export const calculateGameReward = (input: GameRewardInput): GameRewardResult =>
     return reward(xp, clicks > 0 && clicks <= 16 ? C.memory.great : clicks <= 24 ? C.memory.good : C.memory.low, 'Memory done');
   }
   if (input.type === 'hangman') {
-    const won = Boolean(input.won);
     const maxMistakes = Math.max(1, Math.round(input.maxMistakes || 7));
     const mistakes = Math.max(0, Math.min(maxMistakes, Math.round(input.mistakes || 0)));
-    const xp = won ? 25 + Math.min(10, maxMistakes - mistakes) : 8;
-    return reward(xp, won ? (mistakes <= 1 ? C.hangman.perfect : C.hangman.win) : C.hangman.loss, 'Hangman done');
+    const xp = input.won ? 25 + Math.min(10, maxMistakes - mistakes) : 8;
+    return reward(xp, input.won ? (mistakes <= 1 ? C.hangman.perfect : C.hangman.win) : C.hangman.loss, 'Hangman done');
   }
   return reward(0, 0, 'Done');
 };
