@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { WordLength } from '../../types';
 import { ScreenContainer } from '../layout/ScreenContainer';
 import { DictionaryPeek } from '../DictionaryPeek';
 
@@ -7,11 +8,12 @@ interface GameModeShellProps {
   subtitle?: string;
   rules?: string[];
   dictionaryWords?: string[];
+  wordLength?: WordLength;
   children: React.ReactNode;
   onBackHome: () => void;
 }
 
-export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, rules = [], dictionaryWords = [], children, onBackHome }) => {
+export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, rules = [], dictionaryWords = [], wordLength, children, onBackHome }) => {
   const [showRules, setShowRules] = useState(false);
 
   return (
@@ -32,7 +34,7 @@ export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, r
             <h1 className="truncate text-2xl font-black text-indigo-950 sm:text-3xl">{title}</h1>
           </div>
           <div className="flex items-center justify-end gap-1.5">
-            <DictionaryPeek words={dictionaryWords} compact />
+            <DictionaryPeek words={dictionaryWords} wordLength={wordLength} compact />
             {rules.length > 0 ? (
               <button
                 type="button"
