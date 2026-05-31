@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
+import { hasRussianTranslation, toCustomEnrichedWords } from '../services/dictionaryEngine';
 import { motion } from 'motion/react';
 import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
@@ -14,16 +15,16 @@ interface HangmanGameProps {
 
 const normalizeHangmanWord = (entry: EnrichedWord): EnrichedWord | null => {
   const normalizedWord = entry.word.toUpperCase().replace(/[^A-Z]/g, '');
-  if (!normalizedWord) return null;
+  if (!normalizedWord || !hasRussianTranslation(entry.translation)) return null;
   return { ...entry, word: normalizedWord };
 };
 
 export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, onGameReward }) => {
   const dictionarySignature = userProfile.customDictionaryEn.join('|');
   const dictionary: EnrichedWord[] = useMemo(() => {
-    const sourceDictionary: EnrichedWord[] = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
-      ? userProfile.customDictionaryEn.map(w => ({ word: w, translation: '', level: 'Custom' }))
-      : COMMON_WORDS_EN;
+    const sourceDictionary = userProfile.customDictionaryEn.length > 0
+      ? toCustomEnrichedWords(userProfile.customDictionaryEn)
+      : COMMON_WORDS_EN.filter(entry => hasRussianTranslation(entry.translation));
 
     return sourceDictionary
       .map(normalizeHangmanWord)
@@ -63,10 +64,10 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
   const handleLetterClick = (rawLetter: string) => {
     const letter = rawLetter.toUpperCase();
     if (status !== 'playing' || guessedLetters.includes(letter) || !currentWord) return;
-    
+
     const nextGuessedLetters = [...guessedLetters, letter];
     setGuessedLetters(nextGuessedLetters);
-    
+
     if (!currentWord.word.includes(letter)) {
       setMistakes(prev => {
         const newMistakes = prev + 1;
@@ -93,8 +94,8 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
 
   const renderWord = () => {
     if (!currentWord) return null;
-    return currentWord.word.split('').map((char, i) => (
-      <div key={i} className="w-8 h-10 sm:w-10 sm:h-12 border-b-4 border-indigo-600 flex items-center justify-center text-2xl sm:text-3xl font-black text-indigo-900 mx-1">
+    return currentWord.word.split('').map((char, index) => (
+      <div key={index} className="mx-1 flex h-10 w-8 items-center justify-center border-b-4 border-indigo-600 text-2xl font-black text-indigo-900 sm:h-12 sm:w-10 sm:text-3xl">
         {guessedLetters.includes(char) || status === 'lost' ? char : ''}
       </div>
     ));
@@ -102,64 +103,37 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
 
   if (dictionary.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center bg-white rounded-3xl shadow-2xl w-full max-w-md">
-        <div className="text-6xl mb-4">📚</div>
-        <h2 className="text-2xl font-bold mb-2">Словарь пуст!</h2>
-        <p className="text-gray-500 mb-6">Выбери другой словарь в настройках.</p>
-        <button onClick={onBack} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold">Назад</button>
+      <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-2xl">
+        <div className="mb-4 text-6xl">📚</div>
+        <h2 className="mb-2 text-2xl font-bold">Нет доступных слов</h2>
+        <p className="mb-6 text-gray-500">В выбранном словаре нет слов с русским переводом.</p>
+        <button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center w-full max-w-md p-4 sm:p-6 bg-white rounded-3xl shadow-xl relative overflow-hidden">
-      <div className="w-full flex justify-between items-center mb-8">
-        <button 
-          onClick={onBack} 
-          className="flex items-center gap-1 text-gray-500 hover:text-indigo-600 font-bold transition px-3 py-1 bg-gray-50 rounded-lg border border-gray-200"
-        >
-          <span className="text-xl">←</span> Меню
-        </button>
-        <div className="text-sm font-bold text-indigo-600 uppercase tracking-widest">Угадай слово</div>
+    <div className="relative flex w-full max-w-md flex-col items-center overflow-hidden rounded-3xl bg-white p-4 shadow-xl sm:p-6">
+      <div className="mb-8 flex w-full items-center justify-between">
+        <button onClick={onBack} className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1 font-bold text-gray-500 transition hover:text-indigo-600"><span className="text-xl">←</span> Меню</button>
+        <div className="text-sm font-bold uppercase tracking-widest text-indigo-600">Угадай слово</div>
         <div className="w-16"></div>
       </div>
 
-      <div className="w-full bg-indigo-50 rounded-2xl p-4 mb-8">
-        <div className="flex justify-center gap-1 sm:gap-2 mb-2">
-          {Array.from({ length: maxMistakes }).map((_, i) => (
-            <motion.span
-              key={`heart-${i}`}
-              animate={{ opacity: i < (maxMistakes - mistakes) ? 1 : 0.3 }}
-              className="text-2xl sm:text-3xl"
-            >
-              ❤️
-            </motion.span>
+      <div className="mb-8 w-full rounded-2xl bg-indigo-50 p-4">
+        <div className="mb-2 flex justify-center gap-1 sm:gap-2">
+          {Array.from({ length: maxMistakes }).map((_, index) => (
+            <motion.span key={`heart-${index}`} animate={{ opacity: index < (maxMistakes - mistakes) ? 1 : 0.3 }} className="text-2xl sm:text-3xl">❤️</motion.span>
           ))}
         </div>
-        <div className="text-center text-xs font-bold text-indigo-400 uppercase tracking-widest">
-          Осталось попыток: {maxMistakes - mistakes}
-        </div>
+        <div className="text-center text-xs font-bold uppercase tracking-widest text-indigo-400">Осталось попыток: {maxMistakes - mistakes}</div>
       </div>
 
-      <div className="flex justify-center mb-10 sm:mb-12 flex-wrap">
-        {renderWord()}
-      </div>
+      <div className="mb-10 flex flex-wrap justify-center sm:mb-12">{renderWord()}</div>
 
-      <div className="grid grid-cols-7 gap-1.5 sm:gap-2 w-full">
+      <div className="grid w-full grid-cols-7 gap-1.5 sm:gap-2">
         {alphabet.map(letter => (
-          <button
-            key={letter}
-            type="button"
-            disabled={guessedLetters.includes(letter) || status !== 'playing'}
-            onClick={() => handleLetterClick(letter)}
-            className={`h-9 sm:h-10 rounded-lg font-bold text-xs sm:text-sm transition-all ${
-              guessedLetters.includes(letter)
-                ? currentWord?.word.includes(letter)
-                  ? 'bg-green-100 text-green-600 border-2 border-green-200'
-                  : 'bg-gray-100 text-gray-300 border-2 border-gray-100'
-                : 'bg-white border-2 border-gray-100 text-gray-700 hover:border-indigo-400 hover:bg-indigo-50 shadow-sm'
-            }`}
-          >
+          <button key={letter} type="button" disabled={guessedLetters.includes(letter) || status !== 'playing'} onClick={() => handleLetterClick(letter)} className={`h-9 rounded-lg text-xs font-bold transition-all sm:h-10 sm:text-sm ${guessedLetters.includes(letter) ? currentWord?.word.includes(letter) ? 'border-2 border-green-200 bg-green-100 text-green-600' : 'border-2 border-gray-100 bg-gray-100 text-gray-300' : 'border-2 border-gray-100 bg-white text-gray-700 shadow-sm hover:border-indigo-400 hover:bg-indigo-50'}`}>
             {letter}
           </button>
         ))}
@@ -177,13 +151,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
           coinsGained={rewardPreview.coins}
           onPrimary={pickNewWord}
           onSecondary={onBack}
-          details={(
-            <span>
-              Слово: <span className="font-black">{currentWord?.word}</span>
-              {currentWord?.translation ? ` · ${currentWord.translation}` : ''}
-              {status === 'won' ? ` · бонус за попытки: +${rewardPreview.coins} монет` : ''}
-            </span>
-          )}
+          details={<span>Слово: <span className="font-black">{currentWord?.word}</span>{currentWord?.translation ? ` · ${currentWord.translation}` : ''}{status === 'won' ? ` · бонус за попытки: +${rewardPreview.coins} монет` : ''}</span>}
         />
       )}
     </div>
