@@ -1,6 +1,5 @@
-import { ALL_WORDS_EN } from '../dictionaries/mainEnglish';
 import { supabase } from '../supabase';
-import { normalizeCustomDictionary, normalizeWord } from './dictionaryEngine';
+import { getCustomWordsMissingTranslation, normalizeCustomDictionary } from './dictionaryEngine';
 
 export interface AdminDailyGameStat {
   day: string;
@@ -45,7 +44,6 @@ interface AdminCustomDictionaryRow {
 }
 
 const parseNumber = (value: unknown): number => Number(value || 0);
-const builtinWords = new Set(ALL_WORDS_EN.map(normalizeWord).filter(Boolean));
 
 const parseCustomDictionary = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
@@ -78,8 +76,7 @@ export const adminAnalyticsService = {
       .map(row => ({
         userId: row.user_id,
         username: row.username || 'Без имени',
-        words: parseCustomDictionary(row.custom_dictionary_en)
-          .filter(word => !builtinWords.has(word))
+        words: getCustomWordsMissingTranslation(parseCustomDictionary(row.custom_dictionary_en))
           .sort((first, second) => first.localeCompare(second)),
       }))
       .filter(row => row.words.length > 0)
