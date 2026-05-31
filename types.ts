@@ -39,7 +39,7 @@ export interface InventoryItem {
   type: InventoryItemType;
   name: string;
   quantity: number;
-  metadata?: { imageUrl?: string }; // FIX: было any, уточнили тип
+  metadata?: { imageUrl?: string };
 }
 
 export interface UserProfile {
@@ -50,6 +50,24 @@ export interface UserProfile {
   pet: PetState;
   coins: number;
   inventory: InventoryItem[];
+}
+
+export type DailyQuestKind = 'wordle_four' | 'sprint_twelve' | 'memory_sixteen' | 'hangman_clean' | 'all_five_games';
+
+export interface DailyQuestState {
+  questDate: string;
+  kind: DailyQuestKind;
+  title: string;
+  description: string;
+  progressLabel: string;
+  completed: boolean;
+  completedAt?: string | null;
+  rewardItemId?: string | null;
+}
+
+export interface DailyQuestCompletionReward {
+  quest: DailyQuestState;
+  item: ShopItem;
 }
 
 export interface ShopRandomRewardOption {
