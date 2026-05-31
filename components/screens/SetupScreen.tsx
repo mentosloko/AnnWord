@@ -48,9 +48,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   onBack,
   onLogin,
 }) => {
-  const isWordleMode = selectedPlayMode === 'game';
   const isCustomDictionary = settings.dictionarySource === 'custom';
-  const customWordsCount = customDictionaryWords.length;
+  const customWordsCount = customDictionaryWords.filter(word => word.trim().length === settings.wordLength).length;
   const canStart = !isCustomDictionary || customWordsCount > 0;
 
   const updateSetting = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => {
@@ -80,16 +79,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         {setupError && <div className="mb-4 rounded-2xl border-2 border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{setupError}</div>}
 
         <div className="grid grid-cols-1 gap-4">
-          {isWordleMode && (
-            <section>
-              <h2 className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Длина слова</h2>
-              <div className="grid grid-cols-3 gap-2">
-                {WORD_LENGTHS.map(length => (
-                  <button type="button" key={length} onClick={() => updateSetting('wordLength', length)} className={`rounded-2xl py-3 font-black transition ${settings.wordLength === length ? 'bg-indigo-600 text-white shadow-sm' : 'border-2 border-indigo-100 bg-white text-indigo-700 hover:bg-indigo-50'}`}>{length}</button>
-                ))}
-              </div>
-            </section>
-          )}
+          <section>
+            <h2 className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Длина слова</h2>
+            <div className="grid grid-cols-3 gap-2">
+              {WORD_LENGTHS.map(length => (
+                <button type="button" key={length} onClick={() => updateSetting('wordLength', length)} className={`rounded-2xl py-3 font-black transition ${settings.wordLength === length ? 'bg-indigo-600 text-white shadow-sm' : 'border-2 border-indigo-100 bg-white text-indigo-700 hover:bg-indigo-50'}`}>{length}</button>
+              ))}
+            </div>
+          </section>
 
           <section>
             <h2 className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Слова для игры</h2>
@@ -99,7 +96,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
               </button>
               <button type="button" onClick={() => selectDictionarySource('custom')} className={`relative rounded-2xl border-2 p-3 text-left transition ${isCustomDictionary ? 'border-indigo-300 bg-indigo-50 text-indigo-950' : 'border-indigo-100 bg-white text-gray-700 hover:bg-indigo-50'}`}>
                 {!isAuthenticated && <span className="absolute right-3 top-3 text-sm">🔒</span>}
-                <div className="mb-1 text-xl">🧩</div><div className="text-sm font-black">Мой словарь</div><div className="mt-1 text-[11px] font-bold text-gray-400">{isAuthenticated ? `${customWordsCount} слов` : 'после входа'}</div>
+                <div className="mb-1 text-xl">🧩</div><div className="text-sm font-black">Мой словарь</div><div className="mt-1 text-[11px] font-bold text-gray-400">{isAuthenticated ? `${customWordsCount} слов из ${settings.wordLength} букв` : 'после входа'}</div>
               </button>
             </div>
           </section>
@@ -127,7 +124,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                 <label className="flex cursor-pointer flex-col gap-3 sm:flex-row sm:items-center">
                   <input type="file" accept=".txt,.csv" onChange={onFileUpload} className="hidden" />
                   <span className="text-2xl">📄</span>
-                  <span className="flex-1"><span className="block font-black text-indigo-950">{customWordsCount > 0 ? 'Обновить словарь' : 'Загрузить словарь'}</span><span className="block text-xs font-bold text-gray-500">TXT или CSV · слова через строку или запятую</span></span>
+                  <span className="flex-1"><span className="block font-black text-indigo-950">{customDictionaryWords.length > 0 ? 'Обновить словарь' : 'Загрузить словарь'}</span><span className="block text-xs font-bold text-gray-500">TXT или CSV · слова через строку или запятую</span></span>
                   <span className="rounded-xl border border-indigo-100 bg-white px-3 py-2 text-sm font-bold text-indigo-700">{isUploadingDictionary ? 'Загрузка...' : 'Выбрать файл'}</span>
                 </label>
               )}
@@ -136,7 +133,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         </div>
 
         <button type="button" onClick={onStartGame} disabled={!canStart} className={`mt-5 w-full rounded-2xl py-4 font-black shadow-lg transition ${canStart ? 'bg-indigo-600 text-white shadow-indigo-100 hover:bg-indigo-700' : 'cursor-not-allowed bg-gray-100 text-gray-400 shadow-none'}`}>
-          {canStart ? `Начать: ${MODE_LABELS[selectedPlayMode]}` : 'Загрузите словарь для игры'}
+          {canStart ? `Начать: ${MODE_LABELS[selectedPlayMode]}` : `Нет слов из ${settings.wordLength} букв`}
         </button>
       </div>
     </ScreenContainer>
