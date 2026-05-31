@@ -12,6 +12,7 @@ interface ModeScreenProps {
   words: string[];
   userProfile?: UserProfile;
   onGameReward: (input: GameRewardInput) => void | Promise<void>;
+  onRecordReviewWord?: (word: string) => void | Promise<void>;
   onBackHome: () => void;
 }
 
@@ -24,7 +25,8 @@ const MODE_RULES = {
   anagrams: [
     'Собирайте слово из перемешанных букв.',
     'За каждое угаданное слово начисляется XP.',
-    'Даже короткая попытка помогает тренировке словаря.',
+    'За каждые 15 угаданных слов вы получаете 1 ₽.',
+    'Кнопка «Не знаю» добавляет слово в историю для повторения и снимает 1 балл.',
   ],
   sprint: [
     'Выбирайте правильные ответы как можно быстрее.',
@@ -43,26 +45,26 @@ const MODE_RULES = {
   ],
 };
 
-export const AnagramsScreen: React.FC<ModeScreenProps> = ({ words, userProfile, onGameReward, onBackHome }) => (
-  <GameModeShell title="Анаграммы" subtitle="Собери слово" rules={MODE_RULES.anagrams} onBackHome={onBackHome}>
-    <AnagramGame userProfile={buildModeProfile(userProfile, words)} onGameReward={onGameReward} onBack={onBackHome} />
+export const AnagramsScreen: React.FC<ModeScreenProps> = ({ words, userProfile, onGameReward, onRecordReviewWord, onBackHome }) => (
+  <GameModeShell title="Анаграммы" subtitle="Собери слово" rules={MODE_RULES.anagrams} dictionaryWords={words} onBackHome={onBackHome}>
+    <AnagramGame userProfile={buildModeProfile(userProfile, words)} onGameReward={onGameReward} onRecordReviewWord={onRecordReviewWord} onBack={onBackHome} />
   </GameModeShell>
 );
 
 export const SprintScreen: React.FC<ModeScreenProps> = ({ words, userProfile, onGameReward, onBackHome }) => (
-  <GameModeShell title="Спринт" subtitle="Быстрый режим" rules={MODE_RULES.sprint} onBackHome={onBackHome}>
+  <GameModeShell title="Спринт" subtitle="Быстрый режим" rules={MODE_RULES.sprint} dictionaryWords={words} onBackHome={onBackHome}>
     <SprintGame userProfile={buildModeProfile(userProfile, words)} onGameReward={onGameReward} onBack={onBackHome} />
   </GameModeShell>
 );
 
 export const MemoryScreen: React.FC<ModeScreenProps> = ({ words, userProfile, onGameReward, onBackHome }) => (
-  <GameModeShell title="Память" subtitle="Найди пары" rules={MODE_RULES.memory} onBackHome={onBackHome}>
+  <GameModeShell title="Память" subtitle="Найди пары" rules={MODE_RULES.memory} dictionaryWords={words} onBackHome={onBackHome}>
     <MemoryGame userProfile={buildModeProfile(userProfile, words)} onGameReward={onGameReward} onBack={onBackHome} />
   </GameModeShell>
 );
 
 export const HangmanScreen: React.FC<ModeScreenProps> = ({ words, userProfile, onGameReward, onBackHome }) => (
-  <GameModeShell title="Виселица" subtitle="Угадай по буквам" rules={MODE_RULES.hangman} onBackHome={onBackHome}>
+  <GameModeShell title="Виселица" subtitle="Угадай по буквам" rules={MODE_RULES.hangman} dictionaryWords={words} onBackHome={onBackHome}>
     <HangmanGame userProfile={buildModeProfile(userProfile, words)} onGameReward={onGameReward} onBack={onBackHome} />
   </GameModeShell>
 );
