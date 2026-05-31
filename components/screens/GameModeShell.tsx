@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { ScreenContainer } from '../layout/ScreenContainer';
+import { DictionaryPeek } from '../DictionaryPeek';
 
 interface GameModeShellProps {
   title: string;
   subtitle?: string;
   rules?: string[];
+  dictionaryWords?: string[];
   children: React.ReactNode;
   onBackHome: () => void;
 }
 
-export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, rules = [], children, onBackHome }) => {
+export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, rules = [], dictionaryWords = [], children, onBackHome }) => {
   const [showRules, setShowRules] = useState(false);
 
   return (
@@ -29,19 +31,20 @@ export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, r
             {subtitle && <div className="mb-0.5 text-[11px] font-black uppercase tracking-widest text-indigo-300 sm:text-xs">{subtitle}</div>}
             <h1 className="truncate text-2xl font-black text-indigo-950 sm:text-3xl">{title}</h1>
           </div>
-          {rules.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setShowRules(prev => !prev)}
-              aria-label={`Правила: ${title}`}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-indigo-50 font-black text-indigo-700 transition hover:bg-indigo-100"
-              title="Правила режима"
-            >
-              ?
-            </button>
-          ) : (
-            <div className="h-11 w-11" />
-          )}
+          <div className="flex items-center justify-end gap-1.5">
+            <DictionaryPeek words={dictionaryWords} compact />
+            {rules.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowRules(prev => !prev)}
+                aria-label={`Правила: ${title}`}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 font-black text-indigo-700 transition hover:bg-indigo-100"
+                title="Правила режима"
+              >
+                ?
+              </button>
+            ) : null}
+          </div>
         </header>
 
         {showRules && rules.length > 0 && (
