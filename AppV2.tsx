@@ -60,17 +60,19 @@ const AppV2: React.FC = () => {
       console.error('Failed to apply daily quest result', error);
     }
   }, [isAuthenticated, setUserProfile, userProfile.pet.characterOnboarded]);
-  const updateClassicStats = useCallback(async (won: boolean, word: string, attempts: number, coinsAdjustment = 0) => {
+  const updateClassicStats = useCallback(async (won: boolean, word: string, coinsAdjustment = 0) => {
     const nextStats: UserStats = { ...userProfile.stats, wordsGuessed: { ...userProfile.stats.wordsGuessed } };
     nextStats.gamesPlayed += 1;
     if (won) { nextStats.gamesWon += 1; nextStats.wordsGuessed[word] = (nextStats.wordsGuessed[word] || 0) + 1; }
-    const input = { type: 'wordle', won, attempts, coinsAdjustment };
-    const gameEvent = analyticsService.createEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_finished', gameType: 'wordle', route: 'game', payload: { won, word, attempts, coinsAdjustment, wordLength: settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty, gamesPlayedBefore: userProfile.stats.gamesPlayed, gamesWonBefore: userProfile.stats.gamesWon } });
+    const input = { type: 'wordle', won, coinsAdjustment };
+    const gameEvent = analyticsService.createEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_finished', gameType: 'wordle', route: 'game', payload: { won, word, coinsAdjustment, wordLength: settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty, gamesPlayedBefore: userProfile.stats.gamesPlayed, gamesWonBefore: userProfile.stats.gamesWon } });
     await profileEconomy.applyGameReward(input, { stats: nextStats, analyticsEvents: [gameEvent] });
-    await submitDailyQuestResult(input);
-  }, [currentUserId, profileEconomy, settings.dictionarySource, settings.difficulty, settings.wordLength, submitDailyQuestResult, userProfile.stats]);
+  }, [currentUserId, profileEconomy, settings.dictionarySource, settings.difficulty, settings.wordLength, userProfile.stats]);
+  const submitClassicDailyQuestResult = useCallback(async (won: boolean, _word: string, attempts: number) => {
+    await submitDailyQuestResult({ type: 'wordle', won, attempts });
+  }, [submitDailyQuestResult]);
   const chargeWordleHint = useCallback(async (): Promise<boolean> => { if (userProfile.coins < WORDLE_HINT_COST) return false; await profileEconomy.winCoins(getWordleHintBalanceDelta()); return true; }, [profileEconomy, userProfile.coins]);
-  const classicGame = useClassicGameController({ route, settings, sessionOwnerId: currentUserId, getSecretWordPool, getValidationPool, getModeWords, onRouteChange: setRoute, onStatsUpdate: updateClassicStats, availableCoins: userProfile.coins, onHintCharge: chargeWordleHint });
+  const classicGame = useClassicGameController({ route, settings, sessionOwnerId: currentUserId, getSecretWordPool, getValidationPool, getModeWords, onRouteChange: setRoute, onStatsUpdate: updateClassicStats, onDailyQuestResult: submitClassicDailyQuestResult, availableCoins: userProfile.coins, onHintCharge: chargeWordleHint });
   const modeWords = useMemo(() => getModeWords(), [getModeWords]);
   const handleBuy = useCallback(async (item: ShopItem) => profileEconomy.buyItem(item), [profileEconomy]);
   const handleUseItem = useCallback(async (itemId: string) => profileEconomy.useItem(itemId), [profileEconomy]);
