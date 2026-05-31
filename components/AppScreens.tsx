@@ -10,7 +10,7 @@ import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from './scr
 import { hasSavedAnagramSession } from './AnagramGame';
 import { Shop } from './Shop';
 import { PetRoom } from './PetRoom';
-import { DailyQuestCompletionReward, DailyQuestState, GameSettings, GameState, CharStatus, PetState, ShopItem, UserProfile, ViewState } from '../types';
+import { DailyQuestCompletionReward, DailyQuestState, GameSettings, GameState, CharStatus, PetState, ShopItem, UserProfile, ViewState, WordLength } from '../types';
 import { GameRewardInput } from '../services/gamificationRules';
 
 export type PlayableModeRoute = 'game' | 'anagrams' | 'sprint' | 'memory' | 'hangman';
@@ -60,6 +60,9 @@ export interface AppScreensProps {
   onGameStarted?: (mode: PlayableModeRoute) => void;
 }
 
+const WORD_LENGTHS: WordLength[] = [4, 5, 6];
+const randomWordLength = (): WordLength => WORD_LENGTHS[Math.floor(Math.random() * WORD_LENGTHS.length)];
+
 export const AppScreens: React.FC<AppScreensProps> = ({
   route, userProfile, isAuthenticated, dailyQuest, dailyQuestReward, onCloseDailyQuestReward, settings, modeWords, selectedPlayMode, classicGame,
   dictionaryUpload, onRouteChange, onSelectedPlayModeChange, onSettingsChange, onOpenLogin,
@@ -90,22 +93,17 @@ export const AppScreens: React.FC<AppScreensProps> = ({
     onRouteChange(selectedPlayMode);
   };
 
-  const startQuestMode = (mode: PlayableModeRoute) => {
-    onSelectedPlayModeChange(mode);
-    onGameStarted?.(mode);
-    if (mode === 'game') {
-      if (hasActiveClassicGame && classicGame.resumeGame?.()) return;
-      classicGame.startNewGame();
-      return;
-    }
-    onRouteChange(mode);
-  };
-
   const startDailyQuest = (quest: DailyQuestState) => {
-    if (quest.kind === 'hangman_clean') return startQuestMode('hangman');
-    if (quest.kind === 'sprint_twelve') return startQuestMode('sprint');
-    if (quest.kind === 'memory_sixteen') return startQuestMode('memory');
-    return startQuestMode('game');
+    const mode: PlayableModeRoute = quest.kind === 'hangman_clean'
+      ? 'hangman'
+      : quest.kind === 'sprint_twelve'
+        ? 'sprint'
+        : quest.kind === 'memory_sixteen'
+          ? 'memory'
+          : 'game';
+    onSelectedPlayModeChange(mode);
+    onSettingsChange(previous => ({ ...previous, wordLength: randomWordLength() }));
+    onRouteChange('setup');
   };
 
   const screens: Partial<Record<ViewState, React.ReactNode>> = {
@@ -164,10 +162,10 @@ export const AppScreens: React.FC<AppScreensProps> = ({
       />
     ),
     profile: <ProfileScreen userProfile={userProfile} isAuthenticated={isAuthenticated} onBackHome={goHome} onOpenShop={() => onRouteChange('shop')} onOpenPetRoom={() => onRouteChange('pet_room')} onLogin={onOpenLogin} />,
-    anagrams: <AnagramsScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onRecordReviewWord={onRecordReviewWord} onBackHome={goHome} />,
-    sprint: <SprintScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
-    memory: <MemoryScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
-    hangman: <HangmanScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
+    anagrams: <AnagramsScreen words={modeWords} wordLength={settings.wordLength} userProfile={userProfile} onGameReward={onGameReward} onRecordReviewWord={onRecordReviewWord} onBackHome={goHome} />,
+    sprint: <SprintScreen words={modeWords} wordLength={settings.wordLength} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
+    memory: <MemoryScreen words={modeWords} wordLength={settings.wordLength} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
+    hangman: <HangmanScreen words={modeWords} wordLength={settings.wordLength} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
     shop: <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} />,
     pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onBuy={onBuy} onClose={goHome} onOpenShop={() => onRouteChange('shop')} />,
   };
