@@ -21,7 +21,14 @@ const EXTRA_VALID_GUESSES = ['MEOW', 'WOOF'];
 export const normalizeWord = (value: string): string =>
   value.trim().toUpperCase().replace(/[^A-Z]/g, '');
 
-const BUILTIN_WORD_SET = new Set(ALL_WORDS_EN.map(normalizeWord).filter(Boolean));
+export const hasRussianTranslation = (translation: string | undefined | null): boolean =>
+  Boolean(translation && /[А-Яа-яЁё]/.test(translation));
+
+const TRANSLATED_WORD_BY_KEY = new Map(
+  COMMON_WORDS_EN
+    .filter(item => hasRussianTranslation(item.translation))
+    .map(item => [normalizeWord(item.word), { ...item, word: normalizeWord(item.word) }]),
+);
 
 export const normalizeCustomDictionary = (words: string[] = []): string[] => {
   const seen = new Set<string>();
@@ -35,11 +42,18 @@ export const normalizeCustomDictionary = (words: string[] = []): string[] => {
   return normalized;
 };
 
+/** Playable custom words must have a real Russian translation in the common dictionary. */
 export const getCustomWordsAvailableInBuiltinDictionary = (words: string[] = []): string[] =>
-  normalizeCustomDictionary(words).filter(word => BUILTIN_WORD_SET.has(word));
+  normalizeCustomDictionary(words).filter(word => TRANSLATED_WORD_BY_KEY.has(word));
+
+export const getCustomWordsMissingTranslation = (words: string[] = []): string[] =>
+  normalizeCustomDictionary(words).filter(word => !TRANSLATED_WORD_BY_KEY.has(word));
 
 export const toCustomEnrichedWords = (words: string[] = []): EnrichedWord[] =>
-  getCustomWordsAvailableInBuiltinDictionary(words).map(word => ({ word, translation: '', level: CUSTOM_LEVEL }));
+  getCustomWordsAvailableInBuiltinDictionary(words)
+    .map(word => TRANSLATED_WORD_BY_KEY.get(word))
+    .filter((entry): entry is EnrichedWord => Boolean(entry))
+    .map(entry => ({ ...entry, level: CUSTOM_LEVEL }));
 
 export const isAllowedSecretWord = (word: string): boolean => {
   const clean = normalizeWord(word);
@@ -47,7 +61,9 @@ export const isAllowedSecretWord = (word: string): boolean => {
 };
 
 export const getBuiltinSecretWordPool = (selection: Pick<DictionarySelection, 'wordLength' | 'difficulty'>): EnrichedWord[] => {
-  let pool = COMMON_WORDS_EN.map(item => ({ ...item, word: normalizeWord(item.word) }));
+  let pool = COMMON_WORDS_EN
+    .filter(item => hasRussianTranslation(item.translation))
+    .map(item => ({ ...item, word: normalizeWord(item.word) }));
   if (selection.difficulty !== 'ALL') pool = pool.filter(item => item.level === selection.difficulty);
   return pool.filter(item => item.word.length === selection.wordLength && isAllowedSecretWord(item.word));
 };
@@ -73,11 +89,8 @@ export const buildDictionaryPools = (selection: DictionarySelection): Dictionary
   return { secretWordPool: getSecretWordPool(selection), validationPool: getValidationPool(selection), customDictionaryNormalized, dictionarySourceUsed: effectiveSource };
 };
 
-export const getTranslationForWord = (word: string): string | null => {
-  const clean = normalizeWord(word);
-  const found = COMMON_WORDS_EN.find(item => normalizeWord(item.word) === clean);
-  return found?.translation ?? null;
-};
+export const getTranslationForWord = (word: string): string | null =>
+  TRANSLATED_WORD_BY_KEY.get(normalizeWord(word))?.translation ?? null;
 
 export const getDictionaryEmptyStateMessage = (selection: DictionarySelection): string => {
   if (selection.source === 'custom') return `В вашем словаре нет слов длиной ${selection.wordLength}.`;
