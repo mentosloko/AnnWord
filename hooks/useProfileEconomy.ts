@@ -139,7 +139,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
   }, [currentUserId, setUserProfile]);
 
   const addXP = useCallback(async (amount: number) => {
-    const progress = applyGameRewardToCharacter(userProfile.pet, { xp: amount, mood: amount });
+    const progress = applyGameRewardToCharacter(userProfile.pet, { xp: amount, coins: 0, mood: 0, label: 'XP adjustment' });
     await updateCharacter(progress.pet);
   }, [updateCharacter, userProfile.pet]);
 
