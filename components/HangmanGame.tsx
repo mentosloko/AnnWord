@@ -19,6 +19,7 @@ const normalizeHangmanWord = (entry: EnrichedWord): EnrichedWord | null => {
 };
 
 export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, onGameReward }) => {
+  const dictionarySignature = userProfile.customDictionaryEn.join('|');
   const dictionary: EnrichedWord[] = useMemo(() => {
     const sourceDictionary: EnrichedWord[] = userProfile.customDictionaryEn && userProfile.customDictionaryEn.length > 0
       ? userProfile.customDictionaryEn.map(w => ({ word: w, translation: '', level: 'Custom' }))
@@ -27,7 +28,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
     return sourceDictionary
       .map(normalizeHangmanWord)
       .filter((word): word is EnrichedWord => Boolean(word));
-  }, [userProfile.customDictionaryEn]);
+  }, [dictionarySignature]);
   const rewardAppliedRef = useRef(false);
 
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
@@ -49,8 +50,8 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
   }, [dictionary]);
 
   useEffect(() => {
-    pickNewWord();
-  }, [pickNewWord]);
+    if (!currentWord) pickNewWord();
+  }, [currentWord, pickNewWord]);
 
   useEffect(() => {
     if ((status === 'won' || status === 'lost') && !rewardAppliedRef.current) {
