@@ -64,7 +64,7 @@ const AppV2: React.FC = () => {
     const nextStats: UserStats = { ...userProfile.stats, wordsGuessed: { ...userProfile.stats.wordsGuessed }, wordsToReview: { ...(userProfile.stats.wordsToReview || {}) } };
     nextStats.gamesPlayed += 1;
     if (won) { nextStats.gamesWon += 1; nextStats.wordsGuessed[word] = (nextStats.wordsGuessed[word] || 0) + 1; }
-    const input = { type: 'wordle', won, coinsAdjustment };
+    const input: GameRewardInput = { type: 'wordle', won, coinsAdjustment };
     const gameEvent = analyticsService.createEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_finished', gameType: 'wordle', route: 'game', payload: { won, word, coinsAdjustment, wordLength: settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty, gamesPlayedBefore: userProfile.stats.gamesPlayed, gamesWonBefore: userProfile.stats.gamesWon } });
     await profileEconomy.applyGameReward(input, { stats: nextStats, analyticsEvents: [gameEvent] });
   }, [currentUserId, profileEconomy, settings.dictionarySource, settings.difficulty, settings.wordLength, userProfile.stats]);
