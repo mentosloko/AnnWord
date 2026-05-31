@@ -73,7 +73,7 @@ const AppV2: React.FC = () => {
   }, [submitDailyQuestResult]);
   const chargeWordleHint = useCallback(async (): Promise<boolean> => { if (userProfile.coins < WORDLE_HINT_COST) return false; await profileEconomy.winCoins(getWordleHintBalanceDelta()); return true; }, [profileEconomy, userProfile.coins]);
   const classicGame = useClassicGameController({ route, settings, sessionOwnerId: currentUserId, getSecretWordPool, getValidationPool, getModeWords, onRouteChange: setRoute, onStatsUpdate: updateClassicStats, onDailyQuestResult: submitClassicDailyQuestResult, availableCoins: userProfile.coins, onHintCharge: chargeWordleHint });
-  const modeWords = useMemo(() => getModeWords(), [getModeWords]);
+  const modeWords = useMemo(() => getModeWords({ respectWordLength: true }), [getModeWords]);
   const handleBuy = useCallback(async (item: ShopItem) => profileEconomy.buyItem(item), [profileEconomy]);
   const handleUseItem = useCallback(async (itemId: string) => profileEconomy.useItem(itemId), [profileEconomy]);
   const handleGameReward = useCallback(async (input: GameRewardInput) => {
