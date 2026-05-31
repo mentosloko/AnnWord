@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { DailyQuestCompletionReward, DailyQuestState } from '../types';
 import { getShopImageUrl } from '../services/petAssets';
 
-export const DailyQuestCard: React.FC<{ quest: DailyQuestState }> = ({ quest }) => (
+export const DailyQuestCard: React.FC<{ quest: DailyQuestState; onStart?: (quest: DailyQuestState) => void }> = ({ quest, onStart }) => (
   <section className="mt-5 rounded-3xl border-2 border-purple-100 bg-purple-50/60 p-4 text-left sm:p-5" aria-label="Ежедневное испытание">
     <div className="flex items-start justify-between gap-3">
       <div>
@@ -18,10 +18,15 @@ export const DailyQuestCard: React.FC<{ quest: DailyQuestState }> = ({ quest }) 
     {quest.kind === 'all_five_games' && !quest.completed && <p className="mt-2 text-xs font-black text-purple-700">Прогресс: {quest.progressLabel}</p>}
     <div className="mt-4 flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5">
       <div className="text-2xl" aria-hidden="true">🎁</div>
-      <div className="text-sm font-bold text-indigo-900">
+      <div className="min-w-0 flex-1 text-sm font-bold text-indigo-900">
         {quest.completed ? 'Секретная коробка открыта' : 'Награда: секретная коробка'}
         <div className="text-xs font-bold text-gray-500">Внутри случайное лакомство</div>
       </div>
+      {!quest.completed && onStart && (
+        <button type="button" onClick={() => onStart(quest)} className="shrink-0 rounded-xl bg-purple-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-purple-700">
+          Играть
+        </button>
+      )}
     </div>
   </section>
 );
