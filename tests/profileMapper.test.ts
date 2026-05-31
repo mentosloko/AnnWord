@@ -7,13 +7,19 @@ describe('profileMapper', () => {
     expect(normalizeDictionaryField('not-array')).toEqual([]);
   });
 
-  it('normalizes stats and drops invalid guessed-word counters', () => {
-    expect(normalizeStats({ gamesPlayed: 3, gamesWon: 2, wordsGuessed: { APPLE: 1, BAD: 'x' } })).toEqual({
+  it('normalizes stats and drops invalid word counters', () => {
+    expect(normalizeStats({
+      gamesPlayed: 3,
+      gamesWon: 2,
+      wordsGuessed: { APPLE: 1, BAD: 'x' },
+      wordsToReview: { BERRY: 2, BROKEN: 'x' },
+    })).toEqual({
       gamesPlayed: 3,
       gamesWon: 2,
       wordsGuessed: { APPLE: 1 },
+      wordsToReview: { BERRY: 2 },
     });
-    expect(normalizeStats(null)).toEqual({ gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} });
+    expect(normalizeStats(null)).toEqual({ gamesPlayed: 0, gamesWon: 0, wordsGuessed: {}, wordsToReview: {} });
   });
 
   it('normalizes character fields and falls back for invalid values', () => {
