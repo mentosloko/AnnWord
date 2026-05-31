@@ -51,11 +51,11 @@ const addInventoryItem = (inventory: InventoryItem[], item: ShopItem): Inventory
 };
 
 export const canPurchaseItem = (profile: UserProfile, item: ShopItem): PurchaseResult => {
-  if (!item || !item.id || item.price < 0 || item.type === 'mystery') return { ok: false, reason: 'invalid_item' };
+  if (!item || !item.id || item.price < 0) return { ok: false, reason: 'invalid_item' };
   if ((profile.pet.level || 1) < item.minLevel) return { ok: false, reason: 'locked' };
   if (item.characterType && profile.pet.type !== item.characterType) return { ok: false, reason: 'locked' };
   if (profile.coins < item.price) return { ok: false, reason: 'insufficient_funds' };
-  if (item.type !== 'food' && profile.inventory.some(entry => entry.id === item.id)) {
+  if (item.type !== 'food' && item.type !== 'mystery' && profile.inventory.some(entry => entry.id === item.id)) {
     return { ok: false, reason: 'already_owned' };
   }
   return { ok: true };
@@ -145,7 +145,7 @@ export const getPurchaseErrorMessage = (reason?: PurchaseResult['reason']): stri
     case 'locked': return 'Предмет пока недоступен для этого уровня или персонажа.';
     case 'insufficient_funds': return 'Недостаточно монет.';
     case 'not_authenticated': return 'Для покупки нужно войти в аккаунт.';
-    case 'invalid_item': return 'Предмет недоступен для покупки.';
+    case 'invalid_item': return 'Предмет не найден или повреждён.';
     case 'already_owned': return 'Этот предмет уже есть в инвентаре.';
     case 'accessory_limit_reached': return 'Можно надеть максимум 2 аксессуара. Снимите один из уже надетых предметов, чтобы надеть новый.';
     default: return 'Покупка не удалась.';
