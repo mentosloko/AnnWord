@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ShopItem, UserProfile } from '../types';
 import { applyItemUseLocally, applyPurchaseLocally } from '../services/economyEngine';
 import { getCharacterProgressPercent, getCharacterStageLabel } from '../services/gamificationRules';
+import { getMoodDisplay } from '../services/moodDisplay';
 import { getPetEmoji, getPetNeedSnapshot, getVisibleInventory } from '../services/petEngine';
 import { getInventoryImageUrl, getPuppyCharacterAssetUrl, getShopImageUrl } from '../services/petAssets';
 import { getShopItemsByType } from '../services/shopCatalog';
@@ -51,6 +52,7 @@ export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClos
 
   const pet = profile.pet;
   const mood = getPetNeedSnapshot(pet);
+  const moodDisplay = getMoodDisplay(mood.moodScore);
   const items = getVisibleInventory(profile, tab);
   const picture = getPuppyCharacterAssetUrl(pet);
   const xp = getCharacterProgressPercent(pet);
@@ -91,10 +93,7 @@ export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClos
     <div className="mx-auto max-w-6xl px-3 pb-24 pt-3 sm:px-4">
       <header className="mb-4 flex items-center justify-between">
         <button type="button" aria-label="На главный экран" onClick={onClose} className="h-11 w-11 rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button>
-        <div className="text-center">
-          <h1 className="text-xl font-black text-indigo-950 sm:text-3xl">Комната питомца</h1>
-          <p className="text-xs font-black uppercase text-indigo-300">{pet.name}</p>
-        </div>
+        <div className="text-center"><h1 className="text-xl font-black text-indigo-950 sm:text-3xl">Комната питомца</h1><p className="text-xs font-black uppercase text-indigo-300">{pet.name}</p></div>
         <div className="h-11 w-11" />
       </header>
 
@@ -114,9 +113,9 @@ export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClos
         <aside className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5">
           <h2 className="text-2xl font-black text-indigo-950">{pet.name}</h2>
           <p className="text-sm font-bold text-indigo-500">Уровень {pet.level} · {getCharacterStageLabel(pet.stage)}</p>
-          <div className="mt-5 flex justify-between text-xs font-black uppercase text-indigo-300"><span>Настроение</span><span>{mood.moodScore}%</span></div>
-          <div className="mt-2 h-3 rounded-full bg-pink-50"><div className="h-full rounded-full bg-pink-400" style={{ width: `${mood.moodScore}%` }} /></div>
-          <p className="mt-2 text-sm font-bold text-pink-600">{mood.statusLabel}</p>
+          <div className="mt-5 flex justify-between text-xs font-black uppercase text-indigo-300"><span>{moodDisplay.label}</span><span>{mood.moodScore}%</span></div>
+          <div className={`mt-2 h-3 overflow-hidden rounded-full ${moodDisplay.trackClass}`}><div className={`h-full rounded-full ${moodDisplay.barClass}`} style={{ width: `${mood.moodScore}%` }} /></div>
+          <p className={`mt-2 text-sm font-bold ${moodDisplay.textClass}`}>{moodDisplay.label}</p>
           <div className="mt-5 flex justify-between text-xs font-black uppercase text-indigo-300"><span>Опыт</span><span>{pet.xp}</span></div>
           <div className="mt-2 h-3 rounded-full bg-indigo-50"><div className="h-full rounded-full bg-indigo-500" style={{ width: `${xp}%` }} /></div>
         </aside>
@@ -137,19 +136,13 @@ export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClos
               return <button type="button" key={item.id} onClick={() => void use(item.id)} aria-pressed={isEquipped} className={`relative flex items-center gap-3 rounded-3xl border-2 p-3 text-left transition ${isEquipped ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100' : 'border-indigo-100 bg-white hover:bg-indigo-50/40'}`}>
                 {isEquipped && <span className="absolute right-3 top-2 rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-black uppercase text-white">Надето</span>}
                 <div className="h-16 w-16 shrink-0 rounded-2xl bg-indigo-50">{image && <img src={image} alt="" className="h-full w-full object-contain" />}</div>
-                <div className={`min-w-0 font-black ${isEquipped ? 'text-indigo-700' : 'text-indigo-950'}`}>
-                  <span className="block">{item.name}</span>
-                  {tab === 'food' && <span className="mt-1 inline-flex rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs text-indigo-700" aria-label={`Количество: ${item.quantity}`}>×{item.quantity}</span>}
-                </div>
+                <div className={`min-w-0 font-black ${isEquipped ? 'text-indigo-700' : 'text-indigo-950'}`}><span className="block">{item.name}</span>{tab === 'food' && <span className="mt-1 inline-flex rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs text-indigo-700" aria-label={`Количество: ${item.quantity}`}>×{item.quantity}</span>}</div>
                 {busy === item.id && <span className="ml-auto">…</span>}
               </button>;
             })}
           </div>
         ) : (
-          <div className="rounded-3xl border-2 border-dashed border-indigo-100 bg-indigo-50/50 p-8 text-center">
-            <p className="font-black text-indigo-950">{tab === 'food' ? 'Лакомств пока нет' : 'Гардероб пока пуст'}</p>
-            {onOpenShop && <button type="button" onClick={onOpenShop} className="mt-4 rounded-xl bg-indigo-600 px-4 py-2 text-white">В магазин</button>}
-          </div>
+          <div className="rounded-3xl border-2 border-dashed border-indigo-100 bg-indigo-50/50 p-8 text-center"><p className="font-black text-indigo-950">{tab === 'food' ? 'Лакомств пока нет' : 'Гардероб пока пуст'}</p>{onOpenShop && <button type="button" onClick={onOpenShop} className="mt-4 rounded-xl bg-indigo-600 px-4 py-2 text-white">В магазин</button>}</div>
         )}
         {offers.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{offers.map(item => { const image = getShopImageUrl(item); return <div key={item.id} className="flex items-center gap-3 rounded-3xl border-2 border-dashed border-indigo-200 p-3"><div className="h-16 w-16">{image && <img src={image} alt="" className="h-full w-full object-contain" />}</div><div><div className="font-black">{item.name}</div><div className="flex items-center gap-1 text-sm font-black text-yellow-700">{item.price}<CoinIcon /></div><button type="button" disabled={Boolean(busy)} onClick={() => void buy(item)} className="mt-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white disabled:bg-indigo-200">{busy === item.id ? 'Сохраняю...' : 'Купить'}</button></div></div>; })}</div>}
       </section>
