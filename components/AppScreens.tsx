@@ -9,7 +9,7 @@ import { AdminAnalyticsScreen } from './screens/AdminAnalyticsScreen';
 import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from './screens/ModeScreens';
 import { Shop } from './Shop';
 import { PetRoom } from './PetRoom';
-import { GameSettings, GameState, CharStatus, PetState, ShopItem, UserProfile, ViewState } from '../types';
+import { DailyQuestCompletionReward, DailyQuestState, GameSettings, GameState, CharStatus, PetState, ShopItem, UserProfile, ViewState } from '../types';
 import { GameRewardInput } from '../services/gamificationRules';
 
 export type PlayableModeRoute = 'game' | 'anagrams' | 'sprint' | 'memory' | 'hangman';
@@ -38,6 +38,9 @@ export interface AppScreensProps {
   route: ViewState;
   userProfile: UserProfile;
   isAuthenticated: boolean;
+  dailyQuest?: DailyQuestState | null;
+  dailyQuestReward?: DailyQuestCompletionReward | null;
+  onCloseDailyQuestReward?: () => void;
   settings: GameSettings;
   modeWords: string[];
   selectedPlayMode: PlayableModeRoute;
@@ -56,7 +59,7 @@ export interface AppScreensProps {
 }
 
 export const AppScreens: React.FC<AppScreensProps> = ({
-  route, userProfile, isAuthenticated, settings, modeWords, selectedPlayMode, classicGame,
+  route, userProfile, isAuthenticated, dailyQuest, dailyQuestReward, onCloseDailyQuestReward, settings, modeWords, selectedPlayMode, classicGame,
   dictionaryUpload, onRouteChange, onSelectedPlayModeChange, onSettingsChange, onOpenLogin,
   onOpenRules, onBuy, onUseItem, onGameReward, onCharacterOnboardingComplete, onGameStarted,
 }) => {
@@ -86,6 +89,9 @@ export const AppScreens: React.FC<AppScreensProps> = ({
       <LandingScreen
         userProfile={userProfile}
         isAuthenticated={isAuthenticated}
+        dailyQuest={dailyQuest}
+        dailyQuestReward={dailyQuestReward}
+        onCloseDailyQuestReward={onCloseDailyQuestReward}
         hasActiveClassicGame={hasActiveClassicGame}
         onStartClassic={() => openSetupFor('game')}
         onStartAnagrams={() => openSetupFor('anagrams')}
