@@ -61,7 +61,7 @@ const AppV2: React.FC = () => {
     }
   }, [isAuthenticated, setUserProfile, userProfile.pet.characterOnboarded]);
   const updateClassicStats = useCallback(async (won: boolean, word: string, coinsAdjustment = 0) => {
-    const nextStats: UserStats = { ...userProfile.stats, wordsGuessed: { ...userProfile.stats.wordsGuessed } };
+    const nextStats: UserStats = { ...userProfile.stats, wordsGuessed: { ...userProfile.stats.wordsGuessed }, wordsToReview: { ...(userProfile.stats.wordsToReview || {}) } };
     nextStats.gamesPlayed += 1;
     if (won) { nextStats.gamesWon += 1; nextStats.wordsGuessed[word] = (nextStats.wordsGuessed[word] || 0) + 1; }
     const input = { type: 'wordle', won, coinsAdjustment };
@@ -81,9 +81,21 @@ const AppV2: React.FC = () => {
     await profileEconomy.applyGameReward(input, { analyticsEvents: [gameEvent] });
     await submitDailyQuestResult(input);
   }, [currentUserId, profileEconomy, route, settings.dictionarySource, settings.difficulty, settings.wordLength, submitDailyQuestResult]);
+  const handleRecordReviewWord = useCallback(async (word: string) => {
+    const normalizedWord = word.trim().toUpperCase();
+    if (!normalizedWord) return;
+    const nextStats: UserStats = {
+      ...userProfile.stats,
+      wordsGuessed: { ...userProfile.stats.wordsGuessed },
+      wordsToReview: { ...(userProfile.stats.wordsToReview || {}) },
+    };
+    nextStats.wordsToReview![normalizedWord] = (nextStats.wordsToReview![normalizedWord] || 0) + 1;
+    await profileEconomy.updateStats(nextStats);
+    analyticsService.trackEvent({ userId: currentUserId, eventType: 'game', eventName: 'word_marked_for_review', gameType: 'anagram', route: 'anagrams', payload: { word: normalizedWord } });
+  }, [currentUserId, profileEconomy, userProfile.stats]);
   const handleCharacterOnboardingComplete = useCallback(async (character: PetState) => { analyticsService.trackEvent({ userId: currentUserId, eventType: 'character', eventName: 'character_selected', route: 'character_onboarding', payload: { characterType: character.type, characterName: character.name } }); await profileEconomy.updateCharacter(character); setRoute('landing'); }, [currentUserId, profileEconomy, setRoute]);
   const startTrackedGame = useCallback((mode: PlayableModeRoute) => { analyticsService.trackEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_started', gameType: toAnalyticsGameType(mode), route: mode, payload: { wordLength: settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty, wordsAvailable: modeWords.length } }); }, [currentUserId, modeWords.length, settings.dictionarySource, settings.difficulty, settings.wordLength]);
   if (bootstrapStatus !== 'ready') return <AuthBootstrapGate error={bootstrapError} onRetry={() => window.location.reload()} />;
-  return <AppShell route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} showLoginModal={showLoginModal} showRulesModal={showRulesModal} authMode={authMode} tempUsername={tempUsername} tempPassword={tempPassword} authError={authError} isAuthLoading={isAuthLoading} onHomeClick={() => setRoute('landing')} onLoginClick={openLogin} onLogoutClick={handleLogout} onProfileClick={() => setRoute('profile')} onShopClick={() => setRoute('shop')} onAdminClick={() => setRoute('admin')} onCloseLogin={() => setShowLoginModal(false)} onCloseRules={() => setShowRulesModal(false)} onAuthModeChange={setAuthMode} onUsernameChange={setTempUsername} onPasswordChange={setTempPassword} onAuthSubmit={submitEmailAuth} onYandexLogin={loginWithYandex}><AppScreens route={route} selectedPlayMode={selectedPlayMode} userProfile={userProfile} isAuthenticated={isAuthenticated} dailyQuest={dailyQuest} dailyQuestReward={dailyQuestReward} onCloseDailyQuestReward={() => setDailyQuestReward(null)} settings={settings} modeWords={modeWords} classicGame={classicGame} dictionaryUpload={{ isUploadingDictionary: dictionaryUpload.isUploadingDictionary, error: dictionaryUpload.dictionaryUploadError, onFileUpload: dictionaryUpload.handleDictionaryFileUpload }} onRouteChange={setRoute} onSelectedPlayModeChange={setSelectedPlayMode} onSettingsChange={setSettings} onOpenLogin={openLogin} onOpenRules={() => setShowRulesModal(true)} onBuy={handleBuy} onUseItem={handleUseItem} onGameReward={handleGameReward} onCharacterOnboardingComplete={handleCharacterOnboardingComplete} onGameStarted={startTrackedGame}/></AppShell>;
+  return <AppShell route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} showLoginModal={showLoginModal} showRulesModal={showRulesModal} authMode={authMode} tempUsername={tempUsername} tempPassword={tempPassword} authError={authError} isAuthLoading={isAuthLoading} onHomeClick={() => setRoute('landing')} onLoginClick={openLogin} onLogoutClick={handleLogout} onProfileClick={() => setRoute('profile')} onShopClick={() => setRoute('shop')} onAdminClick={() => setRoute('admin')} onCloseLogin={() => setShowLoginModal(false)} onCloseRules={() => setShowRulesModal(false)} onAuthModeChange={setAuthMode} onUsernameChange={setTempUsername} onPasswordChange={setTempPassword} onAuthSubmit={submitEmailAuth} onYandexLogin={loginWithYandex}><AppScreens route={route} selectedPlayMode={selectedPlayMode} userProfile={userProfile} isAuthenticated={isAuthenticated} dailyQuest={dailyQuest} dailyQuestReward={dailyQuestReward} onCloseDailyQuestReward={() => setDailyQuestReward(null)} settings={settings} modeWords={modeWords} classicGame={classicGame} dictionaryUpload={{ isUploadingDictionary: dictionaryUpload.isUploadingDictionary, error: dictionaryUpload.dictionaryUploadError, onFileUpload: dictionaryUpload.handleDictionaryFileUpload }} onRouteChange={setRoute} onSelectedPlayModeChange={setSelectedPlayMode} onSettingsChange={setSettings} onOpenLogin={openLogin} onOpenRules={() => setShowRulesModal(true)} onBuy={handleBuy} onUseItem={handleUseItem} onGameReward={handleGameReward} onRecordReviewWord={handleRecordReviewWord} onCharacterOnboardingComplete={handleCharacterOnboardingComplete} onGameStarted={startTrackedGame}/></AppShell>;
 };
 export default AppV2;
