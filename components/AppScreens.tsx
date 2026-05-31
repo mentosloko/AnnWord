@@ -7,6 +7,7 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { CharacterOnboardingScreen } from './screens/CharacterOnboardingScreen';
 import { AdminAnalyticsScreen } from './screens/AdminAnalyticsScreen';
 import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from './screens/ModeScreens';
+import { hasSavedAnagramSession } from './AnagramGame';
 import { Shop } from './Shop';
 import { PetRoom } from './PetRoom';
 import { DailyQuestCompletionReward, DailyQuestState, GameSettings, GameState, CharStatus, PetState, ShopItem, UserProfile, ViewState } from '../types';
@@ -67,9 +68,15 @@ export const AppScreens: React.FC<AppScreensProps> = ({
   const goHome = () => onRouteChange('landing');
   const setupError = classicGame.setupError || dictionaryUpload.error;
   const hasActiveClassicGame = Boolean(classicGame.hasActiveGame);
+  const hasActiveAnagramGame = hasSavedAnagramSession(userProfile.username);
 
   const openSetupFor = (mode: PlayableModeRoute) => {
     if (mode === 'game' && hasActiveClassicGame && classicGame.resumeGame?.()) return;
+    if (mode === 'anagrams' && hasActiveAnagramGame) {
+      onSelectedPlayModeChange(mode);
+      onRouteChange('anagrams');
+      return;
+    }
     onSelectedPlayModeChange(mode);
     onRouteChange('setup');
   };
@@ -113,6 +120,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
         onCloseDailyQuestReward={onCloseDailyQuestReward}
         onStartDailyQuest={startDailyQuest}
         hasActiveClassicGame={hasActiveClassicGame}
+        hasActiveAnagramGame={hasActiveAnagramGame}
         onStartClassic={() => openSetupFor('game')}
         onStartAnagrams={() => openSetupFor('anagrams')}
         onStartSprint={() => openSetupFor('sprint')}
