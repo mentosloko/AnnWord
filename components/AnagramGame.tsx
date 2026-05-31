@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
+import { hasRussianTranslation } from '../services/dictionaryEngine';
 import { motion, AnimatePresence } from 'motion/react';
 import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, GameRewardInput } from '../services/gamificationRules';
@@ -38,12 +39,16 @@ const sessionKey = (username: string) => `annword:active-anagram-session:v2:${us
 const legacySessionKey = (username: string) => `annword:active-anagram-session:v1:${username || 'guest'}`;
 
 export const buildAnagramDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => {
-  if (customDictionaryEn.length === 0) return fallbackDictionary;
-  return customDictionaryEn.map(word => {
-    const normalizedWord = word.toUpperCase();
-    const builtinEntry = fallbackDictionary.find(entry => entry.word.toUpperCase() === normalizedWord);
-    return { word: normalizedWord, translation: builtinEntry?.translation || normalizedWord, level: builtinEntry?.level || 'Custom' };
-  });
+  const translatedEntries = fallbackDictionary.filter(entry => hasRussianTranslation(entry.translation));
+  if (customDictionaryEn.length === 0) return translatedEntries;
+
+  const translatedByWord = new Map(
+    translatedEntries.map(entry => [entry.word.trim().toUpperCase(), { ...entry, word: entry.word.trim().toUpperCase() }]),
+  );
+
+  return customDictionaryEn
+    .map(word => translatedByWord.get(word.trim().toUpperCase()))
+    .filter((entry): entry is EnrichedWord => Boolean(entry));
 };
 
 const loadSession = (username: string): SavedAnagramSession => {
@@ -226,7 +231,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
   const progressPreview = applyGameRewardToCharacter(userProfile.pet, { xp: 0, coins: 0, mood: 0, label: 'Anagram session' });
 
   if (dictionary.length === 0) {
-    return <div className="flex flex-col items-center justify-center rounded-2xl bg-white p-8 text-center shadow-xl"><div className="mb-4 text-6xl">📚</div><h2 className="mb-2 text-2xl font-bold">Словарь пуст!</h2><p className="mb-6 text-gray-500">Выберите другой словарь в настройках.</p><button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
+    return <div className="flex flex-col items-center justify-center rounded-2xl bg-white p-8 text-center shadow-xl"><div className="mb-4 text-6xl">📚</div><h2 className="mb-2 text-2xl font-bold">Нет доступных слов</h2><p className="mb-6 text-gray-500">В выбранном словаре нет слов с русским переводом.</p><button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
   }
 
   return (
@@ -235,7 +240,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
         <button type="button" onClick={finishSession} className="rounded-xl bg-indigo-50 px-3 py-2 text-sm font-black text-indigo-700">Закончить игру</button>
         <div className="flex gap-2 text-xs font-black"><span className="rounded-full bg-indigo-50 px-3 py-2 text-indigo-700">⭐ {score}</span><span className="rounded-full bg-amber-50 px-3 py-2 text-amber-700">₽ {coinsEarned}</span></div>
       </div>
-      <div className="mb-7 text-center"><div className="mb-1 text-sm uppercase tracking-tighter text-gray-400">Перевод</div><div className="text-2xl font-bold text-indigo-900">{currentWord?.translation || currentWord?.word}</div></div>
+      <div className="mb-7 text-center"><div className="mb-1 text-sm uppercase tracking-tighter text-gray-400">Перевод</div><div className="text-2xl font-bold text-indigo-900">{currentWord?.translation}</div></div>
       <div className="mb-7 flex min-h-[60px] w-full flex-wrap justify-center gap-2 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50 p-4">
         <AnimatePresence mode="popLayout">
           {userGuess.map((item, index) => <motion.button key={`${index}-${item.char}`} layout initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} onClick={() => handleGuessClick(index)} className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-indigo-500 bg-white text-xl font-bold text-indigo-600 shadow-sm">{item.char}</motion.button>)}
