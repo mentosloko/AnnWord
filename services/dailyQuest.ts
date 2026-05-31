@@ -19,7 +19,7 @@ export const DAILY_QUEST_DEFINITIONS: Record<DailyQuestKind, Pick<DailyQuestStat
   },
   all_five_games: {
     title: 'Большое приключение',
-    description: 'Победи во всех пяти играх за сегодня.',
+    description: 'За сегодня: победи в Классике и Виселице, заверши Мемо, собери 5 анаграмм и отгадай 6 слов в Спринте.',
   },
 };
 
