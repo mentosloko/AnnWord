@@ -13,6 +13,7 @@ interface LandingScreenProps {
   dailyQuest?: DailyQuestState | null;
   dailyQuestReward?: DailyQuestCompletionReward | null;
   onCloseDailyQuestReward?: () => void;
+  onStartDailyQuest?: (quest: DailyQuestState) => void;
   hasActiveClassicGame?: boolean;
   onStartClassic: () => void;
   onStartAnagrams: () => void;
@@ -32,6 +33,12 @@ interface GameOption {
   onStart: () => void;
   badge?: string;
 }
+
+const getMoodDisplay = (score: number) => {
+  if (score <= 33) return { label: 'Грусть', barClass: 'bg-red-400', textClass: 'text-red-100' };
+  if (score <= 66) return { label: 'Спокойный', barClass: 'bg-yellow-300', textClass: 'text-yellow-100' };
+  return { label: 'Радость', barClass: 'bg-green-300', textClass: 'text-green-100' };
+};
 
 const GameIconButton: React.FC<GameOption> = ({ title, iconSrc, onStart, badge }) => (
   <button
@@ -58,6 +65,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
   dailyQuest,
   dailyQuestReward,
   onCloseDailyQuestReward,
+  onStartDailyQuest,
   hasActiveClassicGame = false,
   onStartClassic,
   onStartAnagrams,
@@ -71,6 +79,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
 }) => {
   const xpProgress = getCharacterProgressPercent(userProfile.pet);
   const moodScore = normalizeMoodScore(userProfile.pet);
+  const moodDisplay = getMoodDisplay(moodScore);
   const characterAssetUrl = getPuppyCharacterAssetUrl(userProfile.pet);
   const gameOptions: GameOption[] = [
     {
@@ -106,7 +115,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
             {gameOptions.map(game => <GameIconButton key={game.title} {...game} />)}
           </div>
 
-          {isAuthenticated && dailyQuest && <DailyQuestCard quest={dailyQuest} />}
+          {isAuthenticated && dailyQuest && <DailyQuestCard quest={dailyQuest} onStart={onStartDailyQuest} />}
 
           {!isAuthenticated && (
             <button type="button" onClick={onOpenLogin} className="mt-5 rounded-2xl bg-gray-950 px-6 py-4 font-black text-white transition hover:bg-gray-800">
@@ -155,8 +164,8 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
                     <div className="h-2 overflow-hidden rounded-full bg-white/15"><div className="h-full bg-white" style={{ width: `${xpProgress}%` }} /></div>
                   </div>
                   <div>
-                    <div className="mb-1 flex justify-between text-[10px] font-black uppercase tracking-widest text-white/65"><span>Радость</span><span>{moodScore}</span></div>
-                    <div className="h-2 overflow-hidden rounded-full bg-white/15"><div className="h-full bg-white/80" style={{ width: `${moodScore}%` }} /></div>
+                    <div className={`mb-1 flex justify-between text-[10px] font-black uppercase tracking-widest ${moodDisplay.textClass}`}><span>{moodDisplay.label}</span><span>{moodScore}</span></div>
+                    <div className="h-2 overflow-hidden rounded-full bg-white/15"><div className={`h-full ${moodDisplay.barClass}`} style={{ width: `${moodScore}%` }} /></div>
                   </div>
                 </div>
               </div>
