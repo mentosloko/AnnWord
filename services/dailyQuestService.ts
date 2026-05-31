@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
-import { DailyQuestCompletionReward, DailyQuestState, GameRewardInput, UserProfile } from '../types';
+import { DailyQuestCompletionReward, DailyQuestState, UserProfile } from '../types';
+import { GameRewardInput } from './gamificationRules';
 import { mapProfileFromDB } from './profileMapper';
 import { getShopItemById } from './shopCatalog';
 import { normalizeDailyQuest } from './dailyQuest';
