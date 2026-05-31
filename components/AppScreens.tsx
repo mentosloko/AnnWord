@@ -54,6 +54,7 @@ export interface AppScreensProps {
   onBuy: (item: ShopItem) => Promise<void>;
   onUseItem: (itemId: string) => Promise<void>;
   onGameReward: (input: GameRewardInput) => Promise<void>;
+  onRecordReviewWord?: (word: string) => Promise<void>;
   onCharacterOnboardingComplete: (character: PetState) => Promise<void>;
   onGameStarted?: (mode: PlayableModeRoute) => void;
 }
@@ -61,7 +62,7 @@ export interface AppScreensProps {
 export const AppScreens: React.FC<AppScreensProps> = ({
   route, userProfile, isAuthenticated, dailyQuest, dailyQuestReward, onCloseDailyQuestReward, settings, modeWords, selectedPlayMode, classicGame,
   dictionaryUpload, onRouteChange, onSelectedPlayModeChange, onSettingsChange, onOpenLogin,
-  onOpenRules, onBuy, onUseItem, onGameReward, onCharacterOnboardingComplete, onGameStarted,
+  onOpenRules, onBuy, onUseItem, onGameReward, onRecordReviewWord, onCharacterOnboardingComplete, onGameStarted,
 }) => {
   const goHome = () => onRouteChange('landing');
   const setupError = classicGame.setupError || dictionaryUpload.error;
@@ -82,6 +83,24 @@ export const AppScreens: React.FC<AppScreensProps> = ({
     onRouteChange(selectedPlayMode);
   };
 
+  const startQuestMode = (mode: PlayableModeRoute) => {
+    onSelectedPlayModeChange(mode);
+    onGameStarted?.(mode);
+    if (mode === 'game') {
+      if (hasActiveClassicGame && classicGame.resumeGame?.()) return;
+      classicGame.startNewGame();
+      return;
+    }
+    onRouteChange(mode);
+  };
+
+  const startDailyQuest = (quest: DailyQuestState) => {
+    if (quest.kind === 'hangman_clean') return startQuestMode('hangman');
+    if (quest.kind === 'sprint_twelve') return startQuestMode('sprint');
+    if (quest.kind === 'memory_sixteen') return startQuestMode('memory');
+    return startQuestMode('game');
+  };
+
   const screens: Partial<Record<ViewState, React.ReactNode>> = {
     admin: <AdminAnalyticsScreen userProfile={userProfile} onBackHome={goHome} />,
     character_onboarding: <CharacterOnboardingScreen onComplete={onCharacterOnboardingComplete} />,
@@ -92,6 +111,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
         dailyQuest={dailyQuest}
         dailyQuestReward={dailyQuestReward}
         onCloseDailyQuestReward={onCloseDailyQuestReward}
+        onStartDailyQuest={startDailyQuest}
         hasActiveClassicGame={hasActiveClassicGame}
         onStartClassic={() => openSetupFor('game')}
         onStartAnagrams={() => openSetupFor('anagrams')}
@@ -136,7 +156,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({
       />
     ),
     profile: <ProfileScreen userProfile={userProfile} isAuthenticated={isAuthenticated} onBackHome={goHome} onOpenShop={() => onRouteChange('shop')} onOpenPetRoom={() => onRouteChange('pet_room')} onLogin={onOpenLogin} />,
-    anagrams: <AnagramsScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
+    anagrams: <AnagramsScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onRecordReviewWord={onRecordReviewWord} onBackHome={goHome} />,
     sprint: <SprintScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
     memory: <MemoryScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
     hangman: <HangmanScreen words={modeWords} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
