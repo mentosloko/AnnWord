@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
-import { hasRussianTranslation } from '../services/dictionaryEngine';
+import { buildPlayableGameDictionary, clearStoredGameSession, pickNextSessionWord, readStoredGameSession, writeStoredGameSession } from '../services/gameSessionEngine';
 import { motion, AnimatePresence } from 'motion/react';
 import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, GameRewardInput } from '../services/gamificationRules';
-import { getUnusedSessionWord } from '../services/sessionWordHistory';
 
 interface AnagramGameProps {
   onBack: () => void;
@@ -38,41 +37,22 @@ const emptySession: SavedAnagramSession = { solvedCount: 0, skippedCount: 0, coi
 const sessionKey = (username: string) => `annword:active-anagram-session:v2:${username || 'guest'}`;
 const legacySessionKey = (username: string) => `annword:active-anagram-session:v1:${username || 'guest'}`;
 
-export const buildAnagramDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => {
-  const translatedEntries = fallbackDictionary.filter(entry => hasRussianTranslation(entry.translation));
-  if (customDictionaryEn.length === 0) return translatedEntries;
-
-  const translatedByWord = new Map(
-    translatedEntries.map(entry => [entry.word.trim().toUpperCase(), { ...entry, word: entry.word.trim().toUpperCase() }]),
-  );
-
-  return customDictionaryEn
-    .map(word => translatedByWord.get(word.trim().toUpperCase()))
-    .filter((entry): entry is EnrichedWord => Boolean(entry));
-};
+export const buildAnagramDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] =>
+  buildPlayableGameDictionary(customDictionaryEn, fallbackDictionary);
 
 const loadSession = (username: string): SavedAnagramSession => {
-  if (typeof window === 'undefined') return emptySession;
-  try {
-    const raw = window.localStorage.getItem(sessionKey(username)) || window.localStorage.getItem(legacySessionKey(username)) || '{}';
-    const parsed = JSON.parse(raw);
-    return {
-      solvedCount: Math.max(0, Number(parsed.solvedCount) || 0),
-      skippedCount: Math.max(0, Number(parsed.skippedCount) || 0),
-      coinsEarned: Math.max(0, Number(parsed.coinsEarned) || 0),
-      activeWord: typeof parsed.activeWord === 'string' ? parsed.activeWord.toUpperCase() : undefined,
-      shuffledLetters: Array.isArray(parsed.shuffledLetters) ? parsed.shuffledLetters.filter((char: unknown): char is string => typeof char === 'string') : undefined,
-      userGuess: Array.isArray(parsed.userGuess)
-        ? parsed.userGuess.filter((item: unknown): item is GuessLetter => {
-            if (!item || typeof item !== 'object') return false;
-            const candidate = item as Partial<GuessLetter>;
-            return typeof candidate.char === 'string' && typeof candidate.slotIndex === 'number';
-          })
-        : undefined,
-    };
-  } catch {
-    return emptySession;
-  }
+  const legacy = readStoredGameSession<SavedAnagramSession>(legacySessionKey(username), emptySession);
+  const parsed = readStoredGameSession<SavedAnagramSession>(sessionKey(username), legacy);
+  return {
+    solvedCount: Math.max(0, Number(parsed.solvedCount) || 0),
+    skippedCount: Math.max(0, Number(parsed.skippedCount) || 0),
+    coinsEarned: Math.max(0, Number(parsed.coinsEarned) || 0),
+    activeWord: typeof parsed.activeWord === 'string' ? parsed.activeWord.toUpperCase() : undefined,
+    shuffledLetters: Array.isArray(parsed.shuffledLetters) ? parsed.shuffledLetters.filter((char): char is string => typeof char === 'string') : undefined,
+    userGuess: Array.isArray(parsed.userGuess)
+      ? parsed.userGuess.filter((item): item is GuessLetter => Boolean(item) && typeof item.char === 'string' && typeof item.slotIndex === 'number')
+      : undefined,
+  };
 };
 
 export const hasSavedAnagramSession = (username: string): boolean => {
@@ -92,10 +72,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     if (next.join('') === array.join('') && array.length > 1) return shuffle(array);
     return next;
   }, []);
-  const restoredWord = useMemo(
-    () => dictionary.find(entry => entry.word === initialSession.activeWord) || null,
-    [dictionary, initialSession.activeWord],
-  );
+  const restoredWord = useMemo(() => dictionary.find(entry => entry.word === initialSession.activeWord) || null, [dictionary, initialSession.activeWord]);
   const restoredGuess = restoredWord ? initialSession.userGuess || [] : [];
   const restoredCharacters = restoredWord && initialSession.shuffledLetters?.length === restoredWord.word.length
     ? initialSession.shuffledLetters
@@ -116,22 +93,19 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
   const xpEarned = solvedCount * 5;
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
     if (status === 'finished') {
-      window.localStorage.removeItem(sessionKey(userProfile.username));
-      window.localStorage.removeItem(legacySessionKey(userProfile.username));
+      clearStoredGameSession(sessionKey(userProfile.username), legacySessionKey(userProfile.username));
       return;
     }
-    const saved: SavedAnagramSession = {
+    writeStoredGameSession(sessionKey(userProfile.username), {
       solvedCount,
       skippedCount,
       coinsEarned,
       activeWord: currentWord?.word,
       shuffledLetters: shuffledLetters.map(slot => slot.char),
       userGuess,
-    };
-    window.localStorage.setItem(sessionKey(userProfile.username), JSON.stringify(saved));
-    window.localStorage.removeItem(legacySessionKey(userProfile.username));
+    });
+    clearStoredGameSession(legacySessionKey(userProfile.username));
   }, [coinsEarned, currentWord, shuffledLetters, skippedCount, solvedCount, status, userGuess, userProfile.username]);
 
   const clearNextWordTimeout = useCallback(() => {
@@ -144,7 +118,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
   const pickNewWord = useCallback(() => {
     if (dictionary.length === 0) return;
     isCheckingRef.current = false;
-    const word = getUnusedSessionWord('anagram', dictionary) || dictionary[Math.floor(Math.random() * dictionary.length)];
+    const word = pickNextSessionWord('anagram', dictionary) || dictionary[Math.floor(Math.random() * dictionary.length)];
     setCurrentWord(word);
     setShuffledLetters(shuffle(word.word.split('')).map((char, index) => ({ char, isUsed: false, originalIndex: index })));
     setUserGuess([]);
@@ -242,19 +216,11 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
       </div>
       <div className="mb-7 text-center"><div className="mb-1 text-sm uppercase tracking-tighter text-gray-400">Перевод</div><div className="text-2xl font-bold text-indigo-900">{currentWord?.translation}</div></div>
       <div className="mb-7 flex min-h-[60px] w-full flex-wrap justify-center gap-2 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50 p-4">
-        <AnimatePresence mode="popLayout">
-          {userGuess.map((item, index) => <motion.button key={`${index}-${item.char}`} layout initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} onClick={() => handleGuessClick(index)} className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-indigo-500 bg-white text-xl font-bold text-indigo-600 shadow-sm">{item.char}</motion.button>)}
-        </AnimatePresence>
+        <AnimatePresence mode="popLayout">{userGuess.map((item, index) => <motion.button key={`${index}-${item.char}`} layout initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} onClick={() => handleGuessClick(index)} className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-indigo-500 bg-white text-xl font-bold text-indigo-600 shadow-sm">{item.char}</motion.button>)}</AnimatePresence>
       </div>
-      <div className="mb-7 flex flex-wrap justify-center gap-2">
-        {shuffledLetters.map((slot, index) => <div key={`${slot.originalIndex}-${slot.char}`} className="relative h-12 w-12"><AnimatePresence>{!slot.isUsed && <motion.button initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleLetterClick(slot.char, index)} className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-indigo-600 text-2xl font-bold text-white shadow-md">{slot.char}</motion.button>}</AnimatePresence><div className="absolute inset-0 rounded-xl border-2 border-dashed border-gray-200 bg-gray-100" /></div>)}
-      </div>
+      <div className="mb-7 flex flex-wrap justify-center gap-2">{shuffledLetters.map((slot, index) => <div key={`${slot.originalIndex}-${slot.char}`} className="relative h-12 w-12"><AnimatePresence>{!slot.isUsed && <motion.button initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleLetterClick(slot.char, index)} className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-indigo-600 text-2xl font-bold text-white shadow-md">{slot.char}</motion.button>}</AnimatePresence><div className="absolute inset-0 rounded-xl border-2 border-dashed border-gray-200 bg-gray-100" /></div>)}</div>
       {message && <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className={`mb-5 text-center text-sm font-bold ${status === 'success' ? 'text-green-600' : status === 'error' ? 'text-red-500' : 'text-indigo-500'}`}>{message}</motion.div>}
-      <div className="grid w-full grid-cols-3 gap-2">
-        <button type="button" onClick={() => { setShuffledLetters(shuffledLetters.map(slot => ({ ...slot, isUsed: false }))); setUserGuess([]); }} disabled={status !== 'playing'} className="rounded-xl bg-gray-100 py-3 font-bold text-gray-600 disabled:opacity-50">Сброс</button>
-        <button type="button" onClick={skipWord} disabled={status !== 'playing'} className="rounded-xl bg-rose-50 py-3 font-bold text-rose-600 disabled:opacity-50">Не знаю</button>
-        <button type="button" onClick={checkGuess} disabled={userGuess.length !== (currentWord?.word.length || 0) || status !== 'playing'} className={`rounded-xl py-3 font-bold ${userGuess.length === (currentWord?.word.length || 0) && status === 'playing' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'}`}>Проверить</button>
-      </div>
+      <div className="grid w-full grid-cols-3 gap-2"><button type="button" onClick={() => { setShuffledLetters(shuffledLetters.map(slot => ({ ...slot, isUsed: false }))); setUserGuess([]); }} disabled={status !== 'playing'} className="rounded-xl bg-gray-100 py-3 font-bold text-gray-600 disabled:opacity-50">Сброс</button><button type="button" onClick={skipWord} disabled={status !== 'playing'} className="rounded-xl bg-rose-50 py-3 font-bold text-rose-600 disabled:opacity-50">Не знаю</button><button type="button" onClick={checkGuess} disabled={userGuess.length !== (currentWord?.word.length || 0) || status !== 'playing'} className={`rounded-xl py-3 font-bold ${userGuess.length === (currentWord?.word.length || 0) && status === 'playing' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'}`}>Проверить</button></div>
       <GameResultOverlay isOpen={status === 'finished'} status="completed" title="Игра завершена" subtitle={`Счёт сессии: ${score}`} emoji="🏁" pet={progressPreview.pet} xpGained={xpEarned} coinsGained={coinsEarned} primaryLabel="Играть снова" secondaryLabel="В меню" onPrimary={restartSession} onSecondary={onBack} details={<span>Угадано: <b>{solvedCount}</b> · Не знаю: <b>{skippedCount}</b> · Получено: <b>{coinsEarned} ₽</b></span>} />
     </div>
   );
