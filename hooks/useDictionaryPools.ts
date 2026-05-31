@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { ALL_WORDS_EN, COMMON_WORDS_EN } from '../dictionaries/mainEnglish';
-import { getCustomWordsAvailableInBuiltinDictionary } from '../services/dictionaryEngine';
+import { hasRussianTranslation, toCustomEnrichedWords } from '../services/dictionaryEngine';
 import { EnrichedWord, GameSettings, UserProfile } from '../types';
 
 interface UseDictionaryPoolsArgs {
@@ -17,13 +17,9 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
     let pool: EnrichedWord[] = [];
 
     if (settings.dictionarySource === 'custom') {
-      pool = getCustomWordsAvailableInBuiltinDictionary(userProfile.customDictionaryEn).map(word => ({
-        word,
-        translation: '',
-        level: 'Custom',
-      }));
+      pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
     } else {
-      pool = COMMON_WORDS_EN;
+      pool = COMMON_WORDS_EN.filter(word => hasRussianTranslation(word.translation));
       if (settings.difficulty !== 'ALL') {
         pool = pool.filter(word => word.level === settings.difficulty);
       }
@@ -34,18 +30,12 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
   }, [settings.dictionarySource, settings.difficulty, userProfile.customDictionaryEn]);
 
   const getValidationPool = useCallback((): string[] => {
-    let combinedPool = ALL_WORDS_EN
+    const combinedPool = ALL_WORDS_EN
       .filter(word => word.length === settings.wordLength)
       .map(word => word.toUpperCase());
 
-    if (userProfile.customDictionaryEn.length > 0) {
-      const customFiltered = getCustomWordsAvailableInBuiltinDictionary(userProfile.customDictionaryEn)
-        .filter(word => word.length === settings.wordLength);
-      combinedPool = [...combinedPool, ...customFiltered];
-    }
-
     return Array.from(new Set(combinedPool));
-  }, [settings.wordLength, userProfile.customDictionaryEn]);
+  }, [settings.wordLength]);
 
   const getModeWords = useCallback((options: ModeWordPoolOptions = {}): string[] => {
     const secretPool = getSecretWordPool();
