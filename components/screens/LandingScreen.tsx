@@ -1,14 +1,18 @@
 import React from 'react';
-import { UserProfile } from '../../types';
+import { DailyQuestCompletionReward, DailyQuestState, UserProfile } from '../../types';
 import { getCharacterProgressPercent, getCharacterStageLabel, normalizeMoodScore } from '../../services/gamificationRules';
 import { getPetEmoji } from '../../services/petEngine';
 import { getPuppyCharacterAssetUrl } from '../../services/petAssets';
 import { CoinIcon } from '../CoinIcon';
+import { DailyQuestCard, DailyQuestRewardModal } from '../DailyQuestCard';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface LandingScreenProps {
   userProfile: UserProfile;
   isAuthenticated: boolean;
+  dailyQuest?: DailyQuestState | null;
+  dailyQuestReward?: DailyQuestCompletionReward | null;
+  onCloseDailyQuestReward?: () => void;
   hasActiveClassicGame?: boolean;
   onStartClassic: () => void;
   onStartAnagrams: () => void;
@@ -51,6 +55,9 @@ const GameIconButton: React.FC<GameOption> = ({ title, iconSrc, onStart, badge }
 export const LandingScreen: React.FC<LandingScreenProps> = ({
   userProfile,
   isAuthenticated,
+  dailyQuest,
+  dailyQuestReward,
+  onCloseDailyQuestReward,
   hasActiveClassicGame = false,
   onStartClassic,
   onStartAnagrams,
@@ -98,6 +105,8 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
           <div className="grid grid-cols-5 gap-1.5 sm:gap-3">
             {gameOptions.map(game => <GameIconButton key={game.title} {...game} />)}
           </div>
+
+          {isAuthenticated && dailyQuest && <DailyQuestCard quest={dailyQuest} />}
 
           {!isAuthenticated && (
             <button type="button" onClick={onOpenLogin} className="mt-5 rounded-2xl bg-gray-950 px-6 py-4 font-black text-white transition hover:bg-gray-800">
@@ -167,6 +176,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
           )}
         </aside>
       </section>
+      {dailyQuestReward && onCloseDailyQuestReward && <DailyQuestRewardModal reward={dailyQuestReward} onClose={onCloseDailyQuestReward} />}
     </ScreenContainer>
   );
 };
