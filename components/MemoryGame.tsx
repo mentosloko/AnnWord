@@ -2,9 +2,9 @@ import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'motion/react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
+import { buildPlayableGameDictionary, pickNextSessionWord } from '../services/gameSessionEngine';
 import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
-import { getUnusedSessionWord } from '../services/sessionWordHistory';
 
 interface Card {
   id: number;
@@ -21,21 +21,8 @@ interface MemoryGameProps {
   onGameReward: (input: GameRewardInput) => void | Promise<void>;
 }
 
-export const buildMemoryDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => {
-  const translationByWord = new Map(
-    fallbackDictionary
-      .filter(entry => entry.word && entry.translation)
-      .map(entry => [entry.word.toUpperCase(), entry]),
-  );
-
-  const customWordsWithTranslations = customDictionaryEn
-    .map(word => translationByWord.get(word.trim().toUpperCase()))
-    .filter((entry): entry is EnrichedWord => Boolean(entry?.translation));
-
-  return customWordsWithTranslations.length >= 6
-    ? customWordsWithTranslations
-    : fallbackDictionary.filter(entry => Boolean(entry.translation));
-};
+export const buildMemoryDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] =>
+  buildPlayableGameDictionary(customDictionaryEn, fallbackDictionary);
 
 export const createMemoryCards = (dictionary: EnrichedWord[], random: () => number = Math.random): Card[] => {
   const selectedWords: EnrichedWord[] = [];
@@ -43,7 +30,7 @@ export const createMemoryCards = (dictionary: EnrichedWord[], random: () => numb
   const maxPairs = Math.min(6, dictionary.length);
 
   while (selectedWords.length < maxPairs) {
-    const selected = getUnusedSessionWord('memory', dictionary);
+    const selected = pickNextSessionWord('memory', dictionary);
     if (!selected) break;
     const key = selected.word.toUpperCase();
     if (selectedSet.has(key)) break;
@@ -92,13 +79,13 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
   }, [dictionary]);
 
   useEffect(() => {
-    if (cards.length === 0) initializeGame();
-  }, [cards.length, initializeGame]);
+    if (cards.length === 0 && dictionary.length > 0) initializeGame();
+  }, [cards.length, dictionary.length, initializeGame]);
 
   const handleCardClick = (id: number) => {
-    if (isWon || flippedCards.length === 2 || cards.find(c => c.id === id)?.isFlipped || cards.find(c => c.id === id)?.isMatched) return;
+    if (isWon || flippedCards.length === 2 || cards.find(card => card.id === id)?.isFlipped || cards.find(card => card.id === id)?.isMatched) return;
 
-    setClicks(prev => prev + 1);
+    setClicks(previous => previous + 1);
     const newCards = cards.map(card => card.id === id ? { ...card, isFlipped: true } : card);
     setCards(newCards);
 
@@ -106,19 +93,19 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
     setFlippedCards(newFlipped);
 
     if (newFlipped.length === 2) {
-      setMoves(m => m + 1);
+      setMoves(previous => previous + 1);
       const [firstId, secondId] = newFlipped;
-      const firstCard = newCards.find(c => c.id === firstId);
-      const secondCard = newCards.find(c => c.id === secondId);
+      const firstCard = newCards.find(card => card.id === firstId);
+      const secondCard = newCards.find(card => card.id === secondId);
 
       if (firstCard?.pairId === secondCard?.pairId) {
         setTimeout(() => {
-          setCards(prev => prev.map(card => card.pairId === firstCard?.pairId ? { ...card, isMatched: true } : card));
+          setCards(previous => previous.map(card => card.pairId === firstCard?.pairId ? { ...card, isMatched: true } : card));
           setFlippedCards([]);
         }, 500);
       } else {
         setTimeout(() => {
-          setCards(prev => prev.map(card => (card.id === firstId || card.id === secondId) ? { ...card, isFlipped: false } : card));
+          setCards(previous => previous.map(card => (card.id === firstId || card.id === secondId) ? { ...card, isFlipped: false } : card));
           setFlippedCards([]);
         }, 1000);
       }
@@ -139,29 +126,24 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
   const rewardPreview = calculateGameReward({ type: 'memory', clicks });
   const progressPreview = applyGameRewardToCharacter(userProfile.pet, rewardPreview);
 
-  return (
-    <div className="flex flex-col items-center p-3 sm:p-4 max-w-2xl mx-auto w-full">
-      <div className="flex justify-between w-full mb-6 items-center gap-3">
-        <button onClick={onBack} className="flex items-center gap-1 text-gray-500 hover:text-indigo-600 font-bold transition px-3 py-1 bg-gray-50 rounded-lg border border-gray-200">
-          <span className="text-xl">←</span> Меню
-        </button>
-        <h2 className="text-2xl font-black text-indigo-900">Мемо</h2>
-        <div className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 sm:px-4 py-1.5 rounded-2xl shadow-sm">Кликов: {clicks}</div>
-      </div>
+  if (dictionary.length === 0) {
+    return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-xl"><div className="mb-4 text-6xl">📚</div><h2 className="mb-2 text-2xl font-bold">Нет доступных слов</h2><p className="mb-6 text-gray-500">В выбранном словаре нет слов с русским переводом.</p><button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
+  }
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 w-full">
+  return (
+    <div className="mx-auto flex w-full max-w-2xl flex-col items-center p-3 sm:p-4">
+      <div className="mb-6 flex w-full items-center justify-between gap-3">
+        <button onClick={onBack} className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1 font-bold text-gray-500 transition hover:text-indigo-600"><span className="text-xl">←</span> Меню</button>
+        <h2 className="text-2xl font-black text-indigo-900">Мемо</h2>
+        <div className="rounded-2xl bg-indigo-50 px-3 py-1.5 text-sm font-bold text-indigo-600 shadow-sm sm:px-4">Кликов: {clicks}</div>
+      </div>
+      <div className="grid w-full grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3">
         {cards.map(card => (
-          <motion.div key={card.id} whileHover={{ scale: isWon ? 1 : 1.05 }} whileTap={{ scale: isWon ? 1 : 0.95 }} onClick={() => handleCardClick(card.id)} className={`aspect-square cursor-pointer rounded-2xl flex items-center justify-center text-center p-2 transition-all shadow-md border-4 ${card.isFlipped || card.isMatched ? 'bg-white border-indigo-100' : 'bg-indigo-600 border-indigo-700'}`}>
-            {(card.isFlipped || card.isMatched) ? (
-              <div className="flex flex-col items-center justify-center min-w-0">
-                <span className={`font-black break-words leading-tight ${card.type === 'en' ? 'text-indigo-900 text-xs sm:text-base' : 'text-pink-600 text-[11px] sm:text-sm'}`}>{card.content}</span>
-                <div className="mt-1 text-[8px] uppercase font-bold text-gray-300">{card.type === 'en' ? 'English' : 'Русский'}</div>
-              </div>
-            ) : <div className="text-white text-3xl font-black drop-shadow-sm">?</div>}
+          <motion.div key={card.id} whileHover={{ scale: isWon ? 1 : 1.05 }} whileTap={{ scale: isWon ? 1 : 0.95 }} onClick={() => handleCardClick(card.id)} className={`flex aspect-square cursor-pointer items-center justify-center rounded-2xl border-4 p-2 text-center shadow-md transition-all ${card.isFlipped || card.isMatched ? 'border-indigo-100 bg-white' : 'border-indigo-700 bg-indigo-600'}`}>
+            {(card.isFlipped || card.isMatched) ? <div className="flex min-w-0 flex-col items-center justify-center"><span className={`break-words font-black leading-tight ${card.type === 'en' ? 'text-xs text-indigo-900 sm:text-base' : 'text-[11px] text-pink-600 sm:text-sm'}`}>{card.content}</span><div className="mt-1 text-[8px] font-bold uppercase text-gray-300">{card.type === 'en' ? 'English' : 'Русский'}</div></div> : <div className="text-3xl font-black text-white drop-shadow-sm">?</div>}
           </motion.div>
         ))}
       </div>
-
       <GameResultOverlay isOpen={isWon} status="won" title="Отлично!" subtitle={`Ты нашёл все пары за ${clicks} кликов.`} emoji="🎉" pet={progressPreview.pet} xpGained={rewardPreview.xp} coinsGained={rewardPreview.coins} onPrimary={initializeGame} onSecondary={onBack} details={<span>Ходов: {moves}</span>} />
     </div>
   );
