@@ -16,7 +16,7 @@ const DEFAULT_PET: PetState = {
   equippedAccessories: []
 };
 
-const DEFAULT_STATS: UserStats = { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} };
+const DEFAULT_STATS: UserStats = { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {}, wordsToReview: {} };
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -34,22 +34,26 @@ const normalizeStringArray = (value: unknown): string[] => {
   );
 };
 
+const normalizeWordCounters = (value: unknown): Record<string, number> => {
+  if (!isPlainObject(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, number] =>
+      typeof entry[0] === 'string' && typeof entry[1] === 'number'
+    )
+  );
+};
+
 export const normalizeDictionaryField = (value: unknown): string[] =>
   Array.isArray(value) ? normalizeCustomDictionary(value.filter((item): item is string => typeof item === 'string')) : [];
 
 export const normalizeStats = (value: unknown): UserStats => {
   if (!isPlainObject(value)) return { ...DEFAULT_STATS };
 
-  const wordsGuessed = isPlainObject(value.wordsGuessed) ? value.wordsGuessed : {};
-
   return {
     gamesPlayed: typeof value.gamesPlayed === 'number' ? value.gamesPlayed : 0,
     gamesWon: typeof value.gamesWon === 'number' ? value.gamesWon : 0,
-    wordsGuessed: Object.fromEntries(
-      Object.entries(wordsGuessed).filter((entry): entry is [string, number] =>
-        typeof entry[0] === 'string' && typeof entry[1] === 'number'
-      )
-    )
+    wordsGuessed: normalizeWordCounters(value.wordsGuessed),
+    wordsToReview: normalizeWordCounters(value.wordsToReview),
   };
 };
 
