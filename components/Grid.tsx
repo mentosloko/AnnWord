@@ -11,9 +11,9 @@ interface GridProps {
 }
 
 const getCellSize = (wordLength: WordLength): string => {
-  const widthSize = wordLength === 6 ? '11vw' : wordLength === 4 ? '14vw' : '12.5vw';
-  const maxSize = wordLength === 6 ? '4.2rem' : '4.65rem';
-  return `min(clamp(1.8rem, ${widthSize}, ${maxSize}), calc((100dvh - 13.75rem) / 6), calc((100vw - 2.3rem) / ${wordLength + 1}))`;
+  const horizontalGap = wordLength === 6 ? '0.28rem' : '0.34rem';
+  const maxSize = wordLength === 6 ? '4.45rem' : '4.85rem';
+  return `min(calc((100vw - 1.1rem - (${wordLength - 1} * ${horizontalGap})) / ${wordLength}), calc((100dvh - 10.25rem) / 6), ${maxSize})`;
 };
 
 const Cell: React.FC<{ letter: string; status: CharStatus; wordLength: WordLength }> = ({ letter, status, wordLength }) => {
@@ -82,7 +82,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
     }
 
     rows.push(
-      <div key={i} className={`flex w-full justify-center gap-[min(0.9vw,0.4rem)] ${isShake ? 'animate-shake' : ''}`} style={{ animation: isShake ? 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both' : 'none' }}>
+      <div key={i} className={`flex w-full justify-center gap-[min(1.1vw,0.34rem)] ${isShake ? 'animate-shake' : ''}`} style={{ animation: isShake ? 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both' : 'none' }}>
         {rowContent}
       </div>
     );
@@ -98,7 +98,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
           40%, 60% { transform: translate3d(4px, 0, 0); }
         }
       `}</style>
-      <div className="flex w-full max-w-[min(42rem,98vw)] flex-col items-center justify-center gap-[min(0.5dvh,0.32rem)] p-0.5">
+      <div className="flex h-full w-full max-w-[min(42rem,100vw)] flex-col items-center justify-center gap-[min(0.5dvh,0.32rem)] p-0.5">
         {rows}
       </div>
     </>
