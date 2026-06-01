@@ -43,10 +43,32 @@ const AppV2: React.FC = () => {
   useEffect(() => { if (isAuthenticated) setShowLoginModal(false); }, [isAuthenticated]);
   useEffect(() => { if (bootstrapStatus !== 'ready') return; preloadAppAssetsForProfile(userProfile); }, [bootstrapStatus, userProfile.pet.type, userProfile.pet.characterOnboarded]);
   useEffect(() => { if (bootstrapStatus !== 'ready' || !isAuthenticated) return; if (route !== 'character_onboarding' && !userProfile.pet.characterOnboarded) setRoute('character_onboarding'); }, [bootstrapStatus, isAuthenticated, route, setRoute, userProfile.pet.characterOnboarded]);
-  useEffect(() => {
-    if (bootstrapStatus !== 'ready' || !isAuthenticated || !userProfile.pet.characterOnboarded) { setDailyQuest(null); return; }
-    void dailyQuestService.getTodayQuest().then(setDailyQuest).catch(error => console.error('Failed to load daily quest', error));
+  const loadDailyQuest = useCallback(async () => {
+    if (bootstrapStatus !== 'ready' || !isAuthenticated || !userProfile.pet.characterOnboarded) {
+      setDailyQuest(null);
+      return;
+    }
+    try {
+      setDailyQuest(await dailyQuestService.getTodayQuest());
+    } catch (error) {
+      console.error('Failed to load daily quest', error);
+    }
   }, [bootstrapStatus, isAuthenticated, userProfile.pet.characterOnboarded]);
+  useEffect(() => {
+    void loadDailyQuest();
+    if (bootstrapStatus !== 'ready' || !isAuthenticated || !userProfile.pet.characterOnboarded || typeof window === 'undefined' || typeof document === 'undefined') return;
+    const refreshVisibleQuest = () => {
+      if (document.visibilityState === 'visible') void loadDailyQuest();
+    };
+    window.addEventListener('focus', refreshVisibleQuest);
+    document.addEventListener('visibilitychange', refreshVisibleQuest);
+    const intervalId = window.setInterval(refreshVisibleQuest, 60_000);
+    return () => {
+      window.removeEventListener('focus', refreshVisibleQuest);
+      document.removeEventListener('visibilitychange', refreshVisibleQuest);
+      window.clearInterval(intervalId);
+    };
+  }, [bootstrapStatus, isAuthenticated, loadDailyQuest, userProfile.pet.characterOnboarded]);
   const openLogin = useCallback(() => { openLoginMode(); setShowLoginModal(true); }, [openLoginMode]);
   const handleLogout = useCallback(async () => { analyticsService.trackEvent({ userId: currentUserId, eventType: 'auth', eventName: 'logout', route }); await analyticsService.flush(); await logout(); setDailyQuest(null); setDailyQuestReward(null); setRoute('landing'); }, [currentUserId, logout, route, setRoute]);
   const submitDailyQuestResult = useCallback(async (input: GameRewardInput) => {
