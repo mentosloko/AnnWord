@@ -14,6 +14,7 @@ import { Shop } from './Shop';
 import { PetRoom } from './PetRoom';
 import { DailyQuestCompletionReward, DailyQuestState, GameSettings, GameState, CharStatus, PetState, ShopItem, UserProfile, ViewState, WordLength } from '../types';
 import { GameRewardInput } from '../services/gamificationRules';
+import { PremiumDictionaryDraft } from '../services/premiumDictionaryService';
 
 export type PlayableModeRoute = 'game' | 'anagrams' | 'sprint' | 'memory' | 'hangman';
 export interface ClassicGameScreenBindings { setupError: string | null; gameState: GameState; keyStatuses: Record<string, CharStatus>; shakeRowIndex: number | null; hasActiveGame?: boolean; resumeGame?: () => boolean; startNewGame: () => void; handleChar: (char: string) => void; handleDelete: () => void; handleEnter: () => void | Promise<void>; fetchHint: () => void | Promise<void>; }
@@ -22,7 +23,7 @@ export interface AppScreensProps {
   route: ViewState; userProfile: UserProfile; isAuthenticated: boolean; dailyQuest?: DailyQuestState | null; dailyQuestReward?: DailyQuestCompletionReward | null; onCloseDailyQuestReward?: () => void;
   settings: GameSettings; modeWords: string[]; selectedPlayMode: PlayableModeRoute; classicGame: ClassicGameScreenBindings; dictionaryUpload: DictionaryUploadBindings;
   onRouteChange: (route: ViewState) => void; onSelectedPlayModeChange: (mode: PlayableModeRoute) => void; onSettingsChange: (settings: GameSettings | ((prev: GameSettings) => GameSettings)) => void;
-  onOpenLogin: () => void; onOpenRules: () => void; onBuy: (item: ShopItem) => Promise<void>; onUseItem: (itemId: string) => Promise<void>; onUpdatePet: (pet: PetState) => Promise<void>; onSaveDictionary: (words: string[]) => Promise<void>;
+  onOpenLogin: () => void; onOpenRules: () => void; onBuy: (item: ShopItem) => Promise<void>; onUseItem: (itemId: string) => Promise<void>; onUpdatePet: (pet: PetState) => Promise<void>; onSaveDictionary: (draft: PremiumDictionaryDraft) => Promise<void>;
   onGameReward: (input: GameRewardInput) => Promise<void>; onRecordReviewWord?: (word: string) => Promise<void>; onCharacterOnboardingComplete: (character: PetState) => Promise<void>; onGameStarted?: (mode: PlayableModeRoute) => void;
 }
 const WORD_LENGTHS: WordLength[] = [4, 5, 6];
