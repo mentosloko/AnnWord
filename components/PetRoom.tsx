@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { ShopItem, UserProfile } from '../types';
-import { applyItemUseLocally, applyPurchaseLocally, getPurchaseErrorMessage } from '../services/economyEngine';
+import { applyItemUseLocally, applyPurchaseLocally } from '../services/economyEngine';
 import { getCharacterProgressPercent, getCharacterStageLabel } from '../services/gamificationRules';
 import { getMoodDisplay } from '../services/moodDisplay';
 import { getPetEmoji, getPetNeedSnapshot, getVisibleInventory } from '../services/petEngine';
@@ -62,13 +62,8 @@ export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClos
   const offers = getShopItemsByType(tab).filter(item => pet.level >= item.minLevel && profile.coins >= item.price && (item.type === 'food' || !owned.has(item.id)));
 
   const use = async (id: string) => {
-    setError(null);
     const next = applyItemUseLocally(profile, id);
-    if (!next.ok || !next.profile) {
-      setError(getPurchaseErrorMessage(next.reason));
-      if (next.reason === 'mood_full') setSpeech('Я уже в восторге! Сохраним лакомство на потом?');
-      return;
-    }
+    if (!next.ok || !next.profile) return;
     setProfile(next.profile);
     setBusy(id);
     try {
@@ -119,10 +114,10 @@ export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClos
           <h2 className="text-2xl font-black text-indigo-950">{pet.name}</h2>
           <p className="text-sm font-bold text-indigo-500">Уровень {pet.level} · {getCharacterStageLabel(pet.stage)}</p>
           <div className="mt-5 flex justify-between text-xs font-black uppercase text-indigo-300"><span>{moodDisplay.label}</span><span>{mood.moodScore}%</span></div>
-          <div className={`mt-2 h-3 overflow-hidden rounded-full ${moodDisplay.trackClass}`}><div className={`h-full rounded-full ${moodDisplay.barClass}`} style={{ width: `${mood.moodScore}%` }} /></div></div>
+          <div className={`mt-2 h-3 overflow-hidden rounded-full ${moodDisplay.trackClass}`}><div className={`h-full rounded-full ${moodDisplay.barClass}`} style={{ width: `${mood.moodScore}%` }} /></div>
           <p className={`mt-2 text-sm font-bold ${moodDisplay.textClass}`}>{moodDisplay.label}</p>
           <div className="mt-5 flex justify-between text-xs font-black uppercase text-indigo-300"><span>Опыт</span><span>{pet.xp}</span></div>
-          <div className="mt-2 h-3 rounded-full bg-indigo-50"><div className="h-full rounded-full bg-indigo-500" style={{ width: `${xp}%` }} /></div></div>
+          <div className="mt-2 h-3 rounded-full bg-indigo-50"><div className="h-full rounded-full bg-indigo-500" style={{ width: `${xp}%` }} /></div>
         </aside>
       </section>
 
@@ -138,11 +133,10 @@ export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClos
             {items.map(item => {
               const image = getInventoryImageUrl(item);
               const isEquipped = tab === 'accessory' && equipped.has(item.id);
-              const isUnavailableTreat = tab === 'food' && mood.moodScore >= 100;
-              return <button type="button" key={item.id} onClick={() => void use(item.id)} aria-pressed={isEquipped} className={`relative flex items-center gap-3 rounded-3xl border-2 p-3 text-left transition ${isEquipped ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100' : isUnavailableTreat ? 'border-indigo-50 bg-gray-50 text-gray-400' : 'border-indigo-100 bg-white hover:bg-indigo-50/40'}`}>
+              return <button type="button" key={item.id} onClick={() => void use(item.id)} aria-pressed={isEquipped} className={`relative flex items-center gap-3 rounded-3xl border-2 p-3 text-left transition ${isEquipped ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100' : 'border-indigo-100 bg-white hover:bg-indigo-50/40'}`}>
                 {isEquipped && <span className="absolute right-3 top-2 rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-black uppercase text-white">Надето</span>}
                 <div className="h-16 w-16 shrink-0 rounded-2xl bg-indigo-50">{image && <img src={image} alt="" className="h-full w-full object-contain" />}</div>
-                <div className={`min-w-0 font-black ${isEquipped ? 'text-indigo-700' : isUnavailableTreat ? 'text-gray-400' : 'text-indigo-950'}`}><span className="block">{item.name}</span>{tab === 'food' && <span className="mt-1 inline-flex rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs text-indigo-700" aria-label={`Количество: ${item.quantity}`}>×{item.quantity}</span>}</div>
+                <div className={`min-w-0 font-black ${isEquipped ? 'text-indigo-700' : 'text-indigo-950'}`}><span className="block">{item.name}</span>{tab === 'food' && <span className="mt-1 inline-flex rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs text-indigo-700" aria-label={`Количество: ${item.quantity}`}>×{item.quantity}</span>}</div>
                 {busy === item.id && <span className="ml-auto">…</span>}
               </button>;
             })}
