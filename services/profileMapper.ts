@@ -1,15 +1,23 @@
-import { InventoryItem, PetState, UserProfile, UserStats, WordPerformance } from '../types';
+import { FeatureFlags, InventoryItem, PetState, UserProfile, UserStats, WordPerformance } from '../types';
 import { normalizeCustomDictionary } from './dictionaryEngine';
 import { deriveCharacterLevel, deriveCharacterStage, deriveMoodFromScore, getTotalXpForLevel, normalizeMoodScore } from './gamificationRules';
 
 const DEFAULT_PET: PetState = {
   name: 'Щенок', type: 'Puppy', level: 1, mood: 'happy', xp: 0, moodScore: 60, stage: 'stage_1', characterOnboarded: false,
-  hunger: 100, energy: 100, equippedAccessories: [], activeWorldId: 'default_room', unlockedWorldIds: ['default_room'], dailyStreak: 0, earnedStickerIds: [],
+  hunger: 100, energy: 100, equippedAccessories: [], activeWorldId: 'default_room', dailyStreak: 0, earnedStickerIds: [],
 };
 const DEFAULT_STATS: UserStats = { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {}, wordsToReview: {}, wordPerformance: {} };
 const isPlainObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const normalizeStringArray = (value: unknown): string[] => Array.isArray(value) ? Array.from(new Set(value.filter((item): item is string => typeof item === 'string').map(item => item.trim()).filter(Boolean))) : [];
 const normalizeWordCounters = (value: unknown): Record<string, number> => isPlainObject(value) ? Object.fromEntries(Object.entries(value).filter((entry): entry is [string, number] => typeof entry[0] === 'string' && typeof entry[1] === 'number')) : {};
+const normalizeFeatureFlags = (value: unknown): FeatureFlags => !isPlainObject(value) ? {} : ({
+  adultRoom: value.adultRoom === true,
+  premiumDictionaries: value.premiumDictionaries === true,
+  dailyWorldReward: value.dailyWorldReward === true,
+  treatRequests: value.treatRequests === true,
+  streakStickers: value.streakStickers === true,
+  levelWardrobe: value.levelWardrobe === true,
+});
 const normalizePerformance = (value: unknown): Record<string, WordPerformance> => {
   if (!isPlainObject(value)) return {};
   return Object.fromEntries(Object.entries(value).filter(([, item]) => isPlainObject(item)).map(([key, item]) => [key, {
@@ -30,7 +38,7 @@ export const normalizeStats = (value: unknown): UserStats => !isPlainObject(valu
   wordPerformance: normalizePerformance(value.wordPerformance),
 });
 
-export const normalizePet = (value: unknown): PetState => {
+export const normalizePet = (value: unknown, applyWardrobeMoodRule = false): PetState => {
   if (!isPlainObject(value)) return { ...DEFAULT_PET };
   const storedLevel = typeof value.level === 'number' ? Math.max(1, Math.round(value.level)) : DEFAULT_PET.level;
   const rawXp = typeof value.xp === 'number' ? Math.max(0, Math.round(value.xp)) : DEFAULT_PET.xp;
@@ -48,21 +56,17 @@ export const normalizePet = (value: unknown): PetState => {
     energy: typeof value.energy === 'number' ? value.energy : DEFAULT_PET.energy,
     equippedAccessories: normalizeStringArray(value.equippedAccessories),
     activeHomeItemId: typeof value.activeHomeItemId === 'string' ? value.activeHomeItemId : undefined,
-    activeWorldId: ['default_room', 'theatre', 'amusement_park', 'ice_rink', 'opera', 'sausage_fridge'].includes(String(value.activeWorldId)) ? value.activeWorldId as PetState['activeWorldId'] : 'default_room',
-    unlockedWorldIds: normalizeStringArray(value.unlockedWorldIds) as PetState['unlockedWorldIds'],
+    activeWorldId: ['theatre', 'amusement_park', 'ice_rink', 'opera', 'sausage_fridge'].includes(String(value.activeWorldId)) ? value.activeWorldId as PetState['activeWorldId'] : 'default_room',
+    activeWorldDate: typeof value.activeWorldDate === 'string' ? value.activeWorldDate : undefined,
     dailyStreak: typeof value.dailyStreak === 'number' ? Math.max(0, Math.round(value.dailyStreak)) : 0,
+    lastDailyActivityDate: typeof value.lastDailyActivityDate === 'string' ? value.lastDailyActivityDate : undefined,
     earnedStickerIds: normalizeStringArray(value.earnedStickerIds),
     requestedTreatId: typeof value.requestedTreatId === 'string' ? value.requestedTreatId : undefined,
     characterOnboarded: value.characterOnboarded === true,
     stage: deriveCharacterStage(level),
   };
   const moodScore = normalizeMoodScore({ ...basePet, mood: ['sad', 'neutral', 'calm', 'happy', 'excited', 'joyful', 'super_happy'].includes(String(value.mood)) ? value.mood as PetState['mood'] : DEFAULT_PET.mood, moodScore: typeof value.moodScore === 'number' ? value.moodScore : undefined });
-  return {
-    ...basePet,
-    equippedAccessories: moodScore < 34 ? [] : basePet.equippedAccessories,
-    moodScore,
-    mood: deriveMoodFromScore(moodScore),
-  };
+  return { ...basePet, equippedAccessories: applyWardrobeMoodRule && moodScore < 34 ? [] : basePet.equippedAccessories, moodScore, mood: deriveMoodFromScore(moodScore) };
 };
 
 export const normalizeInventory = (value: unknown): InventoryItem[] => Array.isArray(value) ? value.filter(isPlainObject).map(item => ({
@@ -72,13 +76,20 @@ export const normalizeInventory = (value: unknown): InventoryItem[] => Array.isA
   metadata: isPlainObject(item.metadata) ? { imageUrl: String(item.metadata.imageUrl || ''), minLevel: typeof item.metadata.minLevel === 'number' ? item.metadata.minLevel : undefined, temporary: item.metadata.temporary === true } : undefined,
 })).filter(item => item.id && item.name && item.quantity > 0) : [];
 
-export const mapProfileFromDB = (data: any): UserProfile => ({
-  username: typeof data?.username === 'string' && data.username.trim() ? data.username : 'Гость',
-  role: ['admin', 'parent', 'teacher'].includes(String(data?.role)) ? data.role : 'user',
-  subscriptionTier: data?.subscription_tier === 'premium' ? 'premium' : 'free',
-  customDictionaryEn: normalizeDictionaryField(data?.custom_dictionary_en),
-  dictionaryCollections: Array.isArray(data?.dictionary_collections) ? data.dictionary_collections : [],
-  managedLearners: Array.isArray(data?.managed_learners) ? data.managed_learners : [],
-  weeklyReportEmail: typeof data?.weekly_report_email === 'string' ? data.weekly_report_email : undefined,
-  stats: normalizeStats(data?.stats), pet: normalizePet(data?.pet), coins: typeof data?.coins === 'number' ? data.coins : 0, inventory: normalizeInventory(data?.inventory),
-});
+export const mapProfileFromDB = (data: any): UserProfile => {
+  const featureFlags = normalizeFeatureFlags(data?.feature_flags);
+  return {
+    username: typeof data?.username === 'string' && data.username.trim() ? data.username : 'Гость',
+    role: ['admin', 'parent', 'teacher'].includes(String(data?.role)) ? data.role : 'user',
+    subscriptionTier: data?.subscription_tier === 'premium' ? 'premium' : 'free',
+    featureFlags,
+    customDictionaryEn: normalizeDictionaryField(data?.custom_dictionary_en),
+    dictionaryCollections: Array.isArray(data?.dictionary_collections) ? data.dictionary_collections : [],
+    managedLearners: Array.isArray(data?.managed_learners) ? data.managed_learners : [],
+    weeklyReportEmail: typeof data?.weekly_report_email === 'string' ? data.weekly_report_email : undefined,
+    stats: normalizeStats(data?.stats),
+    pet: normalizePet(data?.pet, featureFlags.levelWardrobe === true),
+    coins: typeof data?.coins === 'number' ? data.coins : 0,
+    inventory: normalizeInventory(data?.inventory),
+  };
+};
