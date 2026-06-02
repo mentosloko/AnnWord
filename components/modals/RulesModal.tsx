@@ -52,8 +52,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
           <section>
             <h4 className="font-black text-indigo-800 mb-2">Словарь</h4>
             <p className="text-sm leading-relaxed">
-              Можно играть со встроенным словарём или загрузить собственный список слов. Словарь — ядро игры,
-              поэтому слова не должны обрезаться и должны использоваться полноценно во всех режимах.
+              Играйте со встроенным словарём или загрузите свои слова, чтобы потренировать их во всех режимах.
             </p>
           </section>
         </div>
