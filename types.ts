@@ -9,11 +9,9 @@ export type CharStatus = 'correct' | 'present' | 'absent' | 'initial';
 export interface UserStats {
   gamesPlayed: number;
   gamesWon: number;
-  wordsGuessed: Record<string, number>; // Word -> count of times guessed correctly
-  wordsToReview?: Record<string, number>; // Word -> count of times player selected "Не знаю"
+  wordsGuessed: Record<string, number>;
+  wordsToReview?: Record<string, number>;
 }
-
-// --- Character gamification types ---
 
 export type CharacterMood = 'sad' | 'calm' | 'happy' | 'joyful' | 'super_happy' | 'neutral' | 'excited';
 export type CharacterStage = 'stage_1' | 'stage_2' | 'stage_3' | 'stage_4';
@@ -22,16 +20,16 @@ export type GameRewardType = 'wordle' | 'sprint' | 'anagram' | 'memory' | 'hangm
 
 export interface PetState {
   name: string;
-  type: string; // 'Puppy', 'Dragon', 'RoboCat', etc. Kept as PetState for backward compatibility.
+  type: string;
   level: number;
   mood: CharacterMood;
-  xp: number; // Total character XP, not level-local XP.
-  moodScore?: number; // 0-100. Games can raise it to 70; treats can raise it to 100.
+  xp: number;
+  moodScore?: number;
   stage?: CharacterStage;
   characterOnboarded?: boolean;
-  hunger?: number; // Legacy field. Do not use for new reward logic.
-  energy?: number; // Legacy field. Do not use for new reward logic.
-  equippedAccessories: string[]; // IDs of equipped items
+  hunger?: number;
+  energy?: number;
+  equippedAccessories: string[];
   activeHomeItemId?: string;
 }
 
@@ -53,7 +51,27 @@ export interface UserProfile {
   inventory: InventoryItem[];
 }
 
-export type DailyQuestKind = 'wordle_four' | 'sprint_twelve' | 'memory_sixteen' | 'hangman_clean' | 'all_five_games';
+export type DailyQuestKind =
+  | 'wordle_two'
+  | 'wordle_three'
+  | 'wordle_four'
+  | 'wordle_win'
+  | 'sprint_six'
+  | 'sprint_eight'
+  | 'sprint_ten'
+  | 'sprint_twelve'
+  | 'memory_twelve'
+  | 'memory_fourteen'
+  | 'memory_sixteen'
+  | 'memory_twenty'
+  | 'hangman_perfect'
+  | 'hangman_one'
+  | 'hangman_clean'
+  | 'hangman_win'
+  | 'anagram_three'
+  | 'anagram_five'
+  | 'anagram_eight'
+  | 'all_five_games';
 
 export interface DailyQuestState {
   questDate: string;
@@ -94,8 +112,6 @@ export interface ShopItem {
   };
 }
 
-// ----------------------------------
-
 export interface CellData {
   letter: string;
   status: CharStatus;
@@ -103,17 +119,16 @@ export interface CellData {
 
 export interface GameSettings {
   wordLength: WordLength;
-  useCustomDictionary: boolean; // Kept for backward compat logic, but dictionarySource is main now
+  useCustomDictionary: boolean;
   dictionarySource: DictionarySource;
   difficulty: DifficultyLevel;
-  username: string; // Current active user
+  username: string;
 }
 
-// New interface for words with metadata
 export interface EnrichedWord {
   word: string;
   translation: string;
-  level: string; // e.g., 'A1', 'B2'
+  level: string;
 }
 
 export interface HistoryItem {
@@ -123,10 +138,10 @@ export interface HistoryItem {
 
 export interface GameState {
   secretWord: string;
-  secretWordData?: EnrichedWord | null; // Store metadata for the UI
-  guesses: string[]; // List of words guessed so far
-  history: HistoryItem[]; // List of guesses with translations
-  currentGuess: string; // Current input being typed
+  secretWordData?: EnrichedWord | null;
+  guesses: string[];
+  history: HistoryItem[];
+  currentGuess: string;
   gameStatus: 'playing' | 'won' | 'lost';
   rowIndex: number;
   hint: string | null;
