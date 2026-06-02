@@ -20,7 +20,8 @@ interface AppShellProps {
   onProfileClick: () => void;
   onShopClick: () => void;
   onAdminClick?: () => void;
-  onNavigateToPetRoom?: () => void;
+  onAdultRoomClick?: () => void;
+  onDictionaryStudioClick?: () => void;
   onCloseLogin: () => void;
   onCloseRules: () => void;
   onAuthModeChange: (mode: 'login' | 'register') => void;
@@ -33,7 +34,7 @@ interface AppShellProps {
 
 const GAME_ROUTES: ViewState[] = ['game', 'anagrams', 'sprint', 'hangman', 'memory'];
 
-export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onHomeClick, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onAdminClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => {
+export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onHomeClick, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onAdminClick, onAdultRoomClick, onDictionaryStudioClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => {
   const isGameRoute = GAME_ROUTES.includes(route);
 
   return (
@@ -48,11 +49,11 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
           onProfileClick={onProfileClick}
           onShopClick={onShopClick}
           onAdminClick={onAdminClick}
+          onAdultRoomClick={onAdultRoomClick}
+          onDictionaryStudioClick={onDictionaryStudioClick}
         />
       )}
-
       {children}
-
       <AppModals
         showLoginModal={showLoginModal}
         showRulesModal={showRulesModal}
