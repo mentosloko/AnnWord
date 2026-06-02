@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { ShopItem, UserProfile } from '../types';
-import { applyItemUseLocally, applyPurchaseLocally } from '../services/economyEngine';
+import { applyItemUseLocally, applyPurchaseLocally, getPurchaseErrorMessage } from '../services/economyEngine';
 import { getCharacterProgressPercent, getCharacterStageLabel } from '../services/gamificationRules';
 import { getMoodDisplay } from '../services/moodDisplay';
 import { getPetEmoji, getPetNeedSnapshot, getVisibleInventory } from '../services/petEngine';
 import { getInventoryImageUrl, getPuppyCharacterAssetUrl, getShopImageUrl } from '../services/petAssets';
-import { getShopItemsByType } from '../services/shopCatalog';
+import { getShopItemById, getShopItemsByType } from '../services/shopCatalog';
 import { CoinIcon } from './CoinIcon';
 
 interface Props {
@@ -21,6 +21,10 @@ type Tab = 'food' | 'accessory';
 const tabs: Tab[] = ['food', 'accessory'];
 const title = (tab: Tab) => tab === 'food' ? 'Лакомства' : 'Гардероб';
 const say = (profile: UserProfile) => getPetNeedSnapshot(profile.pet).moodScore <= 45 ? 'Купим лакомство?' : 'Сыграем ещё?';
+const treatEffect = (id: string): string | null => {
+  const mood = getShopItemById(id)?.effect?.mood;
+  return typeof mood === 'number' ? `+${mood} к настроению` : null;
+};
 
 export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClose, onOpenShop }) => {
   const [profile, setProfile] = useState(userProfile);
@@ -38,16 +42,11 @@ export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClos
   useEffect(() => {
     const viewport = roomViewportRef.current;
     if (!viewport) return;
-    const centerOnPet = () => {
-      viewport.scrollLeft = Math.max(0, (viewport.scrollWidth - viewport.clientWidth) / 2);
-    };
+    const centerOnPet = () => { viewport.scrollLeft = Math.max(0, (viewport.scrollWidth - viewport.clientWidth) / 2); };
     centerOnPet();
     const frame = window.requestAnimationFrame(centerOnPet);
     window.addEventListener('resize', centerOnPet);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener('resize', centerOnPet);
-    };
+    return () => { window.cancelAnimationFrame(frame); window.removeEventListener('resize', centerOnPet); };
   }, [profile.pet.type]);
 
   const pet = profile.pet;
@@ -62,8 +61,13 @@ export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClos
   const offers = getShopItemsByType(tab).filter(item => pet.level >= item.minLevel && profile.coins >= item.price && (item.type === 'food' || !owned.has(item.id)));
 
   const use = async (id: string) => {
+    setError(null);
     const next = applyItemUseLocally(profile, id);
-    if (!next.ok || !next.profile) return;
+    if (!next.ok || !next.profile) {
+      setError(getPurchaseErrorMessage(next.reason));
+      if (next.reason === 'mood_full') setSpeech('Я уже в отличном настроении! Оставим лакомство на потом?');
+      return;
+    }
     setProfile(next.profile);
     setBusy(id);
     try {
@@ -133,10 +137,11 @@ export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClos
             {items.map(item => {
               const image = getInventoryImageUrl(item);
               const isEquipped = tab === 'accessory' && equipped.has(item.id);
+              const effect = tab === 'food' ? treatEffect(item.id) : null;
               return <button type="button" key={item.id} onClick={() => void use(item.id)} aria-pressed={isEquipped} className={`relative flex items-center gap-3 rounded-3xl border-2 p-3 text-left transition ${isEquipped ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100' : 'border-indigo-100 bg-white hover:bg-indigo-50/40'}`}>
                 {isEquipped && <span className="absolute right-3 top-2 rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-black uppercase text-white">Надето</span>}
                 <div className="h-16 w-16 shrink-0 rounded-2xl bg-indigo-50">{image && <img src={image} alt="" className="h-full w-full object-contain" />}</div>
-                <div className={`min-w-0 font-black ${isEquipped ? 'text-indigo-700' : 'text-indigo-950'}`}><span className="block">{item.name}</span>{tab === 'food' && <span className="mt-1 inline-flex rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs text-indigo-700" aria-label={`Количество: ${item.quantity}`}>×{item.quantity}</span>}</div>
+                <div className={`min-w-0 font-black ${isEquipped ? 'text-indigo-700' : 'text-indigo-950'}`}><span className="block">{item.name}</span>{effect && <span className="mt-0.5 block text-[11px] font-bold text-green-600">{effect}</span>}{tab === 'food' && <span className="mt-1 inline-flex rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs text-indigo-700" aria-label={`Количество: ${item.quantity}`}>×{item.quantity}</span>}</div>
                 {busy === item.id && <span className="ml-auto">…</span>}
               </button>;
             })}
@@ -144,7 +149,7 @@ export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClos
         ) : (
           <div className="rounded-3xl border-2 border-dashed border-indigo-100 bg-indigo-50/50 p-8 text-center"><p className="font-black text-indigo-950">{tab === 'food' ? 'Лакомств пока нет' : 'Гардероб пока пуст'}</p>{onOpenShop && <button type="button" onClick={onOpenShop} className="mt-4 rounded-xl bg-indigo-600 px-4 py-2 text-white">В магазин</button>}</div>
         )}
-        {offers.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{offers.map(item => { const image = getShopImageUrl(item); return <div key={item.id} className="flex items-center gap-3 rounded-3xl border-2 border-dashed border-indigo-200 p-3"><div className="h-16 w-16">{image && <img src={image} alt="" className="h-full w-full object-contain" />}</div><div><div className="font-black">{item.name}</div><div className="flex items-center gap-1 text-sm font-black text-yellow-700">{item.price}<CoinIcon /></div><button type="button" disabled={Boolean(busy)} onClick={() => void buy(item)} className="mt-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white disabled:bg-indigo-200">{busy === item.id ? 'Сохраняю...' : 'Купить'}</button></div></div>; })}</div>}
+        {offers.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{offers.map(item => { const image = getShopImageUrl(item); const effect = item.type === 'food' ? treatEffect(item.id) : null; return <div key={item.id} className="flex items-center gap-3 rounded-3xl border-2 border-dashed border-indigo-200 p-3"><div className="h-16 w-16">{image && <img src={image} alt="" className="h-full w-full object-contain" />}</div><div><div className="font-black">{item.name}</div>{effect && <div className="text-[11px] font-bold text-green-600">{effect}</div>}<div className="flex items-center gap-1 text-sm font-black text-yellow-700">{item.price}<CoinIcon /></div><button type="button" disabled={Boolean(busy)} onClick={() => void buy(item)} className="mt-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white disabled:bg-indigo-200">{busy === item.id ? 'Сохраняю...' : 'Купить'}</button></div></div>; })}</div>}
       </section>
     </div>
   );
