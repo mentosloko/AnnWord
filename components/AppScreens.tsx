@@ -5,7 +5,7 @@ import { SetupScreen } from './screens/SetupScreen';
 import { ClassicGameScreen } from './screens/ClassicGameScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { CharacterOnboardingScreen } from './screens/CharacterOnboardingScreen';
-import { AdminAnalyticsScreen } from './screens/AdminAnalyticsScreen';
+import { AdminControlCenterScreen } from './screens/AdminControlCenterScreen';
 import { AdultRoomScreen } from './screens/AdultRoomScreen';
 import { DictionaryStudioScreen } from './screens/DictionaryStudioScreen';
 import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from './screens/ModeScreens';
@@ -38,7 +38,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, userProfile, isAu
   const startSelectedMode = () => { onGameStarted?.(selectedPlayMode); if (selectedPlayMode === 'game') { classicGame.startNewGame(); return; } onRouteChange(selectedPlayMode); };
   const startDailyQuest = (quest: DailyQuestState) => { const mode: PlayableModeRoute = quest.kind === 'hangman_clean' ? 'hangman' : quest.kind === 'sprint_twelve' ? 'sprint' : quest.kind === 'memory_sixteen' ? 'memory' : 'game'; onSelectedPlayModeChange(mode); onSettingsChange(previous => ({ ...previous, wordLength: randomWordLength() })); onRouteChange('setup'); };
   const screens: Partial<Record<ViewState, React.ReactNode>> = {
-    admin: <AdminAnalyticsScreen userProfile={userProfile} onBackHome={goHome} />,
+    admin: <AdminControlCenterScreen userProfile={userProfile} onBackHome={goHome} />,
     adult_room: <AdultRoomScreen userProfile={userProfile} onBackHome={goHome} onOpenDictionaryStudio={() => onRouteChange('dictionary_studio')} />,
     dictionary_studio: <DictionaryStudioScreen userProfile={userProfile} onBack={() => onRouteChange(userProfile.role === 'parent' || userProfile.role === 'teacher' ? 'adult_room' : 'profile')} onSaveDictionary={onSaveDictionary} />,
     character_onboarding: <CharacterOnboardingScreen onComplete={onCharacterOnboardingComplete} />,
