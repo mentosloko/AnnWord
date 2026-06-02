@@ -17,9 +17,9 @@ export const DAILY_QUEST_DEFINITIONS: Record<DailyQuestKind, Pick<DailyQuestStat
   hangman_one: { title: 'Почти без промаха', description: 'Победи в Виселице, допустив не более 1 ошибки.' },
   hangman_clean: { title: 'Слово без промаха', description: 'Победи в Виселице, допустив не более 2 ошибок.' },
   hangman_win: { title: 'Спаси слово', description: 'Победи в Виселице.' },
-  anagram_three: { title: 'Собери три слова', description: 'Собери 3 слова за одну игру в Анаграммах.' },
-  anagram_five: { title: 'Ловкий составитель', description: 'Собери 5 слов за одну игру в Анаграммах.' },
-  anagram_eight: { title: 'Мастер анаграмм', description: 'Собери 8 слов за одну игру в Анаграммах.' },
+  anagram_three: { title: 'Собери три слова', description: 'Собери 3 слова в Анаграммах за сегодня.' },
+  anagram_five: { title: 'Ловкий составитель', description: 'Собери 5 слов в Анаграммах за сегодня.' },
+  anagram_eight: { title: 'Мастер анаграмм', description: 'Собери 8 слов в Анаграммах за сегодня.' },
   all_five_games: { title: 'Большое приключение', description: 'За сегодня: победи в Классике и Виселице, заверши Память, собери 5 анаграмм и отгадай 6 слов в Спринте.' },
 };
 
