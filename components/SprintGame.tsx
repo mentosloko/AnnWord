@@ -13,13 +13,11 @@ interface SprintGameProps {
   onGameReward: (input: GameRewardInput) => void | Promise<void>;
 }
 
-const getPlayableSprintDictionary = (entries: EnrichedWord[]): EnrichedWord[] => {
-  if (entries.length >= 4) return entries;
-  return buildPlayableGameDictionary([], COMMON_WORDS_EN);
-};
-
 export const buildSprintDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] =>
   buildPlayableGameDictionary(customDictionaryEn, fallbackDictionary);
+
+const hasEnoughSprintOptions = (entries: EnrichedWord[]): boolean =>
+  new Set(entries.map(entry => entry.translation).filter(hasRussianTranslation)).size >= 4;
 
 export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onGameReward }) => {
   const dictionary = useMemo(
@@ -38,6 +36,8 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
   const [status, setStatus] = useState<'playing' | 'ended'>('playing');
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
 
+  const dictionaryIsPlayable = hasEnoughSprintOptions(dictionary);
+
   useEffect(() => {
     latestDictionaryRef.current = dictionary;
     if (activeDictionaryRef.current.length === 0 && dictionary.length > 0) activeDictionaryRef.current = dictionary;
@@ -51,28 +51,17 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
   }, []);
 
   const pickNewWord = useCallback(() => {
-    const activeDictionary = getPlayableSprintDictionary(activeDictionaryRef.current);
-    if (activeDictionary.length === 0) return;
+    const activeDictionary = activeDictionaryRef.current;
+    if (!hasEnoughSprintOptions(activeDictionary)) return;
     const word = pickNextSessionWord('sprint', activeDictionary) || activeDictionary[Math.floor(Math.random() * activeDictionary.length)];
     setCurrentWord(word);
 
     const correctAnswer = word.translation;
-    const wrongOptions: string[] = [];
-    const maxAttempts = activeDictionary.length * 3;
-    let attempts = 0;
-    while (wrongOptions.length < 3 && attempts < maxAttempts) {
-      attempts += 1;
-      const candidate = activeDictionary[Math.floor(Math.random() * activeDictionary.length)].translation;
-      if (hasRussianTranslation(candidate) && candidate !== correctAnswer && !wrongOptions.includes(candidate)) wrongOptions.push(candidate);
-    }
-    const fallbackOptions = buildPlayableGameDictionary([], COMMON_WORDS_EN)
+    const wrongOptions = Array.from(new Set(activeDictionary
       .map(entry => entry.translation)
-      .filter(candidate => candidate !== correctAnswer && !wrongOptions.includes(candidate));
-    while (wrongOptions.length < 3 && fallbackOptions.length > 0) {
-      const candidate = fallbackOptions[Math.floor(Math.random() * fallbackOptions.length)];
-      if (!wrongOptions.includes(candidate)) wrongOptions.push(candidate);
-    }
-    while (wrongOptions.length < 3) wrongOptions.push(`Вариант ${wrongOptions.length + 1}`);
+      .filter(candidate => hasRussianTranslation(candidate) && candidate !== correctAnswer)))
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
     setOptions([...wrongOptions, correctAnswer].sort(() => Math.random() - 0.5));
     setFeedback(null);
   }, []);
@@ -89,9 +78,9 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
     setStatus('playing');
   };
 
-  useEffect(() => { if (status === 'playing' && !currentWord) pickNewWord(); }, [status, currentWord, pickNewWord]);
+  useEffect(() => { if (dictionaryIsPlayable && status === 'playing' && !currentWord) pickNewWord(); }, [dictionaryIsPlayable, status, currentWord, pickNewWord]);
   useEffect(() => {
-    if (status !== 'playing') return;
+    if (!dictionaryIsPlayable || status !== 'playing') return;
     const timer = setInterval(() => {
       setTimeLeft(previous => {
         if (previous <= 1) {
@@ -104,7 +93,7 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
       });
     }, 1000);
     return () => { clearInterval(timer); clearNextWordTimeout(); };
-  }, [status, clearNextWordTimeout]);
+  }, [dictionaryIsPlayable, status, clearNextWordTimeout]);
   useEffect(() => {
     if (status === 'ended' && !rewardAppliedRef.current) {
       rewardAppliedRef.current = true;
@@ -129,6 +118,7 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
   };
 
   if (dictionary.length === 0) return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-2xl"><div className="mb-4 text-6xl">📚</div><h2 className="mb-2 text-2xl font-bold">Нет доступных слов</h2><p className="mb-6 text-gray-500">В выбранном словаре нет слов с русским переводом.</p><button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
+  if (!dictionaryIsPlayable) return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-2xl"><div className="mb-4 text-6xl">⚡</div><h2 className="mb-2 text-2xl font-bold">Недостаточно слов для Спринта</h2><p className="mb-6 text-gray-500">Для игры нужно не менее 4 слов с разными переводами в выбранном словаре. Добавьте слова в свой словарь или выберите встроенный.</p><button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
 
   return (
     <div className="relative flex h-full min-h-0 w-full max-w-md flex-col items-center overflow-hidden rounded-3xl bg-white p-3 shadow-xl sm:h-auto sm:p-6">
