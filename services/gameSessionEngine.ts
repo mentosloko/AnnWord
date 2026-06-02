@@ -40,9 +40,29 @@ export const pickNextSessionWord = <T extends { word: string }>(mode: GameSessio
   getUnusedSessionWord(mode, pool);
 
 /**
+ * Records unresolved difficulty for Sprint and Anagrams only.
+ * One correct answer means the user has handled this word, so its priority is removed.
+ */
+export const updateReviewPriorities = (
+  current: Record<string, number> = {},
+  word: string,
+  result: WordPracticeResult,
+): Record<string, number> => {
+  const normalized = normalizeWord(word);
+  if (!normalized) return { ...current };
+  const next = { ...current };
+  if (result === 'mastered') {
+    delete next[normalized];
+    return next;
+  }
+  next[normalized] = Math.min(4, Math.max(0, Math.round(next[normalized] || 0)) + 1);
+  return next;
+};
+
+/**
  * In Sprint and Anagrams, words with unresolved mistakes appear more often.
- * A mastered word is removed from review by the profile updater and immediately
- * stops receiving this extra probability. Consecutive repeats are avoided when possible.
+ * A mastered word is removed from review and immediately stops receiving this extra probability.
+ * Consecutive repeats are avoided when possible.
  */
 export const pickAdaptiveSessionWord = <T extends { word: string }>(
   mode: AdaptiveGameSessionMode,
@@ -58,12 +78,11 @@ export const pickAdaptiveSessionWord = <T extends { word: string }>(
     : pool;
   const weightedReviewPool = availablePool.flatMap(entry => {
     const misses = Math.max(0, Math.round(wordsToReview[normalizeWord(entry.word)] || 0));
-    const weight = Math.min(4, misses);
-    return Array.from({ length: weight }, () => entry);
+    return Array.from({ length: Math.min(4, misses) }, () => entry);
   });
 
   if (weightedReviewPool.length > 0 && random() < 0.65) {
-    return getUnusedSessionWord(`${mode}:review`, weightedReviewPool);
+    return weightedReviewPool[Math.floor(random() * weightedReviewPool.length)] || null;
   }
   return getUnusedSessionWord(mode, availablePool);
 };
