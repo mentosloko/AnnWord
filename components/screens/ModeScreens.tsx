@@ -7,13 +7,14 @@ import { GameModeShell } from './GameModeShell';
 import { GUEST_PROFILE } from '../../constants/profileDefaults';
 import { UserProfile, WordLength } from '../../types';
 import { GameRewardInput } from '../../services/gamificationRules';
+import { WordPracticeResult } from '../../services/gameSessionEngine';
 
 interface ModeScreenProps {
   words: string[];
   wordLength: WordLength;
   userProfile?: UserProfile;
   onGameReward: (input: GameRewardInput) => void | Promise<void>;
-  onRecordReviewWord?: (word: string) => void | Promise<void>;
+  onWordPractice?: (word: string, result: WordPracticeResult) => void | Promise<void>;
   onBackHome: () => void;
 }
 
@@ -28,12 +29,14 @@ const MODE_RULES = {
     'Собирайте слово из перемешанных букв.',
     'За каждое угаданное слово начисляется опыт.',
     'За каждые 15 угаданных слов вы получаете 1 монету.',
-    'Кнопка «Не знаю» добавляет слово в историю для повторения и снимает 1 балл.',
+    'Кнопка «Не знаю» добавляет слово для повторения и снимает 1 балл.',
+    'Слова, в которых были ошибки, будут встречаться чаще до правильного ответа.',
   ],
   sprint: [
     'Выбирайте правильные ответы как можно быстрее.',
     'Опыт зависит от количества правильных ответов.',
     'Монеты начисляются за серию правильных ответов.',
+    'Ошибочные слова будут встречаться чаще до правильного ответа.',
   ],
   memory: [
     'Открывайте карточки и находите пары слово–перевод.',
@@ -47,15 +50,15 @@ const MODE_RULES = {
   ],
 };
 
-export const AnagramsScreen: React.FC<ModeScreenProps> = ({ words, wordLength, userProfile, onGameReward, onRecordReviewWord, onBackHome }) => (
+export const AnagramsScreen: React.FC<ModeScreenProps> = ({ words, wordLength, userProfile, onGameReward, onWordPractice, onBackHome }) => (
   <GameModeShell title="Анаграммы" subtitle={`Собери слово · ${wordLength} букв`} rules={MODE_RULES.anagrams} dictionaryWords={ownDictionary(userProfile)} wordLength={wordLength} onBackHome={onBackHome}>
-    <AnagramGame userProfile={buildModeProfile(userProfile, words)} onGameReward={onGameReward} onRecordReviewWord={onRecordReviewWord} onBack={onBackHome} />
+    <AnagramGame userProfile={buildModeProfile(userProfile, words)} onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={onBackHome} />
   </GameModeShell>
 );
 
-export const SprintScreen: React.FC<ModeScreenProps> = ({ words, wordLength, userProfile, onGameReward, onBackHome }) => (
+export const SprintScreen: React.FC<ModeScreenProps> = ({ words, wordLength, userProfile, onGameReward, onWordPractice, onBackHome }) => (
   <GameModeShell title="Спринт" subtitle={`Быстрый режим · ${wordLength} букв`} rules={MODE_RULES.sprint} dictionaryWords={ownDictionary(userProfile)} wordLength={wordLength} onBackHome={onBackHome}>
-    <SprintGame userProfile={buildModeProfile(userProfile, words)} onGameReward={onGameReward} onBack={onBackHome} />
+    <SprintGame userProfile={buildModeProfile(userProfile, words)} onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={onBackHome} />
   </GameModeShell>
 );
 
