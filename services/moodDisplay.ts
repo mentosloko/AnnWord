@@ -1,5 +1,5 @@
 export interface MoodDisplay {
-  label: 'Грусть' | 'Спокойный' | 'Радость';
+  label: 'Грусть' | 'Спокойствие' | 'Радость';
   barClass: string;
   trackClass: string;
   textClass: string;
@@ -19,7 +19,7 @@ export const getMoodDisplay = (score: number): MoodDisplay => {
 
   if (score <= 66) {
     return {
-      label: 'Спокойный',
+      label: 'Спокойствие',
       barClass: 'bg-yellow-400',
       trackClass: 'bg-yellow-50',
       textClass: 'text-yellow-700',
