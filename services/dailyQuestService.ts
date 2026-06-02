@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { DailyQuestCompletionReward, DailyQuestState, UserProfile } from '../types';
+import { DailyQuestCompletionReward, DailyQuestState, PetWorldId, UserProfile } from '../types';
 import { GameRewardInput } from './gamificationRules';
 import { mapProfileFromDB } from './profileMapper';
 import { getShopItemById } from './shopCatalog';
@@ -10,6 +10,10 @@ interface DailyQuestGameResult {
   reward: DailyQuestCompletionReward | null;
   profile: UserProfile | null;
 }
+
+const WORLD_IDS: PetWorldId[] = ['theatre', 'amusement_park', 'ice_rink', 'opera', 'sausage_fridge'];
+const normalizeWorldId = (value: unknown): PetWorldId | null =>
+  WORLD_IDS.includes(value as PetWorldId) ? value as PetWorldId : null;
 
 export const dailyQuestService = {
   getTodayQuest: async (): Promise<DailyQuestState | null> => {
@@ -27,9 +31,10 @@ export const dailyQuestService = {
     const quest = normalizeDailyQuest(data?.quest);
     if (!quest) throw new Error('Не удалось получить ежедневное задание.');
     const item = data?.new_reward_item_id ? getShopItemById(data.new_reward_item_id) : undefined;
+    const worldId = normalizeWorldId(data?.new_reward_world_id || quest.rewardWorldId);
     return {
       quest,
-      reward: item ? { quest, item } : null,
+      reward: item || worldId ? { quest, item: item || null, worldId } : null,
       profile: data?.profile ? mapProfileFromDB(data.profile) : null,
     };
   },
