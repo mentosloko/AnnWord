@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { hasRussianTranslation } from '../services/dictionaryEngine';
-import { buildPlayableGameDictionary, pickNextSessionWord } from '../services/gameSessionEngine';
+import { buildPlayableGameDictionary, pickAdaptiveSessionWord, updateReviewPriorities, WordPracticeResult } from '../services/gameSessionEngine';
 import { motion, AnimatePresence } from 'motion/react';
 import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
@@ -11,6 +11,7 @@ interface SprintGameProps {
   onBack: () => void;
   userProfile: UserProfile;
   onGameReward: (input: GameRewardInput) => void | Promise<void>;
+  onWordPractice?: (word: string, result: WordPracticeResult) => void | Promise<void>;
 }
 
 export const buildSprintDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] =>
@@ -19,15 +20,13 @@ export const buildSprintDictionary = (customDictionaryEn: string[] = [], fallbac
 const hasEnoughSprintOptions = (entries: EnrichedWord[]): boolean =>
   new Set(entries.map(entry => entry.translation).filter(hasRussianTranslation)).size >= 4;
 
-export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onGameReward }) => {
-  const dictionary = useMemo(
-    () => buildSprintDictionary(userProfile.customDictionaryEn),
-    [userProfile.customDictionaryEn],
-  );
+export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onGameReward, onWordPractice }) => {
+  const dictionary = useMemo(() => buildSprintDictionary(userProfile.customDictionaryEn), [userProfile.customDictionaryEn]);
   const activeDictionaryRef = useRef<EnrichedWord[]>(dictionary);
   const latestDictionaryRef = useRef<EnrichedWord[]>(dictionary);
   const nextWordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rewardAppliedRef = useRef(false);
+  const [reviewPriorities, setReviewPriorities] = useState<Record<string, number>>({ ...(userProfile.stats.wordsToReview || {}) });
 
   const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null);
   const [options, setOptions] = useState<string[]>([]);
@@ -42,6 +41,7 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
     latestDictionaryRef.current = dictionary;
     if (activeDictionaryRef.current.length === 0 && dictionary.length > 0) activeDictionaryRef.current = dictionary;
   }, [dictionary]);
+  useEffect(() => setReviewPriorities({ ...(userProfile.stats.wordsToReview || {}) }), [userProfile.stats.wordsToReview]);
 
   const clearNextWordTimeout = useCallback(() => {
     if (nextWordTimeoutRef.current) {
@@ -50,10 +50,15 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
     }
   }, []);
 
+  const registerPractice = (word: string, result: WordPracticeResult) => {
+    setReviewPriorities(previous => updateReviewPriorities(previous, word, result));
+    void Promise.resolve(onWordPractice?.(word, result)).catch(error => console.error('Failed to save sprint practice priority', error));
+  };
+
   const pickNewWord = useCallback(() => {
     const activeDictionary = activeDictionaryRef.current;
     if (!hasEnoughSprintOptions(activeDictionary)) return;
-    const word = pickNextSessionWord('sprint', activeDictionary) || activeDictionary[Math.floor(Math.random() * activeDictionary.length)];
+    const word = pickAdaptiveSessionWord('sprint', activeDictionary, reviewPriorities, currentWord?.word) || activeDictionary[Math.floor(Math.random() * activeDictionary.length)];
     setCurrentWord(word);
 
     const correctAnswer = word.translation;
@@ -64,7 +69,7 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
       .slice(0, 3);
     setOptions([...wrongOptions, correctAnswer].sort(() => Math.random() - 0.5));
     setFeedback(null);
-  }, []);
+  }, [currentWord?.word, reviewPriorities]);
 
   const restartGame = () => {
     clearNextWordTimeout();
@@ -105,14 +110,16 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
   const rewardPreview = calculateGameReward({ type: 'sprint', guessedWords: score });
   const progressPreview = applyGameRewardToCharacter(userProfile.pet, rewardPreview);
   const handleOptionClick = (option: string) => {
-    if (status !== 'playing' || feedback) return;
+    if (status !== 'playing' || feedback || !currentWord) return;
     clearNextWordTimeout();
     if (option === correctAnswer) {
       setScore(previous => previous + 1);
       setFeedback('correct');
+      registerPractice(currentWord.word, 'mastered');
       nextWordTimeoutRef.current = setTimeout(pickNewWord, 500);
     } else {
       setFeedback('wrong');
+      registerPractice(currentWord.word, 'failed');
       nextWordTimeoutRef.current = setTimeout(pickNewWord, 800);
     }
   };
