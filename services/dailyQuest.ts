@@ -1,4 +1,4 @@
-import { DailyQuestKind, DailyQuestState } from '../types';
+import { DailyQuestKind, DailyQuestState, PetWorldId } from '../types';
 
 type QuestCopy = Pick<DailyQuestState, 'title' | 'description'>;
 
@@ -25,13 +25,8 @@ export const DAILY_QUEST_DEFINITIONS: Record<string, QuestCopy> = {
   all_five_games: { title: 'Большое приключение', description: 'За сегодня: победи в Классике и Виселице, заверши Память, собери 5 анаграмм и отгадай 6 слов в Спринте.' },
 };
 
-const modeLabels: Record<string, string> = {
-  wordle: 'Классика',
-  sprint: 'Спринт',
-  anagram: 'Анаграммы',
-  memory: 'Память',
-  hangman: 'Виселица',
-};
+const modeLabels: Record<string, string> = { wordle: 'Классика', sprint: 'Спринт', anagram: 'Анаграммы', memory: 'Память', hangman: 'Виселица' };
+const validWorldIds: PetWorldId[] = ['default_room', 'theatre', 'amusement_park', 'ice_rink', 'opera', 'sausage_fridge'];
 
 export const normalizeDailyQuest = (value: any): DailyQuestState | null => {
   if (!value || !value.quest_date || !value.kind) return null;
@@ -40,17 +35,19 @@ export const normalizeDailyQuest = (value: any): DailyQuestState | null => {
   const definition = DAILY_QUEST_DEFINITIONS[variantKey] || DAILY_QUEST_DEFINITIONS[kind];
   if (!definition) return null;
   const completedModes = Array.isArray(value.completed_modes) ? value.completed_modes : [];
-  const progressLabel = kind === 'all_five_games'
-    ? `${completedModes.length}/5: ${completedModes.map((mode: string) => modeLabels[mode] || mode).join(', ') || 'начни с любой игры'}`
-    : value.completed ? 'Испытание выполнено' : 'Ещё не выполнено';
+  const rawWorldId = value.reward_world_id || value.progress?.reward_world_id;
+  const rewardWorldId = validWorldIds.includes(rawWorldId as PetWorldId) ? rawWorldId as PetWorldId : null;
   return {
     questDate: value.quest_date,
     kind,
     title: definition.title,
     description: definition.description,
-    progressLabel,
+    progressLabel: kind === 'all_five_games'
+      ? `${completedModes.length}/5: ${completedModes.map((mode: string) => modeLabels[mode] || mode).join(', ') || 'начни с любой игры'}`
+      : value.completed ? 'Испытание выполнено' : 'Ещё не выполнено',
     completed: Boolean(value.completed),
     completedAt: value.completed_at || null,
     rewardItemId: value.reward_item_id || null,
+    rewardWorldId,
   };
 };
