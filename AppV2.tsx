@@ -13,6 +13,7 @@ import { GameRewardInput } from './services/gamificationRules';
 import { preloadAppAssetsForProfile } from './services/assetPreloader';
 import { WORDLE_HINT_COST, getWordleHintBalanceDelta } from './services/wordleEconomy';
 import { dailyQuestService } from './services/dailyQuestService';
+import { premiumDictionaryService, PremiumDictionaryDraft } from './services/premiumDictionaryService';
 
 const toAnalyticsGameType = (mode: PlayableModeRoute): GameRewardType => {
   if (mode === 'game') return 'wordle';
@@ -87,7 +88,15 @@ const AppV2: React.FC = () => {
   const modeWords = useMemo(() => getModeWords({ respectWordLength: true }), [getModeWords]);
   const handleBuy = useCallback(async (item: ShopItem) => profileEconomy.buyItem(item), [profileEconomy]);
   const handleUseItem = useCallback(async (itemId: string) => profileEconomy.useItem(itemId), [profileEconomy]);
-  const handleSaveDictionary = useCallback(async (words: string[]) => { await profileEconomy.updateDictionary(words); setDictionarySource('custom'); }, [profileEconomy, setDictionarySource]);
+  const handleSaveDictionary = useCallback(async (draft: PremiumDictionaryDraft) => {
+    const collection = await premiumDictionaryService.saveCollection(draft);
+    setUserProfile(previous => ({
+      ...previous,
+      customDictionaryEn: collection.words,
+      dictionaryCollections: [collection, ...(previous.dictionaryCollections || []).filter(item => item.id !== collection.id)],
+    }));
+    setDictionarySource('custom');
+  }, [setDictionarySource, setUserProfile]);
   const handleGameReward = useCallback(async (input: GameRewardInput) => {
     const gameEvent = analyticsService.createEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_finished', gameType: input.type, route: input.type === 'other' ? route : input.type, payload: { ...input, wordLength: settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty } });
     await profileEconomy.applyGameReward(input, { analyticsEvents: [gameEvent] });
