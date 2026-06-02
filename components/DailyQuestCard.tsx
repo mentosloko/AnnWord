@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { DailyQuestCompletionReward, DailyQuestState } from '../types';
 import { getShopImageUrl } from '../services/petAssets';
+import { getWorld } from '../services/premiumFeatureCatalog';
 
 const londonDateKey = (date: Date): string => new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -21,6 +22,7 @@ const getDailyQuestCountdown = (): string => {
 
 export const DailyQuestCard: React.FC<{ quest: DailyQuestState; onStart?: (quest: DailyQuestState) => void }> = ({ quest, onStart }) => {
   const [countdown, setCountdown] = useState(getDailyQuestCountdown);
+  const world = quest.rewardWorldId ? getWorld(quest.rewardWorldId) : null;
 
   useEffect(() => {
     setCountdown(getDailyQuestCountdown());
@@ -42,10 +44,10 @@ export const DailyQuestCard: React.FC<{ quest: DailyQuestState; onStart?: (quest
       <p className="mt-2 text-sm font-bold leading-relaxed text-gray-600">{quest.description}</p>
       {quest.kind === 'all_five_games' && !quest.completed && <p className="mt-2 text-xs font-black text-purple-700">Прогресс: {quest.progressLabel}</p>}
       <div className="mt-4 flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5">
-        <div className="text-2xl" aria-hidden="true">🎁</div>
+        <div className="text-2xl" aria-hidden="true">{world ? world.emoji : '🎁'}</div>
         <div className="min-w-0 flex-1 text-sm font-bold text-indigo-900">
-          {quest.completed ? 'Секретная коробка открыта' : 'Награда: секретная коробка'}
-          <div className="text-xs font-bold text-gray-500">Внутри случайное лакомство</div>
+          {world ? `${quest.completed ? 'Открыт фон' : 'Награда: новый фон'} · ${world.title}` : quest.completed ? 'Секретная коробка открыта' : 'Награда: секретная коробка'}
+          <div className="text-xs font-bold text-gray-500">{world ? 'Можно выбрать в комнате питомца' : 'Внутри случайное лакомство'}</div>
         </div>
         {!quest.completed && onStart && (
           <button type="button" onClick={() => onStart(quest)} className="shrink-0 rounded-xl bg-purple-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-purple-700">Играть</button>
@@ -56,19 +58,20 @@ export const DailyQuestCard: React.FC<{ quest: DailyQuestState; onStart?: (quest
 };
 
 export const DailyQuestRewardModal: React.FC<{ reward: DailyQuestCompletionReward; onClose: () => void }> = ({ reward, onClose }) => {
-  const imageUrl = getShopImageUrl(reward.item);
+  const world = reward.worldId ? getWorld(reward.worldId) : null;
+  const imageUrl = reward.item ? getShopImageUrl(reward.item) : null;
   return (
     <div className="fixed inset-0 z-[95] flex items-center justify-center bg-indigo-950/45 px-4 backdrop-blur-sm">
       <motion.div role="dialog" aria-modal="true" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-sm rounded-[2rem] border-2 border-purple-100 bg-white p-6 text-center shadow-2xl">
         <div className="mb-3 inline-flex rounded-full bg-purple-50 px-4 py-1 text-xs font-black uppercase tracking-widest text-purple-700">Задание выполнено</div>
-        <div className="text-5xl" aria-hidden="true">🎁</div>
-        <h2 className="mt-2 text-2xl font-black text-indigo-950">Секретная коробка!</h2>
-        <p className="mt-2 text-sm font-bold text-gray-500">Питомец приготовил награду за сегодняшнее испытание.</p>
-        <motion.div initial={{ scale: 0.75, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.18 }} className="mx-auto mt-5 flex h-32 w-32 items-center justify-center rounded-3xl border-2 border-indigo-50 bg-indigo-50/50">
-          {imageUrl ? <img src={imageUrl} alt={reward.item.name} className="h-28 w-28 object-contain" /> : <span className="text-6xl">🍬</span>}
+        <div className="text-5xl" aria-hidden="true">{world ? world.emoji : '🎁'}</div>
+        <h2 className="mt-2 text-2xl font-black text-indigo-950">{world ? 'Новый фон открыт!' : 'Секретная коробка!'}</h2>
+        <p className="mt-2 text-sm font-bold text-gray-500">{world ? 'Питомец приглашает вас в новое место.' : 'Питомец приготовил награду за сегодняшнее испытание.'}</p>
+        <motion.div initial={{ scale: 0.75, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.18 }} className={`mx-auto mt-5 flex h-32 w-32 items-center justify-center rounded-3xl border-2 border-indigo-50 ${world ? `bg-gradient-to-b ${world.backgroundClass}` : 'bg-indigo-50/50'}`}>
+          {world ? <span className="text-6xl">{world.emoji}</span> : imageUrl && reward.item ? <img src={imageUrl} alt={reward.item.name} className="h-28 w-28 object-contain" /> : <span className="text-6xl">🍬</span>}
         </motion.div>
-        <div className="mt-4 text-xs font-black uppercase tracking-widest text-purple-500">Выпало лакомство</div>
-        <div className="mt-1 text-xl font-black text-indigo-950">{reward.item.name}</div>
+        <div className="mt-4 text-xs font-black uppercase tracking-widest text-purple-500">{world ? 'Фон комнаты' : 'Выпало лакомство'}</div>
+        <div className="mt-1 text-xl font-black text-indigo-950">{world?.title || reward.item?.name || 'Награда'}</div>
         <button type="button" onClick={onClose} className="mt-6 w-full rounded-2xl bg-indigo-600 px-5 py-3 font-black text-white">Здорово!</button>
       </motion.div>
     </div>
