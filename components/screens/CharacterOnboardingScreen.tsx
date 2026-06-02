@@ -44,7 +44,7 @@ export const CharacterOnboardingScreen: React.FC<CharacterOnboardingScreenProps>
         </div>
         <h1 className="text-4xl sm:text-5xl font-black text-indigo-950 mb-4">Твой персонаж</h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Он будет получать XP за игры, расти и радоваться твоим успехам.
+          Он будет получать опыт за игры, расти и радоваться твоим успехам.
         </p>
       </section>
 
