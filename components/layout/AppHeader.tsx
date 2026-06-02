@@ -17,8 +17,9 @@ interface AppHeaderProps {
 
 export const AppHeader: React.FC<AppHeaderProps> = ({ userProfile, isAuthenticated, onHomeClick, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onAdminClick, onAdultRoomClick, onDictionaryStudioClick }) => {
   const isAdmin = userProfile.role === 'admin';
-  const hasAdultRoom = isAdmin || userProfile.role === 'parent' || userProfile.role === 'teacher';
-  const hasPremiumStudio = hasAdultRoom || userProfile.subscriptionTier === 'premium';
+  const flags = userProfile.featureFlags || {};
+  const hasAdultRoom = flags.adultRoom === true && (isAdmin || userProfile.role === 'parent' || userProfile.role === 'teacher');
+  const hasPremiumStudio = flags.premiumDictionaries === true && (isAdmin || userProfile.subscriptionTier === 'premium' || userProfile.role === 'parent' || userProfile.role === 'teacher');
   const accountMenuRef = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
