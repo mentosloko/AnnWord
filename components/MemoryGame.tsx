@@ -62,7 +62,6 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
   const dictionarySignature = userProfile.customDictionaryEn.join('|');
   const dictionary = useMemo(() => buildMemoryDictionary(userProfile.customDictionaryEn), [dictionarySignature]);
   const rewardAppliedRef = useRef(false);
-
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
@@ -78,50 +77,30 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
     rewardAppliedRef.current = false;
   }, [dictionary]);
 
-  useEffect(() => {
-    if (cards.length === 0 && dictionary.length > 0) initializeGame();
-  }, [cards.length, dictionary.length, initializeGame]);
+  useEffect(() => { if (cards.length === 0 && dictionary.length > 0) initializeGame(); }, [cards.length, dictionary.length, initializeGame]);
 
   const handleCardClick = (id: number) => {
     if (isWon || flippedCards.length === 2 || cards.find(card => card.id === id)?.isFlipped || cards.find(card => card.id === id)?.isMatched) return;
-
     setClicks(previous => previous + 1);
     const newCards = cards.map(card => card.id === id ? { ...card, isFlipped: true } : card);
     setCards(newCards);
-
     const newFlipped = [...flippedCards, id];
     setFlippedCards(newFlipped);
-
     if (newFlipped.length === 2) {
       setMoves(previous => previous + 1);
       const [firstId, secondId] = newFlipped;
       const firstCard = newCards.find(card => card.id === firstId);
       const secondCard = newCards.find(card => card.id === secondId);
-
       if (firstCard?.pairId === secondCard?.pairId) {
-        setTimeout(() => {
-          setCards(previous => previous.map(card => card.pairId === firstCard?.pairId ? { ...card, isMatched: true } : card));
-          setFlippedCards([]);
-        }, 500);
+        setTimeout(() => { setCards(previous => previous.map(card => card.pairId === firstCard?.pairId ? { ...card, isMatched: true } : card)); setFlippedCards([]); }, 500);
       } else {
-        setTimeout(() => {
-          setCards(previous => previous.map(card => (card.id === firstId || card.id === secondId) ? { ...card, isFlipped: false } : card));
-          setFlippedCards([]);
-        }, 1000);
+        setTimeout(() => { setCards(previous => previous.map(card => (card.id === firstId || card.id === secondId) ? { ...card, isFlipped: false } : card)); setFlippedCards([]); }, 1000);
       }
     }
   };
 
-  useEffect(() => {
-    if (cards.length > 0 && cards.every(card => card.isMatched) && !isWon) setIsWon(true);
-  }, [cards, isWon]);
-
-  useEffect(() => {
-    if (isWon && !rewardAppliedRef.current) {
-      rewardAppliedRef.current = true;
-      void onGameReward({ type: 'memory', clicks });
-    }
-  }, [isWon, clicks, onGameReward]);
+  useEffect(() => { if (cards.length > 0 && cards.every(card => card.isMatched) && !isWon) setIsWon(true); }, [cards, isWon]);
+  useEffect(() => { if (isWon && !rewardAppliedRef.current) { rewardAppliedRef.current = true; void onGameReward({ type: 'memory', clicks }); } }, [isWon, clicks, onGameReward]);
 
   const rewardPreview = calculateGameReward({ type: 'memory', clicks });
   const progressPreview = applyGameRewardToCharacter(userProfile.pet, rewardPreview);
@@ -134,13 +113,13 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
     <div className="mx-auto flex w-full max-w-2xl flex-col items-center p-3 sm:p-4">
       <div className="mb-6 flex w-full items-center justify-between gap-3">
         <button onClick={onBack} className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1 font-bold text-gray-500 transition hover:text-indigo-600"><span className="text-xl">←</span> Меню</button>
-        <h2 className="text-2xl font-black text-indigo-900">Мемо</h2>
+        <h2 className="text-2xl font-black text-indigo-900">Память</h2>
         <div className="rounded-2xl bg-indigo-50 px-3 py-1.5 text-sm font-bold text-indigo-600 shadow-sm sm:px-4">Кликов: {clicks}</div>
       </div>
       <div className="grid w-full grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3">
         {cards.map(card => (
           <motion.div key={card.id} whileHover={{ scale: isWon ? 1 : 1.05 }} whileTap={{ scale: isWon ? 1 : 0.95 }} onClick={() => handleCardClick(card.id)} className={`flex aspect-square cursor-pointer items-center justify-center rounded-2xl border-4 p-2 text-center shadow-md transition-all ${card.isFlipped || card.isMatched ? 'border-indigo-100 bg-white' : 'border-indigo-700 bg-indigo-600'}`}>
-            {(card.isFlipped || card.isMatched) ? <div className="flex min-w-0 flex-col items-center justify-center"><span className={`break-words font-black leading-tight ${card.type === 'en' ? 'text-xs text-indigo-900 sm:text-base' : 'text-[11px] text-pink-600 sm:text-sm'}`}>{card.content}</span><div className="mt-1 text-[8px] font-bold uppercase text-gray-300">{card.type === 'en' ? 'English' : 'Русский'}</div></div> : <div className="text-3xl font-black text-white drop-shadow-sm">?</div>}
+            {(card.isFlipped || card.isMatched) ? <div className="flex min-w-0 flex-col items-center justify-center"><span className={`break-words font-black leading-tight ${card.type === 'en' ? 'text-xs text-indigo-900 sm:text-base' : 'text-[11px] text-pink-600 sm:text-sm'}`}>{card.content}</span><div className="mt-1 text-[8px] font-bold uppercase text-gray-300">{card.type === 'en' ? 'Английский' : 'Русский'}</div></div> : <div className="text-3xl font-black text-white drop-shadow-sm">?</div>}
           </motion.div>
         ))}
       </div>
