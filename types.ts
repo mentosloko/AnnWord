@@ -107,7 +107,7 @@ export interface DailyQuestState {
 
 export interface DailyQuestCompletionReward {
   quest: DailyQuestState;
-  item?: ShopItem | null;
+  item: ShopItem;
   worldId?: PetWorldId | null;
 }
 
