@@ -3,9 +3,9 @@ import { adminAnalyticsService, AdminAnalyticsSnapshot } from '../../services/ad
 import { UserProfile } from '../../types';
 
 interface AdminAnalyticsScreenProps { userProfile: UserProfile; onBackHome: () => void; }
-const formatGameType = (type: string | null): string => ({ wordle: 'Классика', hangman: 'Виселица', sprint: 'Спринт', anagram: 'Анаграммы', memory: 'Память' }[type || ''] || type || 'Другое');
-const formatEventType = (type: string): string => ({ game: 'Игра', reward: 'Награда', economy: 'Экономика', inventory: 'Инвентарь', character: 'Персонаж', dictionary: 'Словарь', auth: 'Вход', navigation: 'Навигация' }[type] || type);
-const formatEventName = (name: string): string => ({ game_started: 'Игра начата', game_finished: 'Игра завершена', hint_used: 'Подсказка использована', reward_granted: 'Награда начислена', shop_item_bought: 'Предмет куплен', inventory_item_used: 'Предмет использован', character_selected: 'Персонаж выбран', dictionary_uploaded: 'Словарь загружен', route_changed: 'Переход между экранами', login_success: 'Вход выполнен', logout: 'Выход выполнен' }[name] || name);
+const formatGameType = (type: string | null): string => ({ wordle: 'Классика', hangman: 'Виселица', sprint: 'Спринт', anagram: 'Анаграммы', memory: 'Память' }[type || ''] || 'Другой режим');
+const formatEventType = (type: string): string => ({ game: 'Игра', reward: 'Награда', economy: 'Экономика', inventory: 'Инвентарь', character: 'Персонаж', dictionary: 'Словарь', auth: 'Вход', navigation: 'Навигация' }[type] || 'Другое');
+const formatEventName = (name: string): string => ({ game_started: 'Игра начата', game_finished: 'Игра завершена', hint_used: 'Подсказка использована', reward_granted: 'Награда начислена', shop_item_bought: 'Предмет куплен', inventory_item_used: 'Предмет использован', character_selected: 'Персонаж выбран', dictionary_uploaded: 'Словарь загружен', route_changed: 'Переход между экранами', login_success: 'Вход выполнен', logout: 'Выход выполнен' }[name] || 'Другое событие');
 const formatDate = (value: string): string => { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' }); };
 const StatCard: React.FC<{ label: string; value: number | string; hint?: string }> = ({ label, value, hint }) => <div className="rounded-3xl border border-indigo-100 bg-white p-5 shadow-sm"><div className="text-xs font-black uppercase tracking-widest text-indigo-300">{label}</div><div className="mt-2 text-3xl font-black text-indigo-950">{value}</div>{hint && <div className="mt-1 text-xs font-semibold text-gray-400">{hint}</div>}</div>;
 
@@ -17,7 +17,7 @@ export const AdminAnalyticsScreen: React.FC<AdminAnalyticsScreenProps> = ({ user
   useEffect(() => {
     if (!isAdmin) { setIsLoading(false); return; }
     let cancelled = false; setIsLoading(true); setError(null);
-    adminAnalyticsService.loadSnapshot().then(data => { if (!cancelled) setSnapshot(data); }).catch(err => { if (!cancelled) setError(err?.message || 'Не удалось загрузить аналитику'); }).finally(() => { if (!cancelled) setIsLoading(false); });
+    adminAnalyticsService.loadSnapshot().then(data => { if (!cancelled) setSnapshot(data); }).catch(() => { if (!cancelled) setError('Не удалось загрузить аналитику'); }).finally(() => { if (!cancelled) setIsLoading(false); });
     return () => { cancelled = true; };
   }, [isAdmin]);
   const totals = useMemo(() => { const gameRows = snapshot?.gameStats || [], economyRows = snapshot?.economyStats || []; return { gamesStarted: gameRows.reduce((sum, row) => sum + row.games_started, 0), gamesFinished: gameRows.reduce((sum, row) => sum + row.games_finished, 0), gamesWon: gameRows.reduce((sum, row) => sum + row.games_won, 0), coinsSpent: economyRows.reduce((sum, row) => sum + row.coins_spent, 0), purchases: economyRows.reduce((sum, row) => sum + row.purchases, 0) }; }, [snapshot]);
