@@ -1,11 +1,11 @@
 import { InventoryItem, PetState, ShopItem, UserProfile } from '../types';
-import { applyTreatMood } from './gamificationRules';
+import { applyTreatMood, normalizeMoodScore } from './gamificationRules';
 import { MAX_EQUIPPED_ACCESSORIES } from './petAssets';
 import { getShopItemById } from './shopCatalog';
 
 export interface PurchaseResult {
   ok: boolean;
-  reason?: 'not_authenticated' | 'locked' | 'insufficient_funds' | 'invalid_item' | 'already_owned' | 'accessory_limit_reached';
+  reason?: 'not_authenticated' | 'locked' | 'insufficient_funds' | 'invalid_item' | 'already_owned' | 'accessory_limit_reached' | 'mood_full';
   profile?: UserProfile;
   awardedItem?: ShopItem;
 }
@@ -98,6 +98,7 @@ export const applyItemUseLocally = (profile: UserProfile, itemId: string): Purch
   let pet: PetState = { ...profile.pet, equippedAccessories: [...(profile.pet.equippedAccessories || [])] };
 
   if (item.type === 'food') {
+    if (normalizeMoodScore(pet) >= 100) return { ok: false, reason: 'mood_full' };
     const moodDelta = shopItem?.effect?.mood ?? 8;
     const moodCap = shopItem?.effect?.moodCap ?? 100;
     pet = applyTreatMood(pet, moodDelta, moodCap);
@@ -148,6 +149,7 @@ export const getPurchaseErrorMessage = (reason?: PurchaseResult['reason']): stri
     case 'invalid_item': return 'Предмет не найден или повреждён.';
     case 'already_owned': return 'Этот предмет уже есть в инвентаре.';
     case 'accessory_limit_reached': return 'Можно надеть максимум 2 аксессуара. Снимите один из уже надетых предметов, чтобы надеть новый.';
+    case 'mood_full': return 'Персонаж уже в восторге! Лакомство пригодится позже.';
     default: return 'Покупка не удалась.';
   }
 };
