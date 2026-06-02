@@ -57,7 +57,12 @@ export const normalizePet = (value: unknown): PetState => {
     stage: deriveCharacterStage(level),
   };
   const moodScore = normalizeMoodScore({ ...basePet, mood: ['sad', 'neutral', 'calm', 'happy', 'excited', 'joyful', 'super_happy'].includes(String(value.mood)) ? value.mood as PetState['mood'] : DEFAULT_PET.mood, moodScore: typeof value.moodScore === 'number' ? value.moodScore : undefined });
-  return { ...basePet, moodScore, mood: deriveMoodFromScore(moodScore) };
+  return {
+    ...basePet,
+    equippedAccessories: moodScore < 34 ? [] : basePet.equippedAccessories,
+    moodScore,
+    mood: deriveMoodFromScore(moodScore),
+  };
 };
 
 export const normalizeInventory = (value: unknown): InventoryItem[] => Array.isArray(value) ? value.filter(isPlainObject).map(item => ({
