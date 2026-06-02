@@ -3,7 +3,6 @@ export type DictionarySource = 'builtin' | 'custom';
 export type DifficultyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'ALL';
 
 export type ViewState = 'landing' | 'profile' | 'setup' | 'game' | 'review' | 'anagrams' | 'sprint' | 'hangman' | 'memory' | 'shop' | 'pet_room' | 'character_onboarding' | 'admin';
-
 export type CharStatus = 'correct' | 'present' | 'absent' | 'initial';
 
 export interface UserStats {
@@ -51,27 +50,7 @@ export interface UserProfile {
   inventory: InventoryItem[];
 }
 
-export type DailyQuestKind =
-  | 'wordle_two'
-  | 'wordle_three'
-  | 'wordle_four'
-  | 'wordle_win'
-  | 'sprint_six'
-  | 'sprint_eight'
-  | 'sprint_ten'
-  | 'sprint_twelve'
-  | 'memory_twelve'
-  | 'memory_fourteen'
-  | 'memory_sixteen'
-  | 'memory_twenty'
-  | 'hangman_perfect'
-  | 'hangman_one'
-  | 'hangman_clean'
-  | 'hangman_win'
-  | 'anagram_three'
-  | 'anagram_five'
-  | 'anagram_eight'
-  | 'all_five_games';
+export type DailyQuestKind = 'wordle_four' | 'sprint_twelve' | 'memory_sixteen' | 'hangman_clean' | 'all_five_games';
 
 export interface DailyQuestState {
   questDate: string;
@@ -102,40 +81,15 @@ export interface ShopItem {
   minLevel: number;
   description: string;
   imageUrl?: string;
-  effect?: {
-    mood?: number;
-    moodCap?: number;
-  };
+  effect?: { mood?: number; moodCap?: number; };
   characterType?: string;
-  randomReward?: {
-    pool: ShopRandomRewardOption[];
-  };
+  randomReward?: { pool: ShopRandomRewardOption[]; };
 }
 
-export interface CellData {
-  letter: string;
-  status: CharStatus;
-}
-
-export interface GameSettings {
-  wordLength: WordLength;
-  useCustomDictionary: boolean;
-  dictionarySource: DictionarySource;
-  difficulty: DifficultyLevel;
-  username: string;
-}
-
-export interface EnrichedWord {
-  word: string;
-  translation: string;
-  level: string;
-}
-
-export interface HistoryItem {
-  word: string;
-  translation: string | null;
-}
-
+export interface CellData { letter: string; status: CharStatus; }
+export interface GameSettings { wordLength: WordLength; useCustomDictionary: boolean; dictionarySource: DictionarySource; difficulty: DifficultyLevel; username: string; }
+export interface EnrichedWord { word: string; translation: string; level: string; }
+export interface HistoryItem { word: string; translation: string | null; }
 export interface GameState {
   secretWord: string;
   secretWordData?: EnrichedWord | null;
@@ -149,8 +103,4 @@ export interface GameState {
   hintCoinsSpent?: number;
   error: string | null;
 }
-
-export interface KeyboardKey {
-  key: string;
-  status?: CharStatus;
-}
+export interface KeyboardKey { key: string; status?: CharStatus; }
