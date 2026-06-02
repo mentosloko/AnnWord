@@ -23,9 +23,9 @@ const getStatusTone = (status: GameResultOverlayProps['status']) => status === '
 const getFeedingPrompt = (pet: PetState, coinsGained: number): string | null => {
   if (coinsGained <= 0) return null;
   const moodScore = normalizeMoodScore(pet);
-  if (moodScore <= 45) return `${pet.name} проголодался. На заработанные ₽ можно купить лакомство и покормить питомца.`;
+  if (moodScore <= 45) return `${pet.name} проголодался. На заработанные монеты можно купить лакомство и покормить питомца.`;
   if (moodScore <= 70) return `${pet.name} будет рад лакомству после игры. Загляните в магазин за угощением.`;
-  return '₽ начислены. Можно накопить на новые лакомства или аксессуары.';
+  return 'Монеты начислены. Можно накопить на новые лакомства или аксессуары.';
 };
 export const GameResultOverlay: React.FC<GameResultOverlayProps> = ({ isOpen, status, title, subtitle, emoji = status === 'lost' ? '💪' : '🎉', pet, xpGained, coinsGained, primaryLabel = 'Играть снова', secondaryLabel = 'В меню', onPrimary, onSecondary, details }) => {
   if (!isOpen) return null;
