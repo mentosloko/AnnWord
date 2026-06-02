@@ -27,7 +27,7 @@ export const STARTER_CHARACTERS: StarterCharacter[] = [
     type: 'RoboCat',
     title: 'Робокот',
     emoji: '🤖',
-    description: 'Умный помощник из будущего, который становится круче от XP.',
+    description: 'Умный помощник из будущего, который становится круче с каждым новым опытом.',
     defaultName: 'Байт',
   },
 ];
