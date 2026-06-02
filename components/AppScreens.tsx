@@ -14,6 +14,7 @@ import { Shop } from './Shop';
 import { PetRoom } from './PetRoom';
 import { DailyQuestCompletionReward, DailyQuestState, GameSettings, GameState, CharStatus, PetState, ShopItem, UserProfile, ViewState, WordLength } from '../types';
 import { GameRewardInput } from '../services/gamificationRules';
+import { WordPracticeResult } from '../services/gameSessionEngine';
 import { PremiumDictionaryDraft } from '../services/premiumDictionaryService';
 
 export type PlayableModeRoute = 'game' | 'anagrams' | 'sprint' | 'memory' | 'hangman';
@@ -24,12 +25,12 @@ export interface AppScreensProps {
   settings: GameSettings; modeWords: string[]; selectedPlayMode: PlayableModeRoute; classicGame: ClassicGameScreenBindings; dictionaryUpload: DictionaryUploadBindings;
   onRouteChange: (route: ViewState) => void; onSelectedPlayModeChange: (mode: PlayableModeRoute) => void; onSettingsChange: (settings: GameSettings | ((prev: GameSettings) => GameSettings)) => void;
   onOpenLogin: () => void; onOpenRules: () => void; onBuy: (item: ShopItem) => Promise<void>; onUseItem: (itemId: string) => Promise<void>; onUpdatePet: (pet: PetState) => Promise<void>; onSaveDictionary: (draft: PremiumDictionaryDraft) => Promise<void>;
-  onGameReward: (input: GameRewardInput) => Promise<void>; onRecordReviewWord?: (word: string) => Promise<void>; onCharacterOnboardingComplete: (character: PetState) => Promise<void>; onGameStarted?: (mode: PlayableModeRoute) => void;
+  onGameReward: (input: GameRewardInput) => Promise<void>; onWordPractice?: (word: string, result: WordPracticeResult) => Promise<void>; onCharacterOnboardingComplete: (character: PetState) => Promise<void>; onGameStarted?: (mode: PlayableModeRoute) => void;
 }
 const WORD_LENGTHS: WordLength[] = [4, 5, 6];
 const randomWordLength = (): WordLength => WORD_LENGTHS[Math.floor(Math.random() * WORD_LENGTHS.length)];
 
-export const AppScreens: React.FC<AppScreensProps> = ({ route, userProfile, isAuthenticated, dailyQuest, dailyQuestReward, onCloseDailyQuestReward, settings, modeWords, selectedPlayMode, classicGame, dictionaryUpload, onRouteChange, onSelectedPlayModeChange, onSettingsChange, onOpenLogin, onOpenRules, onBuy, onUseItem, onUpdatePet, onSaveDictionary, onGameReward, onRecordReviewWord, onCharacterOnboardingComplete, onGameStarted }) => {
+export const AppScreens: React.FC<AppScreensProps> = ({ route, userProfile, isAuthenticated, dailyQuest, dailyQuestReward, onCloseDailyQuestReward, settings, modeWords, selectedPlayMode, classicGame, dictionaryUpload, onRouteChange, onSelectedPlayModeChange, onSettingsChange, onOpenLogin, onOpenRules, onBuy, onUseItem, onUpdatePet, onSaveDictionary, onGameReward, onWordPractice, onCharacterOnboardingComplete, onGameStarted }) => {
   const goHome = () => onRouteChange('landing');
   const setupError = classicGame.setupError || dictionaryUpload.error;
   const hasActiveClassicGame = Boolean(classicGame.hasActiveGame);
@@ -46,8 +47,8 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, userProfile, isAu
     setup: <SetupScreen selectedPlayMode={selectedPlayMode} settings={settings} customDictionaryWords={userProfile.customDictionaryEn} setupError={setupError} isUploadingDictionary={dictionaryUpload.isUploadingDictionary} isAuthenticated={isAuthenticated} userProfile={userProfile} onSettingsChange={onSettingsChange} onFileUpload={dictionaryUpload.onFileUpload} onOpenDictionaryStudio={() => onRouteChange('dictionary_studio')} onStartGame={startSelectedMode} onBack={goHome} onLogin={onOpenLogin} />,
     game: <ClassicGameScreen gameState={classicGame.gameState} settings={settings} userProfile={userProfile} keyStatuses={classicGame.keyStatuses} shakeRowIndex={classicGame.shakeRowIndex} onChar={classicGame.handleChar} onDelete={classicGame.handleDelete} onEnter={classicGame.handleEnter} onHint={classicGame.fetchHint} onRestart={classicGame.startNewGame} onBackHome={goHome} />,
     profile: <ProfileScreen userProfile={userProfile} isAuthenticated={isAuthenticated} onBackHome={goHome} onOpenShop={() => onRouteChange('shop')} onOpenPetRoom={() => onRouteChange('pet_room')} onLogin={onOpenLogin} />,
-    anagrams: <AnagramsScreen words={modeWords} wordLength={settings.wordLength} userProfile={userProfile} onGameReward={onGameReward} onRecordReviewWord={onRecordReviewWord} onBackHome={goHome} />,
-    sprint: <SprintScreen words={modeWords} wordLength={settings.wordLength} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
+    anagrams: <AnagramsScreen words={modeWords} wordLength={settings.wordLength} userProfile={userProfile} onGameReward={onGameReward} onWordPractice={onWordPractice} onBackHome={goHome} />,
+    sprint: <SprintScreen words={modeWords} wordLength={settings.wordLength} userProfile={userProfile} onGameReward={onGameReward} onWordPractice={onWordPractice} onBackHome={goHome} />,
     memory: <MemoryScreen words={modeWords} wordLength={settings.wordLength} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
     hangman: <HangmanScreen words={modeWords} wordLength={settings.wordLength} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
     shop: <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} />,
