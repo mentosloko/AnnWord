@@ -7,6 +7,15 @@ export type AccountRole = 'admin' | 'user' | 'parent' | 'teacher';
 export type ViewState = 'landing' | 'profile' | 'setup' | 'game' | 'review' | 'anagrams' | 'sprint' | 'hangman' | 'memory' | 'shop' | 'pet_room' | 'character_onboarding' | 'admin' | 'adult_room' | 'dictionary_studio';
 export type CharStatus = 'correct' | 'present' | 'absent' | 'initial';
 
+export interface FeatureFlags {
+  adultRoom?: boolean;
+  premiumDictionaries?: boolean;
+  dailyWorldReward?: boolean;
+  treatRequests?: boolean;
+  streakStickers?: boolean;
+  levelWardrobe?: boolean;
+}
+
 export interface WordPerformance {
   word: string;
   attempts: number;
@@ -43,8 +52,9 @@ export interface PetState {
   equippedAccessories: string[];
   activeHomeItemId?: string;
   activeWorldId?: PetWorldId;
-  unlockedWorldIds?: PetWorldId[];
+  activeWorldDate?: string;
   dailyStreak?: number;
+  lastDailyActivityDate?: string;
   earnedStickerIds?: string[];
   requestedTreatId?: string;
 }
@@ -81,6 +91,7 @@ export interface UserProfile {
   username: string;
   role?: AccountRole;
   subscriptionTier?: SubscriptionTier;
+  featureFlags?: FeatureFlags;
   customDictionaryEn: string[];
   dictionaryCollections?: CustomDictionaryCollection[];
   managedLearners?: ManagedLearner[];
