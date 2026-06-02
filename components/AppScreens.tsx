@@ -6,6 +6,8 @@ import { ClassicGameScreen } from './screens/ClassicGameScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { CharacterOnboardingScreen } from './screens/CharacterOnboardingScreen';
 import { AdminAnalyticsScreen } from './screens/AdminAnalyticsScreen';
+import { AdultRoomScreen } from './screens/AdultRoomScreen';
+import { DictionaryStudioScreen } from './screens/DictionaryStudioScreen';
 import { AnagramsScreen, HangmanScreen, MemoryScreen, SprintScreen } from './screens/ModeScreens';
 import { hasSavedAnagramSession } from './AnagramGame';
 import { Shop } from './Shop';
@@ -54,6 +56,7 @@ export interface AppScreensProps {
   onOpenRules: () => void;
   onBuy: (item: ShopItem) => Promise<void>;
   onUseItem: (itemId: string) => Promise<void>;
+  onSaveDictionary: (words: string[]) => Promise<void>;
   onGameReward: (input: GameRewardInput) => Promise<void>;
   onRecordReviewWord?: (word: string) => Promise<void>;
   onCharacterOnboardingComplete: (character: PetState) => Promise<void>;
@@ -66,7 +69,7 @@ const randomWordLength = (): WordLength => WORD_LENGTHS[Math.floor(Math.random()
 export const AppScreens: React.FC<AppScreensProps> = ({
   route, userProfile, isAuthenticated, dailyQuest, dailyQuestReward, onCloseDailyQuestReward, settings, modeWords, selectedPlayMode, classicGame,
   dictionaryUpload, onRouteChange, onSelectedPlayModeChange, onSettingsChange, onOpenLogin,
-  onOpenRules, onBuy, onUseItem, onGameReward, onRecordReviewWord, onCharacterOnboardingComplete, onGameStarted,
+  onOpenRules, onBuy, onUseItem, onSaveDictionary, onGameReward, onRecordReviewWord, onCharacterOnboardingComplete, onGameStarted,
 }) => {
   const goHome = () => onRouteChange('landing');
   const setupError = classicGame.setupError || dictionaryUpload.error;
@@ -75,92 +78,23 @@ export const AppScreens: React.FC<AppScreensProps> = ({
 
   const openSetupFor = (mode: PlayableModeRoute) => {
     if (mode === 'game' && hasActiveClassicGame && classicGame.resumeGame?.()) return;
-    if (mode === 'anagrams' && hasActiveAnagramGame) {
-      onSelectedPlayModeChange(mode);
-      onRouteChange('anagrams');
-      return;
-    }
-    onSelectedPlayModeChange(mode);
-    onRouteChange('setup');
+    if (mode === 'anagrams' && hasActiveAnagramGame) { onSelectedPlayModeChange(mode); onRouteChange('anagrams'); return; }
+    onSelectedPlayModeChange(mode); onRouteChange('setup');
   };
-
-  const startSelectedMode = () => {
-    onGameStarted?.(selectedPlayMode);
-    if (selectedPlayMode === 'game') {
-      classicGame.startNewGame();
-      return;
-    }
-    onRouteChange(selectedPlayMode);
-  };
-
+  const startSelectedMode = () => { onGameStarted?.(selectedPlayMode); if (selectedPlayMode === 'game') { classicGame.startNewGame(); return; } onRouteChange(selectedPlayMode); };
   const startDailyQuest = (quest: DailyQuestState) => {
-    const mode: PlayableModeRoute = quest.kind === 'hangman_clean'
-      ? 'hangman'
-      : quest.kind === 'sprint_twelve'
-        ? 'sprint'
-        : quest.kind === 'memory_sixteen'
-          ? 'memory'
-          : 'game';
-    onSelectedPlayModeChange(mode);
-    onSettingsChange(previous => ({ ...previous, wordLength: randomWordLength() }));
-    onRouteChange('setup');
+    const mode: PlayableModeRoute = quest.kind === 'hangman_clean' ? 'hangman' : quest.kind === 'sprint_twelve' ? 'sprint' : quest.kind === 'memory_sixteen' ? 'memory' : 'game';
+    onSelectedPlayModeChange(mode); onSettingsChange(previous => ({ ...previous, wordLength: randomWordLength() })); onRouteChange('setup');
   };
 
   const screens: Partial<Record<ViewState, React.ReactNode>> = {
     admin: <AdminAnalyticsScreen userProfile={userProfile} onBackHome={goHome} />,
+    adult_room: <AdultRoomScreen userProfile={userProfile} onBackHome={goHome} onOpenDictionaryStudio={() => onRouteChange('dictionary_studio')} />,
+    dictionary_studio: <DictionaryStudioScreen userProfile={userProfile} onBack={() => onRouteChange(userProfile.role === 'parent' || userProfile.role === 'teacher' ? 'adult_room' : 'profile')} onSaveDictionary={onSaveDictionary} />,
     character_onboarding: <CharacterOnboardingScreen onComplete={onCharacterOnboardingComplete} />,
-    landing: (
-      <LandingScreen
-        userProfile={userProfile}
-        isAuthenticated={isAuthenticated}
-        dailyQuest={dailyQuest}
-        dailyQuestReward={dailyQuestReward}
-        onCloseDailyQuestReward={onCloseDailyQuestReward}
-        onStartDailyQuest={startDailyQuest}
-        hasActiveClassicGame={hasActiveClassicGame}
-        hasActiveAnagramGame={hasActiveAnagramGame}
-        onStartClassic={() => openSetupFor('game')}
-        onStartAnagrams={() => openSetupFor('anagrams')}
-        onStartSprint={() => openSetupFor('sprint')}
-        onStartHangman={() => openSetupFor('hangman')}
-        onStartMemory={() => openSetupFor('memory')}
-        onOpenShop={() => onRouteChange('shop')}
-        onOpenRules={onOpenRules}
-        onOpenLogin={onOpenLogin}
-        onOpenProfile={() => onRouteChange('profile')}
-        onOpenPetRoom={() => onRouteChange('pet_room')}
-      />
-    ),
-    setup: (
-      <SetupScreen
-        selectedPlayMode={selectedPlayMode}
-        settings={settings}
-        customDictionaryWords={userProfile.customDictionaryEn}
-        setupError={setupError}
-        isUploadingDictionary={dictionaryUpload.isUploadingDictionary}
-        isAuthenticated={isAuthenticated}
-        onSettingsChange={onSettingsChange}
-        onFileUpload={dictionaryUpload.onFileUpload}
-        onStartGame={startSelectedMode}
-        onBack={goHome}
-        onLogin={onOpenLogin}
-      />
-    ),
-    game: (
-      <ClassicGameScreen
-        gameState={classicGame.gameState}
-        settings={settings}
-        userProfile={userProfile}
-        keyStatuses={classicGame.keyStatuses}
-        shakeRowIndex={classicGame.shakeRowIndex}
-        onChar={classicGame.handleChar}
-        onDelete={classicGame.handleDelete}
-        onEnter={classicGame.handleEnter}
-        onHint={classicGame.fetchHint}
-        onRestart={classicGame.startNewGame}
-        onBackHome={goHome}
-      />
-    ),
+    landing: <LandingScreen userProfile={userProfile} isAuthenticated={isAuthenticated} dailyQuest={dailyQuest} dailyQuestReward={dailyQuestReward} onCloseDailyQuestReward={onCloseDailyQuestReward} onStartDailyQuest={startDailyQuest} hasActiveClassicGame={hasActiveClassicGame} hasActiveAnagramGame={hasActiveAnagramGame} onStartClassic={() => openSetupFor('game')} onStartAnagrams={() => openSetupFor('anagrams')} onStartSprint={() => openSetupFor('sprint')} onStartHangman={() => openSetupFor('hangman')} onStartMemory={() => openSetupFor('memory')} onOpenShop={() => onRouteChange('shop')} onOpenRules={onOpenRules} onOpenLogin={onOpenLogin} onOpenProfile={() => onRouteChange('profile')} onOpenPetRoom={() => onRouteChange('pet_room')} />,
+    setup: <SetupScreen selectedPlayMode={selectedPlayMode} settings={settings} customDictionaryWords={userProfile.customDictionaryEn} setupError={setupError} isUploadingDictionary={dictionaryUpload.isUploadingDictionary} isAuthenticated={isAuthenticated} userProfile={userProfile} onSettingsChange={onSettingsChange} onFileUpload={dictionaryUpload.onFileUpload} onOpenDictionaryStudio={() => onRouteChange('dictionary_studio')} onStartGame={startSelectedMode} onBack={goHome} onLogin={onOpenLogin} />,
+    game: <ClassicGameScreen gameState={classicGame.gameState} settings={settings} userProfile={userProfile} keyStatuses={classicGame.keyStatuses} shakeRowIndex={classicGame.shakeRowIndex} onChar={classicGame.handleChar} onDelete={classicGame.handleDelete} onEnter={classicGame.handleEnter} onHint={classicGame.fetchHint} onRestart={classicGame.startNewGame} onBackHome={goHome} />,
     profile: <ProfileScreen userProfile={userProfile} isAuthenticated={isAuthenticated} onBackHome={goHome} onOpenShop={() => onRouteChange('shop')} onOpenPetRoom={() => onRouteChange('pet_room')} onLogin={onOpenLogin} />,
     anagrams: <AnagramsScreen words={modeWords} wordLength={settings.wordLength} userProfile={userProfile} onGameReward={onGameReward} onRecordReviewWord={onRecordReviewWord} onBackHome={goHome} />,
     sprint: <SprintScreen words={modeWords} wordLength={settings.wordLength} userProfile={userProfile} onGameReward={onGameReward} onBackHome={goHome} />,
@@ -169,6 +103,5 @@ export const AppScreens: React.FC<AppScreensProps> = ({
     shop: <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} />,
     pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onBuy={onBuy} onClose={goHome} onOpenShop={() => onRouteChange('shop')} />,
   };
-
   return <AppRouter route={route} screens={screens} fallback={screens.landing} />;
 };
