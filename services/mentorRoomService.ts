@@ -32,6 +32,11 @@ const mapLearner = (value: any): ManagedLearner => {
   };
 };
 
+const writeError = (error: any, fallback: string): never => {
+  if (schemaNotReady(error)) throw new Error(fallback);
+  throw error;
+};
+
 export const mentorRoomService = {
   async loadLearners(): Promise<MentorRoomLoadResult> {
     const { data, error } = await supabase.rpc('get_managed_learner_word_stats');
@@ -45,28 +50,21 @@ export const mentorRoomService = {
   async assignWords(learnerId: string, words: string[], title = 'Слова для тренировки'): Promise<void> {
     const normalized = normalizeAssignedWords(words);
     if (!normalized.length) throw new Error('Добавьте хотя бы одно английское слово.');
-    const { error } = await supabase.from('assigned_word_sets').insert({
-      learner_user_id: learnerId,
-      title,
-      source: 'manual',
-      words: normalized,
+    const { error } = await supabase.rpc('assign_managed_words', {
+      p_learner_user_id: learnerId,
+      p_title: title,
+      p_words: normalized,
+      p_source: 'manual',
     });
-    if (error) {
-      if (schemaNotReady(error)) throw new Error('Сохранение назначений станет доступно после подключения схемы комнаты взрослого.');
-      throw error;
-    }
+    if (error) writeError(error, 'Сохранение назначений станет доступно после подключения схемы комнаты взрослого.');
   },
 
   async saveWeeklyReportSubscription(learnerId: string, email: string, enabled: boolean): Promise<void> {
-    const { error } = await supabase.from('weekly_report_subscriptions').upsert({
-      learner_user_id: learnerId,
-      email,
-      enabled,
-      weekday: 1,
-    }, { onConflict: 'adult_user_id,learner_user_id' });
-    if (error) {
-      if (schemaNotReady(error)) throw new Error('Отправка отчётов станет доступна после подключения схемы комнаты взрослого.');
-      throw error;
-    }
+    const { error } = await supabase.rpc('save_weekly_report_subscription', {
+      p_learner_user_id: learnerId,
+      p_email: email,
+      p_enabled: enabled,
+    });
+    if (error) writeError(error, 'Отправка отчётов станет доступна после подключения схемы комнаты взрослого.');
   },
 };
