@@ -67,7 +67,7 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
           <button type="button" onClick={onBackHome} className="flex h-[clamp(2.1rem,6.2dvh,2.75rem)] w-[clamp(2.1rem,6.2dvh,2.75rem)] items-center justify-center rounded-xl border-2 border-indigo-100 bg-white text-lg font-black text-indigo-700 shadow-sm">←</button>
           <div className="flex min-w-0 justify-center">
             <button type="button" onClick={clickHint} disabled={finished || hintUsed} className="min-w-[7.75rem] rounded-xl border-2 border-blue-100 bg-blue-50 px-2.5 py-[clamp(0.3rem,1dvh,0.55rem)] text-[clamp(0.7rem,1.7dvh,0.875rem)] font-black text-blue-700 disabled:opacity-50 sm:min-w-[9rem]">
-              {gameState.loadingHint ? '...' : hintUsed ? 'Подсказка использована' : 'Подсказка · −1 ₽'}
+              {gameState.loadingHint ? '...' : hintUsed ? 'Подсказка использована' : 'Подсказка за 1 монету'}
             </button>
           </div>
           <div className="flex items-center gap-1">
@@ -85,7 +85,7 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
         </section>
         <footer className="flex shrink-0 justify-center overflow-hidden"><Keyboard onChar={onChar} onDelete={onDelete} onEnter={onEnter} letterStatuses={keyStatuses} /></footer>
       </div>
-      {finished && reward && progress && <GameResultOverlay isOpen status={gameState.gameStatus === 'won' ? 'won' : 'lost'} title={gameState.gameStatus === 'won' ? 'Победа!' : 'Почти получилось'} subtitle={gameState.gameStatus === 'won' ? 'Слово угадано.' : 'Попробуем ещё раз?'} emoji={gameState.gameStatus === 'won' ? '🎉' : '💪'} pet={progress.pet} xpGained={reward.xp} coinsGained={reward.coins} onPrimary={onRestart} onSecondary={onBackHome} details={<span>Слово: <b>{gameState.secretWord}</b>{gameState.secretWordData?.translation ? ` · ${gameState.secretWordData.translation}` : ''}{spent ? ` · подсказка: −${spent} ₽` : ''}</span>} />}
+      {finished && reward && progress && <GameResultOverlay isOpen status={gameState.gameStatus === 'won' ? 'won' : 'lost'} title={gameState.gameStatus === 'won' ? 'Победа!' : 'Почти получилось'} subtitle={gameState.gameStatus === 'won' ? 'Слово угадано.' : 'Попробуем ещё раз?'} emoji={gameState.gameStatus === 'won' ? '🎉' : '💪'} pet={progress.pet} xpGained={reward.xp} coinsGained={reward.coins} onPrimary={onRestart} onSecondary={onBackHome} details={<span>Слово: <b>{gameState.secretWord}</b>{gameState.secretWordData?.translation ? ` · ${gameState.secretWordData.translation}` : ''}{spent ? ` · подсказка: −${spent} ${spent === 1 ? 'монета' : 'монеты'}` : ''}</span>} />}
     </ScreenContainer>
   );
 };
