@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppShell } from './components/AppShell';
 import { AppScreens, PlayableModeRoute } from './components/AppScreens';
 import { AuthBootstrapGate } from './components/AuthBootstrapGate';
@@ -10,6 +10,7 @@ import { useProfileEconomy } from './hooks/useProfileEconomy';
 import { DailyQuestCompletionReward, DailyQuestState, DictionarySource, GameRewardType, PetState, ShopItem, UserStats, ViewState } from './types';
 import { analyticsService } from './services/analyticsService';
 import { GameRewardInput } from './services/gamificationRules';
+import { updateReviewPriorities, WordPracticeResult } from './services/gameSessionEngine';
 import { preloadAppAssetsForProfile } from './services/assetPreloader';
 import { WORDLE_HINT_COST, getWordleHintBalanceDelta } from './services/wordleEconomy';
 import { dailyQuestService } from './services/dailyQuestService';
@@ -33,6 +34,12 @@ const AppV2: React.FC = () => {
   const currentUserId = currentUser?.id ?? cachedUserId ?? null;
   const { getSecretWordPool, getValidationPool, getModeWords } = useDictionaryPools({ settings, userProfile });
   const profileEconomy = useProfileEconomy({ currentUserId, userProfile, setUserProfile });
+  const wordReviewStatsRef = useRef<UserStats>(userProfile.stats);
+  const wordPracticeSyncRef = useRef<Promise<void>>(Promise.resolve());
+
+  useEffect(() => {
+    wordReviewStatsRef.current = userProfile.stats;
+  }, [userProfile.stats]);
 
   const setRoute = useCallback((nextRoute: ViewState) => {
     setRouteState(previousRoute => {
@@ -102,19 +109,25 @@ const AppV2: React.FC = () => {
     await profileEconomy.applyGameReward(input, { analyticsEvents: [gameEvent] });
     await submitDailyQuestResult(input);
   }, [currentUserId, profileEconomy, route, settings.dictionarySource, settings.difficulty, settings.wordLength, submitDailyQuestResult]);
-  const handleRecordReviewWord = useCallback(async (word: string) => {
-    const normalizedWord = word.trim().toUpperCase();
-    if (!normalizedWord) return;
-    const nextStats: UserStats = { ...userProfile.stats, wordsGuessed: { ...userProfile.stats.wordsGuessed }, wordsToReview: { ...(userProfile.stats.wordsToReview || {}) } };
-    nextStats.wordsToReview![normalizedWord] = (nextStats.wordsToReview![normalizedWord] || 0) + 1;
-    await profileEconomy.updateStats(nextStats);
-  }, [profileEconomy, userProfile.stats]);
+  const handleWordPractice = useCallback(async (word: string, result: WordPracticeResult) => {
+    const previousStats = wordReviewStatsRef.current;
+    const nextStats: UserStats = {
+      ...previousStats,
+      wordsGuessed: { ...previousStats.wordsGuessed },
+      wordsToReview: updateReviewPriorities(previousStats.wordsToReview || {}, word, result),
+    };
+    wordReviewStatsRef.current = nextStats;
+    wordPracticeSyncRef.current = wordPracticeSyncRef.current
+      .catch(() => undefined)
+      .then(() => profileEconomy.updateStats(nextStats));
+    await wordPracticeSyncRef.current;
+  }, [profileEconomy]);
   const handleCharacterOnboardingComplete = useCallback(async (character: PetState) => { await profileEconomy.updateCharacter(character); setRoute('landing'); }, [profileEconomy, setRoute]);
   const startTrackedGame = useCallback((mode: PlayableModeRoute) => { analyticsService.trackEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_started', gameType: toAnalyticsGameType(mode), route: mode, payload: { wordLength: settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty, wordsAvailable: modeWords.length } }); }, [currentUserId, modeWords.length, settings.dictionarySource, settings.difficulty, settings.wordLength]);
   if (bootstrapStatus !== 'ready') return <AuthBootstrapGate error={bootstrapError} onRetry={() => window.location.reload()} />;
 
   return <AppShell route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} showLoginModal={showLoginModal} showRulesModal={showRulesModal} authMode={authMode} tempUsername={tempUsername} tempPassword={tempPassword} authError={authError} isAuthLoading={isAuthLoading} onHomeClick={() => setRoute('landing')} onLoginClick={openLogin} onLogoutClick={handleLogout} onProfileClick={() => setRoute('profile')} onShopClick={() => setRoute('shop')} onAdminClick={() => setRoute('admin')} onAdultRoomClick={() => setRoute('adult_room')} onDictionaryStudioClick={() => setRoute('dictionary_studio')} onCloseLogin={() => setShowLoginModal(false)} onCloseRules={() => setShowRulesModal(false)} onAuthModeChange={setAuthMode} onUsernameChange={setTempUsername} onPasswordChange={setTempPassword} onAuthSubmit={submitEmailAuth} onYandexLogin={loginWithYandex}>
-    <AppScreens route={route} selectedPlayMode={selectedPlayMode} userProfile={userProfile} isAuthenticated={isAuthenticated} dailyQuest={dailyQuest} dailyQuestReward={dailyQuestReward} onCloseDailyQuestReward={() => setDailyQuestReward(null)} settings={settings} modeWords={modeWords} classicGame={classicGame} dictionaryUpload={{ isUploadingDictionary: dictionaryUpload.isUploadingDictionary, error: dictionaryUpload.dictionaryUploadError, onFileUpload: dictionaryUpload.handleDictionaryFileUpload }} onRouteChange={setRoute} onSelectedPlayModeChange={setSelectedPlayMode} onSettingsChange={setSettings} onOpenLogin={openLogin} onOpenRules={() => setShowRulesModal(true)} onBuy={handleBuy} onUseItem={handleUseItem} onUpdatePet={profileEconomy.updateCharacter} onSaveDictionary={handleSaveDictionary} onGameReward={handleGameReward} onRecordReviewWord={handleRecordReviewWord} onCharacterOnboardingComplete={handleCharacterOnboardingComplete} onGameStarted={startTrackedGame} />
+    <AppScreens route={route} selectedPlayMode={selectedPlayMode} userProfile={userProfile} isAuthenticated={isAuthenticated} dailyQuest={dailyQuest} dailyQuestReward={dailyQuestReward} onCloseDailyQuestReward={() => setDailyQuestReward(null)} settings={settings} modeWords={modeWords} classicGame={classicGame} dictionaryUpload={{ isUploadingDictionary: dictionaryUpload.isUploadingDictionary, error: dictionaryUpload.dictionaryUploadError, onFileUpload: dictionaryUpload.handleDictionaryFileUpload }} onRouteChange={setRoute} onSelectedPlayModeChange={setSelectedPlayMode} onSettingsChange={setSettings} onOpenLogin={openLogin} onOpenRules={() => setShowRulesModal(true)} onBuy={handleBuy} onUseItem={handleUseItem} onUpdatePet={profileEconomy.updateCharacter} onSaveDictionary={handleSaveDictionary} onGameReward={handleGameReward} onWordPractice={handleWordPractice} onCharacterOnboardingComplete={handleCharacterOnboardingComplete} onGameStarted={startTrackedGame} />
   </AppShell>;
 };
 export default AppV2;
