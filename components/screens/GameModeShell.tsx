@@ -52,7 +52,7 @@ export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, r
         {showRules && rules.length > 0 && (
           <div className="shrink-0 rounded-3xl border-2 border-indigo-100 bg-indigo-50 px-5 py-4 text-sm text-indigo-900 shadow-sm">
             <div className="mb-2 flex items-center justify-between gap-3 font-black">
-              <span>Как играть и получать XP</span>
+              <span>Как играть и получать опыт</span>
               <button type="button" onClick={() => setShowRules(false)} className="text-xl leading-none text-indigo-400">×</button>
             </div>
             <ul className="list-disc space-y-1 pl-5">
