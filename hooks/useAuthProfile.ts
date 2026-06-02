@@ -16,6 +16,18 @@ export const createInitialSettings = (): GameSettings => ({
   username: 'Гость',
 });
 
+const getAuthErrorMessage = (error: unknown, fallback: string): string => {
+  const message = error instanceof Error ? error.message : typeof error === 'object' && error && 'message' in error ? String((error as { message?: unknown }).message || '') : '';
+  const normalized = message.toLowerCase();
+  if (normalized.includes('invalid login credentials')) return 'Неверная электронная почта или пароль.';
+  if (normalized.includes('email not confirmed')) return 'Подтвердите электронную почту перед входом.';
+  if (normalized.includes('user already registered') || normalized.includes('already been registered')) return 'Аккаунт с такой электронной почтой уже существует.';
+  if (normalized.includes('password should be') || normalized.includes('weak password')) return 'Пароль слишком простой или короткий.';
+  if (normalized.includes('rate limit') || normalized.includes('too many requests')) return 'Слишком много попыток. Попробуйте позже.';
+  if (normalized.includes('network') || normalized.includes('fetch')) return 'Не удалось подключиться к серверу. Проверьте интернет и попробуйте снова.';
+  return fallback;
+};
+
 export const useAuthProfile = () => {
   const [initialSnapshot] = useState(() => profileCache.readSnapshot());
   const initialProfile = initialSnapshot?.profile || GUEST_PROFILE;
@@ -68,7 +80,6 @@ export const useAuthProfile = () => {
 
   useEffect(() => {
     let cancelled = false;
-
     const finishInitialCheck = (status: AuthBootstrapStatus, error: string | null = null) => {
       if (cancelled) return;
       initialSessionCheckedRef.current = true;
@@ -77,171 +88,58 @@ export const useAuthProfile = () => {
       setBootstrapError(error);
       setIsRestoringSession(false);
     };
-
-    const failInitialCheck = (error: any, fallbackMessage: string) => {
+    const failInitialCheck = (error: unknown, fallbackMessage: string) => {
       console.error(fallbackMessage, error);
-      if (hasCachedProfile) {
-        finishInitialCheck('ready');
-      } else {
-        finishInitialCheck('error', error?.message || fallbackMessage);
-      }
+      if (hasCachedProfile) finishInitialCheck('ready');
+      else finishInitialCheck('error', getAuthErrorMessage(error, fallbackMessage));
     };
-
-    authService.getInitialSession()
-      .then(async ({ user }) => {
-        if (cancelled) return;
-        if (!user) {
-          resetToGuest();
-          finishInitialCheck('ready');
-          return;
-        }
-
-        currentUserIdRef.current = user.id;
-        setCachedUserId(user.id);
-        setCurrentUser(user);
-        await loadProfileForUser(user);
-        finishInitialCheck('ready');
-      })
-      .catch(error => failInitialCheck(error, 'Не удалось восстановить сессию.'));
-
+    authService.getInitialSession().then(async ({ user }) => {
+      if (cancelled) return;
+      if (!user) { resetToGuest(); finishInitialCheck('ready'); return; }
+      currentUserIdRef.current = user.id;
+      setCachedUserId(user.id);
+      setCurrentUser(user);
+      await loadProfileForUser(user);
+      finishInitialCheck('ready');
+    }).catch(error => failInitialCheck(error, 'Не удалось восстановить сессию.'));
     const silentlySyncAuthenticatedUser = async (event: AuthEventName, user: User) => {
       const isFreshLogin = event === 'SIGNED_IN' && currentUserIdRef.current !== user.id;
-
       try {
-        if (event === 'TOKEN_REFRESHED') {
-          currentUserIdRef.current = user.id;
-          setCachedUserId(user.id);
-          setCurrentUser(user);
-          return;
-        }
-
-        if (isFreshLogin) {
-          await loadProfileForUser(user);
-          if (cancelled) return;
-          currentUserIdRef.current = user.id;
-          setCachedUserId(user.id);
-          setCurrentUser(user);
-          return;
-        }
-
-        currentUserIdRef.current = user.id;
-        setCachedUserId(user.id);
-        setCurrentUser(user);
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-          await loadProfileForUser(user);
-        }
-      } catch (error: any) {
+        if (event === 'TOKEN_REFRESHED') { currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return; }
+        if (isFreshLogin) { await loadProfileForUser(user); if (cancelled) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return; }
+        currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user);
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') await loadProfileForUser(user);
+      } catch (error: unknown) {
         console.error('Не удалось синхронизировать профиль пользователя.', error);
-        if (isFreshLogin && !cancelled) {
-          setAuthError(error?.message || 'Не удалось загрузить профиль пользователя.');
-        }
-      } finally {
-        if (event === 'SIGNED_IN' && !cancelled) setIsAuthLoading(false);
-      }
+        if (isFreshLogin && !cancelled) setAuthError(getAuthErrorMessage(error, 'Не удалось загрузить профиль пользователя.'));
+      } finally { if (event === 'SIGNED_IN' && !cancelled) setIsAuthLoading(false); }
     };
-
     const unsubscribe = authService.onAuthStateChange((event, _session, user) => {
       if (event === 'INITIAL_SESSION') return;
-
-      if (event === 'SIGNED_OUT' || !user) {
-        setIsAuthLoading(false);
-        resetToGuest();
-        if (!initialSessionCheckedRef.current) finishInitialCheck('ready');
-        return;
-      }
-
+      if (event === 'SIGNED_OUT' || !user) { setIsAuthLoading(false); resetToGuest(); if (!initialSessionCheckedRef.current) finishInitialCheck('ready'); return; }
       if (!initialSessionCheckedRef.current) return;
       void silentlySyncAuthenticatedUser(event, user);
     });
-
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
+    return () => { cancelled = true; unsubscribe(); };
   }, [hasCachedProfile, loadProfileForUser, resetToGuest]);
 
-  const openLoginMode = useCallback(() => {
-    setAuthMode('login');
-    setAuthError(null);
-  }, []);
-
+  const openLoginMode = useCallback(() => { setAuthMode('login'); setAuthError(null); }, []);
   const submitEmailAuth = useCallback(async () => {
-    if (!tempUsername.trim() || !tempPassword.trim()) {
-      setAuthError('Заполните все поля');
-      return false;
-    }
-
-    setIsAuthLoading(true);
-    setAuthError(null);
-    let profileWillLoadFromAuthEvent = false;
-
+    if (!tempUsername.trim() || !tempPassword.trim()) { setAuthError('Заполните все поля'); return false; }
+    setIsAuthLoading(true); setAuthError(null); let profileWillLoadFromAuthEvent = false;
     try {
-      if (authMode === 'login') {
-        await authService.signInWithEmail(tempUsername, tempPassword);
-        profileWillLoadFromAuthEvent = true;
-      } else {
-        const result = await authService.signUpWithEmail(tempUsername, tempPassword);
-        if (result.needsEmailConfirmation) {
-          setAuthError('На ваш email отправлено письмо для подтверждения. Пожалуйста, подтвердите его перед входом.');
-        } else {
-          profileWillLoadFromAuthEvent = true;
-        }
-      }
-      setTempUsername('');
-      setTempPassword('');
-      return true;
-    } catch (error: any) {
-      setAuthError(error?.message || 'Ошибка авторизации');
-      return false;
-    } finally {
-      if (!profileWillLoadFromAuthEvent) setIsAuthLoading(false);
-    }
+      if (authMode === 'login') { await authService.signInWithEmail(tempUsername, tempPassword); profileWillLoadFromAuthEvent = true; }
+      else { const result = await authService.signUpWithEmail(tempUsername, tempPassword); if (result.needsEmailConfirmation) setAuthError('На вашу электронную почту отправлено письмо для подтверждения. Подтвердите её перед входом.'); else profileWillLoadFromAuthEvent = true; }
+      setTempUsername(''); setTempPassword(''); return true;
+    } catch (error: unknown) { setAuthError(getAuthErrorMessage(error, 'Не удалось войти. Попробуйте ещё раз.')); return false; }
+    finally { if (!profileWillLoadFromAuthEvent) setIsAuthLoading(false); }
   }, [authMode, tempPassword, tempUsername]);
-
   const loginWithYandex = useCallback(async () => {
-    setIsAuthLoading(true);
-    setAuthError(null);
-    try {
-      await authService.signInWithYandex();
-    } catch (error: any) {
-      setAuthError(error?.message || 'Ошибка входа через Яндекс');
-      setIsAuthLoading(false);
-    }
+    setIsAuthLoading(true); setAuthError(null);
+    try { await authService.signInWithYandex(); }
+    catch (error: unknown) { setAuthError(getAuthErrorMessage(error, 'Не удалось войти через Яндекс.')); setIsAuthLoading(false); }
   }, []);
+  const logout = useCallback(async () => { setIsAuthLoading(true); try { await authService.signOut(); } finally { setIsAuthLoading(false); resetToGuest(); } }, [resetToGuest]);
 
-  const logout = useCallback(async () => {
-    setIsAuthLoading(true);
-    try {
-      await authService.signOut();
-    } finally {
-      setIsAuthLoading(false);
-      resetToGuest();
-    }
-  }, [resetToGuest]);
-
-  return {
-    bootstrapStatus,
-    bootstrapError,
-    isRestoringSession,
-    settings,
-    setSettings,
-    userProfile,
-    setUserProfile,
-    currentUser,
-    cachedUserId,
-    isAuthenticated: Boolean(currentUser) || Boolean(cachedUserId),
-    authMode,
-    setAuthMode,
-    tempUsername,
-    setTempUsername,
-    tempPassword,
-    setTempPassword,
-    authError,
-    isAuthLoading,
-    setAuthError,
-    openLoginMode,
-    submitEmailAuth,
-    loginWithYandex,
-    logout,
-  };
+  return { bootstrapStatus, bootstrapError, isRestoringSession, settings, setSettings, userProfile, setUserProfile, currentUser, cachedUserId, isAuthenticated: Boolean(currentUser) || Boolean(cachedUserId), authMode, setAuthMode, tempUsername, setTempUsername, tempPassword, setTempPassword, authError, isAuthLoading, setAuthError, openLoginMode, submitEmailAuth, loginWithYandex, logout };
 };
