@@ -4,6 +4,8 @@ import { hasRussianTranslation, normalizeWord } from './dictionaryEngine';
 import { getUnusedSessionWord, resetSessionWordBucket } from './sessionWordHistory';
 
 export type GameSessionMode = 'anagram' | 'sprint' | 'memory' | 'hangman';
+export type AdaptiveGameSessionMode = 'anagram' | 'sprint';
+export type WordPracticeResult = 'failed' | 'mastered';
 
 const translatedEntries = (entries: EnrichedWord[]): EnrichedWord[] => entries
   .filter(entry => hasRussianTranslation(entry.translation))
@@ -36,6 +38,35 @@ export const buildPlayableGameDictionary = (
 
 export const pickNextSessionWord = <T extends { word: string }>(mode: GameSessionMode, pool: T[]): T | null =>
   getUnusedSessionWord(mode, pool);
+
+/**
+ * In Sprint and Anagrams, words with unresolved mistakes appear more often.
+ * A mastered word is removed from review by the profile updater and immediately
+ * stops receiving this extra probability. Consecutive repeats are avoided when possible.
+ */
+export const pickAdaptiveSessionWord = <T extends { word: string }>(
+  mode: AdaptiveGameSessionMode,
+  pool: T[],
+  wordsToReview: Record<string, number> = {},
+  previousWord?: string | null,
+  random: () => number = Math.random,
+): T | null => {
+  if (pool.length === 0) return null;
+  const previous = previousWord ? normalizeWord(previousWord) : null;
+  const availablePool = previous && pool.length > 1
+    ? pool.filter(entry => normalizeWord(entry.word) !== previous)
+    : pool;
+  const weightedReviewPool = availablePool.flatMap(entry => {
+    const misses = Math.max(0, Math.round(wordsToReview[normalizeWord(entry.word)] || 0));
+    const weight = Math.min(4, misses);
+    return Array.from({ length: weight }, () => entry);
+  });
+
+  if (weightedReviewPool.length > 0 && random() < 0.65) {
+    return getUnusedSessionWord(`${mode}:review`, weightedReviewPool);
+  }
+  return getUnusedSessionWord(mode, availablePool);
+};
 
 export const resetSessionWords = (mode: GameSessionMode): void => resetSessionWordBucket(mode);
 
