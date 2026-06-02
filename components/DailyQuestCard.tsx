@@ -1,35 +1,59 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { DailyQuestCompletionReward, DailyQuestState } from '../types';
 import { getShopImageUrl } from '../services/petAssets';
 
-export const DailyQuestCard: React.FC<{ quest: DailyQuestState; onStart?: (quest: DailyQuestState) => void }> = ({ quest, onStart }) => (
-  <section className="mt-5 rounded-3xl border-2 border-purple-100 bg-purple-50/60 p-4 text-left sm:p-5" aria-label="Ежедневное испытание">
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <p className="text-[11px] font-black uppercase tracking-widest text-purple-500">Задание от питомца</p>
-        <h2 className="mt-1 text-lg font-black text-indigo-950">{quest.title}</h2>
+const londonDateKey = (date: Date): string => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(date);
+
+const getDailyQuestCountdown = (): string => {
+  const now = new Date();
+  const currentDate = londonDateKey(now);
+  let minutesUntilNewQuest = 1;
+  for (; minutesUntilNewQuest <= 1500; minutesUntilNewQuest += 1) {
+    if (londonDateKey(new Date(now.getTime() + minutesUntilNewQuest * 60_000)) !== currentDate) break;
+  }
+  const hours = Math.floor(minutesUntilNewQuest / 60);
+  const minutes = minutesUntilNewQuest % 60;
+  return `${hours} ч ${String(minutes).padStart(2, '0')} мин`;
+};
+
+export const DailyQuestCard: React.FC<{ quest: DailyQuestState; onStart?: (quest: DailyQuestState) => void }> = ({ quest, onStart }) => {
+  const [countdown, setCountdown] = useState(getDailyQuestCountdown);
+
+  useEffect(() => {
+    setCountdown(getDailyQuestCountdown());
+    const timerId = window.setInterval(() => setCountdown(getDailyQuestCountdown()), 60_000);
+    return () => window.clearInterval(timerId);
+  }, []);
+
+  return (
+    <section className="mt-5 rounded-3xl border-2 border-purple-100 bg-purple-50/60 p-4 text-left sm:p-5" aria-label="Ежедневное испытание">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-widest text-purple-500">Задание от питомца</p>
+          <h2 className="mt-1 text-lg font-black text-indigo-950">{quest.title}</h2>
+        </div>
+        <div className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${quest.completed ? 'bg-green-100 text-green-700' : 'bg-white text-purple-700'}`}>
+          {quest.completed ? 'Выполнено' : countdown}
+        </div>
       </div>
-      <div className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${quest.completed ? 'bg-green-100 text-green-700' : 'bg-white text-purple-700'}`}>
-        {quest.completed ? 'Выполнено' : 'Сегодня'}
+      <p className="mt-2 text-sm font-bold leading-relaxed text-gray-600">{quest.description}</p>
+      {quest.kind === 'all_five_games' && !quest.completed && <p className="mt-2 text-xs font-black text-purple-700">Прогресс: {quest.progressLabel}</p>}
+      <div className="mt-4 flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5">
+        <div className="text-2xl" aria-hidden="true">🎁</div>
+        <div className="min-w-0 flex-1 text-sm font-bold text-indigo-900">
+          {quest.completed ? 'Секретная коробка открыта' : 'Награда: секретная коробка'}
+          <div className="text-xs font-bold text-gray-500">Внутри случайное лакомство</div>
+        </div>
+        {!quest.completed && onStart && (
+          <button type="button" onClick={() => onStart(quest)} className="shrink-0 rounded-xl bg-purple-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-purple-700">Играть</button>
+        )}
       </div>
-    </div>
-    <p className="mt-2 text-sm font-bold leading-relaxed text-gray-600">{quest.description}</p>
-    {quest.kind === 'all_five_games' && !quest.completed && <p className="mt-2 text-xs font-black text-purple-700">Прогресс: {quest.progressLabel}</p>}
-    <div className="mt-4 flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5">
-      <div className="text-2xl" aria-hidden="true">🎁</div>
-      <div className="min-w-0 flex-1 text-sm font-bold text-indigo-900">
-        {quest.completed ? 'Секретная коробка открыта' : 'Награда: секретная коробка'}
-        <div className="text-xs font-bold text-gray-500">Внутри случайное лакомство</div>
-      </div>
-      {!quest.completed && onStart && (
-        <button type="button" onClick={() => onStart(quest)} className="shrink-0 rounded-xl bg-purple-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-purple-700">
-          Играть
-        </button>
-      )}
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export const DailyQuestRewardModal: React.FC<{ reward: DailyQuestCompletionReward; onClose: () => void }> = ({ reward, onClose }) => {
   const imageUrl = getShopImageUrl(reward.item);
