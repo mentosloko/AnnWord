@@ -171,6 +171,10 @@ $$;
 drop trigger if exists protect_custom_dictionary_access on public.profiles;
 create trigger protect_custom_dictionary_access before update of custom_dictionary_en on public.profiles for each row execute function public.protect_custom_dictionary_access();
 
+-- Retire RC behaviours that contradict the approved public flow.
+revoke execute on function public.assign_managed_words(uuid, text, text[], text, text, text) from authenticated;
+revoke execute on function public.save_weekly_report_subscription(uuid, text, boolean) from authenticated;
+
 grant execute on function public.create_single_child_profile(text, text) to authenticated;
 grant execute on function public.verify_parent_pin(text) to authenticated;
 grant execute on function public.connect_teacher_to_child_by_code(text) to authenticated;
