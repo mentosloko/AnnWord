@@ -16,6 +16,11 @@ describe('route contracts', () => {
       'hangman',
       'shop',
       'pet_room',
+      'account_mode_setup',
+      'character_onboarding',
+      'family_setup',
+      'adult_room',
+      'dictionary_studio',
       'admin',
     ];
 
