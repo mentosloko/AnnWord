@@ -23,6 +23,11 @@ export const KNOWN_ROUTES: ViewState[] = [
   'memory',
   'shop',
   'pet_room',
+  'account_mode_setup',
+  'character_onboarding',
+  'family_setup',
+  'adult_room',
+  'dictionary_studio',
   'admin',
 ];
 
