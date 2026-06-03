@@ -15,6 +15,7 @@ import { preloadAppAssetsForProfile } from './services/assetPreloader';
 import { WORDLE_HINT_COST, getWordleHintBalanceDelta } from './services/wordleEconomy';
 import { dailyQuestService } from './services/dailyQuestService';
 import { premiumDictionaryService, PremiumDictionaryDraft } from './services/premiumDictionaryService';
+import { ChildSetupResult, familyAccountService } from './services/familyAccountService';
 
 const toAnalyticsGameType = (mode: PlayableModeRoute): GameRewardType => {
   if (mode === 'game') return 'wordle';
@@ -52,34 +53,45 @@ const AppV2: React.FC = () => {
 
   useEffect(() => { if (isAuthenticated) setShowLoginModal(false); }, [isAuthenticated]);
   useEffect(() => { if (bootstrapStatus === 'ready') preloadAppAssetsForProfile(userProfile); }, [bootstrapStatus, userProfile.pet.type, userProfile.pet.characterOnboarded]);
-  useEffect(() => { if (bootstrapStatus === 'ready' && isAuthenticated && route !== 'character_onboarding' && !userProfile.pet.characterOnboarded) setRoute('character_onboarding'); }, [bootstrapStatus, isAuthenticated, route, setRoute, userProfile.pet.characterOnboarded]);
+  useEffect(() => {
+    if (bootstrapStatus !== 'ready' || !isAuthenticated) return;
+    if (userProfile.role === 'teacher') {
+      if (route !== 'adult_room' && route !== 'dictionary_studio') setRoute('adult_room');
+      return;
+    }
+    if (userProfile.role !== 'admin' && !userProfile.childDisplayName) {
+      if (route !== 'family_setup') setRoute('family_setup');
+      return;
+    }
+    if (route !== 'character_onboarding' && !userProfile.pet.characterOnboarded) setRoute('character_onboarding');
+  }, [bootstrapStatus, isAuthenticated, route, setRoute, userProfile.childDisplayName, userProfile.pet.characterOnboarded, userProfile.role]);
 
   const loadDailyQuest = useCallback(async () => {
-    if (bootstrapStatus !== 'ready' || !isAuthenticated || !userProfile.pet.characterOnboarded) { setDailyQuest(null); return; }
+    if (bootstrapStatus !== 'ready' || !isAuthenticated || userProfile.role === 'teacher' || !userProfile.pet.characterOnboarded) { setDailyQuest(null); return; }
     try { setDailyQuest(await dailyQuestService.getTodayQuest()); }
     catch (error) { console.error('Failed to load daily quest', error); }
-  }, [bootstrapStatus, isAuthenticated, userProfile.pet.characterOnboarded]);
+  }, [bootstrapStatus, isAuthenticated, userProfile.pet.characterOnboarded, userProfile.role]);
   useEffect(() => {
     void loadDailyQuest();
-    if (bootstrapStatus !== 'ready' || !isAuthenticated || !userProfile.pet.characterOnboarded || typeof window === 'undefined' || typeof document === 'undefined') return;
+    if (bootstrapStatus !== 'ready' || !isAuthenticated || userProfile.role === 'teacher' || !userProfile.pet.characterOnboarded || typeof window === 'undefined' || typeof document === 'undefined') return;
     const refreshVisibleQuest = () => { if (document.visibilityState === 'visible') void loadDailyQuest(); };
     window.addEventListener('focus', refreshVisibleQuest);
     document.addEventListener('visibilitychange', refreshVisibleQuest);
     const intervalId = window.setInterval(refreshVisibleQuest, 60_000);
     return () => { window.removeEventListener('focus', refreshVisibleQuest); document.removeEventListener('visibilitychange', refreshVisibleQuest); window.clearInterval(intervalId); };
-  }, [bootstrapStatus, isAuthenticated, loadDailyQuest, userProfile.pet.characterOnboarded]);
+  }, [bootstrapStatus, isAuthenticated, loadDailyQuest, userProfile.pet.characterOnboarded, userProfile.role]);
 
   const openLogin = useCallback(() => { openLoginMode(); setShowLoginModal(true); }, [openLoginMode]);
   const handleLogout = useCallback(async () => { analyticsService.trackEvent({ userId: currentUserId, eventType: 'auth', eventName: 'logout', route }); await analyticsService.flush(); await logout(); setDailyQuest(null); setDailyQuestReward(null); setRoute('landing'); }, [currentUserId, logout, route, setRoute]);
   const submitDailyQuestResult = useCallback(async (input: GameRewardInput) => {
-    if (!isAuthenticated || !userProfile.pet.characterOnboarded) return;
+    if (!isAuthenticated || userProfile.role === 'teacher' || !userProfile.pet.characterOnboarded) return;
     try {
       const result = await dailyQuestService.submitGameResult(input);
       setDailyQuest(result.quest);
       if (result.profile) setUserProfile(result.profile);
       if (result.reward) setDailyQuestReward(result.reward);
     } catch (error) { console.error('Failed to apply daily quest result', error); }
-  }, [isAuthenticated, setUserProfile, userProfile.pet.characterOnboarded]);
+  }, [isAuthenticated, setUserProfile, userProfile.pet.characterOnboarded, userProfile.role]);
 
   const updateClassicStats = useCallback(async (won: boolean, word: string, coinsAdjustment = 0) => {
     const nextStats: UserStats = { ...userProfile.stats, wordsGuessed: { ...userProfile.stats.wordsGuessed }, wordsToReview: { ...(userProfile.stats.wordsToReview || {}) } };
@@ -99,11 +111,16 @@ const AppV2: React.FC = () => {
     const collection = await premiumDictionaryService.saveCollection(draft);
     setUserProfile(previous => ({
       ...previous,
-      customDictionaryEn: collection.words,
+      customDictionaryEn: previous.role === 'teacher' ? previous.customDictionaryEn : collection.words,
       dictionaryCollections: [collection, ...(previous.dictionaryCollections || []).filter(item => item.id !== collection.id)],
     }));
-    setDictionarySource('custom');
-  }, [setDictionarySource, setUserProfile]);
+    if (userProfile.role !== 'teacher') setDictionarySource('custom');
+  }, [setDictionarySource, setUserProfile, userProfile.role]);
+  const handleCreateChild = useCallback(async (childName: string, pin: string): Promise<ChildSetupResult> => familyAccountService.createChild(childName, pin), []);
+  const handleChildSetupComplete = useCallback((result: ChildSetupResult) => {
+    setUserProfile(previous => ({ ...previous, role: 'parent', childDisplayName: result.childName, childShareCode: result.childShareCode, childSlotsLimit: result.childSlotsLimit, featureFlags: { ...(previous.featureFlags || {}), adultRoom: true } }));
+    setRoute('character_onboarding');
+  }, [setRoute, setUserProfile]);
   const handleGameReward = useCallback(async (input: GameRewardInput) => {
     const gameEvent = analyticsService.createEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_finished', gameType: input.type, route: input.type === 'other' ? route : input.type, payload: { ...input, wordLength: settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty } });
     await profileEconomy.applyGameReward(input, { analyticsEvents: [gameEvent] });
@@ -127,7 +144,7 @@ const AppV2: React.FC = () => {
   if (bootstrapStatus !== 'ready') return <AuthBootstrapGate error={bootstrapError} onRetry={() => window.location.reload()} />;
 
   return <AppShell route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} showLoginModal={showLoginModal} showRulesModal={showRulesModal} authMode={authMode} tempUsername={tempUsername} tempPassword={tempPassword} authError={authError} isAuthLoading={isAuthLoading} onHomeClick={() => setRoute('landing')} onLoginClick={openLogin} onLogoutClick={handleLogout} onProfileClick={() => setRoute('profile')} onShopClick={() => setRoute('shop')} onAdminClick={() => setRoute('admin')} onAdultRoomClick={() => setRoute('adult_room')} onDictionaryStudioClick={() => setRoute('dictionary_studio')} onCloseLogin={() => setShowLoginModal(false)} onCloseRules={() => setShowRulesModal(false)} onAuthModeChange={setAuthMode} onUsernameChange={setTempUsername} onPasswordChange={setTempPassword} onAuthSubmit={submitEmailAuth} onYandexLogin={loginWithYandex}>
-    <AppScreens route={route} selectedPlayMode={selectedPlayMode} userProfile={userProfile} isAuthenticated={isAuthenticated} dailyQuest={dailyQuest} dailyQuestReward={dailyQuestReward} onCloseDailyQuestReward={() => setDailyQuestReward(null)} settings={settings} modeWords={modeWords} classicGame={classicGame} dictionaryUpload={{ isUploadingDictionary: dictionaryUpload.isUploadingDictionary, error: dictionaryUpload.dictionaryUploadError, onFileUpload: dictionaryUpload.handleDictionaryFileUpload }} onRouteChange={setRoute} onSelectedPlayModeChange={setSelectedPlayMode} onSettingsChange={setSettings} onOpenLogin={openLogin} onOpenRules={() => setShowRulesModal(true)} onBuy={handleBuy} onUseItem={handleUseItem} onUpdatePet={profileEconomy.updateCharacter} onSaveDictionary={handleSaveDictionary} onGameReward={handleGameReward} onWordPractice={handleWordPractice} onCharacterOnboardingComplete={handleCharacterOnboardingComplete} onGameStarted={startTrackedGame} />
+    <AppScreens route={route} selectedPlayMode={selectedPlayMode} userProfile={userProfile} isAuthenticated={isAuthenticated} dailyQuest={dailyQuest} dailyQuestReward={dailyQuestReward} onCloseDailyQuestReward={() => setDailyQuestReward(null)} settings={settings} modeWords={modeWords} classicGame={classicGame} dictionaryUpload={{ isUploadingDictionary: dictionaryUpload.isUploadingDictionary, error: dictionaryUpload.dictionaryUploadError, onFileUpload: dictionaryUpload.handleDictionaryFileUpload }} onRouteChange={setRoute} onSelectedPlayModeChange={setSelectedPlayMode} onSettingsChange={setSettings} onOpenLogin={openLogin} onOpenRules={() => setShowRulesModal(true)} onBuy={handleBuy} onUseItem={handleUseItem} onUpdatePet={profileEconomy.updateCharacter} onSaveDictionary={handleSaveDictionary} onCreateChild={handleCreateChild} onChildSetupComplete={handleChildSetupComplete} onGameReward={handleGameReward} onWordPractice={handleWordPractice} onCharacterOnboardingComplete={handleCharacterOnboardingComplete} onGameStarted={startTrackedGame} />
   </AppShell>;
 };
 export default AppV2;
