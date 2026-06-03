@@ -21,7 +21,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ userProfile, isAuthenticat
   const isTeacher = userProfile.role === 'teacher' || userProfile.accountMode === 'teacher';
   const premiumActive = isAdmin || (userProfile.subscriptionTier === 'premium' && (!userProfile.premiumExpiresAt || Date.parse(userProfile.premiumExpiresAt) > Date.now()));
   const hasAdultRoom = isAdmin || isParent || isTeacher;
-  const hasDictionaryStudio = isTeacher || premiumActive;
+  const hasDictionaryStudio = isTeacher || isAdmin || (!isParent && premiumActive);
   const showPlayerTools = !isTeacher;
   const profileLabel = isParent ? 'Профиль ребёнка' : 'Профиль';
   const accountMenuRef = useRef<HTMLDetailsElement>(null);
