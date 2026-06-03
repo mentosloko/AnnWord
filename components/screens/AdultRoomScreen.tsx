@@ -1,139 +1,49 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { familyAccountService } from '../../services/familyAccountService';
 import { mentorRoomService } from '../../services/mentorRoomService';
 import { ManagedLearner, UserProfile, WordPerformance } from '../../types';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
-interface AdultRoomScreenProps {
-  userProfile: UserProfile;
-  onBackHome: () => void;
-  onOpenDictionaryStudio: () => void;
-}
+interface Props { userProfile: UserProfile; onBackHome: () => void; onOpenDictionaryStudio: () => void; }
+const accuracy = (word: WordPerformance) => word.attempts ? Math.round(word.correct / word.attempts * 100) : 0;
 
-const demoWordStats: Record<string, WordPerformance> = {
-  SCHOOL: { word: 'SCHOOL', attempts: 8, correct: 7, mistakes: 1 },
-  FRIEND: { word: 'FRIEND', attempts: 6, correct: 4, mistakes: 2 },
-  KITCHEN: { word: 'KITCHEN', attempts: 5, correct: 2, mistakes: 3 },
-};
-
-const createPreviewLearner = (profile: UserProfile): ManagedLearner => ({
-  id: 'preview-child',
-  name: profile.role === 'teacher' ? 'Ученица Аня' : 'Ребёнок',
-  classLabel: profile.role === 'teacher' ? '3А' : undefined,
-  stats: { ...profile.stats, wordPerformance: profile.stats.wordPerformance || demoWordStats },
-  assignedWords: profile.customDictionaryEn.slice(0, 8),
-  weeklyAccuracy: profile.stats.gamesPlayed ? Math.round(profile.stats.gamesWon / profile.stats.gamesPlayed * 100) : 72,
-});
-
-const formatAccuracy = (word: WordPerformance): number => word.attempts > 0 ? Math.round(word.correct / word.attempts * 100) : 0;
-const parseWords = (value: string): string[] => Array.from(new Set(
-  (value.match(/[A-Za-z][A-Za-z'-]{1,}/g) || []).map(word => word.toUpperCase()),
-));
-
-export const AdultRoomScreen: React.FC<AdultRoomScreenProps> = ({ userProfile, onBackHome, onOpenDictionaryStudio }) => {
-  const fallbackLearners = userProfile.managedLearners?.length ? userProfile.managedLearners : [createPreviewLearner(userProfile)];
-  const [learners, setLearners] = useState<ManagedLearner[]>(fallbackLearners);
-  const [selectedId, setSelectedId] = useState(fallbackLearners[0]?.id || '');
-  const [assignmentText, setAssignmentText] = useState('');
-  const [reportEmail, setReportEmail] = useState(userProfile.weeklyReportEmail || '');
-  const [reportsEnabled, setReportsEnabled] = useState(Boolean(userProfile.weeklyReportEmail));
-  const [backendReady, setBackendReady] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOpenDictionaryStudio }) => {
+  const isTeacher = userProfile.role === 'teacher';
+  const isParent = userProfile.role === 'parent';
+  const premiumActive = userProfile.role === 'admin' || (userProfile.subscriptionTier === 'premium' && (!userProfile.premiumExpiresAt || Date.parse(userProfile.premiumExpiresAt) > Date.now()));
+  const [unlocked, setUnlocked] = useState(!isParent);
+  const [pin, setPin] = useState('');
+  const [code, setCode] = useState('');
+  const [learners, setLearners] = useState<ManagedLearner[]>([]);
+  const [selectedId, setSelectedId] = useState('');
+  const [collectionId, setCollectionId] = useState('');
+  const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const learner = learners.find(item => item.id === selectedId) || learners[0];
-  const wordStats = useMemo(() => Object.values(learner?.stats.wordPerformance || demoWordStats)
-    .sort((left, right) => formatAccuracy(left) - formatAccuracy(right)), [learner]);
+  const collections = userProfile.dictionaryCollections || [];
+  const wordStats = useMemo(() => Object.values(learner?.stats.wordPerformance || {}).sort((a, b) => accuracy(a) - accuracy(b)), [learner]);
 
-  useEffect(() => {
-    let cancelled = false;
-    setIsLoading(true);
-    mentorRoomService.loadLearners()
-      .then(result => {
-        if (cancelled) return;
-        setBackendReady(result.backendReady);
-        if (result.learners.length) {
-          setLearners(result.learners);
-          setSelectedId(result.learners[0].id);
-        } else {
-          setLearners(fallbackLearners);
-          setSelectedId(fallbackLearners[0]?.id || '');
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setNotice('Не удалось загрузить данные учеников. Показан демонстрационный режим.');
-      })
-      .finally(() => { if (!cancelled) setIsLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
+  const load = async () => {
+    setBusy(true);
+    try { const result = await mentorRoomService.loadLearners(); setLearners(result.learners); setSelectedId(result.learners[0]?.id || ''); if (!result.backendReady) setNotice('Новая схема данных ещё не применена.'); }
+    catch (error: unknown) { setNotice(error instanceof Error ? error.message : 'Не удалось загрузить данные.'); }
+    finally { setBusy(false); }
+  };
+  useEffect(() => { if (unlocked || isTeacher) void load(); }, [unlocked, isTeacher]);
 
-  const addWords = async () => {
-    if (!learner) return;
-    const words = parseWords(assignmentText);
-    if (!words.length) {
-      setNotice('Введите хотя бы одно английское слово.');
-      return;
-    }
-    setIsSaving(true);
-    try {
-      if (backendReady && learner.id !== 'preview-child') {
-        await mentorRoomService.assignWords(learner.id, words);
-        setNotice(`Назначено слов: ${words.length}. Они появятся в тренировках ребёнка.`);
-      } else {
-        setNotice(`Добавлено слов: ${words.length}. Это демонстрация; сохранение включится после применения backend-схемы.`);
-      }
-      setLearners(previous => previous.map(item => item.id === learner.id ? { ...item, assignedWords: Array.from(new Set([...item.assignedWords, ...words])) } : item));
-      setAssignmentText('');
-    } catch (error: unknown) {
-      setNotice(error instanceof Error ? error.message : 'Не удалось назначить слова.');
-    } finally {
-      setIsSaving(false);
-    }
+  const unlock = async () => {
+    if (!/^\d{4}$/.test(pin)) { setNotice('Введите PIN из 4 цифр.'); return; }
+    setBusy(true); try { const ok = await familyAccountService.verifyParentPin(pin); if (ok) { setUnlocked(true); setNotice(null); } else setNotice('Неверный PIN.'); } catch (error: unknown) { setNotice(error instanceof Error ? error.message : 'Не удалось проверить PIN.'); } finally { setBusy(false); }
+  };
+  const connect = async () => {
+    setBusy(true); try { await mentorRoomService.connectByChildCode(code); setCode(''); setNotice('Ученик подключён.'); await load(); } catch (error: unknown) { setNotice(error instanceof Error ? error.message : 'Не удалось подключить ученика.'); } finally { setBusy(false); }
+  };
+  const assign = async () => {
+    if (!learner || !collectionId) return;
+    setBusy(true); try { await mentorRoomService.assignCollection(learner.id, collectionId); setNotice('Словарь назначен ученику.'); await load(); } catch (error: unknown) { setNotice(error instanceof Error ? error.message : 'Не удалось назначить словарь.'); } finally { setBusy(false); }
   };
 
-  const saveReport = async () => {
-    if (!learner) return;
-    if (reportsEnabled && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(reportEmail)) {
-      setNotice('Укажите корректную почту для еженедельного отчёта.');
-      return;
-    }
-    setIsSaving(true);
-    try {
-      if (backendReady && learner.id !== 'preview-child') {
-        await mentorRoomService.saveWeeklyReportSubscription(learner.id, reportEmail, reportsEnabled);
-        setNotice(reportsEnabled ? `Еженедельный отчёт будет отправляться на ${reportEmail}.` : 'Еженедельный отчёт отключён.');
-      } else {
-        setNotice('Настройка показана в демонстрационном режиме; отправка включится после применения backend-схемы и настройки почтового провайдера.');
-      }
-    } catch (error: unknown) {
-      setNotice(error instanceof Error ? error.message : 'Не удалось сохранить настройку отчёта.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  if (isParent && !unlocked) return <ScreenContainer className="max-w-md pb-20"><button type="button" onClick={onBackHome} className="mb-5 rounded-xl border-2 border-indigo-100 px-4 py-2 font-bold text-indigo-700">← Назад</button><section className="rounded-[2rem] bg-white p-6 shadow-sm"><h1 className="text-2xl font-black text-indigo-950">Кабинет родителя</h1><p className="mt-2 text-sm font-bold text-gray-500">Введите PIN, созданный при добавлении ребёнка.</p>{notice && <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700">{notice}</p>}<input value={pin} onChange={event => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} type="password" inputMode="numeric" placeholder="••••" className="mt-5 w-full rounded-xl border-2 border-indigo-100 p-3 text-center text-xl font-black" /><button type="button" disabled={busy} onClick={() => void unlock()} className="mt-4 w-full rounded-xl bg-indigo-600 p-3 font-black text-white">Открыть</button></section></ScreenContainer>;
 
-  const title = userProfile.role === 'teacher' ? 'Комната преподавателя' : userProfile.role === 'parent' ? 'Комната родителя' : 'Комната взрослого';
-
-  return (
-    <ScreenContainer className="max-w-6xl pb-20">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <button type="button" onClick={onBackHome} className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button>
-        <div className="text-center"><div className="text-xs font-black uppercase tracking-widest text-indigo-400">Premium</div><h1 className="text-2xl font-black text-indigo-950 sm:text-3xl">{title}</h1></div>
-        <button type="button" onClick={onOpenDictionaryStudio} className="rounded-2xl bg-indigo-600 px-3 py-2 text-sm font-black text-white sm:px-4">Словари</button>
-      </div>
-      {!backendReady && !isLoading && <div className="mb-4 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">Демонстрационный режим: схема данных ещё не применена к backend.</div>}
-      {notice && <div className="mb-4 flex justify-between rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800"><span>{notice}</span><button onClick={() => setNotice(null)}>×</button></div>}
-      <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-indigo-400">Дети и ученики</h2>
-          {isLoading ? <div className="rounded-2xl bg-indigo-50 p-4 text-sm font-bold text-indigo-600">Загружаю прогресс...</div> : <div className="space-y-2">{learners.map(item => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} className={`w-full rounded-2xl border-2 p-3 text-left ${selectedId === item.id ? 'border-indigo-300 bg-indigo-50' : 'border-indigo-50 bg-white'}`}><div className="font-black text-indigo-950">{item.name}</div><div className="text-xs font-bold text-gray-500">{item.classLabel || 'Личный профиль'} · точность {item.weeklyAccuracy}%</div></button>)}</div>}
-          <section className="mt-5 rounded-2xl bg-purple-50 p-3"><div className="text-xs font-black uppercase tracking-widest text-purple-500">Отчёт за неделю</div><label className="mt-3 flex items-center gap-2 text-sm font-bold text-indigo-950"><input type="checkbox" checked={reportsEnabled} onChange={event => setReportsEnabled(event.target.checked)} /> Отправлять на почту</label><input type="email" value={reportEmail} onChange={event => setReportEmail(event.target.value)} placeholder="parent@example.com" className="mt-3 w-full rounded-xl border border-purple-100 bg-white px-3 py-2 text-sm" /><button type="button" disabled={isSaving} onClick={() => void saveReport()} className="mt-3 w-full rounded-xl bg-purple-600 py-2 text-sm font-black text-white disabled:opacity-60">Сохранить</button></section>
-        </aside>
-        {learner && <main className="space-y-5">
-          <section className="grid grid-cols-2 gap-3 sm:grid-cols-4"><div className="rounded-3xl bg-white p-4 shadow-sm"><div className="text-xs font-black text-indigo-400">ИГР</div><div className="text-3xl font-black text-indigo-950">{learner.stats.gamesPlayed}</div></div><div className="rounded-3xl bg-white p-4 shadow-sm"><div className="text-xs font-black text-green-500">ПОБЕД</div><div className="text-3xl font-black text-indigo-950">{learner.stats.gamesWon}</div></div><div className="rounded-3xl bg-white p-4 shadow-sm"><div className="text-xs font-black text-yellow-600">ТОЧНОСТЬ</div><div className="text-3xl font-black text-indigo-950">{learner.weeklyAccuracy}%</div></div><div className="rounded-3xl bg-white p-4 shadow-sm"><div className="text-xs font-black text-purple-500">НАЗНАЧЕНО</div><div className="text-3xl font-black text-indigo-950">{learner.assignedWords.length}</div></div></section>
-          <section className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm"><h2 className="text-xl font-black text-indigo-950">Добавить слова в тренировки</h2><p className="mt-1 text-sm font-bold text-gray-500">Слова появятся в персональном списке выбранного ребёнка.</p><textarea value={assignmentText} onChange={event => setAssignmentText(event.target.value)} placeholder="APPLE, SCHOOL, TEACHER" className="mt-4 h-24 w-full rounded-2xl border-2 border-indigo-100 p-3 font-bold text-indigo-950" /><div className="mt-3 flex flex-col gap-2 sm:flex-row"><button type="button" disabled={isSaving} onClick={() => void addWords()} className="rounded-xl bg-indigo-600 px-5 py-2.5 font-black text-white disabled:opacity-60">Назначить слова</button><button type="button" onClick={onOpenDictionaryStudio} className="rounded-xl border-2 border-indigo-100 px-5 py-2.5 font-black text-indigo-700">Распознать с фото</button></div>{learner.assignedWords.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{learner.assignedWords.map(word => <span key={word} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-black text-indigo-700">{word}</span>)}</div>}</section>
-          <section className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm"><h2 className="text-xl font-black text-indigo-950">Подробная статистика по словам</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[500px] text-sm"><thead className="text-left text-xs font-black uppercase tracking-widest text-indigo-300"><tr><th className="py-2">Слово</th><th>Попытки</th><th>Верно</th><th>Ошибки</th><th>Точность</th></tr></thead><tbody>{wordStats.map(word => <tr key={word.word} className="border-t border-indigo-50"><td className="py-3 font-black text-indigo-900">{word.word}</td><td>{word.attempts}</td><td className="text-green-700">{word.correct}</td><td className="text-rose-600">{word.mistakes}</td><td><span className={`rounded-full px-2 py-1 font-black ${formatAccuracy(word) < 60 ? 'bg-rose-50 text-rose-700' : 'bg-green-50 text-green-700'}`}>{formatAccuracy(word)}%</span></td></tr>)}</tbody></table></div></section>
-        </main>}
-      </div>
-    </ScreenContainer>
-  );
+  return <ScreenContainer className="max-w-6xl pb-20"><header className="mb-5 flex items-center justify-between gap-3"><button type="button" onClick={onBackHome} className="rounded-xl border-2 border-indigo-100 px-4 py-2 font-bold text-indigo-700">←</button><h1 className="text-xl font-black text-indigo-950 sm:text-3xl">{isTeacher ? 'Мои ученики' : 'Кабинет родителя'}</h1>{isTeacher || premiumActive ? <button type="button" onClick={onOpenDictionaryStudio} className="rounded-xl bg-indigo-600 px-4 py-2 font-black text-white">Словари</button> : <span className="rounded-xl bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">Словари · Premium</span>}</header>{notice && <p className="mb-4 rounded-xl bg-indigo-50 p-3 text-sm font-bold text-indigo-700">{notice}</p>}{isTeacher && <section className="mb-5 rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black text-indigo-950">Подключить ученика по коду</h2><div className="mt-3 flex gap-2"><input value={code} onChange={event => setCode(event.target.value.toUpperCase())} placeholder="Код ребёнка" className="min-w-0 flex-1 rounded-xl border-2 border-indigo-100 px-3 py-2 font-black" /><button type="button" disabled={busy} onClick={() => void connect()} className="rounded-xl bg-indigo-600 px-4 font-black text-white">Подключить</button></div></section>}<div className="grid gap-5 lg:grid-cols-[280px_1fr]"><aside className="rounded-3xl bg-white p-4 shadow-sm"><h2 className="mb-3 text-xs font-black uppercase text-indigo-400">{isTeacher ? 'Ученики' : 'Ребёнок'}</h2>{busy && !learners.length ? <p>Загружаю...</p> : learners.length ? learners.map(item => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} className="mb-2 w-full rounded-xl bg-indigo-50 p-3 text-left font-black text-indigo-950">{item.name}</button>) : <p className="rounded-xl bg-indigo-50 p-3 text-sm font-bold text-indigo-700">{isTeacher ? 'Введите код ребёнка.' : 'Профиль ребёнка не найден.'}</p>}{!isTeacher && learner?.childShareCode && <div className="mt-4 rounded-xl bg-purple-50 p-3"><div className="text-xs font-black text-purple-500">КОД ДЛЯ ПРЕПОДАВАТЕЛЯ</div><div className="mt-2 text-center text-xl font-black tracking-widest text-purple-800">{learner.childShareCode}</div></div>}<div className="mt-4 rounded-xl bg-gray-50 p-3 text-sm font-black text-gray-500">Отчёт за неделю<br />Будет позднее</div></aside>{learner && <main className="space-y-4"><div className="grid grid-cols-3 gap-3">{[['ИГР', learner.stats.gamesPlayed], ['ПОБЕД', learner.stats.gamesWon], ['СЛОВ', learner.assignedWords.length]].map(([label, value]) => <div key={String(label)} className="rounded-2xl bg-white p-4 shadow-sm"><div className="text-xs font-black text-indigo-400">{label}</div><div className="text-3xl font-black">{value}</div></div>)}</div>{isTeacher && <section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Назначить сохранённый словарь</h2><div className="mt-3 flex gap-2"><select value={collectionId} onChange={event => setCollectionId(event.target.value)} className="min-w-0 flex-1 rounded-xl border-2 border-indigo-100 p-2 font-bold"><option value="">Выберите подборку</option>{collections.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select><button type="button" disabled={!collectionId || busy} onClick={() => void assign()} className="rounded-xl bg-indigo-600 px-4 font-black text-white">Назначить</button></div></section>}<section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Слова в тренировках</h2><div className="mt-3 flex flex-wrap gap-2">{learner.assignedWords.length ? learner.assignedWords.map(word => <span key={word} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-black text-indigo-700">{word}</span>) : <span className="text-sm text-gray-500">Пока нет слов</span>}</div></section><section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Прогресс по словам</h2>{wordStats.length ? wordStats.map(word => <div key={word.word} className="mt-2 flex justify-between border-t border-indigo-50 pt-2 text-sm font-bold"><span>{word.word}</span><span>{accuracy(word)}%</span></div>) : <p className="mt-3 text-sm text-gray-500">Появится после тренировок.</p>}</section></main>}</div></ScreenContainer>;
 };
