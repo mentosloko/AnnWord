@@ -81,6 +81,7 @@ export const mapProfileFromDB = (data: any): UserProfile => {
   return {
     username: typeof data?.username === 'string' && data.username.trim() ? data.username : 'Гость',
     role: ['admin', 'parent', 'teacher'].includes(String(data?.role)) ? data.role : 'user',
+    accountMode: ['player', 'parent', 'teacher'].includes(String(data?.account_mode)) ? data.account_mode : undefined,
     subscriptionTier: data?.subscription_tier === 'premium' ? 'premium' : 'free',
     premiumExpiresAt: typeof data?.premium_expires_at === 'string' ? data.premium_expires_at : undefined,
     childDisplayName: typeof data?.child_display_name === 'string' ? data.child_display_name : undefined,
