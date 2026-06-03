@@ -4,7 +4,7 @@ export type DifficultyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'ALL';
 export type SubscriptionTier = 'free' | 'premium';
 export type AccountRole = 'admin' | 'user' | 'parent' | 'teacher';
 
-export type ViewState = 'landing' | 'profile' | 'setup' | 'game' | 'review' | 'anagrams' | 'sprint' | 'hangman' | 'memory' | 'shop' | 'pet_room' | 'character_onboarding' | 'admin' | 'adult_room' | 'dictionary_studio';
+export type ViewState = 'landing' | 'profile' | 'setup' | 'game' | 'review' | 'anagrams' | 'sprint' | 'hangman' | 'memory' | 'shop' | 'pet_room' | 'character_onboarding' | 'family_setup' | 'admin' | 'adult_room' | 'dictionary_studio';
 export type CharStatus = 'correct' | 'present' | 'absent' | 'initial';
 
 export interface FeatureFlags {
@@ -71,6 +71,7 @@ export interface ManagedLearner {
   id: string;
   name: string;
   classLabel?: string;
+  childShareCode?: string;
   stats: UserStats;
   assignedWords: string[];
   weeklyAccuracy: number;
@@ -91,6 +92,10 @@ export interface UserProfile {
   username: string;
   role?: AccountRole;
   subscriptionTier?: SubscriptionTier;
+  premiumExpiresAt?: string;
+  childDisplayName?: string;
+  childShareCode?: string;
+  childSlotsLimit?: number;
   featureFlags?: FeatureFlags;
   customDictionaryEn: string[];
   dictionaryCollections?: CustomDictionaryCollection[];
