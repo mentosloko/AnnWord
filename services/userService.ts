@@ -5,7 +5,7 @@ import { applyPurchaseLocally } from './economyEngine';
 import { getShopItemById } from './shopCatalog';
 import { runPetMoodClock } from './petMoodClock';
 import { QueuedAnalyticsEvent } from './analyticsService';
-const PROFILE_COLUMNS='id, username, role, custom_dictionary_en, stats, pet, coins, inventory';
+const PROFILE_COLUMNS='id, username, role, subscription_tier, premium_expires_at, feature_flags, dictionary_collections, weekly_report_email, child_display_name, child_share_code, child_slots_limit, custom_dictionary_en, stats, pet, coins, inventory';
 const DEFAULT_PET:PetState={name:'Щенок',type:'Puppy',level:1,mood:'happy',xp:0,moodScore:60,stage:'stage_1',characterOnboarded:false,hunger:60,energy:60,equippedAccessories:[]};
 const DEFAULT_STATS:UserStats={gamesPlayed:0,gamesWon:0,wordsGuessed:{}};
 const itemPayload=(item:ShopItem)=>({id:item.id,type:item.type,name:item.name,price:item.price,imageUrl:item.imageUrl||'',effect:item.effect||{},characterType:item.characterType||''});
