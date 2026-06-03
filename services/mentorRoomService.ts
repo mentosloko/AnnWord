@@ -25,6 +25,7 @@ const mapLearner = (value: any): ManagedLearner => {
     id: String(value?.id || ''),
     name: String(value?.name || 'Ученик'),
     classLabel: typeof value?.class_label === 'string' ? value.class_label : undefined,
+    childShareCode: typeof value?.child_share_code === 'string' ? value.child_share_code : undefined,
     stats,
     assignedWords: normalizeAssignedWords(value?.assigned_words),
     weeklyAccuracy: gamesPlayed ? Math.round(gamesWon / gamesPlayed * 100) : 0,
@@ -34,7 +35,7 @@ const mapLearner = (value: any): ManagedLearner => {
 
 const writeError = (error: any, fallback: string): never => {
   if (schemaNotReady(error)) throw new Error(fallback);
-  throw error;
+  throw new Error(String(error?.message || fallback));
 };
 
 export const mentorRoomService = {
@@ -47,24 +48,19 @@ export const mentorRoomService = {
     return { learners: Array.isArray(data) ? data.map(mapLearner).filter(learner => learner.id) : [], backendReady: true };
   },
 
-  async assignWords(learnerId: string, words: string[], title = 'Слова для тренировки'): Promise<void> {
-    const normalized = normalizeAssignedWords(words);
-    if (!normalized.length) throw new Error('Добавьте хотя бы одно английское слово.');
-    const { error } = await supabase.rpc('assign_managed_words', {
-      p_learner_user_id: learnerId,
-      p_title: title,
-      p_words: normalized,
-      p_source: 'manual',
-    });
-    if (error) writeError(error, 'Сохранение назначений станет доступно после подключения схемы комнаты взрослого.');
+  async connectByChildCode(code: string): Promise<void> {
+    const normalized = code.trim().toUpperCase();
+    if (!normalized) throw new Error('Введите код ребёнка.');
+    const { error } = await supabase.rpc('connect_teacher_to_child_by_code', { p_child_code: normalized });
+    if (error) writeError(error, 'Подключение по коду станет доступно после применения новой схемы.');
   },
 
-  async saveWeeklyReportSubscription(learnerId: string, email: string, enabled: boolean): Promise<void> {
-    const { error } = await supabase.rpc('save_weekly_report_subscription', {
+  async assignCollection(learnerId: string, collectionId: string): Promise<void> {
+    if (!collectionId) throw new Error('Выберите сохранённый словарь.');
+    const { error } = await supabase.rpc('assign_dictionary_collection_to_learner', {
       p_learner_user_id: learnerId,
-      p_email: email,
-      p_enabled: enabled,
+      p_collection_id: collectionId,
     });
-    if (error) writeError(error, 'Отправка отчётов станет доступна после подключения схемы комнаты взрослого.');
+    if (error) writeError(error, 'Назначение словаря станет доступно после применения новой схемы.');
   },
 };
