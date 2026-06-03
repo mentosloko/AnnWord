@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { AccountMode } from '../types';
 
 export interface ChildSetupResult {
   childName: string;
@@ -10,10 +11,17 @@ const readableError = (error: any, fallback: string): Error => {
   const message = String(error?.message || '');
   if (/one child|один ребёнок/i.test(message)) return new Error('В тестовой версии доступен один ребёнок.');
   if (/pin/i.test(message)) return new Error('PIN должен состоять из 4 цифр.');
+  if (/already selected/i.test(message)) return new Error('Тип аккаунта уже выбран.');
   return new Error(message || fallback);
 };
 
 export const familyAccountService = {
+  async selectAccountMode(mode: AccountMode): Promise<AccountMode> {
+    const { data, error } = await supabase.rpc('select_account_mode', { p_mode: mode });
+    if (error) throw readableError(error, 'Не удалось сохранить тип аккаунта.');
+    return String(data) as AccountMode;
+  },
+
   async createChild(childName: string, parentPin: string): Promise<ChildSetupResult> {
     const normalizedName = childName.trim();
     if (!normalizedName) throw new Error('Укажите имя ребёнка.');
