@@ -4,6 +4,7 @@ import { authService, AuthEventName } from '../services/authService';
 import { GUEST_PROFILE } from '../constants/profileDefaults';
 import { GameSettings, UserProfile } from '../types';
 import { profileCache } from '../services/profileCache';
+import { preserveEstablishedAccountAccess } from '../services/profileAccessState';
 
 export type AuthMode = 'login' | 'register';
 export type AuthBootstrapStatus = 'loading' | 'ready' | 'error';
@@ -32,10 +33,13 @@ export const useAuthProfile = () => {
   const [initialSnapshot] = useState(() => profileCache.readSnapshot());
   const initialProfile = initialSnapshot?.profile || GUEST_PROFILE;
   const hasCachedProfile = Boolean(initialSnapshot);
+  const cachedProfileHasEstablishedAccess = initialProfile.role === 'admin' || Boolean(initialProfile.accountMode);
   const initialCachedUserId = initialSnapshot?.userId || null;
-  const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus>(() => hasCachedProfile ? 'ready' : 'loading');
+  // A cached profile can be stale or have come from a partial gameplay RPC. Do not
+  // route with it until the server profile has been restored for this session.
+  const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus>('loading');
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
-  const [isRestoringSession, setIsRestoringSession] = useState(!hasCachedProfile);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [settings, setSettings] = useState<GameSettings>(() => ({ ...createInitialSettings(), username: initialProfile.username }));
   const [userProfile, setUserProfileState] = useState<UserProfile>(initialProfile);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -45,15 +49,16 @@ export const useAuthProfile = () => {
   const [tempPassword, setTempPassword] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
-  const bootstrapCompleteRef = useRef(hasCachedProfile);
+  const bootstrapCompleteRef = useRef(false);
   const initialSessionCheckedRef = useRef(false);
   const currentUserIdRef = useRef<string | null>(initialCachedUserId);
 
   const setUserProfile = useCallback((next: UserProfile | ((prev: UserProfile) => UserProfile)) => {
     setUserProfileState(prev => {
       const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(prev) : next;
-      profileCache.write(resolved, currentUserIdRef.current);
-      return resolved;
+      const safeProfile = preserveEstablishedAccountAccess(prev, resolved);
+      profileCache.write(safeProfile, currentUserIdRef.current);
+      return safeProfile;
     });
   }, []);
 
@@ -90,7 +95,7 @@ export const useAuthProfile = () => {
     };
     const failInitialCheck = (error: unknown, fallbackMessage: string) => {
       console.error(fallbackMessage, error);
-      if (hasCachedProfile) finishInitialCheck('ready');
+      if (hasCachedProfile && cachedProfileHasEstablishedAccess) finishInitialCheck('ready');
       else finishInitialCheck('error', getAuthErrorMessage(error, fallbackMessage));
     };
     authService.getInitialSession().then(async ({ user }) => {
@@ -121,7 +126,7 @@ export const useAuthProfile = () => {
       void silentlySyncAuthenticatedUser(event, user);
     });
     return () => { cancelled = true; unsubscribe(); };
-  }, [hasCachedProfile, loadProfileForUser, resetToGuest]);
+  }, [cachedProfileHasEstablishedAccess, hasCachedProfile, loadProfileForUser, resetToGuest]);
 
   const openLoginMode = useCallback(() => { setAuthMode('login'); setAuthError(null); }, []);
   const submitEmailAuth = useCallback(async () => {
