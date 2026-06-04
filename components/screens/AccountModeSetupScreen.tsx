@@ -2,37 +2,22 @@ import React, { useState } from 'react';
 import { AccountMode } from '../../types';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
-interface AccountModeSetupScreenProps {
-  onSelectMode: (mode: AccountMode) => Promise<void>;
-}
-
-const OPTIONS: Array<{ mode: AccountMode; icon: string; title: string; description: string; accent: string }> = [
-  { mode: 'player', icon: '🎮', title: 'Самостоятельный игрок', description: 'Играю сам, выбираю питомца и изучаю слова.', accent: 'border-indigo-100 hover:border-indigo-300 hover:bg-indigo-50' },
-  { mode: 'parent', icon: '👨‍👩‍👧', title: 'Родитель', description: 'Создам профиль ребёнка и буду следить за прогрессом.', accent: 'border-purple-100 hover:border-purple-300 hover:bg-purple-50' },
-  { mode: 'teacher', icon: '👩‍🏫', title: 'Преподаватель', description: 'Подключу учеников по коду и назначу им подборки слов.', accent: 'border-cyan-100 hover:border-cyan-300 hover:bg-cyan-50' },
+interface AccountModeSetupScreenProps { onSelectMode: (mode: AccountMode) => Promise<void>; }
+const UI = {
+  welcome: '\u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c \u0432 AnnWord',
+  heading: '\u041a\u0430\u043a \u0432\u044b \u0431\u0443\u0434\u0435\u0442\u0435 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c\u0441\u044f \u0438\u0433\u0440\u043e\u0439?',
+  hint: '\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043f\u043e\u0434\u0445\u043e\u0434\u044f\u0449\u0438\u0439 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0439. \u0414\u043b\u044f \u0442\u0435\u0441\u0442\u043e\u0432\u043e\u0439 \u0432\u0435\u0440\u0441\u0438\u0438 \u0440\u043e\u0434\u0438\u0442\u0435\u043b\u044c \u043c\u043e\u0436\u0435\u0442 \u0441\u043e\u0437\u0434\u0430\u0442\u044c \u043e\u0434\u0438\u043d \u043f\u0440\u043e\u0444\u0438\u043b\u044c \u0440\u0435\u0431\u0451\u043d\u043a\u0430.',
+  failure: '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0432\u044b\u0431\u043e\u0440.',
+};
+const OPTIONS: Array<{ mode: AccountMode; imageSrc: string; title: string; description: string; accent: string }> = [
+  { mode: 'player', imageSrc: '/assets/onboarding/account-mode-player.webp', title: '\u0421\u0430\u043c\u043e\u0441\u0442\u043e\u044f\u0442\u0435\u043b\u044c\u043d\u044b\u0439 \u0438\u0433\u0440\u043e\u043a', description: '\u0418\u0433\u0440\u0430\u044e \u0441\u0430\u043c, \u0432\u044b\u0431\u0438\u0440\u0430\u044e \u043f\u0438\u0442\u043e\u043c\u0446\u0430 \u0438 \u0438\u0437\u0443\u0447\u0430\u044e \u0441\u043b\u043e\u0432\u0430.', accent: 'border-indigo-100 hover:border-indigo-300 hover:bg-indigo-50' },
+  { mode: 'parent', imageSrc: '/assets/onboarding/account-mode-parent.webp', title: '\u0420\u043e\u0434\u0438\u0442\u0435\u043b\u044c', description: '\u0421\u043e\u0437\u0434\u0430\u043c \u043f\u0440\u043e\u0444\u0438\u043b\u044c \u0440\u0435\u0431\u0451\u043d\u043a\u0430 \u0438 \u0431\u0443\u0434\u0443 \u0441\u043b\u0435\u0434\u0438\u0442\u044c \u0437\u0430 \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441\u043e\u043c.', accent: 'border-purple-100 hover:border-purple-300 hover:bg-purple-50' },
+  { mode: 'teacher', imageSrc: '/assets/onboarding/account-mode-teacher.webp', title: '\u041f\u0440\u0435\u043f\u043e\u0434\u0430\u0432\u0430\u0442\u0435\u043b\u044c', description: '\u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0443 \u0443\u0447\u0435\u043d\u0438\u043a\u043e\u0432 \u043f\u043e \u043a\u043e\u0434\u0443 \u0438 \u043d\u0430\u0437\u043d\u0430\u0447\u0443 \u0438\u043c \u043f\u043e\u0434\u0431\u043e\u0440\u043a\u0438 \u0441\u043b\u043e\u0432.', accent: 'border-cyan-100 hover:border-cyan-300 hover:bg-cyan-50' },
 ];
 
 export const AccountModeSetupScreen: React.FC<AccountModeSetupScreenProps> = ({ onSelectMode }) => {
   const [selected, setSelected] = useState<AccountMode | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const choose = async (mode: AccountMode) => {
-    setSelected(mode);
-    setError(null);
-    try { await onSelectMode(mode); }
-    catch (problem: unknown) {
-      setSelected(null);
-      setError(problem instanceof Error ? problem.message : 'Не удалось сохранить выбор.');
-    }
-  };
-
-  return <ScreenContainer className="max-w-2xl pb-20 pt-8">
-    <section className="rounded-[2rem] border-2 border-indigo-50 bg-white p-6 shadow-sm sm:p-8">
-      <div className="text-center text-xs font-black uppercase tracking-widest text-indigo-400">Добро пожаловать в AnnWord</div>
-      <h1 className="mt-3 text-center text-3xl font-black text-indigo-950">Как вы будете пользоваться игрой?</h1>
-      <p className="mx-auto mt-3 max-w-md text-center text-sm font-bold text-gray-500">Выберите подходящий сценарий. Для тестовой версии родитель может создать один профиль ребёнка.</p>
-      {error && <div className="mt-5 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</div>}
-      <div className="mt-7 space-y-3">{OPTIONS.map(option => <button key={option.mode} type="button" disabled={selected !== null} onClick={() => void choose(option.mode)} className={`flex w-full items-center gap-4 rounded-2xl border-2 p-4 text-left transition disabled:opacity-60 ${option.accent}`}><span className="text-3xl" aria-hidden="true">{option.icon}</span><span className="min-w-0 flex-1"><span className="block text-lg font-black text-indigo-950">{option.title}</span><span className="mt-1 block text-sm font-bold text-gray-500">{option.description}</span></span><span className="text-xl font-black text-indigo-300">{selected === option.mode ? '…' : '→'}</span></button>)}</div>
-    </section>
-  </ScreenContainer>;
+  const choose = async (mode: AccountMode) => { setSelected(mode); setError(null); try { await onSelectMode(mode); } catch (problem: unknown) { setSelected(null); setError(problem instanceof Error ? problem.message : UI.failure); } };
+  return <ScreenContainer className="max-w-2xl pb-20 pt-8"><section className="rounded-[2rem] border-2 border-indigo-50 bg-white p-6 shadow-sm sm:p-8"><div className="text-center text-xs font-black uppercase tracking-widest text-indigo-400">{UI.welcome}</div><h1 className="mt-3 text-center text-3xl font-black text-indigo-950">{UI.heading}</h1><p className="mx-auto mt-3 max-w-md text-center text-sm font-bold text-gray-500">{UI.hint}</p>{error && <div className="mt-5 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</div>}<div className="mt-7 space-y-3">{OPTIONS.map(option => <button key={option.mode} type="button" disabled={selected !== null} onClick={() => void choose(option.mode)} className={`flex w-full items-center gap-4 rounded-2xl border-2 p-3 text-left transition disabled:opacity-60 sm:p-4 ${option.accent}`}><img src={option.imageSrc} alt="" aria-hidden="true" className="h-20 w-20 shrink-0 object-contain sm:h-24 sm:w-24" draggable={false} /><span className="min-w-0 flex-1"><span className="block text-lg font-black text-indigo-950">{option.title}</span><span className="mt-1 block text-sm font-bold text-gray-500">{option.description}</span></span><span className="text-xl font-black text-indigo-300">{selected === option.mode ? '\u2026' : '\u2192'}</span></button>)}</div></section></ScreenContainer>;
 };
