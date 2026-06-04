@@ -7,6 +7,7 @@ const PET_ASSET_SLUGS: Record<string, string> = {
   Dragon: 'dragon',
   RoboCat: 'robocat',
 };
+const MYSTERY_BOX_ASSET_URL = '/assets/rewards/mystery-box.webp';
 
 const getPetAssetSlug = (petType?: string): string | null => {
   if (!petType) return null;
@@ -96,11 +97,13 @@ export const getPuppyCharacterPreloadUrls = (): string[] => {
 };
 
 export const getShopImageUrl = (item: ShopItem, petType: string = 'Puppy'): string | undefined => {
+  if (item.id === 'mystery_box') return MYSTERY_BOX_ASSET_URL;
   if (item.type === 'accessory') return getPetAccessoryAssetUrl(item.id, petType) || item.imageUrl;
   return item.imageUrl;
 };
 
 export const getInventoryImageUrl = (item: InventoryItem, pet?: PetState): string | null => {
+  if (item.id === 'mystery_box') return MYSTERY_BOX_ASSET_URL;
   if (item.type === 'accessory') return getPetAccessoryAssetUrl(item.id, pet?.type || 'Puppy');
   return item.metadata?.imageUrl || null;
 };
