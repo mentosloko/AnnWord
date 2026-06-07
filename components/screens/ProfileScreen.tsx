@@ -10,4 +10,8 @@ interface ProfileScreenProps {
   onBackHome: () => void;
   onOpenShop: () => void;
   onOpenPetRoom: () => void;
- 
+  onLogin: () => void;
+}
+
+const t = {
+  back: '\u
