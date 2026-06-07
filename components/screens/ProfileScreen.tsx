@@ -4,6 +4,4 @@ import { getCharacterProgressPercent, getCharacterProgressText, getCharacterStag
 import { getPetEmoji, getPetNeedSnapshot } from '../../services/petEngine';
 import { getPetCharacterAssetUrl } from '../../services/petAssets';
 import { ScreenContainer } from '../layout/ScreenContainer';
-import { CoinIcon } from '../CoinIcon';
-
-interface ProfileScreenProps
+import { Coin
