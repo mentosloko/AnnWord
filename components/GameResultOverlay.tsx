@@ -1,3 +1,10 @@
 import React from 'react';
-import {CharacterProgressCard as C} from './CharacterProgressCard';
-export const GameResultOverlay=(p:any)=>!p.isOpen?null:React.createElement('div',null,React.createElement('h2',null,p.title),p.subtitle&&React.createElement('p',null,p.subtitle),p.details,p.showCharacterProgress!==false&&React.createElement(C,{pet:p.pet,xpGained:p.xpGained,coinsGained:p.coinsGained}),React.createElement('button',{onClick:p.onPrimary},p.primaryLabel||'Again'),p.onSecondary&&React.createElement('button',{onClick
+import { CharacterProgressCard } from './CharacterProgressCard';
+
+export const GameResultOverlay = (p: any) => {
+  if (!p.isOpen) return null;
+  const children = [
+    React.createElement('h2', { key: 't' }, p.title),
+    p.subtitle ? React.createElement('p', { key: 's' }, p.subtitle) : null,
+    p.details ? React.createElement('div', { key: 'd' }, p.details) : null,
+    p
