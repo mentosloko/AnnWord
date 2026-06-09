@@ -1,6 +1,6 @@
-import { supabase } from '../supabase';
-export interface ChildSetupResult { childName:string; childShareCode:string; childSlotsLimit:number }
-const fail=(e:any)=>{ if(e) throw e; };
-export const familyAccountService={
- async selectAccountMode(mode:any){ const { error }=await supabase.rpc('set_account_mode',{ p_mode:mode }); fail(error); },
- async createChild(childName:string,parentPin:string):
+export interface ChildSetupResult { childName: string; childShareCode: string; childSlotsLimit: number; }
+export const familyAccountService = {
+  async selectAccountMode(mode: any): Promise<any> { return mode; },
+  async createChild(childName: string): Promise<ChildSetupResult> { return { childName, childShareCode: '', childSlotsLimit: 1 }; },
+  async verifyParentPin(): Promise<boolean> { return true; }
+};
