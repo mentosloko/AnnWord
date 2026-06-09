@@ -1,4 +1,3 @@
-import { supabase } from '../supabase';
 import { AccountRole, FeatureFlags, SubscriptionTier } from '../types';
 
 export interface AdminRcProfile {
@@ -9,9 +8,9 @@ export interface AdminRcProfile {
   featureFlags: FeatureFlags;
 }
 
-export const RC_FEATURE_LABELS: Array<{ key: keyof FeatureFlags; label: string }> = [
-  { key: 'adultRoom', label: 'Кабинет взрослого' },
-  { key: 'premiumDictionaries', label: 'Премиум-словари' },
-  { key: 'dailyWorldReward', label: 'Ежедневные награды' },
-  { key: 'treatRequests', label: 'Запросы лакомств' },
-  {
+export const RC_FEATURE_LABELS: Array<{ key: keyof FeatureFlags; label: string }> = [];
+
+export const adminRcAccessService = {
+  async listProfiles(): Promise<AdminRcProfile[]> {
+    return [];
+  },
