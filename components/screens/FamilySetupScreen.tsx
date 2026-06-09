@@ -8,4 +8,4 @@ interface FamilySetupScreenProps {
   onBackHome: () => void;
 }
 
-export const FamilySetupScreen: React.FC<FamilySetupScreenProps> = ({ onCreateChild, onComplete, onBackHome }) =>
+export const FamilySetupScreen: React.FC<FamilySetupScreenProps> = ({ onCreateChild
