@@ -1,15 +1,2 @@
 import React from 'react';
-import { motion } from 'motion/react';
-import { PetState } from '../types';
-import { CharacterProgressCard } from './CharacterProgressCard';
-import { normalizeMoodScore } from '../services/gamificationRules';
-
-interface GameResultOverlayProps {
-  isOpen: boolean;
-  status: 'won' | 'lost' | 'completed';
-  title: string;
-  subtitle?: string;
-  emoji?: string;
-  pet: PetState;
-  xpGained: number;
-  coinsGained: number;
+export const GameResultOverlay=(p:any)=>p.isOpen?<div className="fixed inset-0 z-[80] flex items-center justify-center bg-indigo-950/45 p-4"><div className="rounded-3xl bg-white p-6 text-center shadow-2xl"><div className="text-5xl">{p.emoji||'🎉'}</div><h2 className="text-3xl font-black text-indigo-950">{p.title}</h2>{p.subtitle&&<p className="mt-2 font-bold text-gray-500">{p.subtitle
