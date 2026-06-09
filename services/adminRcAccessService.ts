@@ -9,9 +9,6 @@ export interface AdminRcProfile {
   featureFlags: FeatureFlags;
 }
 
-export interface AdminPremiumGrantResult {
-  id: string;
-  username: string;
-  subscriptionTier: SubscriptionTier;
-  premiumExpiresAt?: string;
-}
+const normalizeFlags = (value: unknown): FeatureFlags => {
+  const flags = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  return {
