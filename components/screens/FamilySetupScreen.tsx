@@ -1,14 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { ChildSetupResult } from '../../services/familyAccountService';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
-export const FamilySetupScreen: React.FC<any> = ({ onBackHome }) => {
-  return (
-    <ScreenContainer className="max-w-lg pb-20">
-      <button type="button" onClick={onBackHome}>Back</button>
-      <section>
-        <h1>Setup</h1>
-        <p>V1 account setup screen.</p>
-      </section>
-    </ScreenContainer>
-  );
-};
+interface FamilySetupScreenProps {
+  onCreateChild: (childName: string, parentPin: string) => Promise<ChildSetupResult>;
+  onComplete: (result: ChildSetupResult) => void;
+  onBackHome: () => void;
+}
+
+export const FamilySetupScreen: React.FC<FamilySetupScreenProps> = ({ onCreateChild,
