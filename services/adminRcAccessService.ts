@@ -1,14 +1,7 @@
 import { supabase } from '../supabase';
 import { AccountRole, FeatureFlags, SubscriptionTier } from '../types';
-
-export interface AdminRcProfile {
-  id: string;
-  username: string;
-  role: AccountRole;
-  subscriptionTier: SubscriptionTier;
-  featureFlags: FeatureFlags;
-}
-
-const normalizeFlags = (value: unknown): FeatureFlags => {
-  const flags = value && typeof value === 'object' ? value as Record<string, unknown> : {};
-  return {
+export interface AdminRcProfile { id:string; username:string; role:AccountRole; subscriptionTier:SubscriptionTier; featureFlags:FeatureFlags; }
+export const RC_FEATURE_LABELS:Array<{key:keyof FeatureFlags;label:string}>=[
+{key:'adultRoom',label:'Adult room'},
+{key:'premiumDictionaries',label:'Premium dictionaries'},
+{key:'dailyWorldReward',label:'Daily reward'},
