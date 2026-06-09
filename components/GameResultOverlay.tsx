@@ -11,5 +11,3 @@ interface GameResultOverlayProps {
   subtitle?: string;
   emoji?: string;
   pet: PetState;
-  xpGained: number;
-  coinsG
