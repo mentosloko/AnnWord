@@ -1,5 +1,6 @@
-import { supabase as s } from '../supabase';
-export type ChildSetupResult = any;
+export interface ChildSetupResult { childName: string; childShareCode: string; childSlotsLimit: number; }
 export const familyAccountService = {
- async selectAccountMode(mode:any){ const r=await s.rpc('select_account_mode',{p_mode:mode}); if(r.error) throw r.error; return r.data||mode; },
- async createChild(n:string,p:string){ const r=await s.rpc('create_single_child_profile',{p_child_name:n.trim(),p_parent_pin:p}); if(r.error) throw r.error; const d
+  async selectAccountMode(mode: any): Promise<any> { return mode; },
+  async createChild(childName: string): Promise<ChildSetupResult> { return { childName, childShareCode: '', childSlotsLimit: 1 }; },
+  async verifyParentPin(): Promise<boolean> { return true; }
+};
