@@ -1,2 +1,6 @@
 import React from 'react';
-export const GameResultOverlay=(p:any)=>p.isOpen?<div className="fixed inset-0 z-[80] flex items-center justify-center bg-indigo-950/45 p-4"><div className="rounded-3xl bg-white p-6 text-center shadow-2xl"><div className="text-5xl">{p.emoji||'🎉'}</div><h2 className="text-3xl font-black text-indigo-950">{p.title}</h2>{p.subtitle&&<p className="mt-2 font-bold text-gray-500">{p.subtitle
+
+export const GameResultOverlay = (p: any) => {
+  if (!p.isOpen) return null;
+  return React.createElement('div', { className: 'fixed inset-0 z-[80] flex items-center justify-center bg-indigo-950/45 px-3 py-4 backdrop-blur-sm sm:px-4' },
+    React.createElement('div', { role: 'dialog', 'aria-modal': true, className: 'max-h-[92vh] w-full max-w-[min(32rem,94vw)] overflow-y-auto rounded
