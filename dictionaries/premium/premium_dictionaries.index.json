@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "dictionaries": [
+    {
+      "id": "premium_business_english",
+      "title": "Business English",
+      "shortTitle": "Business",
+      "theme": "business",
+      "file": "premium_business_english.json",
+      "icon": "💼"
+    },
+    {
+      "id": "premium_travel_english",
+      "title": "Travel English",
+      "shortTitle": "Travel",
+      "theme": "travel",
+      "file": "premium_travel_english.json",
+      "icon": "✈️"
+    },
+    {
+      "id": "premium_medical_english",
+      "title": "Medical English",
+      "shortTitle": "Medicine",
+      "theme": "medicine",
+      "file": "premium_medical_english.json",
+      "icon": "🩺"
+    },
+    {
+      "id": "premium_ielts_academic",
+      "title": "IELTS / Academic English",
+      "shortTitle": "IELTS",
+      "theme": "academic",
+      "file": "premium_ielts_academic.json",
+      "icon": "🎓"
+    },
+    {
+      "id": "premium_it_digital",
+      "title": "IT & Digital English",
+      "shortTitle": "IT & Digital",
+      "theme": "it",
+      "file": "premium_it_digital.json",
+      "icon": "💻"
+    },
+    {
+      "id": "premium_finance_banking",
+      "title": "Finance & Banking English",
+      "shortTitle": "Finance",
+      "theme": "finance",
+      "file": "premium_finance_banking.json",
+      "icon": "🏦"
+    },
+    {
+      "id": "premium_legal_compliance",
+      "title": "Legal & Compliance English",
+      "shortTitle": "Legal",
+      "theme": "legal",
+      "file": "premium_legal_compliance.json",
+      "icon": "⚖️"
+    },
+    {
+      "id": "premium_science_research",
+      "title": "Science & Research English",
+      "shortTitle": "Science",
+      "theme": "science",
+      "file": "premium_science_research.json",
+      "icon": "🔬"
+    },
+    {
+      "id": "premium_everyday_advanced",
+      "title": "Everyday Advanced English",
+      "shortTitle": "Everyday+",
+      "theme": "everyday_advanced",
+      "file": "premium_everyday_advanced.json",
+      "icon": "💬"
+    },
+    {
+      "id": "premium_food_hospitality",
+      "title": "Food & Hospitality English",
+      "shortTitle": "Food",
+      "theme": "food_hospitality",
+      "file": "premium_food_hospitality.json",
+      "icon": "🍽️"
+    }
+  ]
+}
