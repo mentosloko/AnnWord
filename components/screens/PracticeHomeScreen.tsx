@@ -40,10 +40,16 @@ type PremiumPack = {
 
 const PRACTICE_IMAGE = '/assets/onboarding/account-mode-player.webp';
 const PREMIUM_PACKS: PremiumPack[] = [
-  { title: 'Business', words: 520, description: 'работа, e-mail, встречи', icon: '💼' },
-  { title: 'Travel', words: 430, description: 'аэропорт, отель, город', icon: '✈️' },
-  { title: 'Medicine', words: 780, description: 'медицинский английский', icon: '🩺' },
-  { title: 'IELTS', words: 610, description: 'академическая лексика', icon: '🎓' },
+  { title: 'Business', words: 300, description: 'работа, e-mail, встречи', icon: '💼' },
+  { title: 'Travel', words: 300, description: 'аэропорт, отель, город', icon: '✈️' },
+  { title: 'Medicine', words: 300, description: 'медицинский английский', icon: '🩺' },
+  { title: 'IELTS', words: 300, description: 'академическая лексика', icon: '🎓' },
+  { title: 'IT & Digital', words: 300, description: 'софт, веб, продукт', icon: '💻' },
+  { title: 'Finance', words: 300, description: 'банки, деньги, рынки', icon: '🏦' },
+  { title: 'Legal', words: 300, description: 'право и комплаенс', icon: '⚖️' },
+  { title: 'Science', words: 300, description: 'наука и исследования', icon: '🔬' },
+  { title: 'Everyday+', words: 300, description: 'продвинутый everyday', icon: '💬' },
+  { title: 'Food', words: 300, description: 'еда и hospitality', icon: '🍽️' },
 ];
 const T = {
   title: 'AnnWord Practice',
@@ -67,7 +73,7 @@ const T = {
   wordsAvailable: 'слов доступно',
   premiumShelf: 'Premium-словари',
   premiumTitle: 'Откройте тематические наборы',
-  premiumSubtitle: 'Играйте не только с общими словами, а с лексикой под вашу цель.',
+  premiumSubtitle: '10 наборов по 300 игровых слов: выберите лексику под свою цель.',
   openPremium: 'Открыть Premium-словари',
   premiumBadge: 'Premium',
   done: 'выполнено',
