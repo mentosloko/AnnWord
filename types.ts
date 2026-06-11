@@ -5,7 +5,7 @@ export type SubscriptionTier = 'free' | 'premium';
 export type AccountRole = 'admin' | 'user' | 'parent' | 'teacher';
 export type AccountMode = 'player' | 'parent' | 'teacher';
 
-export type ViewState = 'landing' | 'profile' | 'setup' | 'game' | 'review' | 'anagrams' | 'sprint' | 'hangman' | 'memory' | 'shop' | 'pet_room' | 'account_mode_setup' | 'character_onboarding' | 'family_setup' | 'admin' | 'adult_room' | 'dictionary_studio';
+export type ViewState = 'landing' | 'profile' | 'setup' | 'game' | 'review' | 'anagrams' | 'sprint' | 'hangman' | 'memory' | 'shop' | 'pet_room' | 'account_mode_setup' | 'character_onboarding' | 'family_setup' | 'admin' | 'adult_room' | 'dictionary_studio' | 'premium';
 export type CharStatus = 'correct' | 'present' | 'absent' | 'initial';
 
 export interface FeatureFlags { adultRoom?: boolean; premiumDictionaries?: boolean; dailyWorldReward?: boolean; treatRequests?: boolean; streakStickers?: boolean; levelWardrobe?: boolean; }
