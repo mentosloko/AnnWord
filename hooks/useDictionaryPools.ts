@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { ALL_WORDS_EN, COMMON_WORDS_EN } from '../dictionaries/mainEnglish';
 import { hasRussianTranslation, toCustomEnrichedWords } from '../services/dictionaryEngine';
+import { getPremiumDictionaryEntries, getPremiumDictionaryWords, hasPremiumDictionaryAccess } from '../services/premiumDictionaryCatalog';
 import { EnrichedWord, GameSettings, UserProfile } from '../types';
 
 interface UseDictionaryPoolsArgs {
@@ -16,7 +17,9 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
   const getSecretWordPool = useCallback((): EnrichedWord[] => {
     let pool: EnrichedWord[] = [];
 
-    if (settings.dictionarySource === 'custom') {
+    if (settings.dictionarySource === 'premium' && hasPremiumDictionaryAccess(userProfile)) {
+      pool = getPremiumDictionaryEntries(settings.activePremiumDictionaryId);
+    } else if (settings.dictionarySource === 'custom') {
       pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
     } else {
       pool = COMMON_WORDS_EN.filter(word => hasRussianTranslation(word.translation));
@@ -27,15 +30,21 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
     }
 
     return pool.filter(word => !word.word.endsWith('S') || word.word.endsWith('SS'));
-  }, [settings.dictionarySource, settings.difficulty, userProfile.customDictionaryEn]);
+  }, [settings.activePremiumDictionaryId, settings.dictionarySource, settings.difficulty, userProfile]);
 
   const getValidationPool = useCallback((): string[] => {
-    const combinedPool = ALL_WORDS_EN
+    const premiumWords = settings.dictionarySource === 'premium' && hasPremiumDictionaryAccess(userProfile)
+      ? getPremiumDictionaryWords(settings.activePremiumDictionaryId)
+      : [];
+    const combinedPool = [
+      ...ALL_WORDS_EN,
+      ...premiumWords,
+    ]
       .filter(word => word.length === settings.wordLength)
       .map(word => word.toUpperCase());
 
     return Array.from(new Set(combinedPool));
-  }, [settings.wordLength]);
+  }, [settings.activePremiumDictionaryId, settings.dictionarySource, settings.wordLength, userProfile]);
 
   const getModeWords = useCallback((options: ModeWordPoolOptions = {}): string[] => {
     const secretPool = getSecretWordPool();
