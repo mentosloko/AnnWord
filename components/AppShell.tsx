@@ -41,6 +41,7 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
       {!isGameRoute && (
         <AppHeader
+          route={route}
           userProfile={userProfile}
           isAuthenticated={isAuthenticated}
           onHomeClick={onHomeClick}
