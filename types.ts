@@ -1,5 +1,5 @@
 export type WordLength = 4 | 5 | 6;
-export type DictionarySource = 'builtin' | 'custom';
+export type DictionarySource = 'builtin' | 'custom' | 'premium';
 export type DifficultyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'ALL';
 export type SubscriptionTier = 'free' | 'premium';
 export type AccountRole = 'admin' | 'user' | 'parent' | 'teacher';
@@ -27,7 +27,7 @@ export interface DailyQuestCompletionReward { quest: DailyQuestState; item?: Sho
 export interface ShopRandomRewardOption { itemId: string; weight: number; }
 export interface ShopItem { id: string; name: string; price: number; type: InventoryItemType; minLevel: number; description: string; imageUrl?: string; effect?: { mood?: number; moodCap?: number; }; characterType?: string; randomReward?: { pool: ShopRandomRewardOption[]; }; }
 export interface CellData { letter: string; status: CharStatus; }
-export interface GameSettings { wordLength: WordLength; useCustomDictionary: boolean; dictionarySource: DictionarySource; difficulty: DifficultyLevel; username: string; }
+export interface GameSettings { wordLength: WordLength; useCustomDictionary: boolean; dictionarySource: DictionarySource; difficulty: DifficultyLevel; username: string; activePremiumDictionaryId?: string; }
 export interface EnrichedWord { word: string; translation: string; level: string; }
 export interface HistoryItem { word: string; translation: string | null; }
 export interface GameState { secretWord: string; secretWordData?: EnrichedWord | null; guesses: string[]; history: HistoryItem[]; currentGuess: string; gameStatus: 'playing' | 'won' | 'lost'; rowIndex: number; hint: string | null; loadingHint: boolean; hintCoinsSpent?: number; error: string | null; }
