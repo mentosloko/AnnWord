@@ -1,5 +1,6 @@
 import React from 'react';
 import { DictionarySource, DifficultyLevel, GameSettings, UserProfile, WordLength } from '../../types';
+import { getPremiumDictionaryCatalog, getPremiumDictionaryMeta, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
 import { ScreenContainer } from '../layout/ScreenContainer';
 import { PlayableModeRoute } from '../AppScreens';
 
@@ -14,6 +15,7 @@ interface SetupScreenProps {
   onSettingsChange: (settings: GameSettings) => void;
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onOpenDictionaryStudio: () => void;
+  onOpenPremium: () => void;
   onStartGame: () => void;
   onBack: () => void;
   onLogin: () => void;
@@ -26,28 +28,34 @@ const DIFFICULTIES: Array<{ value: DifficultyLevel; short: string }> = [
 ];
 const MODE_LABELS: Record<PlayableModeRoute, string> = { game: 'Классика', anagrams: 'Анаграммы', sprint: 'Спринт', memory: 'Память', hangman: 'Виселица' };
 
-export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, settings, customDictionaryWords, setupError, isUploadingDictionary, isAuthenticated, userProfile, onOpenDictionaryStudio, onSettingsChange, onStartGame, onBack, onLogin }) => {
+export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, settings, customDictionaryWords, setupError, isUploadingDictionary, isAuthenticated, userProfile, onOpenDictionaryStudio, onOpenPremium, onSettingsChange, onStartGame, onBack, onLogin }) => {
   const isCustomDictionary = settings.dictionarySource === 'custom';
-  const premiumNotExpired = !userProfile.premiumExpiresAt || Date.parse(userProfile.premiumExpiresAt) > Date.now();
-  const hasPremium = userProfile.role === 'admin' || (userProfile.subscriptionTier === 'premium' && premiumNotExpired);
+  const isPremiumDictionary = settings.dictionarySource === 'premium';
+  const hasPremium = hasPremiumDictionaryAccess(userProfile);
+  const premiumCatalog = getPremiumDictionaryCatalog();
+  const activePremium = getPremiumDictionaryMeta(settings.activePremiumDictionaryId);
   const customWordsCount = customDictionaryWords.filter(word => word.trim().length === settings.wordLength).length;
-  const canStart = !isCustomDictionary || (hasPremium && customWordsCount > 0);
+  const premiumWordsCount = Math.floor(activePremium.wordCount / 3);
+  const canStart = isCustomDictionary ? hasPremium && customWordsCount > 0 : isPremiumDictionary ? hasPremium && premiumWordsCount > 0 : true;
   const updateSetting = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => onSettingsChange({ ...settings, [key]: value });
   const selectDictionarySource = (source: DictionarySource) => {
-    if (source === 'custom' && !isAuthenticated) { onLogin(); return; }
+    if ((source === 'custom' || source === 'premium') && !isAuthenticated) { onLogin(); return; }
     if (source === 'custom' && !hasPremium) { onOpenDictionaryStudio(); return; }
-    updateSetting('dictionarySource', source);
+    if (source === 'premium' && !hasPremium) { onOpenPremium(); return; }
+    onSettingsChange({ ...settings, dictionarySource: source, useCustomDictionary: source === 'custom' });
   };
+  const selectPremiumDictionary = (id: string) => onSettingsChange({ ...settings, dictionarySource: 'premium', useCustomDictionary: false, activePremiumDictionaryId: id });
 
   return <ScreenContainer className="max-w-3xl px-3 pb-20 pt-3 sm:px-4">
     <div className="mb-3 flex items-center justify-between gap-3"><button type="button" onClick={onBack} className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button><div className="text-center"><div className="text-xs font-black uppercase tracking-widest text-indigo-400">{MODE_LABELS[selectedPlayMode]}</div><h1 className="text-2xl font-black text-indigo-950 sm:text-3xl">Перед стартом</h1></div><div className="h-11 w-11" /></div>
     <div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:p-6">
       {setupError && <div className="mb-4 rounded-2xl border-2 border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{setupError}</div>}
       <section><h2 className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Длина слова</h2><div className="grid grid-cols-3 gap-2">{WORD_LENGTHS.map(length => <button type="button" key={length} onClick={() => updateSetting('wordLength', length)} className={`rounded-2xl py-3 font-black ${settings.wordLength === length ? 'bg-indigo-600 text-white' : 'border-2 border-indigo-100 text-indigo-700'}`}>{length}</button>)}</div></section>
-      <section className="mt-4"><h2 className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Слова для игры</h2><div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => selectDictionarySource('builtin')} className={`rounded-2xl border-2 p-3 text-left ${!isCustomDictionary ? 'border-indigo-300 bg-indigo-50' : 'border-indigo-100'}`}><div className="text-xl">📚</div><div className="text-sm font-black">Встроенный</div><div className="text-[11px] font-bold text-gray-400">по уровням сложности</div></button><button type="button" onClick={() => selectDictionarySource('custom')} className={`relative rounded-2xl border-2 p-3 text-left ${isCustomDictionary && hasPremium ? 'border-purple-300 bg-purple-50' : 'border-indigo-100'}`}><span className="absolute right-3 top-3 text-sm">{hasPremium ? '✨' : '🔒'}</span><div className="text-xl">🧩</div><div className="text-sm font-black">Мой словарь</div><div className="text-[11px] font-bold text-gray-400">{hasPremium ? `${customWordsCount} слов · Premium` : 'доступно в Premium'}</div></button></div></section>
-      {!isCustomDictionary && <section className="mt-4"><h2 className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Сложность</h2><div className="grid grid-cols-3 gap-2 sm:grid-cols-6">{DIFFICULTIES.map(level => <button type="button" key={level.value} onClick={() => updateSetting('difficulty', level.value)} className={`rounded-2xl py-2.5 text-sm font-black ${settings.difficulty === level.value ? 'bg-indigo-600 text-white' : 'border-2 border-indigo-100 text-indigo-700'}`}>{level.short}</button>)}</div></section>}
+      <section className="mt-4"><h2 className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Слова для игры</h2><div className="grid grid-cols-3 gap-2"><button type="button" onClick={() => selectDictionarySource('builtin')} className={`rounded-2xl border-2 p-3 text-left ${settings.dictionarySource === 'builtin' ? 'border-indigo-300 bg-indigo-50' : 'border-indigo-100'}`}><div className="text-xl">📚</div><div className="text-sm font-black">Встроенный</div><div className="text-[11px] font-bold text-gray-400">по уровням</div></button><button type="button" onClick={() => selectDictionarySource('custom')} className={`relative rounded-2xl border-2 p-3 text-left ${isCustomDictionary && hasPremium ? 'border-purple-300 bg-purple-50' : 'border-indigo-100'}`}><span className="absolute right-3 top-3 text-sm">{hasPremium ? '✨' : '🔒'}</span><div className="text-xl">🧩</div><div className="text-sm font-black">Мой словарь</div><div className="text-[11px] font-bold text-gray-400">{hasPremium ? `${customWordsCount} слов` : 'Premium'}</div></button><button type="button" onClick={() => selectDictionarySource('premium')} className={`relative rounded-2xl border-2 p-3 text-left ${isPremiumDictionary && hasPremium ? 'border-amber-300 bg-amber-50' : 'border-indigo-100'}`}><span className="absolute right-3 top-3 text-sm">{hasPremium ? '✅' : '🔒'}</span><div className="text-xl">{activePremium.icon}</div><div className="text-sm font-black">Premium</div><div className="text-[11px] font-bold text-gray-400">{hasPremium ? activePremium.shortTitle : '10 тем'}</div></button></div></section>
+      {settings.dictionarySource === 'builtin' && <section className="mt-4"><h2 className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Сложность</h2><div className="grid grid-cols-3 gap-2 sm:grid-cols-6">{DIFFICULTIES.map(level => <button type="button" key={level.value} onClick={() => updateSetting('difficulty', level.value)} className={`rounded-2xl py-2.5 text-sm font-black ${settings.difficulty === level.value ? 'bg-indigo-600 text-white' : 'border-2 border-indigo-100 text-indigo-700'}`}>{level.short}</button>)}</div></section>}
+      {isPremiumDictionary && hasPremium && <section className="mt-4 rounded-2xl border-2 border-dashed border-amber-100 bg-amber-50/50 p-4"><h2 className="mb-3 text-xs font-black uppercase tracking-widest text-amber-500">Premium-словарь</h2><div className="grid grid-cols-2 gap-2 sm:grid-cols-5">{premiumCatalog.map(item => <button type="button" key={item.id} onClick={() => selectPremiumDictionary(item.id)} className={`rounded-2xl border-2 p-3 text-left transition ${settings.activePremiumDictionaryId === item.id ? 'border-amber-400 bg-white shadow-sm' : 'border-white bg-white/70 hover:bg-white'}`}><div className="text-xl">{item.icon}</div><div className="truncate text-xs font-black text-indigo-950">{item.shortTitle}</div><div className="text-[10px] font-black text-amber-700">{item.wordCount} слов</div></button>)}</div></section>}
       {isCustomDictionary && hasPremium && <section className="mt-4 rounded-2xl border-2 border-dashed border-purple-100 bg-purple-50/50 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><span className="block font-black text-indigo-950">{customDictionaryWords.length ? 'Словарь готов к игре' : 'Создайте словарь'}</span><span className="block text-xs font-bold text-gray-500">Загрузка и распознавание — в студии словарей</span></div><button type="button" onClick={onOpenDictionaryStudio} className="rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-black text-white">Открыть студию</button></div>{isUploadingDictionary && <p className="mt-2 text-xs font-bold text-purple-700">Сохраняю словарь...</p>}</section>}
-      <button type="button" onClick={onStartGame} disabled={!canStart} className={`mt-5 w-full rounded-2xl py-4 font-black ${canStart ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>{canStart ? `Начать: ${MODE_LABELS[selectedPlayMode]}` : isCustomDictionary && !hasPremium ? 'Нужен Premium' : `Нет слов из ${settings.wordLength} букв`}</button>
+      <button type="button" onClick={onStartGame} disabled={!canStart} className={`mt-5 w-full rounded-2xl py-4 font-black ${canStart ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>{canStart ? `Начать: ${MODE_LABELS[selectedPlayMode]}` : isPremiumDictionary && !hasPremium ? 'Нужен Premium' : isCustomDictionary && !hasPremium ? 'Нужен Premium' : `Нет слов из ${settings.wordLength} букв`}</button>
     </div>
   </ScreenContainer>;
 };
