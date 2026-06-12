@@ -1,6 +1,6 @@
 import React from 'react';
 import { DailyQuestCompletionReward, DailyQuestState, UserProfile } from '../../types';
-import { getCharacterProgressPercent, getCharacterStageLabel, normalizeMoodScore } from '../../services/gamificationRules';
+import { getCharacterProgressPercent, getCharacterStageLabel, getNextLevelThreshold, normalizeMoodScore } from '../../services/gamificationRules';
 import { getMoodDisplay } from '../../services/moodDisplay';
 import { getPetEmoji } from '../../services/petEngine';
 import { getPuppyCharacterAssetUrl } from '../../services/petAssets';
@@ -8,13 +8,119 @@ import { CoinIcon } from '../CoinIcon';
 import { DailyQuestCard, DailyQuestRewardModal } from '../DailyQuestCard';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
-type Props = { userProfile: UserProfile; dailyQuest?: DailyQuestState | null; dailyQuestReward?: DailyQuestCompletionReward | null; onCloseDailyQuestReward?: () => void; onStartDailyQuest?: (quest: DailyQuestState) => void; hasActiveClassicGame?: boolean; hasActiveAnagramGame?: boolean; onStartClassic: () => void; onStartAnagrams: () => void; onStartSprint: () => void; onStartHangman: () => void; onStartMemory: () => void; onOpenShop: () => void; onOpenProfile?: () => void; onOpenPetRoom?: () => void; };
-const games = [ ['\u041a\u043b\u0430\u0441\u0441\u0438\u043a\u0430', '/assets/games/game_classic.webp'], ['\u0410\u043d\u0430\u0433\u0440\u0430\u043c\u043c\u044b', '/assets/games/game_anagrams.webp'], ['\u0421\u043f\u0440\u0438\u043d\u0442', '/assets/games/game_sprint.webp'], ['\u0412\u0438\u0441\u0435\u043b\u0438\u0446\u0430', '/assets/games/game_hangman.webp'], ['\u041f\u0430\u043c\u044f\u0442\u044c', '/assets/games/game_memory.webp'] ] as const;
+type Props = {
+  userProfile: UserProfile;
+  dailyQuest?: DailyQuestState | null;
+  dailyQuestReward?: DailyQuestCompletionReward | null;
+  onCloseDailyQuestReward?: () => void;
+  onStartDailyQuest?: (quest: DailyQuestState) => void;
+  hasActiveClassicGame?: boolean;
+  hasActiveAnagramGame?: boolean;
+  onStartClassic: () => void;
+  onStartAnagrams: () => void;
+  onStartSprint: () => void;
+  onStartHangman: () => void;
+  onStartMemory: () => void;
+  onOpenShop: () => void;
+  onOpenProfile?: () => void;
+  onOpenPetRoom?: () => void;
+};
 
-export const KidsHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, dailyQuestReward, onCloseDailyQuestReward, onStartDailyQuest, hasActiveClassicGame, hasActiveAnagramGame, onStartClassic, onStartAnagrams, onStartSprint, onStartHangman, onStartMemory, onOpenShop, onOpenProfile, onOpenPetRoom }) => {
+const games = [
+  ['Классика', '/assets/games/game_classic.webp'],
+  ['Анаграммы', '/assets/games/game_anagrams.webp'],
+  ['Спринт', '/assets/games/game_sprint.webp'],
+  ['Виселица', '/assets/games/game_hangman.webp'],
+  ['Память', '/assets/games/game_memory.webp'],
+] as const;
+
+export const KidsHomeScreen: React.FC<Props> = ({
+  userProfile,
+  dailyQuest,
+  dailyQuestReward,
+  onCloseDailyQuestReward,
+  onStartDailyQuest,
+  hasActiveClassicGame,
+  hasActiveAnagramGame,
+  onStartClassic,
+  onStartAnagrams,
+  onStartSprint,
+  onStartHangman,
+  onStartMemory,
+  onOpenShop,
+  onOpenProfile,
+  onOpenPetRoom,
+}) => {
   const actions = [onStartClassic, onStartAnagrams, onStartSprint, onStartHangman, onStartMemory];
   const petUrl = getPuppyCharacterAssetUrl(userProfile.pet);
   const mood = getMoodDisplay(normalizeMoodScore(userProfile.pet));
-  const xp = getCharacterProgressPercent(userProfile.pet);
-  return <ScreenContainer className="max-w-6xl pb-20 pt-5"><section className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]"><aside className="rounded-[2rem] bg-gradient-to-br from-purple-700 to-indigo-700 p-5 text-white shadow-xl sm:p-7"><div className="flex items-start justify-between gap-3"><div><div className="text-xs font-black uppercase tracking-widest text-white/65">AnnWord Kids</div><h1 className="mt-1 text-3xl font-black">{userProfile.pet.name}</h1><div className="mt-1 text-sm font-bold text-white/70">{getCharacterStageLabel(userProfile.pet.stage)}</div></div><button type="button" onClick={onOpenProfile} className="rounded-2xl bg-white/15 px-4 py-2 text-sm font-black">\u041f\u0440\u043e\u0444\u0438\u043b\u044c</button></div><button type="button" onClick={onOpenPetRoom} className="mx-auto mt-5 flex h-56 w-56 items-center justify-center overflow-hidden rounded-[2rem] bg-white/95 shadow-inner"><span className="sr-only">\u041a\u043e\u043c\u043d\u0430\u0442\u0430 \u043f\u0438\u0442\u043e\u043c\u0446\u0430</span>{petUrl ? <img src={petUrl} alt="" className="h-64 w-64 scale-125 object-cover" draggable={false} /> : <span className="text-7xl">{getPetEmoji(userProfile.pet)}</span>}</button><div className="mt-5 grid grid-cols-2 gap-3"><button type="button" onClick={onOpenShop} className="rounded-3xl bg-white/10 p-4 text-left"><CoinIcon className="text-3xl" /><div className="mt-3 text-3xl font-black">{userProfile.coins}</div><div className="text-xs font-black uppercase tracking-widest text-white/60">\u043c\u043e\u043d\u0435\u0442</div></button><div className="rounded-3xl bg-white/10 p-4"><div className={`text-xs font-black uppercase tracking-widest ${mood.textOnDarkClass}`}>{mood.label}</div><div className="mt-4 h-2 rounded-full bg-white/15"><div className={`h-2 rounded-full ${mood.barClass}`} style={{ width: `${normalizeMoodScore(userProfile.pet)}%` }} /></div><div className="mt-5 text-xs font-black uppercase tracking-widest text-white/60">XP</div><div className="mt-2 h-2 rounded-full bg-white/15"><div className="h-2 rounded-full bg-white" style={{ width: `${xp}%` }} /></div></div></div></aside><main><h2 className="text-3xl font-black text-indigo-950">\u0412\u043e \u0447\u0442\u043e \u0441\u044b\u0433\u0440\u0430\u0435\u043c?</h2><p className="mt-2 text-sm font-bold text-gray-500">\u0418\u0433\u0440\u0430\u0439\u0442\u0435, \u0441\u043e\u0431\u0438\u0440\u0430\u0439\u0442\u0435 \u043c\u043e\u043d\u0435\u0442\u044b \u0438 \u043f\u043e\u043c\u043e\u0433\u0430\u0439\u0442\u0435 \u043f\u0438\u0442\u043e\u043c\u0446\u0443 \u0440\u0430\u0441\u0442\u0438.</p><div className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">{games.map(([label, src], index) => <button key={label} type="button" onClick={actions[index]} className="relative rounded-3xl border-2 border-indigo-50 bg-white p-2 text-center shadow-sm transition hover:-translate-y-1"><img src={src} alt="" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" draggable={false} /><div className="mt-2 truncate text-xs font-black text-indigo-950 sm:text-sm">{label}</div>{((index === 0 && hasActiveClassicGame) || (index === 1 && hasActiveAnagramGame)) && <div className="absolute right-1 top-1 rounded-full bg-green-100 px-2 py-1 text-[10px] font-black text-green-700">save</div>}</button>)}</div>{dailyQuest && <DailyQuestCard quest={dailyQuest} onStart={onStartDailyQuest} />}</main></section>{dailyQuestReward && onCloseDailyQuestReward && <DailyQuestRewardModal reward={dailyQuestReward} onClose={onCloseDailyQuestReward} />}</ScreenContainer>;
+  const xpPercent = getCharacterProgressPercent(userProfile.pet);
+  const nextLevelXp = getNextLevelThreshold(userProfile.pet.level || 1);
+  const lastInventoryItem = userProfile.inventory.find(item => item.quantity > 0);
+
+  return (
+    <ScreenContainer className="max-w-6xl pb-20 pt-5">
+      <section className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
+        <aside className="rounded-[2rem] bg-gradient-to-br from-purple-700 to-indigo-700 p-5 text-white shadow-xl sm:p-7">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-xs font-black uppercase tracking-widest text-white/65">AnnWord Kids</div>
+              <h1 className="mt-1 text-3xl font-black">{userProfile.pet.name}</h1>
+              <div className="mt-1 text-sm font-bold text-white/70">{getCharacterStageLabel(userProfile.pet.stage)}</div>
+            </div>
+            <button type="button" onClick={onOpenProfile} className="rounded-2xl bg-white/15 px-4 py-2 text-sm font-black">
+              Профиль
+            </button>
+          </div>
+
+          <button type="button" onClick={onOpenPetRoom} className="mx-auto mt-5 flex h-56 w-56 items-center justify-center overflow-hidden rounded-[2rem] bg-white/95 shadow-inner">
+            <span className="sr-only">Комната питомца</span>
+            {petUrl ? <img src={petUrl} alt="" className="h-64 w-64 scale-125 object-cover" draggable={false} /> : <span className="text-7xl">{getPetEmoji(userProfile.pet)}</span>}
+          </button>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <button type="button" onClick={onOpenShop} aria-label={`Монеты: ${userProfile.coins}. Открыть магазин`} className="rounded-3xl bg-white/10 p-4 text-left">
+              <CoinIcon className="text-3xl" />
+              <div className="mt-3 text-3xl font-black">{userProfile.coins}</div>
+              <div className="text-xs font-black uppercase tracking-widest text-white/60">монет</div>
+            </button>
+            <div className="rounded-3xl bg-white/10 p-4">
+              <div className={`text-xs font-black uppercase tracking-widest ${mood.textOnDarkClass}`}>{mood.label}</div>
+              <div className="mt-4 h-2 rounded-full bg-white/15" aria-hidden="true"><div className={`h-2 rounded-full ${mood.barClass}`} style={{ width: `${normalizeMoodScore(userProfile.pet)}%` }} /></div>
+              <div className="mt-5 text-xs font-black uppercase tracking-widest text-white/60">XP</div>
+              <div className="mt-1 text-sm font-black text-white">{userProfile.pet.xp} / {nextLevelXp}</div>
+              <div className="mt-2 h-2 rounded-full bg-white/15" aria-hidden="true"><div className="h-2 rounded-full bg-white" style={{ width: `${xpPercent}%` }} /></div>
+            </div>
+          </div>
+
+          {lastInventoryItem && (
+            <button type="button" onClick={onOpenPetRoom} className="mt-4 w-full rounded-3xl bg-white/10 p-4 text-left transition hover:bg-white/15">
+              <div className="text-xs font-black uppercase tracking-widest text-white/60">У тебя есть</div>
+              <div className="mt-1 text-sm font-black text-white">{lastInventoryItem.name} ×{lastInventoryItem.quantity}</div>
+              <div className="mt-1 text-xs font-bold text-white/65">Открыть комнату питомца</div>
+            </button>
+          )}
+        </aside>
+
+        <main>
+          <h2 className="text-3xl font-black text-indigo-950">Во что сыграем?</h2>
+          <p className="mt-2 text-sm font-bold text-gray-500">Играйте, собирайте монеты и помогайте питомцу расти.</p>
+          <div className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
+            {games.map(([label, src], index) => (
+              <button key={label} type="button" onClick={actions[index]} className="relative rounded-3xl border-2 border-indigo-50 bg-white p-2 text-center shadow-sm transition hover:-translate-y-1">
+                <img src={src} alt="" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" draggable={false} />
+                <div className="mt-2 truncate text-xs font-black text-indigo-950 sm:text-sm">{label}</div>
+                {((index === 0 && hasActiveClassicGame) || (index === 1 && hasActiveAnagramGame)) && <div className="absolute right-1 top-1 rounded-full bg-green-100 px-2 py-1 text-[10px] font-black text-green-700">сохранено</div>}
+              </button>
+            ))}
+          </div>
+          {dailyQuest && <DailyQuestCard quest={dailyQuest} onStart={onStartDailyQuest} />}
+        </main>
+      </section>
+
+      {dailyQuestReward && onCloseDailyQuestReward && (
+        <DailyQuestRewardModal reward={dailyQuestReward} onClose={onCloseDailyQuestReward} onOpenPetRoom={onOpenPetRoom} onOpenShop={onOpenShop} />
+      )}
+    </ScreenContainer>
+  );
 };
