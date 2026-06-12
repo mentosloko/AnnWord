@@ -37,10 +37,27 @@ export const STREAK_STICKERS: StreakSticker[] = [
 const londonDateKey = (date = new Date()): string => new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit',
 }).format(date);
+const treatRequestStorageKey = (profile: UserProfile) => `annword:treat-request:${profile.username || 'guest'}:${londonDateKey()}`;
+const readStoredTreatId = (profile: UserProfile): string | null => {
+  if (typeof window === 'undefined') return profile.pet.requestedTreatId || null;
+  return window.localStorage.getItem(treatRequestStorageKey(profile)) || profile.pet.requestedTreatId || null;
+};
+const storeTreatId = (profile: UserProfile, itemId: string) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(treatRequestStorageKey(profile), itemId);
+};
 
 export const getWorld = (id?: PetWorldId): PetWorldDefinition => PET_WORLDS.find(world => world.id === id) || PET_WORLDS[0];
 export const getActiveWorld = (pet: PetState): PetWorldDefinition => pet.activeWorldDate === londonDateKey() ? getWorld(pet.activeWorldId) : PET_WORLDS[0];
 export const hasActiveDailyWorld = (pet: PetState): boolean => pet.activeWorldDate === londonDateKey() && pet.activeWorldId !== undefined && pet.activeWorldId !== 'default_room';
 export const getEarnedStickers = (pet: PetState): StreakSticker[] => STREAK_STICKERS.filter(sticker => (pet.earnedStickerIds || []).includes(sticker.id));
 export const getLevelAvailableAccessories = (level: number): ShopItem[] => getShopItemsByType('accessory').filter(item => item.minLevel <= level);
-export const getRequestedTreat = (profile: UserProfile): ShopItem | null => getShopItemsByType('food').filter(item => item.price > profile.coins).sort((a, b) => a.price - b.price)[0] || null;
+export const getRequestedTreat = (profile: UserProfile): ShopItem | null => {
+  const foods = getShopItemsByType('food').sort((a, b) => a.price - b.price);
+  const storedId = readStoredTreatId(profile);
+  const storedTreat = foods.find(item => item.id === storedId);
+  if (storedTreat) return storedTreat;
+  const nextTreat = foods.find(item => item.price > profile.coins) || foods[foods.length - 1] || null;
+  if (nextTreat) storeTreatId(profile, nextTreat.id);
+  return nextTreat;
+};
