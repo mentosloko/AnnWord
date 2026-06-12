@@ -37,14 +37,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onYandexLogin,
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const focusTimer = window.setTimeout(() => dialogRef.current?.focus(), 0);
+    const focusTimer = window.setTimeout(() => emailRef.current?.focus(), 0);
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') onCloseRef.current();
       if (event.key !== 'Tab' || !dialogRef.current) return;
       const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])'));
       if (!focusable.length) return;
@@ -59,7 +63,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
   const title = mode === 'login' ? 'Вход' : 'Регистрация';
@@ -93,8 +97,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div>
             <label htmlFor="auth-email" className="mb-1 block text-xs font-bold uppercase text-gray-500">Электронная почта</label>
             <input
+              ref={emailRef}
               id="auth-email"
-              autoFocus
               required
               type="email"
               autoComplete="email"
