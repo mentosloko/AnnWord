@@ -67,7 +67,7 @@ export const calculateGameReward = (input: GameRewardInput): GameRewardResult =>
   if (input.type === 'sprint') {
     const guessedWords = Math.max(0, Math.round(input.guessedWords || 0));
     const xp = guessedWords ? Math.min(30, guessedWords * 5) : 5;
-    return reward(xp, guessedWords >= 6 ? C.sprint.great : guessedWords >= 3 ? C.sprint.good : C.sprint.low, 'Sprint done');
+    return reward(xp, guessedWords >= 10 ? C.sprint.great : guessedWords >= 6 ? C.sprint.good : C.sprint.low, 'Sprint done');
   }
   if (input.type === 'anagram') {
     const guessedWords = Math.max(0, Math.round(input.guessedWords || 0));
