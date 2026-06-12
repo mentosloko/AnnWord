@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,7 +16,7 @@ interface AuthModalProps {
 }
 
 const LoaderIcon = () => (
-  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+  <svg className="h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
   </svg>
@@ -36,88 +36,103 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onSubmit,
   onYandexLogin,
 }) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusTimer = window.setTimeout(() => dialogRef.current?.focus(), 0);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
+  const title = mode === 'login' ? 'Вход' : 'Регистрация';
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-sm animate-fade-in">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-gray-800">
-            {mode === 'login' ? 'Вход' : 'Регистрация'}
-          </h3>
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" role="presentation">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-modal-title"
+        aria-describedby={error ? 'auth-modal-error' : undefined}
+        tabIndex={-1}
+        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl outline-none animate-fade-in"
+      >
+        <div className="mb-6 flex items-center justify-between">
+          <h3 id="auth-modal-title" className="text-xl font-bold text-gray-800">{title}</h3>
+          <button type="button" onClick={onClose} aria-label="Закрыть окно входа" className="flex h-10 w-10 items-center justify-center rounded-xl text-xl text-gray-400 hover:bg-gray-50 hover:text-gray-600">×</button>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center">
+          <div id="auth-modal-error" className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-600" role="alert">
             ⚠️ {error}
           </div>
         )}
 
         <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSubmit();
-          }}
+          onSubmit={(event) => { event.preventDefault(); onSubmit(); }}
           className="space-y-4"
         >
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Электронная почта</label>
+            <label htmlFor="auth-email" className="mb-1 block text-xs font-bold uppercase text-gray-500">Электронная почта</label>
             <input
+              id="auth-email"
               autoFocus
+              required
               type="email"
               autoComplete="email"
               value={email}
               onChange={(event) => onEmailChange(event.target.value)}
               placeholder="user@example.com"
-              className="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-indigo-500 focus:outline-none transition"
+              className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Пароль</label>
+            <label htmlFor="auth-password" className="mb-1 block text-xs font-bold uppercase text-gray-500">Пароль</label>
             <input
+              id="auth-password"
+              required
+              minLength={6}
               type="password"
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
               placeholder="••••••••"
-              className="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-indigo-500 focus:outline-none transition"
+              className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none"
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2 disabled:opacity-70"
-          >
+          <button type="submit" disabled={isLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 font-bold text-white transition hover:bg-indigo-700 disabled:opacity-70">
             {isLoading ? <LoaderIcon /> : null}
             {mode === 'login' ? 'Войти' : 'Создать аккаунт'}
           </button>
         </form>
 
-        <div className="my-4 flex items-center gap-3">
-          <div className="h-px flex-1 bg-gray-200" />
-          <span className="text-xs font-bold text-gray-400 uppercase">или</span>
-          <div className="h-px flex-1 bg-gray-200" />
-        </div>
-
-        <button
-          type="button"
-          onClick={onYandexLogin}
-          disabled={isLoading}
-          className="w-full border-2 border-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50 transition disabled:opacity-70"
-        >
-          Войти через Яндекс
-        </button>
+        <div className="my-4 flex items-center gap-3"><div className="h-px flex-1 bg-gray-200" /><span className="text-xs font-bold uppercase text-gray-400">или</span><div className="h-px flex-1 bg-gray-200" /></div>
+        <button type="button" onClick={onYandexLogin} disabled={isLoading} className="w-full rounded-xl border-2 border-gray-200 py-3 font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-70">Продолжить через Яндекс</button>
+        <p className="mt-2 text-center text-xs font-bold text-gray-400">Откроется страница Яндекса для безопасного входа.</p>
 
         <div className="mt-6 text-center text-sm text-gray-500">
           {mode === 'login' ? 'Нет аккаунта?' : 'Уже есть аккаунт?'}{' '}
-          <button
-            type="button"
-            onClick={() => onModeChange(mode === 'login' ? 'register' : 'login')}
-            className="text-indigo-600 font-bold hover:underline"
-          >
+          <button type="button" onClick={() => onModeChange(mode === 'login' ? 'register' : 'login')} className="font-bold text-indigo-600 hover:underline">
             {mode === 'login' ? 'Зарегистрироваться' : 'Войти'}
           </button>
         </div>
