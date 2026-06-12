@@ -68,8 +68,8 @@ export const MemoryScreen: React.FC<ModeScreenProps> = ({ words, wordLength, use
   </GameModeShell>
 );
 
-export const HangmanScreen: React.FC<ModeScreenProps> = ({ words, wordLength, userProfile, onGameReward, onBackHome }) => (
+export const HangmanScreen: React.FC<ModeScreenProps> = ({ words, wordLength, userProfile, onGameReward, onWordPractice, onBackHome }) => (
   <GameModeShell title="Виселица" subtitle={`Угадай по буквам · ${wordLength} букв`} rules={MODE_RULES.hangman} dictionaryWords={ownDictionary(userProfile)} wordLength={wordLength} onBackHome={onBackHome}>
-    <HangmanGame userProfile={buildModeProfile(userProfile, words)} onGameReward={onGameReward} onBack={onBackHome} />
+    <HangmanGame userProfile={buildModeProfile(userProfile, words)} onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={onBackHome} />
   </GameModeShell>
 );
