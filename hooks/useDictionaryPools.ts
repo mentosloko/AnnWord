@@ -18,7 +18,7 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
     let pool: EnrichedWord[] = [];
 
     if (settings.dictionarySource === 'premium' && hasPremiumDictionaryAccess(userProfile)) {
-      pool = getPremiumDictionaryEntries(settings.activePremiumDictionaryId);
+      pool = getPremiumDictionaryEntries(settings.activePremiumDictionaryId, settings.difficulty);
     } else if (settings.dictionarySource === 'custom') {
       pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
     } else {
@@ -34,7 +34,7 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
 
   const getValidationPool = useCallback((): string[] => {
     const premiumWords = settings.dictionarySource === 'premium' && hasPremiumDictionaryAccess(userProfile)
-      ? getPremiumDictionaryWords(settings.activePremiumDictionaryId)
+      ? getPremiumDictionaryWords(settings.activePremiumDictionaryId, settings.difficulty)
       : [];
     const combinedPool = [
       ...ALL_WORDS_EN,
@@ -44,7 +44,7 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
       .map(word => word.toUpperCase());
 
     return Array.from(new Set(combinedPool));
-  }, [settings.activePremiumDictionaryId, settings.dictionarySource, settings.wordLength, userProfile]);
+  }, [settings.activePremiumDictionaryId, settings.dictionarySource, settings.difficulty, settings.wordLength, userProfile]);
 
   const getModeWords = useCallback((options: ModeWordPoolOptions = {}): string[] => {
     const secretPool = getSecretWordPool();
