@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
-import { buildPlayableGameDictionary, pickNextSessionWord } from '../services/gameSessionEngine';
+import { buildPlayableGameDictionary, pickNextSessionWord, WordPracticeResult } from '../services/gameSessionEngine';
 import { motion } from 'motion/react';
 import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
@@ -10,6 +10,7 @@ interface HangmanGameProps {
   onBack: () => void;
   userProfile: UserProfile;
   onGameReward: (input: GameRewardInput) => void | Promise<void>;
+  onWordPractice?: (word: string, result: WordPracticeResult) => void | Promise<void>;
 }
 
 export const buildHangmanDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] =>
@@ -17,7 +18,7 @@ export const buildHangmanDictionary = (customDictionaryEn: string[] = [], fallba
     .map(entry => ({ ...entry, word: entry.word.toUpperCase().replace(/[^A-Z]/g, '') }))
     .filter(entry => Boolean(entry.word));
 
-export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, onGameReward }) => {
+export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, onGameReward, onWordPractice }) => {
   const dictionarySignature = userProfile.customDictionaryEn.join('|');
   const dictionary = useMemo(() => buildHangmanDictionary(userProfile.customDictionaryEn), [dictionarySignature]);
   const rewardAppliedRef = useRef(false);
@@ -40,7 +41,13 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
     rewardAppliedRef.current = false;
   }, [dictionary]);
   useEffect(() => { if (!currentWord) pickNewWord(); }, [currentWord, pickNewWord]);
-  useEffect(() => { if ((status === 'won' || status === 'lost') && !rewardAppliedRef.current) { rewardAppliedRef.current = true; void onGameReward({ type: 'hangman', won: status === 'won', mistakes: finalMistakes, maxMistakes }); } }, [status, finalMistakes, maxMistakes, onGameReward]);
+  useEffect(() => {
+    if ((status === 'won' || status === 'lost') && !rewardAppliedRef.current) {
+      rewardAppliedRef.current = true;
+      void onGameReward({ type: 'hangman', won: status === 'won', mistakes: finalMistakes, maxMistakes });
+      if (currentWord) void Promise.resolve(onWordPractice?.(currentWord.word, status === 'won' ? 'mastered' : 'failed')).catch(error => console.error('Failed to save hangman word practice', error));
+    }
+  }, [status, finalMistakes, maxMistakes, onGameReward, onWordPractice, currentWord]);
   const handleLetterClick = (rawLetter: string) => {
     const letter = rawLetter.toUpperCase();
     if (status !== 'playing' || guessedLetters.includes(letter) || !currentWord) return;
