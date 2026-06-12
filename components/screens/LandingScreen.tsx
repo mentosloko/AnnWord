@@ -8,7 +8,7 @@ interface LandingScreenProps { userProfile: UserProfile; isAuthenticated: boolea
 interface GameOption { title: string; description: string; iconSrc: string; onStart: () => void; hasSavedGame?: boolean; }
 const modeCards = [
   { title: 'Kids', imageSrc: '/assets/onboarding/account-mode-parent.webp', summary: 'Детская версия с питомцем, монетами, заданиями и кабинетом родителя.', details: ['Питомец, лакомства и мотивация', 'Родительский кабинет', 'Код ребёнка для преподавателя'] },
-  { title: 'Practice', imageSrc: '/assets/onboarding/account-mode-player.webp', summary: 'Взрослая ежедневная практика слов без детской экономики.', details: ['Ежедневные задания и streak', 'Тематические словари в Premium', 'Свои словари после регистрации'] },
+  { title: 'Practice', imageSrc: '/assets/onboarding/account-mode-player.svg', summary: 'Взрослая ежедневная практика слов без детской экономики.', details: ['Ежедневные задания и streak', 'Тематические словари в Premium', 'Свои словари после регистрации'] },
   { title: 'Teacher', imageSrc: '/assets/onboarding/account-mode-teacher.webp', summary: 'Кабинет преподавателя для подключения учеников и назначения словарей.', details: ['Добавление ученика по коду', 'Просмотр прогресса', 'Словари преподавателя'] },
 ];
 const gameOptions = (bindings: Pick<LandingScreenProps, 'hasActiveClassicGame' | 'hasActiveAnagramGame' | 'onStartClassic' | 'onStartAnagrams' | 'onStartSprint' | 'onStartHangman' | 'onStartMemory'>): GameOption[] => [
