@@ -11,9 +11,10 @@ interface GameModeShellProps {
   wordLength?: WordLength;
   children: React.ReactNode;
   onBackHome: () => void;
+  onDictionaryPeek?: () => boolean | Promise<boolean>;
 }
 
-export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, rules = [], dictionaryWords = [], wordLength, children, onBackHome }) => {
+export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, rules = [], dictionaryWords = [], wordLength, children, onBackHome, onDictionaryPeek }) => {
   const [showRules, setShowRules] = useState(false);
   const child = isValidElement(children) ? React.cloneElement(children as React.ReactElement<{ paused?: boolean }>, { paused: showRules }) : children;
 
@@ -27,7 +28,7 @@ export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, r
             <h1 className="truncate text-xl font-black text-indigo-950 sm:text-3xl">{title}</h1>
           </div>
           <div className="flex items-center justify-end gap-1.5">
-            <DictionaryPeek words={dictionaryWords} wordLength={wordLength} compact />
+            <DictionaryPeek words={dictionaryWords} wordLength={wordLength} compact onBeforeOpen={onDictionaryPeek} chargeLabel="Просмотр словаря стоит как подсказка." />
             {rules.length > 0 ? (
               <button type="button" onClick={() => setShowRules(prev => !prev)} aria-label={`Правила: ${title}`} aria-expanded={showRules} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 font-black text-indigo-700 transition hover:bg-indigo-100" title="Правила режима">?</button>
             ) : null}
