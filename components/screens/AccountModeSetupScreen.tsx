@@ -3,6 +3,7 @@ import { AccountMode } from '../../types';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface AccountModeSetupScreenProps { onSelectMode: (mode: AccountMode) => Promise<void>; }
+const PRACTICE_IMAGE = '/assets/onboarding/account-mode-practice-dog.svg';
 const s = {
   welcome: 'Добро пожаловать в AnnWord',
   heading: 'Выберите формат AnnWord',
@@ -11,7 +12,7 @@ const s = {
   saving: 'Сохраняю…',
 };
 const OPTIONS: Array<{ mode: AccountMode; imageSrc: string; title: string; description: string; bullets: string[]; cta: string; accent: string }> = [
-  { mode: 'player', imageSrc: '/assets/onboarding/account-mode-player.webp', title: 'AnnWord Practice', description: 'Для взрослого, который сам тренирует английские слова.', bullets: ['Ежедневная практика без питомцев и монет', 'Уровни сложности и тематические словари', 'Premium для кастомных и специальных словарей'], cta: 'Учить слова самому', accent: 'border-indigo-100 hover:border-indigo-300 hover:bg-indigo-50' },
+  { mode: 'player', imageSrc: PRACTICE_IMAGE, title: 'AnnWord Practice', description: 'Для взрослого, который сам тренирует английские слова.', bullets: ['Ежедневная практика без питомцев и монет', 'Уровни сложности и тематические словари', 'Premium для кастомных и специальных словарей'], cta: 'Учить слова самому', accent: 'border-indigo-100 hover:border-indigo-300 hover:bg-indigo-50' },
   { mode: 'parent', imageSrc: '/assets/onboarding/account-mode-parent.webp', title: 'AnnWord Kids', description: 'Геймифицированное обучение: аккаунт создаёт взрослый, играет ребёнок.', bullets: ['Питомец, монеты, лакомства и задания', 'Кабинет родителя и Premium взрослого', 'Код ребёнка для преподавателя и его словарей'], cta: 'Создать детский режим', accent: 'border-purple-100 hover:border-purple-300 hover:bg-purple-50' },
   { mode: 'teacher', imageSrc: '/assets/onboarding/account-mode-teacher.webp', title: 'Кабинет преподавателя', description: 'Рабочий кабинет без игр и детской экономики.', bullets: ['Подключение учеников по коду', 'Просмотр прогресса', 'Создание и назначение словарей'], cta: 'Войти как преподаватель', accent: 'border-cyan-100 hover:border-cyan-300 hover:bg-cyan-50' },
 ];
