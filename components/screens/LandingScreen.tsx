@@ -6,7 +6,7 @@ import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface LandingScreenProps { userProfile: UserProfile; isAuthenticated: boolean; dailyQuest?: DailyQuestState | null; dailyQuestReward?: DailyQuestCompletionReward | null; onCloseDailyQuestReward?: () => void; onStartDailyQuest?: (quest: DailyQuestState) => void; hasActiveClassicGame?: boolean; hasActiveAnagramGame?: boolean; onStartClassic: () => void; onStartAnagrams: () => void; onStartSprint: () => void; onStartHangman: () => void; onStartMemory: () => void; onOpenShop: () => void; onOpenRules: () => void; onOpenLogin: () => void; onOpenRegister?: () => void; onOpenProfile?: () => void; onOpenPetRoom?: () => void; }
 interface GameOption { title: string; description: string; iconSrc: string; onStart: () => void; hasSavedGame?: boolean; }
-const PRACTICE_IMAGE = '/assets/onboarding/account-mode-practice-dog.svg';
+const PRACTICE_IMAGE = '/assets/onboarding/account-mode-practice-dog.webp';
 const modeCards = [
   { title: 'Kids', imageSrc: '/assets/onboarding/account-mode-parent.webp', summary: 'Детская версия с питомцем, монетами, заданиями и кабинетом родителя.', details: ['Питомец, лакомства и мотивация', 'Родительский кабинет', 'Код ребёнка для преподавателя'] },
   { title: 'Practice', imageSrc: PRACTICE_IMAGE, summary: 'Взрослая ежедневная практика слов без детской экономики.', details: ['Ежедневные задания и streak', 'Тематические словари в Premium', 'Свои словари после регистрации'] },
