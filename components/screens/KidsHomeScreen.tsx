@@ -114,7 +114,7 @@ export const KidsHomeScreen: React.FC<Props> = ({
               </button>
             ))}
           </div>
-          {dailyQuest && <DailyQuestCard quest={dailyQuest} onStart={onStartDailyQuest} />}
+          {dailyQuest && <DailyQuestCard quest={dailyQuest} onStart={onStartDailyQuest} onOpenPetRoom={onOpenPetRoom} onOpenShop={onOpenShop} />}
         </main>
       </section>
 
