@@ -21,13 +21,14 @@ interface Props {
   onRestart: () => void;
   onBackHome: () => void;
   onRegister?: () => void;
+  onDictionaryPeek?: () => boolean | Promise<boolean>;
 }
 
 const RULES = 'annword:wordle-rules-seen';
 const blur = () => { if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) document.activeElement.blur(); };
 const inferAuth = (profile: UserProfile): boolean => profile.username !== 'Гость' || Boolean(profile.role) || Boolean(profile.accountMode);
 
-export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userProfile, isAuthenticated, keyStatuses, shakeRowIndex, onChar, onDelete, onEnter, onHint, onRestart, onBackHome, onRegister }) => {
+export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userProfile, isAuthenticated, keyStatuses, shakeRowIndex, onChar, onDelete, onEnter, onHint, onRestart, onBackHome, onRegister, onDictionaryPeek }) => {
   const authenticated = isAuthenticated ?? inferAuth(userProfile);
   const [showRules, setShowRules] = useState(false);
   const [seen, setSeen] = useState(true);
@@ -47,7 +48,7 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
   const restart = () => { if (!finished && gameState.secretWord && gameState.guesses.length > 0 && !window.confirm('Начать заново? Текущий прогресс попытки будет потерян.')) return; onRestart(); };
 
   return (
-    <ScreenContainer compact className="h-[100dvh] max-w-none overflow-hidden px-1.5 py-1.5 sm:px-3 sm:py-2 lg:px-5">
+    <ScreenContainer compact className="h-[100svh] max-w-none overflow-hidden px-1.5 py-1.5 sm:h-[100dvh] sm:px-3 sm:py-2 lg:px-5">
       <div className="relative mx-auto grid h-full min-h-0 w-full max-w-[88rem] grid-rows-[auto_auto_minmax(0,1fr)_auto] gap-[clamp(0.2rem,0.7dvh,0.55rem)] overflow-hidden">
         <header className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 sm:gap-2">
           <button type="button" onClick={onBackHome} aria-label="Назад в меню" className="flex h-[clamp(2.1rem,6.2dvh,2.75rem)] w-[clamp(2.1rem,6.2dvh,2.75rem)] items-center justify-center rounded-xl border-2 border-indigo-100 bg-white text-lg font-black text-indigo-700 shadow-sm">←</button>
@@ -55,7 +56,7 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
             {authenticated ? <button type="button" onClick={clickHint} disabled={finished || hintUsed} className="min-w-[7.75rem] rounded-xl border-2 border-blue-100 bg-blue-50 px-2.5 py-[clamp(0.3rem,1dvh,0.55rem)] text-[clamp(0.7rem,1.7dvh,0.875rem)] font-black text-blue-700 disabled:opacity-50 sm:min-w-[9rem]">{gameState.loadingHint ? '...' : hintUsed ? 'Подсказка использована' : 'Подсказка'}</button> : <button type="button" onClick={register} className="min-w-[7.75rem] rounded-xl border-2 border-purple-100 bg-purple-50 px-2.5 py-[clamp(0.3rem,1dvh,0.55rem)] text-[clamp(0.7rem,1.7dvh,0.875rem)] font-black text-purple-700 sm:min-w-[9rem]">Регистрация</button>}
           </div>
           <div className="flex items-center gap-1">
-            <DictionaryPeek words={userProfile.customDictionaryEn} wordLength={settings.wordLength} iconOnly locked={!authenticated} lockedMessage="Мой словарь доступен после регистрации в Kids или Practice." />
+            <DictionaryPeek words={userProfile.customDictionaryEn} wordLength={settings.wordLength} iconOnly locked={!authenticated} lockedMessage="Мой словарь доступен после регистрации в Kids или Practice." onBeforeOpen={authenticated ? onDictionaryPeek : undefined} chargeLabel="Просмотр словаря стоит как подсказка." />
             <button type="button" aria-label="Показать правила" aria-expanded={showRules} onClick={() => { blur(); setShowHint(false); setShowRules(value => !value); }} className={`flex h-9 w-9 items-center justify-center rounded-xl border font-black ${seen ? 'border-indigo-50 bg-white text-indigo-300' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}`}>?</button>
             <button type="button" aria-label="Начать игру заново" onClick={restart} className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 text-lg font-black text-indigo-700">↻</button>
           </div>
