@@ -8,10 +8,14 @@ interface DictionaryPeekProps {
   iconOnly?: boolean;
   locked?: boolean;
   lockedMessage?: string;
+  onBeforeOpen?: () => boolean | Promise<boolean>;
+  chargeLabel?: string;
 }
 
-export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], wordLength, compact = false, iconOnly = false, locked = false, lockedMessage = 'Мой словарь доступен после регистрации.' }) => {
+export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], wordLength, compact = false, iconOnly = false, locked = false, lockedMessage = 'Мой словарь доступен после регистрации.', onBeforeOpen, chargeLabel = 'Просмотр словаря считается подсказкой.' }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [wasCharged, setWasCharged] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const normalizedWords = useMemo(
     () => Array.from(new Set(
       words
@@ -26,13 +30,22 @@ export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], word
     : compact
       ? `flex h-9 items-center rounded-xl border px-2.5 text-[11px] font-black shadow-sm ${locked ? 'border-gray-200 bg-gray-50 text-gray-400' : 'border-indigo-100 bg-white text-indigo-600'}`
       : `flex h-11 items-center rounded-2xl border-2 px-3 text-xs font-black shadow-sm transition ${locked ? 'border-gray-200 bg-gray-50 text-gray-400' : 'border-indigo-100 bg-white text-indigo-700 hover:bg-indigo-50'}`;
+  const open = async () => {
+    setError(null);
+    if (!locked && onBeforeOpen && !wasCharged) {
+      const allowed = await onBeforeOpen();
+      if (!allowed) { setError('Недостаточно монет для подсказки.'); return; }
+      setWasCharged(true);
+    }
+    setIsOpen(true);
+  };
 
   return (
     <>
-      <button type="button" onClick={() => setIsOpen(true)} aria-label={locked ? lockedMessage : 'Открыть мой словарь'} className={buttonClass} title={locked ? lockedMessage : 'Открыть мой словарь'}>
+      <button type="button" onClick={() => void open()} aria-label={locked ? lockedMessage : 'Открыть мой словарь'} className={buttonClass} title={locked ? lockedMessage : 'Открыть мой словарь'}>
         {iconOnly ? (locked ? '🔒' : '📖') : locked ? '🔒 Мой словарь' : '📖 Мой словарь'}
       </button>
-
+      {error && <div role="alert" className="fixed right-3 top-20 z-[95] rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 shadow-lg">{error}</div>}
       {isOpen && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-indigo-950/45 p-3 backdrop-blur-sm sm:p-6">
           <div role="dialog" aria-modal="true" aria-label="Мой словарь" className="flex h-[min(88dvh,52rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border-2 border-indigo-100 bg-white shadow-2xl">
@@ -43,10 +56,10 @@ export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], word
                 <p className="mt-1 text-sm font-bold text-gray-500">
                   {locked ? 'Доступно после регистрации' : <>{wordLength ? `Слова из ${wordLength} букв · ` : ''}{normalizedWords.length} слов</>}
                 </p>
+                {!locked && onBeforeOpen && <p className="mt-1 text-xs font-bold text-amber-600">{wasCharged ? 'Подсказка оплачена для этой игры.' : chargeLabel}</p>}
               </div>
               <button type="button" aria-label="Закрыть словарь" onClick={() => setIsOpen(false)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-2xl font-black text-indigo-600">×</button>
             </header>
-
             {locked ? (
               <div className="m-6 rounded-2xl bg-indigo-50 p-6 text-center">
                 <div className="text-4xl">🔒</div>
