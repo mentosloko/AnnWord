@@ -62,6 +62,7 @@ export const GameResultOverlay: React.FC<GameResultOverlayProps> = ({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
+        aria-live="assertive"
         aria-labelledby="game-result-title"
         aria-describedby={subtitle ? 'game-result-subtitle' : undefined}
         tabIndex={-1}
