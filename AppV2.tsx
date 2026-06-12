@@ -34,6 +34,30 @@ const addRewardToStats = (stats: UserStats, input: GameRewardInput): UserStats =
   if (isRewardStatWin(input)) next.gamesWon += 1;
   return next;
 };
+const normalizePracticeWord = (word: string) => word.trim().toUpperCase();
+const addPracticeWordToStats = (stats: UserStats, word: string, result: WordPracticeResult): UserStats => {
+  const normalizedWord = normalizePracticeWord(word);
+  if (!normalizedWord) return stats;
+  const mastered = result === 'mastered';
+  const previousPerformance = stats.wordPerformance?.[normalizedWord] || { word: normalizedWord, attempts: 0, correct: 0, mistakes: 0 };
+  const wordsGuessed = { ...stats.wordsGuessed };
+  if (mastered) wordsGuessed[normalizedWord] = (wordsGuessed[normalizedWord] || 0) + 1;
+  return {
+    ...stats,
+    wordsGuessed,
+    wordsToReview: updateReviewPriorities(stats.wordsToReview || {}, normalizedWord, result),
+    wordPerformance: {
+      ...(stats.wordPerformance || {}),
+      [normalizedWord]: {
+        ...previousPerformance,
+        attempts: previousPerformance.attempts + 1,
+        correct: previousPerformance.correct + (mastered ? 1 : 0),
+        mistakes: previousPerformance.mistakes + (mastered ? 0 : 1),
+        lastPracticedAt: new Date().toISOString(),
+      },
+    },
+  };
+};
 
 const AppV2: React.FC = () => {
   const [route, setRouteState] = useState<ViewState>('landing');
@@ -55,7 +79,13 @@ const AppV2: React.FC = () => {
   const canUseDailyQuest = isAuthenticated && (isPractice || (isKids && userProfile.pet.characterOnboarded));
 
   useEffect(() => { wordReviewStatsRef.current = userProfile.stats; }, [userProfile.stats]);
-  const setRoute = useCallback((nextRoute: ViewState) => setRouteState(previousRoute => { if (previousRoute !== nextRoute) analyticsService.trackEvent({ userId: currentUserId, eventType: 'navigation', eventName: 'route_changed', route: nextRoute, payload: { previousRoute, nextRoute } }); return nextRoute; }), [currentUserId]);
+  const setRoute = useCallback((nextRoute: ViewState) => setRouteState(previousRoute => {
+    if (previousRoute !== nextRoute) {
+      analyticsService.trackEvent({ userId: currentUserId, eventType: 'navigation', eventName: 'route_changed', route: nextRoute, payload: { previousRoute, nextRoute } });
+      if (typeof window !== 'undefined') window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
+    }
+    return nextRoute;
+  }), [currentUserId]);
   const setDictionarySource = useCallback((source: DictionarySource) => setSettings(previous => ({ ...previous, dictionarySource: source, useCustomDictionary: source === 'custom' })), [setSettings]);
   const dictionaryUpload = useDictionaryUpload({ updateDictionary: profileEconomy.updateDictionary, setDictionarySource });
 
@@ -89,7 +119,7 @@ const AppV2: React.FC = () => {
   const updatePassword = useCallback((value: string) => { if (authError) setAuthError(null); setTempPassword(value); }, [authError, setAuthError, setTempPassword]);
   const handleLogout = useCallback(async () => { analyticsService.trackEvent({ userId: currentUserId, eventType: 'auth', eventName: 'logout', route }); await analyticsService.flush(); await logout(); setDailyQuest(null); setDailyQuestReward(null); setRoute('landing'); }, [currentUserId, logout, route, setRoute]);
   const submitDailyQuestResult = useCallback(async (input: GameRewardInput) => { if (!canUseDailyQuest) return; try { const result = await dailyQuestService.submitGameResult(input); setDailyQuest(result.quest); if (result.profile) setUserProfile(result.profile); if (isKids && result.reward) setDailyQuestReward(result.reward); } catch (error) { console.error('Failed to apply daily quest result', error); } }, [canUseDailyQuest, isKids, setUserProfile]);
-  const updateClassicStats = useCallback(async (won: boolean, word: string, coinsAdjustment = 0) => { const nextStats: UserStats = { ...userProfile.stats, wordsGuessed: { ...userProfile.stats.wordsGuessed }, wordsToReview: { ...(userProfile.stats.wordsToReview || {}) } }; nextStats.gamesPlayed += 1; if (won) { nextStats.gamesWon += 1; nextStats.wordsGuessed[word] = (nextStats.wordsGuessed[word] || 0) + 1; } const event = analyticsService.createEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_finished', gameType: 'wordle', route: 'game', payload: { won, word, coinsAdjustment: isKids ? coinsAdjustment : 0, wordLength: settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty } }); if (!isKids) { await profileEconomy.updateStats(nextStats); analyticsService.trackEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_finished', gameType: 'wordle', route: 'game', payload: event.payload }); return; } await profileEconomy.applyGameReward({ type: 'wordle', won, coinsAdjustment }, { stats: nextStats, analyticsEvents: [event] }); }, [currentUserId, isKids, profileEconomy, settings.dictionarySource, settings.difficulty, settings.wordLength, userProfile.stats]);
+  const updateClassicStats = useCallback(async (won: boolean, word: string, coinsAdjustment = 0) => { const nextStats = addPracticeWordToStats(userProfile.stats, word, won ? 'mastered' : 'failed'); nextStats.gamesPlayed += 1; if (won) nextStats.gamesWon += 1; const event = analyticsService.createEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_finished', gameType: 'wordle', route: 'game', payload: { won, word, coinsAdjustment: isKids ? coinsAdjustment : 0, wordLength: settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty } }); if (!isKids) { await profileEconomy.updateStats(nextStats); analyticsService.trackEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_finished', gameType: 'wordle', route: 'game', payload: event.payload }); return; } await profileEconomy.applyGameReward({ type: 'wordle', won, coinsAdjustment }, { stats: nextStats, analyticsEvents: [event] }); }, [currentUserId, isKids, profileEconomy, settings.dictionarySource, settings.difficulty, settings.wordLength, userProfile.stats]);
   const submitClassicDailyQuestResult = useCallback(async (won: boolean, _word: string, attempts: number) => submitDailyQuestResult({ type: 'wordle', won, attempts }), [submitDailyQuestResult]);
   const chargeWordleHint = useCallback(async (): Promise<boolean> => { if (!isKids) return true; if (userProfile.coins < WORDLE_HINT_COST) return false; await profileEconomy.winCoins(getWordleHintBalanceDelta()); return true; }, [isKids, profileEconomy, userProfile.coins]);
   const classicGame = useClassicGameController({ route, settings, sessionOwnerId: currentUserId, getSecretWordPool, getValidationPool, getModeWords, onRouteChange: setRoute, onStatsUpdate: updateClassicStats, onDailyQuestResult: submitClassicDailyQuestResult, availableCoins: isKids ? userProfile.coins : Number.MAX_SAFE_INTEGER, onHintCharge: chargeWordleHint });
@@ -119,7 +149,7 @@ const AppV2: React.FC = () => {
     await profileEconomy.applyGameReward(input, { stats: nextStats, analyticsEvents: [event] });
     if (!input.statsOnly) await submitDailyQuestResult(input);
   }, [currentUserId, isKids, profileEconomy, route, settings.dictionarySource, settings.difficulty, settings.wordLength, submitDailyQuestResult, userProfile.stats]);
-  const handleWordPractice = useCallback(async (word: string, result: WordPracticeResult) => { const previousStats = wordReviewStatsRef.current; const nextStats: UserStats = { ...previousStats, wordsGuessed: { ...previousStats.wordsGuessed }, wordsToReview: updateReviewPriorities(previousStats.wordsToReview || {}, word, result) }; wordReviewStatsRef.current = nextStats; wordPracticeSyncRef.current = wordPracticeSyncRef.current.catch(() => undefined).then(() => profileEconomy.updateStats(nextStats)); await wordPracticeSyncRef.current; }, [profileEconomy]);
+  const handleWordPractice = useCallback(async (word: string, result: WordPracticeResult) => { const previousStats = wordReviewStatsRef.current; const nextStats = addPracticeWordToStats(previousStats, word, result); wordReviewStatsRef.current = nextStats; wordPracticeSyncRef.current = wordPracticeSyncRef.current.catch(() => undefined).then(() => profileEconomy.updateStats(nextStats)); await wordPracticeSyncRef.current; }, [profileEconomy]);
   const handleCharacterOnboardingComplete = useCallback(async (character: PetState) => { await profileEconomy.updateCharacter(character); setRoute('landing'); }, [profileEconomy, setRoute]);
   const startTrackedGame = useCallback((mode: PlayableModeRoute) => { analyticsService.trackEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_started', gameType: toAnalyticsGameType(mode), route: mode, payload: { wordLength: settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty, wordsAvailable: modeWords.length } }); }, [currentUserId, modeWords.length, settings.dictionarySource, settings.difficulty, settings.wordLength]);
   if (bootstrapStatus !== 'ready') return <AuthBootstrapGate error={bootstrapError} onRetry={() => window.location.reload()} />;
