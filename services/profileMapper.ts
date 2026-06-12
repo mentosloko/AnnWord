@@ -7,16 +7,18 @@ const DEFAULT_PET: PetState = {
   hunger: 100, energy: 100, equippedAccessories: [], activeWorldId: 'default_room', dailyStreak: 0, earnedStickerIds: [],
 };
 const DEFAULT_STATS: UserStats = { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {}, wordsToReview: {}, wordPerformance: {} };
+const DEFAULT_PET_FEATURE_FLAGS: FeatureFlags = { dailyWorldReward: true, treatRequests: true, streakStickers: true, levelWardrobe: true };
 const isPlainObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
+const flagEnabledByDefault = (value: Record<string, unknown>, key: keyof FeatureFlags): boolean => value[key] !== false;
 const normalizeStringArray = (value: unknown): string[] => Array.isArray(value) ? Array.from(new Set(value.filter((item): item is string => typeof item === 'string').map(item => item.trim()).filter(Boolean))) : [];
 const normalizeWordCounters = (value: unknown): Record<string, number> => isPlainObject(value) ? Object.fromEntries(Object.entries(value).filter((entry): entry is [string, number] => typeof entry[0] === 'string' && typeof entry[1] === 'number')) : {};
-const normalizeFeatureFlags = (value: unknown): FeatureFlags => !isPlainObject(value) ? {} : ({
+const normalizeFeatureFlags = (value: unknown): FeatureFlags => !isPlainObject(value) ? { ...DEFAULT_PET_FEATURE_FLAGS } : ({
   adultRoom: value.adultRoom === true,
   premiumDictionaries: value.premiumDictionaries === true,
-  dailyWorldReward: value.dailyWorldReward === true,
-  treatRequests: value.treatRequests === true,
-  streakStickers: value.streakStickers === true,
-  levelWardrobe: value.levelWardrobe === true,
+  dailyWorldReward: flagEnabledByDefault(value, 'dailyWorldReward'),
+  treatRequests: flagEnabledByDefault(value, 'treatRequests'),
+  streakStickers: flagEnabledByDefault(value, 'streakStickers'),
+  levelWardrobe: flagEnabledByDefault(value, 'levelWardrobe'),
 });
 const normalizePerformance = (value: unknown): Record<string, WordPerformance> => {
   if (!isPlainObject(value)) return {};
