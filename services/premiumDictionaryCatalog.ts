@@ -33,11 +33,13 @@ export interface PremiumDictionaryMeta {
   levelCounts?: Partial<Record<DifficultyLevel, number>>;
 }
 
+type PremiumWordLevel = Exclude<DifficultyLevel, 'ALL'>;
+type PremiumDictionaryWord = string | { word: string; level: PremiumWordLevel; translation?: string };
 type PremiumDictionaryFile = {
   title: string;
   source: 'topic';
   theme: string;
-  words: string[];
+  words: PremiumDictionaryWord[];
 };
 
 const dictionaryFiles: Record<PremiumDictionaryId, PremiumDictionaryFile> = {
@@ -53,25 +55,28 @@ const dictionaryFiles: Record<PremiumDictionaryId, PremiumDictionaryFile> = {
   premium_food_hospitality: food as PremiumDictionaryFile,
 };
 
-const PREMIUM_LEVELS: Exclude<DifficultyLevel, 'ALL'>[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+const VALID_PREMIUM_LEVELS = new Set<PremiumWordLevel>(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
 const normalizedWord = (word: string): string => word.trim().toUpperCase().replace(/[^A-Z]/g, '');
-const normalizePremiumWords = (id: PremiumDictionaryId): string[] => {
-  const seen = new Set<string>();
-  return dictionaryFiles[id].words.map(normalizedWord).filter(word => {
-    if (!/^[A-Z]{4,6}$/.test(word) || seen.has(word)) return false;
-    seen.add(word);
-    return true;
-  });
-};
-const getPremiumLevel = (word: string, index: number, total: number): Exclude<DifficultyLevel, 'ALL'> => {
-  if (word.length <= 4 && index < total * 0.45) return index < total * 0.22 ? 'A1' : 'A2';
-  if (word.length === 5) return index < total * 0.55 ? 'B1' : 'B2';
-  if (word.length >= 6) return index < total * 0.7 ? 'C1' : 'C2';
-  return PREMIUM_LEVELS[Math.min(PREMIUM_LEVELS.length - 1, Math.floor(index / Math.max(1, total) * PREMIUM_LEVELS.length))];
+const normalizeLevel = (level?: string): PremiumWordLevel | null => VALID_PREMIUM_LEVELS.has(level as PremiumWordLevel) ? level as PremiumWordLevel : null;
+const normalizePremiumEntry = (item: PremiumDictionaryWord): EnrichedWord | null => {
+  const rawWord = typeof item === 'string' ? item : item.word;
+  const word = normalizedWord(rawWord || '');
+  if (!/^[A-Z]{4,6}$/.test(word)) return null;
+  const level = typeof item === 'string' ? null : normalizeLevel(item.level);
+  if (!level) return null;
+  const translation = typeof item === 'string' ? word : (item.translation?.trim() || word);
+  return { word, translation, level };
 };
 const getLeveledPremiumEntries = (id: PremiumDictionaryId): EnrichedWord[] => {
-  const words = normalizePremiumWords(id);
-  return words.map((word, index) => ({ word, translation: word, level: getPremiumLevel(word, index, words.length) }));
+  const seen = new Set<string>();
+  const entries: EnrichedWord[] = [];
+  for (const item of dictionaryFiles[id].words) {
+    const entry = normalizePremiumEntry(item);
+    if (!entry || seen.has(entry.word)) continue;
+    seen.add(entry.word);
+    entries.push(entry);
+  }
+  return entries;
 };
 const matchesDifficulty = (entry: EnrichedWord, difficulty: DifficultyLevel = 'ALL') => difficulty === 'ALL' || entry.level === difficulty;
 
