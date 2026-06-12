@@ -41,7 +41,8 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
   }, [dictionary]);
   useEffect(() => { if (cards.length === 0 && dictionary.length > 0) initializeGame(); }, [cards.length, dictionary.length, initializeGame]);
   const handleCardClick = (id: number) => {
-    if (isWon || flippedCards.length === 2 || cards.find(card => card.id === id)?.isFlipped || cards.find(card => card.id === id)?.isMatched) return;
+    const selectedCard = cards.find(card => card.id === id);
+    if (isWon || flippedCards.length === 2 || selectedCard?.isFlipped || selectedCard?.isMatched) return;
     setClicks(previous => previous + 1);
     const newCards = cards.map(card => card.id === id ? { ...card, isFlipped: true } : card);
     setCards(newCards);
@@ -64,7 +65,11 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col items-center p-3 sm:p-4">
       <div className="mb-6 flex w-full items-center justify-between gap-3"><button onClick={onBack} className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1 font-bold text-gray-500 transition hover:text-indigo-600"><span className="text-xl">←</span> Меню</button><h2 className="text-2xl font-black text-indigo-900">Память</h2><div className="rounded-2xl bg-indigo-50 px-3 py-1.5 text-sm font-bold text-indigo-600 shadow-sm sm:px-4">Кликов: {clicks}</div></div>
-      <div className="grid w-full grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3">{cards.map(card => <motion.div key={card.id} whileHover={{ scale: isWon ? 1 : 1.05 }} whileTap={{ scale: isWon ? 1 : 0.95 }} onClick={() => handleCardClick(card.id)} className={`flex aspect-square cursor-pointer items-center justify-center rounded-2xl border-4 p-2 text-center shadow-md transition-all ${card.isFlipped || card.isMatched ? 'border-indigo-100 bg-white' : 'border-indigo-700 bg-indigo-600'}`}>{(card.isFlipped || card.isMatched) ? <div className="flex min-w-0 flex-col items-center justify-center"><span className={`break-words font-black leading-tight ${card.type === 'en' ? 'text-xs text-indigo-900 sm:text-base' : 'text-[11px] text-pink-600 sm:text-sm'}`}>{card.content}</span><div className="mt-1 text-[8px] font-bold uppercase text-gray-300">{card.type === 'en' ? 'Английский' : 'Русский'}</div></div> : <div className="text-3xl font-black text-white drop-shadow-sm">?</div>}</motion.div>)}</div>
+      <div className="grid w-full grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3" role="grid" aria-label="Карточки памяти: найдите пары слово-перевод">{cards.map(card => {
+        const isOpen = card.isFlipped || card.isMatched;
+        const label = card.isMatched ? `Найденная пара: ${card.content}` : isOpen ? `Открытая карточка: ${card.content}. ${card.type === 'en' ? 'Английское слово' : 'Русский перевод'}` : 'Закрытая карточка. Открыть';
+        return <motion.button key={card.id} type="button" role="gridcell" aria-label={label} aria-pressed={isOpen} disabled={isWon || card.isMatched} whileHover={{ scale: isWon ? 1 : 1.05 }} whileTap={{ scale: isWon ? 1 : 0.95 }} onClick={() => handleCardClick(card.id)} className={`flex aspect-square cursor-pointer items-center justify-center rounded-2xl border-4 p-2 text-center shadow-md transition-all disabled:cursor-default ${isOpen ? 'border-indigo-100 bg-white' : 'border-indigo-700 bg-indigo-600'}`}>{isOpen ? <div className="flex min-w-0 flex-col items-center justify-center"><span className={`break-words font-black leading-tight ${card.type === 'en' ? 'text-xs text-indigo-900 sm:text-base' : 'text-[11px] text-pink-600 sm:text-sm'}`}>{card.content}</span><div className="mt-1 text-[8px] font-bold uppercase text-gray-300">{card.type === 'en' ? 'Английский' : 'Русский'}</div></div> : <div className="text-3xl font-black text-white drop-shadow-sm" aria-hidden="true">?</div>}</motion.button>;
+      })}</div>
       <GameResultOverlay isOpen={isWon} status="won" title="Отлично!" subtitle={`Ты нашёл все пары за ${clicks} кликов.`} emoji="🎉" pet={progressPreview.pet} xpGained={rewardPreview.xp} coinsGained={rewardPreview.coins} onPrimary={initializeGame} onSecondary={onBack} details={<span>Ходов: {moves}</span>} />
     </div>
   );
