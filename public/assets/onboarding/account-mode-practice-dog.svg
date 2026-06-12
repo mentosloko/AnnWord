@@ -1,1 +1,37 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AnnWord Practice"><image href="data:image/png;base64,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..." width="64" height="64" preserveAspectRatio="xMidYMid meet"/></svg>
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AnnWord Practice dog">
+  <rect width="256" height="256" rx="56" fill="#EEF2FF"/>
+  <ellipse cx="128" cy="188" rx="78" ry="18" fill="#CBD5E1" opacity="0.45"/>
+  <rect x="42" y="151" width="92" height="58" rx="10" fill="#1D4ED8"/>
+  <path d="M54 178H128L149 209H35L54 178Z" fill="#1E40AF"/>
+  <rect x="32" y="209" width="128" height="13" rx="7" fill="#312E81"/>
+  <path d="M82 170c11-27 32-44 58-44s46 18 56 45c5 14-6 31-21 31H103c-15 0-26-17-21-32Z" fill="#F6B35E"/>
+  <path d="M115 131c-16 5-28 18-34 37l35-11 19-29c-6 0-13 1-20 3Z" fill="#C96F28" opacity="0.5"/>
+  <path d="M163 131c16 5 28 18 34 37l-35-11-19-29c6 0 13 1 20 3Z" fill="#C96F28" opacity="0.45"/>
+  <circle cx="128" cy="104" r="54" fill="#F7BE68"/>
+  <path d="M112 54c-20-17-47-10-57 10-7 14 1 34 17 41 14 6 34-4 41-25l-1-26Z" fill="#C56F2D"/>
+  <path d="M144 54c20-17 47-10 57 10 7 14-1 34-17 41-14 6-34-4-41-25l1-26Z" fill="#C56F2D"/>
+  <path d="M119 51c-10 19-16 43-16 70 0 18 9 33 25 33s25-15 25-33c0-27-8-51-18-70-5-8-11-8-16 0Z" fill="#FFF7ED"/>
+  <ellipse cx="103" cy="104" rx="17" ry="23" fill="white" transform="rotate(-10 103 104)"/>
+  <ellipse cx="153" cy="104" rx="17" ry="23" fill="white" transform="rotate(10 153 104)"/>
+  <circle cx="107" cy="109" r="9" fill="#0EA5E9"/>
+  <circle cx="149" cy="109" r="9" fill="#0EA5E9"/>
+  <circle cx="110" cy="112" r="5" fill="#111827"/>
+  <circle cx="146" cy="112" r="5" fill="#111827"/>
+  <circle cx="113" cy="107" r="2" fill="white"/>
+  <circle cx="149" cy="107" r="2" fill="white"/>
+  <ellipse cx="128" cy="130" rx="17" ry="13" fill="#111827"/>
+  <path d="M102 136c7 21 43 21 52 0 2 25-10 42-26 42s-28-17-26-42Z" fill="#7F1D1D"/>
+  <ellipse cx="128" cy="160" rx="12" ry="8" fill="#EF4444"/>
+  <path d="M81 146c17-4 33 2 47 16 14-14 30-20 47-16-9 26-27 42-47 42s-38-16-47-42Z" fill="#FFF7ED"/>
+  <rect x="102" y="176" width="54" height="13" rx="7" fill="#2563EB"/>
+  <circle cx="128" cy="195" r="12" fill="#FACC15" stroke="#1D4ED8" stroke-width="5"/>
+  <path d="M128 187l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1 3-6Z" fill="#F59E0B"/>
+  <rect x="146" y="162" width="38" height="38" rx="9" fill="#60A5FA" stroke="white" stroke-width="4"/>
+  <path d="M156 188v-24h11c6 0 10 3 10 8 0 3-2 5-5 6 4 1 6 3 6 6 0 5-4 8-11 8h-11Zm7-15h4c2 0 3-1 3-2s-1-2-3-2h-4v4Zm0 10h5c2 0 3-1 3-3 0-1-1-2-4-2h-4v5Z" fill="white"/>
+  <rect x="181" y="145" width="40" height="40" rx="10" fill="#A855F7" stroke="white" stroke-width="4"/>
+  <path d="M190 176l9-23h7l9 23h-7l-1-4h-9l-1 4h-7Zm10-9h5l-2-7-3 7Z" fill="white"/>
+  <rect x="180" y="187" width="40" height="40" rx="10" fill="#FACC15" stroke="white" stroke-width="4"/>
+  <path d="M202 216c-8 0-14-5-14-13s6-13 14-13c5 0 9 2 11 6l-5 4c-1-2-3-4-6-4-4 0-7 3-7 7s3 7 7 7c3 0 5-1 7-4l5 4c-3 4-7 6-12 6Z" fill="white"/>
+  <circle cx="84" cy="173" r="12" fill="#FFF7ED"/>
+  <circle cx="180" cy="173" r="12" fill="#FFF7ED"/>
+</svg>
