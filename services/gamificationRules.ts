@@ -3,6 +3,13 @@ import { ECONOMY_COIN_REWARDS as C } from './economyConfig';
 
 interface RewardAdjustment {
   coinsAdjustment?: number;
+  /**
+   * Used by session-style modes that already granted per-word rewards but still
+   * need to register one completed training in the global stats model.
+   */
+  statsOnly?: boolean;
+  /** Optional explicit success flag for stats-only session completions. */
+  wonForStats?: boolean;
 }
 
 export type GameRewardInput =
@@ -51,6 +58,8 @@ export const getNextLevelThreshold = (level: number) => getTotalXpForLevel(level
 export const getCurrentLevelThreshold = (level: number) => getTotalXpForLevel(level);
 
 export const calculateGameReward = (input: GameRewardInput): GameRewardResult => {
+  if (input.statsOnly) return { xp: 0, coins: 0, mood: 0, label: 'Stats only' };
+
   const coinAdjustment = Math.round(input.coinsAdjustment || 0);
   const reward = (xp: number, coins: number, label: string): GameRewardResult => ({ xp, coins: coins + coinAdjustment, mood: 0, label });
 
