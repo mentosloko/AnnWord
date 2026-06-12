@@ -3,7 +3,7 @@ import { AccountMode } from '../../types';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface AccountModeSetupScreenProps { onSelectMode: (mode: AccountMode) => Promise<void>; }
-const PRACTICE_IMAGE = '/assets/onboarding/account-mode-practice-dog.svg';
+const PRACTICE_IMAGE = '/assets/onboarding/account-mode-practice-dog.webp';
 const s = {
   welcome: 'Добро пожаловать в AnnWord',
   heading: 'Выберите формат AnnWord',
