@@ -28,6 +28,7 @@ export const KNOWN_ROUTES: ViewState[] = [
   'family_setup',
   'adult_room',
   'dictionary_studio',
+  'premium',
   'admin',
 ];
 
