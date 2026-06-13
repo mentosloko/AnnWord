@@ -21,6 +21,7 @@ describe('route contracts', () => {
       'family_setup',
       'adult_room',
       'dictionary_studio',
+      'premium',
       'admin',
     ];
 
