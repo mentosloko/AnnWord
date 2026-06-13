@@ -22,6 +22,7 @@ const requiredRoutes: ViewState[] = [
   'family_setup',
   'adult_room',
   'dictionary_studio',
+  'premium',
   'admin',
 ];
 
