@@ -39,7 +39,7 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
   const reward = finished ? calculateGameReward({ type: 'wordle', won: gameState.gameStatus === 'won' }) : null;
   const progress = reward ? applyGameRewardToCharacter(userProfile.pet, reward) : null;
 
-  useEffect(() => { if (typeof window === 'undefined') return; const value = localStorage.getItem(RULES) === 'true'; setSeen(value); if (!value) setShowRules(true); }, []);
+  useEffect(() => { if (typeof window === 'undefined') return; setSeen(localStorage.getItem(RULES) === 'true'); }, []);
   useEffect(() => { if (gameState.currentGuess.length > 0 || finished) setShowHint(false); }, [gameState.currentGuess, finished]);
 
   const closeRules = () => { setShowRules(false); setSeen(true); localStorage.setItem(RULES, 'true'); blur(); };
