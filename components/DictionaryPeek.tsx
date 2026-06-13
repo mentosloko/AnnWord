@@ -8,11 +8,14 @@ interface DictionaryPeekProps {
   iconOnly?: boolean;
   locked?: boolean;
   lockedMessage?: string;
+  label?: string;
+  icon?: string;
+  emptyLabel?: string;
   onBeforeOpen?: () => boolean | Promise<boolean>;
   chargeLabel?: string;
 }
 
-export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], wordLength, compact = false, iconOnly = false, locked = false, lockedMessage = 'Мой словарь доступен после регистрации.', onBeforeOpen, chargeLabel = 'Просмотр словаря считается подсказкой.' }) => {
+export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], wordLength, compact = false, iconOnly = false, locked = false, lockedMessage = 'Мой словарь доступен после регистрации.', label = 'Мой словарь', icon = '📖', emptyLabel, onBeforeOpen, chargeLabel = 'Просмотр словаря считается подсказкой.' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [wasCharged, setWasCharged] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,17 +45,17 @@ export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], word
 
   return (
     <>
-      <button type="button" onClick={() => void open()} aria-label={locked ? lockedMessage : 'Открыть мой словарь'} className={buttonClass} title={locked ? lockedMessage : 'Открыть мой словарь'}>
-        {iconOnly ? (locked ? '🔒' : '📖') : locked ? '🔒 Мой словарь' : '📖 Мой словарь'}
+      <button type="button" onClick={() => void open()} aria-label={locked ? lockedMessage : `Открыть словарь: ${label}`} className={buttonClass} title={locked ? lockedMessage : `Открыть словарь: ${label}`}>
+        {iconOnly ? (locked ? '🔒' : icon) : locked ? `🔒 ${label}` : `${icon} ${label}`}
       </button>
       {error && <div role="alert" className="fixed right-3 top-20 z-[95] rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 shadow-lg">{error}</div>}
       {isOpen && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-indigo-950/45 p-3 backdrop-blur-sm sm:p-6">
-          <div role="dialog" aria-modal="true" aria-label="Мой словарь" className="flex h-[min(88dvh,52rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border-2 border-indigo-100 bg-white shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-label={label} className="flex h-[min(88dvh,52rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border-2 border-indigo-100 bg-white shadow-2xl">
             <header className="flex shrink-0 items-start justify-between gap-4 border-b border-indigo-50 px-5 py-4 sm:px-7 sm:py-5">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-widest text-indigo-400">Во время игры</div>
-                <h2 className="text-2xl font-black text-indigo-950 sm:text-3xl">Мой словарь</h2>
+                <h2 className="text-2xl font-black text-indigo-950 sm:text-3xl">{label}</h2>
                 <p className="mt-1 text-sm font-bold text-gray-500">
                   {locked ? 'Доступно после регистрации' : <>{wordLength ? `Слова из ${wordLength} букв · ` : ''}{normalizedWords.length} слов</>}
                 </p>
@@ -79,7 +82,7 @@ export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], word
               </div>
             ) : (
               <div className="m-6 rounded-2xl bg-gray-50 p-6 text-center text-base font-bold text-gray-500">
-                {wordLength ? `В личном словаре нет слов из ${wordLength} букв.` : 'Личный словарь пока не загружен.'}
+                {emptyLabel || (wordLength ? `В словаре «${label}» нет слов из ${wordLength} букв.` : `Словарь «${label}» пока пуст.`)}
               </div>
             )}
           </div>
