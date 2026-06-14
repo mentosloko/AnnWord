@@ -26,7 +26,7 @@ const DIFFICULTIES: Array<{ value: DifficultyLevel; short: string }> = [
   { value: 'ALL', short: 'Все' }, { value: 'A1', short: 'A1' }, { value: 'A2', short: 'A2' },
   { value: 'B1', short: 'B1' }, { value: 'B2', short: 'B2' }, { value: 'C1', short: 'C1' }, { value: 'C2', short: 'C2' },
 ];
-const MODE_LABELS: Record<PlayableModeRoute, string> = { game: 'Классика', anagrams: 'Анаграммы', sprint: 'Спринт', memory: 'Память', hangman: 'Виселица' };
+const MODE_LABELS: Record<PlayableModeRoute, string> = { game: 'Классика', anagrams: 'Анаграммы', translation: 'Перевод', sprint: 'Спринт', memory: 'Память', hangman: 'Виселица' };
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, settings, customDictionaryWords, setupError, isUploadingDictionary, isAuthenticated, userProfile, onOpenDictionaryStudio, onOpenPremium, onSettingsChange, onStartGame, onBack, onLogin }) => {
   const isCustomDictionary = settings.dictionarySource === 'custom';
