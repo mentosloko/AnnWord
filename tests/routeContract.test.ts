@@ -4,27 +4,7 @@ import { ViewState } from '../types';
 
 describe('route contracts', () => {
   it('contains every supported ViewState route exactly once', () => {
-    const requiredRoutes: ViewState[] = [
-      'landing',
-      'profile',
-      'setup',
-      'game',
-      'review',
-      'anagrams',
-      'sprint',
-      'memory',
-      'hangman',
-      'shop',
-      'pet_room',
-      'account_mode_setup',
-      'character_onboarding',
-      'family_setup',
-      'adult_room',
-      'dictionary_studio',
-      'premium',
-      'admin',
-    ];
-
+    const requiredRoutes: ViewState[] = ['landing', 'profile', 'setup', 'game', 'review', 'anagrams', 'translation', 'sprint', 'memory', 'hangman', 'shop', 'pet_room', 'account_mode_setup', 'character_onboarding', 'family_setup', 'adult_room', 'dictionary_studio', 'premium', 'admin'];
     expect(new Set(KNOWN_ROUTES).size).toBe(KNOWN_ROUTES.length);
     expect(KNOWN_ROUTES).toHaveLength(requiredRoutes.length);
     expect([...KNOWN_ROUTES].sort()).toEqual([...requiredRoutes].sort());
