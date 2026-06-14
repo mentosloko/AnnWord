@@ -5,7 +5,7 @@ export type SubscriptionTier = 'free' | 'premium';
 export type AccountRole = 'admin' | 'user' | 'parent' | 'teacher';
 export type AccountMode = 'player' | 'parent' | 'teacher';
 
-export type ViewState = 'landing' | 'profile' | 'setup' | 'game' | 'review' | 'anagrams' | 'sprint' | 'hangman' | 'memory' | 'shop' | 'pet_room' | 'account_mode_setup' | 'character_onboarding' | 'family_setup' | 'admin' | 'adult_room' | 'dictionary_studio' | 'premium';
+export type ViewState = 'landing' | 'profile' | 'setup' | 'game' | 'review' | 'anagrams' | 'translation' | 'sprint' | 'hangman' | 'memory' | 'shop' | 'pet_room' | 'account_mode_setup' | 'character_onboarding' | 'family_setup' | 'admin' | 'adult_room' | 'dictionary_studio' | 'premium';
 export type CharStatus = 'correct' | 'present' | 'absent' | 'initial';
 
 export interface FeatureFlags { adultRoom?: boolean; premiumDictionaries?: boolean; dailyWorldReward?: boolean; treatRequests?: boolean; streakStickers?: boolean; levelWardrobe?: boolean; }
@@ -14,7 +14,7 @@ export interface UserStats { gamesPlayed: number; gamesWon: number; wordsGuessed
 export type CharacterMood = 'sad' | 'calm' | 'happy' | 'joyful' | 'super_happy' | 'neutral' | 'excited';
 export type CharacterStage = 'stage_1' | 'stage_2' | 'stage_3' | 'stage_4';
 export type InventoryItemType = 'food' | 'pet' | 'accessory' | 'home' | 'mystery' | 'sticker';
-export type GameRewardType = 'wordle' | 'sprint' | 'anagram' | 'memory' | 'hangman' | 'other';
+export type GameRewardType = 'wordle' | 'sprint' | 'anagram' | 'translation' | 'memory' | 'hangman' | 'other';
 export type PetWorldId = 'default_room' | 'theatre' | 'amusement_park' | 'ice_rink' | 'opera' | 'sausage_fridge';
 export interface PetState { name: string; type: string; level: number; mood: CharacterMood; xp: number; moodScore?: number; stage?: CharacterStage; characterOnboarded?: boolean; hunger?: number; energy?: number; equippedAccessories: string[]; activeHomeItemId?: string; activeWorldId?: PetWorldId; activeWorldDate?: string; dailyStreak?: number; lastDailyActivityDate?: string; earnedStickerIds?: string[]; requestedTreatId?: string; }
 export interface InventoryItem { id: string; type: InventoryItemType; name: string; quantity: number; metadata?: { imageUrl?: string; minLevel?: number; temporary?: boolean; }; }
