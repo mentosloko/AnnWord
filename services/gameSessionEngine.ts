@@ -3,8 +3,8 @@ import { EnrichedWord } from '../types';
 import { hasRussianTranslation, normalizeWord } from './dictionaryEngine';
 import { getUnusedSessionWord, resetSessionWordBucket } from './sessionWordHistory';
 
-export type GameSessionMode = 'anagram' | 'sprint' | 'memory' | 'hangman';
-export type AdaptiveGameSessionMode = 'anagram' | 'sprint';
+export type GameSessionMode = 'anagram' | 'sprint' | 'memory' | 'hangman' | 'translation';
+export type AdaptiveGameSessionMode = 'anagram' | 'sprint' | 'translation';
 export type WordPracticeResult = 'failed' | 'mastered';
 
 const translatedEntries = (entries: EnrichedWord[]): EnrichedWord[] => entries
@@ -40,7 +40,7 @@ export const pickNextSessionWord = <T extends { word: string }>(mode: GameSessio
   getUnusedSessionWord(mode, pool);
 
 /**
- * Records unresolved difficulty for Sprint and Anagrams only.
+ * Records unresolved difficulty for Sprint, Anagrams and Translation Choice only.
  * One correct answer means the user has handled this word, so its priority is removed.
  */
 export const updateReviewPriorities = (
@@ -60,7 +60,7 @@ export const updateReviewPriorities = (
 };
 
 /**
- * In Sprint and Anagrams, words with unresolved mistakes appear more often.
+ * In adaptive modes, words with unresolved mistakes appear more often.
  * A mastered word is removed from review and immediately stops receiving this extra probability.
  * Consecutive repeats are avoided when possible.
  */
