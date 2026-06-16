@@ -79,15 +79,18 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
           <p className="mt-2 text-sm font-bold text-gray-500">Встроенный словарь по уровням сложности.</p>
         </button>
 
-        <button type="button" onClick={() => selectDictionarySource('custom')} aria-pressed={isCustom && hasPremium} className={cardClass(isCustom && hasPremium, 'purple')}>
+        <div className={cardClass(isCustom && hasPremium, 'purple')}>
           <div className="flex items-start justify-between gap-3">
             <span className="text-3xl" aria-hidden="true">🧩</span>
             <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-purple-700 shadow-sm">{hasPremium ? isCustom ? 'Активен' : 'Premium' : '🔒 Premium'}</span>
           </div>
           <h3 className="mt-4 text-2xl font-black text-indigo-950">Мой словарь</h3>
           <p className="mt-2 text-sm font-bold text-gray-500">{customDictionaryWords.length ? `${customDictionaryWords.length} слов в личном списке.` : 'Личный список пока пуст.'}</p>
-          <span onClick={event => { event.stopPropagation(); onOpenDictionaryStudio(); }} className="mt-4 inline-flex rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-black text-white" role="button" tabIndex={0}>Редактировать</span>
-        </button>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <button type="button" onClick={() => selectDictionarySource('custom')} aria-pressed={isCustom && hasPremium} className="rounded-xl border-2 border-purple-100 bg-white px-4 py-2.5 text-sm font-black text-purple-700 transition hover:bg-purple-50">Выбрать</button>
+            <button type="button" onClick={onOpenDictionaryStudio} className="rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-purple-700">Редактировать</button>
+          </div>
+        </div>
 
         <button type="button" onClick={() => selectDictionarySource('premium')} aria-pressed={isPremium && hasPremium} className={cardClass(isPremium && hasPremium, 'amber')}>
           <div className="flex items-start justify-between gap-3">
