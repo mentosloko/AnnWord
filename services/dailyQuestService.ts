@@ -31,7 +31,7 @@ export const dailyQuestService = {
     const quest = normalizeDailyQuest(data?.quest);
     if (!quest) throw new Error('Не удалось получить ежедневное задание.');
     const item = data?.new_reward_item_id ? getShopItemById(data.new_reward_item_id) : undefined;
-    const worldId = normalizeWorldId(data?.new_reward_world_id || quest.rewardWorldId);
+    const worldId = normalizeWorldId(data?.new_reward_world_id);
     return {
       quest,
       reward: item || worldId ? { quest, item: item || null, worldId } : null,
