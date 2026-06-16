@@ -8,8 +8,8 @@ interface AuthBootstrapGateProps {
 }
 
 export const AuthBootstrapGate: React.FC<AuthBootstrapGateProps> = ({
-  title = 'Подключаем твой профиль',
-  message = 'Проверяю вход, достаю словарь и зову персонажа. Ещё пару секунд — и можно играть.',
+  title = 'Подключаем профиль',
+  message = 'Проверяю вход, загружаю словарь и статистику. Ещё пару секунд — и можно играть.',
   error,
   onRetry,
 }) => (
@@ -20,7 +20,7 @@ export const AuthBootstrapGate: React.FC<AuthBootstrapGateProps> = ({
 
       <div className="relative">
         <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-gradient-to-br from-indigo-100 to-purple-100 text-6xl shadow-inner">
-          {error ? '🧩' : '🐶'}
+          {error ? '🧩' : '📚'}
         </div>
 
         {!error && (
@@ -30,9 +30,9 @@ export const AuthBootstrapGate: React.FC<AuthBootstrapGateProps> = ({
         )}
 
         <div className="rounded-3xl border-2 border-indigo-50 bg-indigo-50/70 px-4 py-3 text-left shadow-sm">
-          <div className="text-xs font-black uppercase tracking-widest text-indigo-400">Персонаж ждёт</div>
+          <div className="text-xs font-black uppercase tracking-widest text-indigo-400">Профиль и словарь</div>
           <div className="mt-1 text-sm font-bold text-indigo-900">
-            {error ? 'Не получилось загрузить твой профиль. Гостевой режим не включаю, чтобы не сбросить прогресс.' : 'Я почти готов! Загружаю твой словарь и прогресс.'}
+            {error ? 'Не получилось загрузить профиль. Гостевой режим не включаю, чтобы не сбросить прогресс.' : 'Почти готово: синхронизирую доступ, словари и статистику.'}
           </div>
         </div>
 
