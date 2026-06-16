@@ -32,7 +32,7 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-const GAME_ROUTES: ViewState[] = ['game', 'anagrams', 'sprint', 'hangman', 'memory'];
+const GAME_ROUTES: ViewState[] = ['game', 'anagrams', 'translation', 'sprint', 'hangman', 'memory'];
 
 export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onHomeClick, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onAdminClick, onAdultRoomClick, onDictionaryStudioClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => {
   const isGameRoute = GAME_ROUTES.includes(route);
