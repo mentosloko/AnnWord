@@ -40,7 +40,7 @@ export const GameModeShell: React.FC<GameModeShellProps> = ({ title, subtitle, r
         {showRules && rules.length > 0 && (
           <div role="dialog" aria-modal="false" aria-label={`Правила: ${title}`} className="shrink-0 rounded-3xl border-2 border-indigo-100 bg-indigo-50 px-5 py-4 text-sm text-indigo-900 shadow-sm">
             <div className="mb-2 flex items-center justify-between gap-3 font-black">
-              <span>Как играть и получать опыт</span>
+              <span>Как играть</span>
               <button type="button" aria-label="Закрыть правила" onClick={() => setShowRules(false)} className="flex h-8 w-8 items-center justify-center rounded-xl text-xl leading-none text-indigo-400 hover:bg-white/70">×</button>
             </div>
             <ul className="list-disc space-y-1 pl-5">{rules.map(rule => <li key={rule}>{rule}</li>)}</ul>
