@@ -6,11 +6,11 @@ export interface StreakSticker { id: string; days: number; title: string; emoji:
 
 export const PET_WORLDS: PetWorldDefinition[] = [
   { id: 'default_room', title: 'Комната', emoji: '🛋️', description: 'Домашняя комната питомца', backgroundImageUrl: '/assets/rooms/puppy/background.webp', backgroundClass: 'from-sky-100 to-amber-50' },
-  { id: 'theatre', title: 'Театр', emoji: '🎭', description: 'Фон дня за ежедневное задание', backgroundImageUrl: '/assets/rooms/daily/theatre.svg', backgroundClass: 'from-rose-100 to-purple-200' },
-  { id: 'amusement_park', title: 'Аттракционы', emoji: '🎡', description: 'Фон дня за ежедневное задание', backgroundImageUrl: '/assets/rooms/daily/amusement-park.svg', backgroundClass: 'from-cyan-100 to-yellow-100' },
-  { id: 'ice_rink', title: 'Каток', emoji: '⛸️', description: 'Фон дня за ежедневное задание', backgroundImageUrl: '/assets/rooms/daily/ice-rink.svg', backgroundClass: 'from-sky-50 to-blue-200' },
-  { id: 'opera', title: 'Опера', emoji: '🎼', description: 'Фон дня за ежедневное задание', backgroundImageUrl: '/assets/rooms/daily/opera.svg', backgroundClass: 'from-indigo-100 to-amber-100' },
-  { id: 'sausage_fridge', title: 'Холодильник с сосисками', emoji: '🌭', description: 'Фон дня за ежедневное задание', backgroundImageUrl: '/assets/rooms/daily/sausage-fridge.svg', backgroundClass: 'from-teal-50 to-orange-100' },
+  { id: 'theatre', title: 'Театр', emoji: '🎭', description: 'Фон дня за ежедневное задание', backgroundImageUrl: '/assets/rooms/daily/theatre.webp', backgroundClass: 'from-rose-100 to-purple-200' },
+  { id: 'amusement_park', title: 'Аттракционы', emoji: '🎡', description: 'Фон дня за ежедневное задание', backgroundImageUrl: '/assets/rooms/daily/amusement-park.webp', backgroundClass: 'from-cyan-100 to-yellow-100' },
+  { id: 'ice_rink', title: 'Каток', emoji: '⛸️', description: 'Фон дня за ежедневное задание', backgroundImageUrl: '/assets/rooms/daily/ice-rink.webp', backgroundClass: 'from-sky-50 to-blue-200' },
+  { id: 'opera', title: 'Опера', emoji: '🎼', description: 'Фон дня за ежедневное задание', backgroundImageUrl: '/assets/rooms/daily/opera.webp', backgroundClass: 'from-indigo-100 to-amber-100' },
+  { id: 'sausage_fridge', title: 'Холодильник с сосисками', emoji: '🌭', description: 'Фон дня за ежедневное задание', backgroundImageUrl: '/assets/rooms/daily/sausage-fridge.webp', backgroundClass: 'from-teal-50 to-orange-100' },
 ];
 export const STREAK_STICKERS: StreakSticker[] = [
   { id: 'streak_3', days: 3, title: 'Звёздный старт', emoji: '⭐', description: '3 дня подряд' },
