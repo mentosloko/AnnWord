@@ -5,6 +5,7 @@ import { buildPlayableGameDictionary, pickNextSessionWord, WordPracticeResult } 
 import { motion } from 'motion/react';
 import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
+import { isKidsMode } from '../services/modeFlags';
 
 interface HangmanGameProps {
   onBack: () => void;
@@ -28,6 +29,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
   const [finalMistakes, setFinalMistakes] = useState(0);
   const [status, setStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [liveMessage, setLiveMessage] = useState('');
+  const showKidsRewards = isKidsMode(userProfile);
   const maxMistakes = 7;
   const pickNewWord = useCallback(() => {
     if (dictionary.length === 0) return;
@@ -72,7 +74,7 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const rewardInput: GameRewardInput = { type: 'hangman', won: status === 'won', mistakes: finalMistakes, maxMistakes };
   const rewardPreview = status === 'playing' ? null : calculateGameReward(rewardInput);
-  const progressPreview = rewardPreview ? applyGameRewardToCharacter(userProfile.pet, rewardPreview) : null;
+  const progressPreview = showKidsRewards && rewardPreview ? applyGameRewardToCharacter(userProfile.pet, rewardPreview) : null;
   const remainingAttempts = Math.max(0, maxMistakes - finalMistakes);
   const getLetterLabel = (letter: string) => {
     if (!guessedLetters.includes(letter)) return `Буква ${letter}, не выбрана`;
@@ -82,8 +84,8 @@ export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, o
 
   if (dictionary.length === 0) return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-2xl"><div className="mb-4 text-6xl">📚</div><h2 className="mb-2 text-2xl font-bold">Нет доступных слов</h2><p className="mb-6 text-gray-500">В выбранном словаре нет слов с русским переводом.</p><button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
 
-  if (status !== 'playing' && rewardPreview && progressPreview) {
-    return <GameResultOverlay isOpen status={status === 'won' ? 'won' : 'lost'} title={status === 'won' ? 'Победа!' : 'Почти получилось'} subtitle={status === 'won' ? `Слово угадано. Осталось попыток: ${remainingAttempts}.` : 'Слово открылось — можно попробовать снова.'} emoji={status === 'won' ? '🎉' : '💪'} pet={progressPreview.pet} xpGained={rewardPreview.xp} coinsGained={rewardPreview.coins} onPrimary={pickNewWord} onSecondary={onBack} details={<span>Слово: <span className="font-black">{currentWord?.word}</span>{currentWord?.translation ? ` · ${currentWord.translation}` : ''}<br /><span>Опыт начисляется за завершённую тренировку, даже если слово не угадано.</span>{status === 'won' && rewardPreview.coins > 0 ? <><br /><span>Бонус за попытки: +{rewardPreview.coins} монет.</span></> : null}</span>} />;
+  if (status !== 'playing' && rewardPreview) {
+    return <GameResultOverlay isOpen status={status === 'won' ? 'won' : 'lost'} title={status === 'won' ? 'Победа!' : 'Почти получилось'} subtitle={status === 'won' ? `Слово угадано. Осталось попыток: ${remainingAttempts}.` : 'Слово открылось — можно попробовать снова.'} emoji={status === 'won' ? '🎉' : '💪'} pet={progressPreview?.pet} xpGained={showKidsRewards ? rewardPreview.xp : 0} coinsGained={showKidsRewards ? rewardPreview.coins : 0} onPrimary={pickNewWord} onSecondary={onBack} details={<span>Слово: <span className="font-black">{currentWord?.word}</span>{currentWord?.translation ? ` · ${currentWord.translation}` : ''}{showKidsRewards ? <><br /><span>Опыт начисляется за завершённую тренировку, даже если слово не угадано.</span>{status === 'won' && rewardPreview.coins > 0 ? <><br /><span>Бонус за попытки: +{rewardPreview.coins} монет.</span></> : null}</> : null}</span>} />;
   }
 
   return (
