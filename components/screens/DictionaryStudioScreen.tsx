@@ -85,8 +85,8 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         title: title.trim() || (isTeacher ? 'Словарь для ученика' : 'Мой словарь'),
         words,
         source,
-        classLabel: classLabel.trim() || undefined,
-        theme: theme.trim() || undefined,
+        classLabel: isTeacher ? classLabel.trim() || undefined : undefined,
+        theme: isTeacher ? theme.trim() || undefined : undefined,
       });
       setNotice(isTeacher
         ? `Словарь «${title.trim() || 'Словарь для ученика'}» сохранён: ${words.length} слов.`
@@ -111,7 +111,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         <div className="text-xs font-black uppercase tracking-widest text-purple-500">{isTeacher ? 'AnnWord Teacher' : 'Premium'}</div>
         <h1 className="text-2xl font-black text-indigo-950 sm:text-3xl">{isTeacher ? 'Словарь для ученика' : 'Мой словарь'}</h1>
       </div>
-      <div className="rounded-full bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">{canUseOcr ? 'OCR' : isTeacher ? 'OCR позже' : 'Premium'}</div>
+      <div className="rounded-full bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">{canUseOcr ? 'Фото' : isTeacher ? 'OCR позже' : 'Premium'}</div>
     </header>
 
     {notice && <div className="mb-4 flex justify-between rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">
@@ -135,7 +135,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         <p className="mt-2 text-sm font-bold text-indigo-700">
           {isTeacher
             ? 'Добавьте слова в редактор, по одному слову в строке. После сохранения словарь можно будет назначить ученику.'
-            : 'В редакторе уже открыт текущий список пользователя. Добавьте новые слова, удалите лишние и сохраните — этот список будет использоваться в играх как “Мой словарь”.'}
+            : 'В редакторе уже открыт текущий список. Добавьте новые слова, удалите лишние и сохраните — этот список будет использоваться в играх как “Мой словарь”.'}
         </p>
         <div className="mt-4 grid gap-2 text-center text-xs font-black text-indigo-700 sm:grid-cols-3">
           <div className="rounded-2xl bg-white px-3 py-2">Сейчас сохранено: {originalWords.length}</div>
@@ -144,10 +144,12 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <input value={title} onChange={event => setTitle(event.target.value)} placeholder="Название словаря" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold text-indigo-950 sm:col-span-3" />
-        <input value={classLabel} onChange={event => { setClassLabel(event.target.value); setSource('class'); }} placeholder="Класс: 3А" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
-        <input value={theme} onChange={event => { setTheme(event.target.value); if (!classLabel) setSource('topic'); }} placeholder="Тема: Еда" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
+      <div className={`grid gap-3 ${isTeacher ? 'sm:grid-cols-3' : ''}`}>
+        {isTeacher && <>
+          <input value={title} onChange={event => setTitle(event.target.value)} placeholder="Название словаря" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold text-indigo-950 sm:col-span-3" />
+          <input value={classLabel} onChange={event => { setClassLabel(event.target.value); setSource('class'); }} placeholder="Класс: 3А" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
+          <input value={theme} onChange={event => { setTheme(event.target.value); if (!classLabel) setSource('topic'); }} placeholder="Тема: Еда" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
+        </>}
         {canUseOcr
           ? <label className="cursor-pointer rounded-xl border-2 border-dashed border-purple-200 bg-purple-50 px-3 py-2.5 text-center text-sm font-black text-purple-700">
               <input type="file" accept="image/*" className="hidden" onChange={event => void runOcr(event.target.files?.[0])} />📷 Добавить слова с фото
