@@ -1,4 +1,5 @@
 import { DifficultyLevel, EnrichedWord, UserProfile } from '../types';
+import { COMMON_WORDS_EN } from '../dictionaries/mainEnglish';
 import business from '../dictionaries/premium/premium_business_english.json';
 import travel from '../dictionaries/premium/premium_travel_english.json';
 import medicine from '../dictionaries/premium/premium_medical_english.json';
@@ -59,14 +60,18 @@ const VALID_PREMIUM_LEVELS = new Set<PremiumWordLevel>(['A1', 'A2', 'B1', 'B2', 
 const PREMIUM_WORD_PATTERN = /^[A-Z]{4,18}$/;
 const normalizedWord = (word: string): string => word.trim().toUpperCase().replace(/[^A-Z]/g, '');
 const normalizeLevel = (level?: string): PremiumWordLevel | null => VALID_PREMIUM_LEVELS.has(level as PremiumWordLevel) ? level as PremiumWordLevel : null;
+const builtinTranslationByWord = new Map(COMMON_WORDS_EN.map(entry => [normalizedWord(entry.word), entry.translation]));
+const getPremiumTranslation = (word: string, item: PremiumDictionaryWord): string => {
+  if (typeof item !== 'string' && item.translation?.trim()) return item.translation.trim();
+  return builtinTranslationByWord.get(word)?.trim() || word;
+};
 const normalizePremiumEntry = (item: PremiumDictionaryWord): EnrichedWord | null => {
   const rawWord = typeof item === 'string' ? item : item.word;
   const word = normalizedWord(rawWord || '');
   if (!PREMIUM_WORD_PATTERN.test(word)) return null;
   const level = typeof item === 'string' ? null : normalizeLevel(item.level);
   if (!level) return null;
-  const translation = typeof item === 'string' ? word : (item.translation?.trim() || word);
-  return { word, translation, level };
+  return { word, translation: getPremiumTranslation(word, item), level };
 };
 const getLeveledPremiumEntries = (id: PremiumDictionaryId): EnrichedWord[] => {
   const seen = new Set<string>();
