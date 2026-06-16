@@ -34,7 +34,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ route, userProfile, isAuth
     if (!isAuthenticated || isSetupStage) return [] as Array<{ label: string; onClick?: () => void; active?: boolean }>;
     const items: Array<{ label: string; onClick?: () => void; active?: boolean }> = [{ label: 'Главная', onClick: onHomeClick, active: route === 'landing' }];
     if (isPractice) {
-      if (onDictionaryStudioClick) items.push({ label: 'Словари', onClick: onDictionaryStudioClick, active: route === 'dictionary_studio' || route === 'setup' });
+      if (onDictionaryStudioClick) items.push({ label: 'Словари', onClick: onDictionaryStudioClick, active: route === 'dictionary_settings' || route === 'dictionary_studio' || route === 'setup' });
       if (onProfileClick) items.push({ label: 'Статистика', onClick: onProfileClick, active: route === 'profile' });
     }
     if (isParent) {
