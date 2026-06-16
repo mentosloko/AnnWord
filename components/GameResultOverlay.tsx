@@ -54,7 +54,11 @@ export const GameResultOverlay: React.FC<GameResultOverlayProps> = ({
   if (!isOpen) return null;
 
   const statusTone = status === 'won' ? 'text-green-600 bg-green-50 border-green-100' : status === 'lost' ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-indigo-600 bg-indigo-50 border-indigo-100';
-  const hasReward = xpGained !== 0 || coinsGained !== 0;
+  const safeXp = Math.max(0, xpGained);
+  const safeCoins = Math.max(0, coinsGained);
+  const hasXp = safeXp > 0;
+  const hasCoins = safeCoins > 0;
+  const rewardGridClass = hasXp && hasCoins ? 'grid-cols-2' : 'grid-cols-1';
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-indigo-950/55 p-4 backdrop-blur-sm" role="presentation">
@@ -74,16 +78,20 @@ export const GameResultOverlay: React.FC<GameResultOverlayProps> = ({
         <h2 id="game-result-title" className="text-3xl font-black text-indigo-950">{title}</h2>
         {subtitle && <p id="game-result-subtitle" className="mt-2 text-sm font-bold leading-relaxed text-gray-600">{subtitle}</p>}
         {details && <div className="mt-4 rounded-2xl bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-900">{details}</div>}
-        {hasReward && (
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-2xl border border-purple-100 bg-purple-50 p-3">
-              <div className="text-2xl font-black text-purple-700">+{Math.max(0, xpGained)}</div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-purple-400">опыт</div>
-            </div>
-            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3">
-              <div className="text-2xl font-black text-amber-700">+{Math.max(0, coinsGained)}</div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-amber-500">монеты</div>
-            </div>
+        {(hasXp || hasCoins) && (
+          <div className={`mt-4 grid ${rewardGridClass} gap-2`}>
+            {hasXp && (
+              <div className="rounded-2xl border border-purple-100 bg-purple-50 p-3">
+                <div className="text-2xl font-black text-purple-700">+{safeXp}</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-purple-400">опыт</div>
+              </div>
+            )}
+            {hasCoins && (
+              <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3">
+                <div className="text-2xl font-black text-amber-700">+{safeCoins}</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-amber-500">монеты</div>
+              </div>
+            )}
           </div>
         )}
         {pet && (
