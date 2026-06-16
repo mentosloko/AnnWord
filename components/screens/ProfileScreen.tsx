@@ -3,7 +3,7 @@ import { UserProfile } from '../../types';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface ProfileScreenProps { userProfile: UserProfile; isAuthenticated: boolean; activeDictionaryName?: string; activeDictionaryWordCount?: number; onBackHome: () => void; onOpenShop: () => void; onOpenPetRoom: () => void; onLogin: () => void; }
-const t = { back: '← На главную', login: 'Войти', guest: 'Гость', practice: 'AnnWord Practice', kids: 'AnnWord Kids', teacher: 'AnnWord Teacher', games: 'тренировок', wins: 'успешных', words: 'слов в активном словаре', coins: 'монет', level: 'уровень', collections: 'подборок', shop: 'Магазин', pet: 'Комната питомца' };
+const t = { back: '← На главную', login: 'Войти', guest: 'Гость', practice: 'AnnWord Practice', kids: 'AnnWord Kids', teacher: 'AnnWord Teacher', games: 'тренировок', wins: 'успешных', words: 'слов в активном словаре', coins: 'монет', level: 'уровень', collections: 'словарей', shop: 'Магазин', pet: 'Комната питомца' };
 const Stat = ({ value, label, hint }: { value: number | string; label: string; hint: string }) => <div className="rounded-2xl border border-indigo-100 bg-white p-4" title={hint}><div className="text-3xl font-black text-indigo-950">{value}</div><div className="mt-1 text-xs font-black uppercase tracking-widest text-indigo-400">{label}</div><div className="mt-2 text-xs font-bold leading-relaxed text-gray-500">{hint}</div></div>;
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userProfile, isAuthenticated, activeDictionaryName, activeDictionaryWordCount, onBackHome, onOpenShop, onOpenPetRoom, onLogin }) => {
