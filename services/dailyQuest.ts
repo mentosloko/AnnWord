@@ -1,6 +1,7 @@
 import { DailyQuestKind, DailyQuestState, PetWorldId } from '../types';
 
 type QuestCopy = Pick<DailyQuestState, 'title' | 'description'>;
+export type DailyQuestTargetMode = 'game' | 'anagrams' | 'sprint' | 'memory' | 'hangman';
 
 export const DAILY_QUEST_DEFINITIONS: Record<string, QuestCopy> = {
   wordle_two: { title: 'Блестящая догадка', description: 'Угадай слово в Классике не более чем за 2 попытки.' },
@@ -27,6 +28,19 @@ export const DAILY_QUEST_DEFINITIONS: Record<string, QuestCopy> = {
 
 const modeLabels: Record<string, string> = { wordle: 'Классика', sprint: 'Спринт', anagram: 'Анаграммы', memory: 'Память', hangman: 'Виселица' };
 const validWorldIds: PetWorldId[] = ['default_room', 'theatre', 'amusement_park', 'ice_rink', 'opera', 'sausage_fridge'];
+
+export const getDailyQuestTargetModes = (quest?: Pick<DailyQuestState, 'kind' | 'title' | 'description'> | null): DailyQuestTargetMode[] => {
+  if (!quest) return [];
+  const text = `${quest.kind} ${quest.title} ${quest.description}`.toLowerCase();
+  if (quest.kind === 'all_five_games' || text.includes('all_five_games')) return ['game', 'anagrams', 'sprint', 'memory', 'hangman'];
+  if (text.includes('hangman') || text.includes('виселиц')) return ['hangman'];
+  if (text.includes('sprint') || text.includes('спринт')) return ['sprint'];
+  if (text.includes('memory') || text.includes('памят')) return ['memory'];
+  if (text.includes('anagram') || text.includes('анаграм')) return ['anagrams'];
+  return ['game'];
+};
+
+export const getDailyQuestPrimaryMode = (quest?: Pick<DailyQuestState, 'kind' | 'title' | 'description'> | null): DailyQuestTargetMode => getDailyQuestTargetModes(quest)[0] || 'game';
 
 export const normalizeDailyQuest = (value: any): DailyQuestState | null => {
   if (!value || !value.quest_date || !value.kind) return null;
