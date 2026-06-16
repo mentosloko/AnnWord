@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CharStatus, GameState, GameSettings, UserProfile } from '../../types';
 import { applyGameRewardToCharacter, calculateGameReward } from '../../services/gamificationRules';
+import { isKidsMode } from '../../services/modeFlags';
 import { DictionaryPeek } from '../DictionaryPeek';
 import { GameResultOverlay } from '../GameResultOverlay';
 import { Grid } from '../Grid';
@@ -30,6 +31,7 @@ const inferAuth = (profile: UserProfile): boolean => profile.username !== 'Го�
 
 export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userProfile, isAuthenticated, keyStatuses, shakeRowIndex, onChar, onDelete, onEnter, onHint, onRestart, onBackHome, onRegister, onDictionaryPeek }) => {
   const authenticated = isAuthenticated ?? inferAuth(userProfile);
+  const showKidsRewards = isKidsMode(userProfile, authenticated);
   const [showRules, setShowRules] = useState(false);
   const [seen, setSeen] = useState(true);
   const [showHint, setShowHint] = useState(false);
@@ -37,7 +39,7 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
   const spent = gameState.hintCoinsSpent ?? 0;
   const hintUsed = spent > 0;
   const reward = finished ? calculateGameReward({ type: 'wordle', won: gameState.gameStatus === 'won' }) : null;
-  const progress = reward ? applyGameRewardToCharacter(userProfile.pet, reward) : null;
+  const progress = showKidsRewards && reward ? applyGameRewardToCharacter(userProfile.pet, reward) : null;
 
   useEffect(() => { if (typeof window === 'undefined') return; setSeen(localStorage.getItem(RULES) === 'true'); }, []);
   useEffect(() => { if (gameState.currentGuess.length > 0 || finished) setShowHint(false); }, [gameState.currentGuess, finished]);
@@ -56,7 +58,7 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
             {authenticated ? <button type="button" onClick={clickHint} disabled={finished || hintUsed} className="min-w-[7.75rem] rounded-xl border-2 border-blue-100 bg-blue-50 px-2.5 py-[clamp(0.3rem,1dvh,0.55rem)] text-[clamp(0.7rem,1.7dvh,0.875rem)] font-black text-blue-700 disabled:opacity-50 sm:min-w-[9rem]">{gameState.loadingHint ? '...' : hintUsed ? 'Подсказка использована' : 'Подсказка'}</button> : <button type="button" onClick={register} className="min-w-[7.75rem] rounded-xl border-2 border-purple-100 bg-purple-50 px-2.5 py-[clamp(0.3rem,1dvh,0.55rem)] text-[clamp(0.7rem,1.7dvh,0.875rem)] font-black text-purple-700 sm:min-w-[9rem]">Регистрация</button>}
           </div>
           <div className="flex items-center gap-1">
-            <DictionaryPeek words={userProfile.customDictionaryEn} wordLength={settings.wordLength} iconOnly locked={!authenticated} lockedMessage="Мой словарь доступен после регистрации в Kids или Practice." onBeforeOpen={authenticated ? onDictionaryPeek : undefined} chargeLabel="Просмотр словаря стоит как подсказка." />
+            <DictionaryPeek words={userProfile.customDictionaryEn} wordLength={settings.wordLength} iconOnly locked={!authenticated} lockedMessage="Мой словарь доступен после регистрации в Kids или Practice." onBeforeOpen={authenticated ? onDictionaryPeek : undefined} chargeLabel={showKidsRewards ? 'Просмотр словаря стоит как подсказка.' : undefined} />
             <button type="button" aria-label="Показать правила" aria-expanded={showRules} onClick={() => { blur(); setShowHint(false); setShowRules(value => !value); }} className={`flex h-9 w-9 items-center justify-center rounded-xl border font-black ${seen ? 'border-indigo-50 bg-white text-indigo-300' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}`}>?</button>
             <button type="button" aria-label="Начать игру заново" onClick={restart} className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 text-lg font-black text-indigo-700">↻</button>
           </div>
@@ -67,7 +69,7 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
         <section className="flex min-h-0 items-center justify-center overflow-hidden rounded-[1.2rem] border-2 border-indigo-50 bg-white/85 px-1 py-1 shadow-sm sm:rounded-[1.75rem] sm:px-2"><Grid guesses={gameState.guesses} currentGuess={gameState.currentGuess} secretWord={gameState.secretWord} wordLength={settings.wordLength} maxGuesses={6} shakeRowIndex={shakeRowIndex} /></section>
         <footer className="flex shrink-0 justify-center overflow-hidden"><Keyboard onChar={onChar} onDelete={onDelete} onEnter={onEnter} letterStatuses={keyStatuses} /></footer>
       </div>
-      {finished && reward && progress && <GameResultOverlay isOpen status={gameState.gameStatus === 'won' ? 'won' : 'lost'} title={gameState.gameStatus === 'won' ? 'Победа!' : 'Почти получилось'} subtitle={authenticated ? (gameState.gameStatus === 'won' ? 'Слово угадано.' : 'Попробуем ещё раз?') : 'Создайте аккаунт в Kids или Practice, чтобы сохранять прогресс и открыть словари.'} emoji={gameState.gameStatus === 'won' ? '🎉' : '💪'} pet={progress.pet} xpGained={authenticated ? reward.xp : 0} coinsGained={authenticated ? reward.coins : 0} primaryLabel={authenticated ? 'Играть снова' : 'Создать аккаунт'} secondaryLabel={authenticated ? 'В меню' : 'На главную'} onPrimary={authenticated ? onRestart : register} onSecondary={onBackHome} details={<span>Слово: <b>{gameState.secretWord}</b>{gameState.secretWordData?.translation ? ` · ${gameState.secretWordData.translation}` : ''}{spent ? ` · подсказка: −${spent} ${spent === 1 ? 'монета' : 'монеты'}` : ''}</span>} />}
+      {finished && reward && <GameResultOverlay isOpen status={gameState.gameStatus === 'won' ? 'won' : 'lost'} title={gameState.gameStatus === 'won' ? 'Победа!' : 'Почти получилось'} subtitle={authenticated ? (gameState.gameStatus === 'won' ? 'Слово угадано.' : 'Попробуем ещё раз?') : 'Создайте аккаунт в Kids или Practice, чтобы сохранять прогресс и открыть словари.'} emoji={gameState.gameStatus === 'won' ? '🎉' : '💪'} pet={progress?.pet} xpGained={showKidsRewards ? reward.xp : 0} coinsGained={showKidsRewards ? reward.coins : 0} primaryLabel={authenticated ? 'Играть снова' : 'Создать аккаунт'} secondaryLabel={authenticated ? 'В меню' : 'На главную'} onPrimary={authenticated ? onRestart : register} onSecondary={onBackHome} details={<span>Слово: <b>{gameState.secretWord}</b>{gameState.secretWordData?.translation ? ` · ${gameState.secretWordData.translation}` : ''}{spent && showKidsRewards ? ` · подсказка: −${spent} ${spent === 1 ? 'монета' : 'монеты'}` : ''}</span>} />}
     </ScreenContainer>
   );
 };
