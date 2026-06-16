@@ -56,12 +56,13 @@ const dictionaryFiles: Record<PremiumDictionaryId, PremiumDictionaryFile> = {
 };
 
 const VALID_PREMIUM_LEVELS = new Set<PremiumWordLevel>(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
+const PREMIUM_WORD_PATTERN = /^[A-Z]{4,18}$/;
 const normalizedWord = (word: string): string => word.trim().toUpperCase().replace(/[^A-Z]/g, '');
 const normalizeLevel = (level?: string): PremiumWordLevel | null => VALID_PREMIUM_LEVELS.has(level as PremiumWordLevel) ? level as PremiumWordLevel : null;
 const normalizePremiumEntry = (item: PremiumDictionaryWord): EnrichedWord | null => {
   const rawWord = typeof item === 'string' ? item : item.word;
   const word = normalizedWord(rawWord || '');
-  if (!/^[A-Z]{4,6}$/.test(word)) return null;
+  if (!PREMIUM_WORD_PATTERN.test(word)) return null;
   const level = typeof item === 'string' ? null : normalizeLevel(item.level);
   if (!level) return null;
   const translation = typeof item === 'string' ? word : (item.translation?.trim() || word);
