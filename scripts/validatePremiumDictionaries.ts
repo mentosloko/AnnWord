@@ -3,15 +3,18 @@ import path from 'node:path';
 
 const DICTIONARY_DIR = path.resolve(process.cwd(), 'dictionaries/premium');
 const INDEX_FILE = 'premium_dictionaries.index.json';
-const WORD_PATTERN = /^[A-Z]{4,6}$/;
-const MIN_TOTAL = 300;
-const MIN_BY_LENGTH: Record<number, number> = { 4: 70, 5: 100, 6: 100 };
+const WORD_PATTERN = /^[A-Z]{4,18}$/;
+const VALID_LEVELS = new Set(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
+const MIN_TOTAL = 120;
+const MIN_SHORT_WORDS = 60;
+const SHORT_WORD_LENGTHS = new Set([4, 5, 6]);
 const FORBIDDEN_ABBREVIATIONS = new Set([
   'API', 'CSS', 'HTML', 'SQL', 'URL', 'VPN', 'CPU', 'GPU',
   'USD', 'EUR', 'ETF', 'IPO', 'KYC', 'AML', 'APR', 'ROI',
   'IGE', 'IGG', 'ECG', 'COPD', 'NSAID', 'SARS', 'HIV', 'AIDS',
 ]);
 
+type PremiumWord = string | { word?: unknown; level?: unknown; translation?: unknown };
 type PremiumDictionary = {
   title?: unknown;
   source?: unknown;
@@ -25,6 +28,10 @@ const fail = (message: string): never => {
 };
 
 const readJson = <T>(filePath: string): T => JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
+const normalizeWord = (value: string): string => value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+const getWord = (item: PremiumWord): string => typeof item === 'string' ? normalizeWord(item) : normalizeWord(String(item.word || ''));
+const getLevel = (item: PremiumWord): string | null => typeof item === 'string' ? null : typeof item.level === 'string' ? item.level : null;
+const hasValidTranslation = (item: PremiumWord): boolean => typeof item === 'string' || item.translation === undefined || typeof item.translation === 'string';
 
 if (!fs.existsSync(DICTIONARY_DIR)) {
   fail(`Directory not found: ${DICTIONARY_DIR}`);
@@ -45,26 +52,29 @@ for (const file of files) {
   if (typeof dictionary.theme !== 'string' || !dictionary.theme.trim()) fail(`${file}: missing theme`);
   if (!Array.isArray(dictionary.words)) fail(`${file}: words must be an array`);
 
-  const words = dictionary.words;
+  const words = dictionary.words as PremiumWord[];
   const seen = new Set<string>();
-  const byLength: Record<number, number> = { 4: 0, 5: 0, 6: 0 };
+  let shortWords = 0;
+  const levelCounts: Record<string, number> = { A1: 0, A2: 0, B1: 0, B2: 0, C1: 0, C2: 0 };
 
-  for (const word of words) {
-    if (typeof word !== 'string') fail(`${file}: every word must be a string`);
+  for (const item of words) {
+    const word = getWord(item);
+    const level = getLevel(item);
     if (!WORD_PATTERN.test(word)) fail(`${file}: invalid word "${word}"`);
+    if (!level || !VALID_LEVELS.has(level)) fail(`${file}: invalid or missing level for "${word}"`);
+    if (!hasValidTranslation(item)) fail(`${file}: invalid translation for "${word}"`);
     if (FORBIDDEN_ABBREVIATIONS.has(word)) fail(`${file}: forbidden abbreviation "${word}"`);
     if (seen.has(word)) fail(`${file}: duplicate word "${word}"`);
     seen.add(word);
-    byLength[word.length] += 1;
+    levelCounts[level] += 1;
+    if (SHORT_WORD_LENGTHS.has(word.length)) shortWords += 1;
   }
 
   if (words.length < MIN_TOTAL) fail(`${file}: expected at least ${MIN_TOTAL} words, got ${words.length}`);
-  for (const [length, minimum] of Object.entries(MIN_BY_LENGTH)) {
-    const actual = byLength[Number(length)] || 0;
-    if (actual < minimum) fail(`${file}: expected at least ${minimum} words of length ${length}, got ${actual}`);
-  }
+  if (shortWords < MIN_SHORT_WORDS) fail(`${file}: expected at least ${MIN_SHORT_WORDS} words of length 4-6 for Wordle-like modes, got ${shortWords}`);
 
-  console.log(`✅ ${file}: ${words.length} words (${byLength[4]}/${byLength[5]}/${byLength[6]})`);
+  const summary = Object.entries(levelCounts).map(([level, count]) => `${level}:${count}`).join(' ');
+  console.log(`✅ ${file}: ${words.length} words, ${shortWords} short (${summary})`);
 }
 
 const indexPath = path.join(DICTIONARY_DIR, INDEX_FILE);
