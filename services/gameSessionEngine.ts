@@ -3,8 +3,8 @@ import { EnrichedWord } from '../types';
 import { hasRussianTranslation, normalizeWord } from './dictionaryEngine';
 import { getUnusedSessionWord, resetSessionWordBucket } from './sessionWordHistory';
 
-export type GameSessionMode = 'anagram' | 'sprint' | 'memory' | 'hangman' | 'translation';
-export type AdaptiveGameSessionMode = 'anagram' | 'sprint' | 'translation';
+export type GameSessionMode = 'anagram' | 'sprint' | 'memory' | 'hangman' | 'translation' | 'letterSquare';
+export type AdaptiveGameSessionMode = 'anagram' | 'sprint' | 'translation' | 'letterSquare';
 export type WordPracticeResult = 'failed' | 'mastered';
 
 const translatedEntries = (entries: EnrichedWord[]): EnrichedWord[] => entries
