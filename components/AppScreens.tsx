@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppRouter } from './AppRouter';
 import { LandingScreen } from './screens/LandingScreen';
-import { PracticeHomeScreen } from './screens/PracticeHomeScreen';
+import { PracticeHomeScreenWithLetterSquare as PracticeHomeScreen } from './screens/PracticeHomeScreenWithLetterSquare';
 import { PremiumScreen } from './screens/PremiumScreen';
 import { KidsHomeScreen } from './screens/KidsHomeScreen';
 import { TeacherDashboardScreen } from './screens/TeacherDashboardScreen';
