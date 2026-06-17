@@ -5,14 +5,93 @@ import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../s
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 type Props = {
-  userProfile: UserProfile; dailyQuest?: DailyQuestState | null; dailyQuestReward?: DailyQuestCompletionReward | null; onCloseDailyQuestReward?: () => void; onStartDailyQuest?: (quest: DailyQuestState) => void; hasActiveClassicGame?: boolean; hasActiveAnagramGame?: boolean; activeDictionaryName?: string; activeDictionaryWordCount?: number; onStartClassic: () => void; onStartAnagrams: () => void; onStartTranslation: () => void; onStartSprint: () => void; onStartHangman: () => void; onStartMemory: () => void; onOpenProfile?: () => void; onOpenDictionaryStudio?: () => void; onOpenPremium?: () => void;
+  userProfile: UserProfile;
+  dailyQuest?: DailyQuestState | null;
+  dailyQuestReward?: DailyQuestCompletionReward | null;
+  onCloseDailyQuestReward?: () => void;
+  onStartDailyQuest?: (quest: DailyQuestState) => void;
+  hasActiveClassicGame?: boolean;
+  hasActiveAnagramGame?: boolean;
+  activeDictionaryName?: string;
+  activeDictionaryWordCount?: number;
+  onStartClassic: () => void;
+  onStartAnagrams: () => void;
+  onStartTranslation: () => void;
+  onStartSprint: () => void;
+  onStartHangman: () => void;
+  onStartMemory: () => void;
+  onOpenProfile?: () => void;
+  onOpenDictionaryStudio?: () => void;
+  onOpenPremium?: () => void;
 };
+
 type GameCard = { title: string; subtitle: string; description: string; imageSrc: string; badge?: string; accent: string; onStart: () => void; };
-const T = { title: 'AnnWord Practice', today: 'Сегодняшняя тренировка', completedToday: 'Сегодняшняя практика выполнена', dailyPractice: 'Ежедневная практика', keepStreak: 'Сыграйте 1 короткую игру и сохраните streak.', comeBackTomorrow: 'Streak продлён. Возвращайтесь завтра за новым заданием.', startTraining: 'Начать тренировку', playMore: 'Сыграть ещё', chooseGame: 'Выберите игру', dictionary: 'Активный словарь', changeDictionary: 'Сменить словарь', myDictionary: 'Мой словарь', stats: 'Мини-статистика', todayProgress: 'Сегодня', streak: 'Streak', review: 'К повторению', gamesPlayed: 'Игр всего', profile: 'Статистика', wordsAvailable: 'слов доступно', premiumShelf: 'Premium-словари', premiumTitle: 'Откройте тематические наборы', premiumSubtitle: '10 тематических наборов с уровнями A1–C2 и фактическим числом слов в каждой теме.', openPremium: 'Открыть Premium-словари', choosePremium: 'Выбрать Premium-словарь', premiumBadge: 'Premium', done: 'выполнено', notDone: '0 / 1 игра' };
-const StatPill = ({ label, value, tone = 'indigo' }: { label: string; value: string | number; tone?: 'indigo' | 'purple' | 'green' | 'amber' }) => { const tones = { indigo: 'bg-indigo-50 text-indigo-700 border-indigo-100', purple: 'bg-purple-50 text-purple-700 border-purple-100', green: 'bg-green-50 text-green-700 border-green-100', amber: 'bg-amber-50 text-amber-700 border-amber-100' }; return <div className={`rounded-2xl border px-4 py-3 ${tones[tone]}`}><div className="text-xl font-black leading-none">{value}</div><div className="mt-1 text-[10px] font-black uppercase tracking-widest opacity-70">{label}</div></div>; };
+type Sticker = { id: string; emoji: string; label: string; days: number; };
+
+const STREAK_STICKERS: Sticker[] = [
+  { id: 'practice-streak-3', emoji: '🔥', label: '3 дня', days: 3 },
+  { id: 'practice-streak-7', emoji: '⭐', label: '7 дней', days: 7 },
+  { id: 'practice-streak-14', emoji: '🏆', label: '14 дней', days: 14 },
+  { id: 'practice-streak-30', emoji: '💎', label: '30 дней', days: 30 },
+];
+
+const T = {
+  title: 'AnnWord Practice',
+  today: 'Сегодняшняя тренировка',
+  completedToday: 'Сегодняшняя практика выполнена',
+  dailyPractice: 'Ежедневная практика',
+  keepStreak: 'Сыграйте 1 короткую игру и сохраните streak.',
+  comeBackTomorrow: 'Streak продлён. Возвращайтесь завтра за новым заданием.',
+  startTraining: 'Начать тренировку',
+  playMore: 'Сыграть ещё',
+  chooseGame: 'Выберите игру',
+  dictionary: 'Активный словарь',
+  changeDictionary: 'Сменить словарь',
+  myDictionary: 'Мой словарь',
+  stats: 'Мини-статистика',
+  todayProgress: 'Сегодня',
+  streak: 'Streak',
+  review: 'К повторению',
+  gamesPlayed: 'Игр всего',
+  profile: 'Статистика',
+  wordsAvailable: 'слов доступно',
+  premiumShelf: 'Premium-словари',
+  premiumTitle: 'Откройте тематические наборы',
+  premiumSubtitle: '10 тематических наборов с уровнями A1–C2 и фактическим числом слов в каждой теме.',
+  openPremium: 'Открыть Premium-словари',
+  choosePremium: 'Выбрать Premium-словарь',
+  premiumBadge: 'Premium',
+  done: 'выполнено',
+  notDone: '0 / 1 игра',
+};
+
+const StatPill = ({ label, value, tone = 'indigo' }: { label: string; value: string | number; tone?: 'indigo' | 'purple' | 'green' | 'amber' }) => {
+  const tones = {
+    indigo: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+    purple: 'bg-purple-50 text-purple-700 border-purple-100',
+    green: 'bg-green-50 text-green-700 border-green-100',
+    amber: 'bg-amber-50 text-amber-700 border-amber-100',
+  };
+  return <div className={`rounded-2xl border px-4 py-3 ${tones[tone]}`}><div className="text-xl font-black leading-none">{value}</div><div className="mt-1 text-[10px] font-black uppercase tracking-widest opacity-70">{label}</div></div>;
+};
+
 const GameTile: React.FC<GameCard> = ({ title, subtitle, description, imageSrc, badge, accent, onStart }) => <button type="button" onClick={onStart} className="group relative flex min-h-[13rem] flex-col overflow-hidden rounded-[1.75rem] border-2 border-indigo-50 bg-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:border-indigo-100 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-indigo-100"><div className={`absolute inset-x-0 top-0 h-1.5 ${accent}`} />{badge && <span className="absolute right-3 top-3 rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-indigo-700">{badge}</span>}<img src={imageSrc} alt="" aria-hidden="true" className="h-16 w-16 object-contain transition group-hover:scale-110" draggable={false} /><div className="mt-3 text-xl font-black text-indigo-950">{title}</div><div className="mt-1 text-sm font-black text-indigo-600">{subtitle}</div><p className="mt-2 flex-1 text-xs font-bold leading-relaxed text-gray-500">{description}</p><span className="mt-4 inline-flex w-max rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-black text-white transition group-hover:bg-indigo-700">Играть</span></button>;
+
 export const PracticeHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, hasActiveClassicGame, hasActiveAnagramGame, activeDictionaryName, activeDictionaryWordCount, onStartDailyQuest, onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onOpenProfile, onOpenDictionaryStudio, onOpenPremium }) => {
-  const wordsToReview = Object.keys(userProfile.stats.wordsToReview || {}).length; const streak = userProfile.pet.dailyStreak || 0; const hasPremium = hasPremiumDictionaryAccess(userProfile); const premiumPacks = getPremiumDictionaryCatalog(); const dictionaryName = activeDictionaryName || (userProfile.customDictionaryEn.length ? T.myDictionary : 'General English'); const dictionaryWordCount = activeDictionaryWordCount ?? userProfile.customDictionaryEn.length; const questCompleted = dailyQuest?.completed === true; const runDailyQuest = () => dailyQuest && onStartDailyQuest ? onStartDailyQuest(dailyQuest) : onStartClassic(); const openPremium = hasPremium ? onOpenDictionaryStudio : onOpenPremium; const dailyQuestModes = new Set(getDailyQuestTargetModes(!questCompleted ? dailyQuest : null)); const questBadge = (mode: Parameters<typeof dailyQuestModes.has>[0], fallback?: string) => dailyQuestModes.has(mode) ? 'задание дня' : fallback;
+  const reviewEntries = Object.entries(userProfile.stats.wordsToReview || {}).sort(([, a], [, b]) => b - a).slice(0, 12);
+  const wordsToReview = reviewEntries.length;
+  const streak = userProfile.pet.dailyStreak || 0;
+  const hasPremium = hasPremiumDictionaryAccess(userProfile);
+  const premiumPacks = getPremiumDictionaryCatalog();
+  const dictionaryName = activeDictionaryName || (userProfile.customDictionaryEn.length ? T.myDictionary : 'General English');
+  const dictionaryWordCount = activeDictionaryWordCount ?? userProfile.customDictionaryEn.length;
+  const questCompleted = dailyQuest?.completed === true;
+  const runDailyQuest = () => dailyQuest && onStartDailyQuest ? onStartDailyQuest(dailyQuest) : onStartClassic();
+  const openPremium = hasPremium ? onOpenDictionaryStudio : onOpenPremium;
+  const dailyQuestModes = new Set(getDailyQuestTargetModes(!questCompleted ? dailyQuest : null));
+  const questBadge = (mode: Parameters<typeof dailyQuestModes.has>[0], fallback?: string) => dailyQuestModes.has(mode) ? 'задание дня' : fallback;
+  const unlockedStickerIds = new Set(userProfile.pet.earnedStickerIds || []);
+
   const cards: GameCard[] = [
     { title: 'Классика', subtitle: 'Спокойно угадать слово', description: 'Угадайте слово за 6 попыток. Лучший режим для ежедневной тренировки.', imageSrc: '/assets/games/game_classic.webp', badge: questBadge('game', hasActiveClassicGame ? 'продолжить' : undefined), accent: 'bg-indigo-500', onStart: onStartClassic },
     { title: 'Анаграммы', subtitle: 'Собрать слово из букв', description: 'Тренирует написание и помогает лучше запоминать форму слова.', imageSrc: '/assets/games/game_anagrams.webp', badge: questBadge('anagrams', hasActiveAnagramGame ? 'save' : undefined), accent: 'bg-purple-500', onStart: onStartAnagrams },
@@ -21,5 +100,15 @@ export const PracticeHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, h
     { title: 'Виселица', subtitle: 'Открыть слово по буквам', description: 'Спокойный режим без спешки: вспоминайте слово постепенно.', imageSrc: '/assets/games/game_hangman.webp', badge: questBadge('hangman', 'без спешки'), accent: 'bg-amber-500', onStart: onStartHangman },
     { title: 'Память', subtitle: 'Связать слово и перевод', description: 'Закрепляйте новые слова через пары и повторение.', imageSrc: '/assets/games/game_memory.webp', badge: questBadge('memory', 'повторение'), accent: 'bg-cyan-500', onStart: onStartMemory },
   ];
-  return <ScreenContainer className="max-w-7xl pb-20 pt-6"><section className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm sm:p-6"><div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center"><div><div className="text-xs font-black uppercase tracking-widest text-indigo-400">{T.title}</div><h1 className="mt-2 text-3xl font-black leading-tight text-indigo-950 sm:text-5xl">{questCompleted ? T.completedToday : T.today}</h1><p className="mt-3 max-w-2xl text-sm font-bold leading-relaxed text-gray-600 sm:text-base">{questCompleted ? T.comeBackTomorrow : dailyQuest?.description || T.keepStreak}</p><div className="mt-5 flex flex-col gap-3 sm:flex-row"><button type="button" onClick={questCompleted ? onStartClassic : runDailyQuest} className="rounded-2xl bg-indigo-600 px-6 py-3 font-black text-white shadow-sm transition hover:bg-indigo-700">{questCompleted ? T.playMore : T.startTraining}</button><button type="button" onClick={onOpenDictionaryStudio} className="rounded-2xl border-2 border-indigo-100 bg-white px-6 py-3 font-black text-indigo-700 transition hover:bg-indigo-50">{T.changeDictionary}</button><button type="button" onClick={onOpenProfile} className="rounded-2xl border-2 border-indigo-100 bg-white px-6 py-3 font-black text-indigo-700 transition hover:bg-indigo-50">{T.profile}</button></div></div><div className="grid grid-cols-3 gap-2 sm:min-w-[26rem]"><StatPill label={T.todayProgress} value={questCompleted ? T.done : T.notDone} tone={questCompleted ? 'green' : 'indigo'} /><StatPill label={T.streak} value={`${streak} д.`} tone="amber" /><StatPill label={T.review} value={wordsToReview} tone="purple" /></div></div></section><section className="mt-6 grid gap-6 xl:grid-cols-[1fr_24rem]"><div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm sm:p-6"><div className="mb-4 flex items-center justify-between gap-3"><div><div className="text-xs font-black uppercase tracking-widest text-indigo-400">{T.dailyPractice}</div><h2 className="mt-1 text-2xl font-black text-indigo-950">{T.chooseGame}</h2></div>{dailyQuest && <span className={`rounded-full px-3 py-1 text-xs font-black ${questCompleted ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'}`}>{questCompleted ? 'streak продлён' : 'задание активно'}</span>}</div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{cards.map(card => <GameTile key={card.title} {...card} />)}</div></div><aside className="space-y-4"><section className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm"><div className="text-xs font-black uppercase tracking-widest text-indigo-400">{T.dictionary}</div><h2 className="mt-2 text-2xl font-black text-indigo-950">{dictionaryName}</h2><p className="mt-2 text-sm font-bold text-gray-500">{dictionaryWordCount} {T.wordsAvailable}</p><button type="button" onClick={onOpenDictionaryStudio} className="mt-4 w-full rounded-2xl bg-indigo-600 px-5 py-3 font-black text-white transition hover:bg-indigo-700">{T.changeDictionary}</button></section><section className="rounded-[2rem] border-2 border-amber-100 bg-white p-5 shadow-sm"><div className="text-xs font-black uppercase tracking-widest text-amber-500">{T.premiumShelf}</div><h2 className="mt-2 text-2xl font-black text-indigo-950">{T.premiumTitle}</h2><p className="mt-2 text-sm font-bold leading-relaxed text-gray-500">{T.premiumSubtitle}</p><div className="mt-4 grid grid-cols-2 gap-3">{premiumPacks.map(pack => <button type="button" key={pack.id} onClick={openPremium} className="group relative rounded-2xl border-2 border-amber-100 bg-amber-50/70 p-3 text-left transition hover:-translate-y-0.5 hover:bg-amber-50 hover:shadow-md"><span className="absolute right-2 top-2 text-sm" aria-hidden="true">{hasPremium ? '✅' : '🔒'}</span><div className="flex items-start gap-2"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-xl shadow-sm" aria-hidden="true">{pack.icon}</span><div className="min-w-0"><div className="truncate pr-5 text-sm font-black text-amber-950">{pack.shortTitle}</div><div className="text-xs font-black text-amber-700">{pack.wordCount} слов</div></div></div><p className="mt-2 min-h-[2rem] text-xs font-bold leading-snug text-amber-900/75">{pack.title}</p><span className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700 shadow-sm">{hasPremium ? 'Открыт' : T.premiumBadge}</span></button>)}</div><button type="button" onClick={openPremium} className="mt-4 w-full rounded-2xl bg-amber-500 px-5 py-3 font-black text-white shadow-sm transition hover:bg-amber-600">{hasPremium ? T.choosePremium : T.openPremium}</button></section><section className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm"><div className="text-xs font-black uppercase tracking-widest text-indigo-400">{T.stats}</div><div className="mt-4 grid gap-3"><StatPill label={T.gamesPlayed} value={userProfile.stats.gamesPlayed} /><StatPill label="Успешных" value={userProfile.stats.gamesWon} tone="green" /><StatPill label="Словарь" value={dictionaryWordCount} tone="purple" /></div></section></aside></section></ScreenContainer>;
+
+  return <ScreenContainer className="max-w-7xl pb-20 pt-6">
+    <section className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm sm:p-6"><div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center"><div><div className="text-xs font-black uppercase tracking-widest text-indigo-400">{T.title}</div><h1 className="mt-2 text-3xl font-black leading-tight text-indigo-950 sm:text-5xl">{questCompleted ? T.completedToday : T.today}</h1><p className="mt-3 max-w-2xl text-sm font-bold leading-relaxed text-gray-600 sm:text-base">{questCompleted ? T.comeBackTomorrow : dailyQuest?.description || T.keepStreak}</p><div className="mt-5 flex flex-col gap-3 sm:flex-row"><button type="button" onClick={questCompleted ? onStartClassic : runDailyQuest} className="rounded-2xl bg-indigo-600 px-6 py-3 font-black text-white shadow-sm transition hover:bg-indigo-700">{questCompleted ? T.playMore : T.startTraining}</button><button type="button" onClick={onOpenDictionaryStudio} className="rounded-2xl border-2 border-indigo-100 bg-white px-6 py-3 font-black text-indigo-700 transition hover:bg-indigo-50">{T.changeDictionary}</button><button type="button" onClick={onOpenProfile} className="rounded-2xl border-2 border-indigo-100 bg-white px-6 py-3 font-black text-indigo-700 transition hover:bg-indigo-50">{T.profile}</button></div></div><div className="grid grid-cols-3 gap-2 sm:min-w-[26rem]"><StatPill label={T.todayProgress} value={questCompleted ? T.done : T.notDone} tone={questCompleted ? 'green' : 'indigo'} /><StatPill label={T.streak} value={`${streak} д.`} tone="amber" /><StatPill label={T.review} value={wordsToReview} tone="purple" /></div></div></section>
+    <section className="mt-6 grid gap-6 xl:grid-cols-[1fr_24rem]"><div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm sm:p-6"><div className="mb-4 flex items-center justify-between gap-3"><div><div className="text-xs font-black uppercase tracking-widest text-indigo-400">{T.dailyPractice}</div><h2 className="mt-1 text-2xl font-black text-indigo-950">{T.chooseGame}</h2></div>{dailyQuest && <span className={`rounded-full px-3 py-1 text-xs font-black ${questCompleted ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'}`}>{questCompleted ? 'streak продлён' : 'задание активно'}</span>}</div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{cards.map(card => <GameTile key={card.title} {...card} />)}</div></div><aside className="space-y-4">
+      <section className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm"><div className="text-xs font-black uppercase tracking-widest text-indigo-400">{T.dictionary}</div><h2 className="mt-2 text-2xl font-black text-indigo-950">{dictionaryName}</h2><p className="mt-2 text-sm font-bold text-gray-500">{dictionaryWordCount} {T.wordsAvailable}</p><button type="button" onClick={onOpenDictionaryStudio} className="mt-4 w-full rounded-2xl bg-indigo-600 px-5 py-3 font-black text-white transition hover:bg-indigo-700">{T.changeDictionary}</button></section>
+      <section className="rounded-[2rem] border-2 border-purple-100 bg-white p-5 shadow-sm"><div className="text-xs font-black uppercase tracking-widest text-purple-500">Слова к повторению</div><h2 className="mt-2 text-2xl font-black text-indigo-950">{wordsToReview ? `${wordsToReview} слов` : 'Пока пусто'}</h2>{reviewEntries.length ? <div className="mt-4 flex max-h-56 flex-wrap gap-2 overflow-y-auto pr-1">{reviewEntries.map(([word, priority]) => <span key={word} className="rounded-full bg-purple-50 px-3 py-1 text-xs font-black text-purple-700">{word} · {priority}</span>)}</div> : <p className="mt-2 text-sm font-bold leading-relaxed text-gray-500">Ошибочные слова будут появляться здесь после игр. Их можно сразу увидеть перед тренировкой.</p>}<button type="button" onClick={wordsToReview ? onStartClassic : onOpenDictionaryStudio} className="mt-4 w-full rounded-2xl bg-purple-600 px-5 py-3 font-black text-white transition hover:bg-purple-700">{wordsToReview ? 'Тренировать повторение' : 'Настроить словарь'}</button></section>
+      <section className="rounded-[2rem] border-2 border-amber-100 bg-white p-5 shadow-sm"><div className="text-xs font-black uppercase tracking-widest text-amber-500">Наклейки за streak</div><h2 className="mt-2 text-2xl font-black text-indigo-950">Practice Stickers</h2><p className="mt-2 text-sm font-bold leading-relaxed text-gray-500">Наклейки открываются за регулярную практику. Текущий streak: {streak} д.</p><div className="mt-4 grid grid-cols-2 gap-3">{STREAK_STICKERS.map(sticker => { const unlocked = streak >= sticker.days || unlockedStickerIds.has(sticker.id); return <div key={sticker.id} className={`rounded-2xl border-2 p-3 text-center ${unlocked ? 'border-amber-100 bg-amber-50 text-amber-900' : 'border-gray-100 bg-gray-50 text-gray-400'}`}><div className="text-3xl" aria-hidden="true">{unlocked ? sticker.emoji : '🔒'}</div><div className="mt-1 text-sm font-black">{sticker.label}</div><div className="mt-1 text-[10px] font-black uppercase tracking-widest">{unlocked ? 'открыта' : `${Math.max(0, sticker.days - streak)} д. осталось`}</div></div>; })}</div></section>
+      <section className="rounded-[2rem] border-2 border-amber-100 bg-white p-5 shadow-sm"><div className="text-xs font-black uppercase tracking-widest text-amber-500">{T.premiumShelf}</div><h2 className="mt-2 text-2xl font-black text-indigo-950">{T.premiumTitle}</h2><p className="mt-2 text-sm font-bold leading-relaxed text-gray-500">{T.premiumSubtitle}</p><div className="mt-4 grid grid-cols-2 gap-3">{premiumPacks.map(pack => <button type="button" key={pack.id} onClick={openPremium} className="group relative rounded-2xl border-2 border-amber-100 bg-amber-50/70 p-3 text-left transition hover:-translate-y-0.5 hover:bg-amber-50 hover:shadow-md"><span className="absolute right-2 top-2 text-sm" aria-hidden="true">{hasPremium ? '✅' : '🔒'}</span><div className="flex items-start gap-2"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-xl shadow-sm" aria-hidden="true">{pack.icon}</span><div className="min-w-0"><div className="truncate pr-5 text-sm font-black text-amber-950">{pack.shortTitle}</div><div className="text-xs font-black text-amber-700">{pack.wordCount} слов</div></div></div><p className="mt-2 min-h-[2rem] text-xs font-bold leading-snug text-amber-900/75">{pack.title}</p><span className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700 shadow-sm">{hasPremium ? 'Открыт' : T.premiumBadge}</span></button>)}</div><button type="button" onClick={openPremium} className="mt-4 w-full rounded-2xl bg-amber-500 px-5 py-3 font-black text-white shadow-sm transition hover:bg-amber-600">{hasPremium ? T.choosePremium : T.openPremium}</button></section>
+      <section className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm"><div className="text-xs font-black uppercase tracking-widest text-indigo-400">{T.stats}</div><div className="mt-4 grid gap-3"><StatPill label={T.gamesPlayed} value={userProfile.stats.gamesPlayed} /><StatPill label="Успешных" value={userProfile.stats.gamesWon} tone="green" /><StatPill label="Словарь" value={dictionaryWordCount} tone="purple" /></div></section>
+    </aside></section>
+  </ScreenContainer>;
 };
