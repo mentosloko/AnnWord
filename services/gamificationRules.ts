@@ -19,6 +19,7 @@ export type GameRewardInput =
   | ({ type: 'translation'; guessedWords: number } & RewardAdjustment)
   | ({ type: 'memory'; clicks: number } & RewardAdjustment)
   | ({ type: 'hangman'; won: boolean; mistakes: number; maxMistakes: number } & RewardAdjustment)
+  | ({ type: 'letterSquare'; guessedWords: number } & RewardAdjustment)
   | ({ type: 'other' } & RewardAdjustment);
 
 export interface GameRewardResult { xp: number; coins: number; mood: number; label: string; }
@@ -48,6 +49,7 @@ export const calculateGameReward = (input: GameRewardInput): GameRewardResult =>
   if (input.type === 'translation') { const guessedWords = Math.max(0, Math.round(input.guessedWords || 0)); const xp = guessedWords ? Math.min(30, guessedWords * 4) : 5; return reward(xp, guessedWords >= 9 ? C.sprint.good : guessedWords >= 6 ? C.sprint.low : 0, 'Translation choice done'); }
   if (input.type === 'memory') { const clicks = Math.max(0, Math.round(input.clicks || 0)); const xp = clicks > 0 && clicks <= 12 ? 30 : clicks <= 16 ? 25 : clicks <= 20 ? 20 : clicks <= 24 ? 15 : clicks > 24 ? 10 : 8; return reward(xp, clicks > 0 && clicks <= 16 ? C.memory.great : clicks <= 24 ? C.memory.good : C.memory.low, 'Memory done'); }
   if (input.type === 'hangman') { const maxMistakes = Math.max(1, Math.round(input.maxMistakes || 7)); const mistakes = Math.max(0, Math.min(maxMistakes, Math.round(input.mistakes || 0))); const xp = input.won ? 25 + Math.min(10, maxMistakes - mistakes) : 8; return reward(xp, input.won ? (mistakes <= 1 ? C.hangman.perfect : C.hangman.win) : C.hangman.loss, 'Hangman done'); }
+  if (input.type === 'letterSquare') { const guessedWords = Math.max(0, Math.round(input.guessedWords || 0)); const xp = guessedWords ? Math.min(32, guessedWords * 4) : 5; return reward(xp, guessedWords >= 7 ? C.sprint.good : guessedWords >= 4 ? C.sprint.low : 0, 'Letter square done'); }
   return reward(0, 0, 'Done');
 };
 
