@@ -14,7 +14,7 @@ export interface UserStats { gamesPlayed: number; gamesWon: number; wordsGuessed
 export type CharacterMood = 'sad' | 'calm' | 'happy' | 'joyful' | 'super_happy' | 'neutral' | 'excited';
 export type CharacterStage = 'stage_1' | 'stage_2' | 'stage_3' | 'stage_4';
 export type InventoryItemType = 'food' | 'pet' | 'accessory' | 'home' | 'mystery' | 'sticker';
-export type GameRewardType = 'wordle' | 'sprint' | 'anagram' | 'translation' | 'memory' | 'hangman' | 'letterSquare' | 'other';
+export type GameRewardType = 'wordle' | 'sprint' | 'anagram' | 'translation' | 'memory' | 'hangman' | 'letterSquare' | 'letter_square' | 'other';
 export type PetWorldId = 'default_room' | 'theatre' | 'amusement_park' | 'ice_rink' | 'opera' | 'sausage_fridge';
 export interface PetState { name: string; type: string; level: number; mood: CharacterMood; xp: number; moodScore?: number; stage?: CharacterStage; characterOnboarded?: boolean; hunger?: number; energy?: number; equippedAccessories: string[]; activeHomeItemId?: string; activeWorldId?: PetWorldId; activeWorldDate?: string; dailyStreak?: number; lastDailyActivityDate?: string; earnedStickerIds?: string[]; requestedTreatId?: string; }
 export interface InventoryItem { id: string; type: InventoryItemType; name: string; quantity: number; metadata?: { imageUrl?: string; minLevel?: number; temporary?: boolean; }; }
