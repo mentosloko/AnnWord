@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { ALL_WORDS_EN, COMMON_WORDS_EN } from '../dictionaries/mainEnglish';
 import { hasRussianTranslation, toCustomEnrichedWords } from '../services/dictionaryEngine';
 import { getPremiumDictionaryEntries, getPremiumDictionaryWords, hasPremiumDictionaryAccess } from '../services/premiumDictionaryCatalog';
+import { isBlacklistedWord } from '../services/wordBlacklist';
 import { EnrichedWord, GameSettings, UserProfile } from '../types';
 
 interface UseDictionaryPoolsArgs {
