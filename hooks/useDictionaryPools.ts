@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { ALL_WORDS_EN, COMMON_WORDS_EN } from '../dictionaries/mainEnglish';
 import { hasRussianTranslation, isAllowedSecretWord, isAllowedValidationWord, toCustomEnrichedWords } from '../services/dictionaryEngine';
+import { getAllKidsDictionaryWords, getFreeKidsDictionaryEntries, getKidsPremiumDictionaryEntries, getKidsPremiumDictionaryWords } from '../services/kidsDictionaryCatalog';
 import { isKidsMode } from '../services/modeFlags';
 import { getPremiumDictionaryEntries, getPremiumDictionaryWords, hasPremiumDictionaryAccess } from '../services/premiumDictionaryCatalog';
 import { EnrichedWord, GameSettings, UserProfile } from '../types';
@@ -18,9 +19,17 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
   const getSecretWordPool = useCallback((): EnrichedWord[] => {
     let pool: EnrichedWord[] = [];
     const kidsMode = isKidsMode(userProfile);
-    const canUsePremiumDictionary = !kidsMode && settings.dictionarySource === 'premium' && hasPremiumDictionaryAccess(userProfile);
+    const hasPremium = hasPremiumDictionaryAccess(userProfile);
 
-    if (canUsePremiumDictionary) {
+    if (kidsMode) {
+      if (settings.dictionarySource === 'premium' && hasPremium) {
+        pool = getKidsPremiumDictionaryEntries(settings.activePremiumDictionaryId, settings.difficulty);
+      } else if (settings.dictionarySource === 'custom' && hasPremium) {
+        pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
+      } else {
+        pool = getFreeKidsDictionaryEntries(settings.difficulty);
+      }
+    } else if (settings.dictionarySource === 'premium' && hasPremium) {
       pool = getPremiumDictionaryEntries(settings.activePremiumDictionaryId, settings.difficulty);
     } else if (settings.dictionarySource === 'custom') {
       pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
@@ -37,11 +46,14 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
 
   const getValidationPool = useCallback((): string[] => {
     const kidsMode = isKidsMode(userProfile);
-    const premiumWords = !kidsMode && settings.dictionarySource === 'premium' && hasPremiumDictionaryAccess(userProfile)
-      ? getPremiumDictionaryWords(settings.activePremiumDictionaryId, settings.difficulty)
-      : [];
+    const hasPremium = hasPremiumDictionaryAccess(userProfile);
+    const premiumWords = kidsMode
+      ? (hasPremium ? getKidsPremiumDictionaryWords(settings.activePremiumDictionaryId, settings.difficulty) : [])
+      : (settings.dictionarySource === 'premium' && hasPremium ? getPremiumDictionaryWords(settings.activePremiumDictionaryId, settings.difficulty) : []);
+    const kidsWords = kidsMode ? getAllKidsDictionaryWords() : [];
     const combinedPool = [
       ...ALL_WORDS_EN,
+      ...kidsWords,
       ...premiumWords,
     ]
       .filter(word => word.length === settings.wordLength)
