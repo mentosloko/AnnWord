@@ -57,9 +57,14 @@ export const toCustomEnrichedWords = (words: string[] = []): EnrichedWord[] =>
     .filter((entry): entry is EnrichedWord => Boolean(entry))
     .map(entry => ({ ...entry, level: CUSTOM_LEVEL }));
 
+export const isAllowedValidationWord = (word: string): boolean => {
+  const clean = normalizeWord(word);
+  return Boolean(clean) && !isBlacklistedWord(clean);
+};
+
 export const isAllowedSecretWord = (word: string): boolean => {
   const clean = normalizeWord(word);
-  return Boolean(clean) && !isBlacklistedWord(clean) && (!clean.endsWith('S') || clean.endsWith('SS'));
+  return isAllowedValidationWord(clean) && (!clean.endsWith('S') || clean.endsWith('SS'));
 };
 
 export const getBuiltinSecretWordPool = (selection: Pick<DictionarySelection, 'wordLength' | 'difficulty'>): EnrichedWord[] => {
@@ -80,9 +85,9 @@ export const getSecretWordPool = (selection: DictionarySelection): EnrichedWord[
 };
 
 export const getValidationPool = (selection: Pick<DictionarySelection, 'wordLength' | 'customDictionaryEn'>): string[] => {
-  const builtin = ALL_WORDS_EN.map(normalizeWord).filter(word => word.length === selection.wordLength && !isBlacklistedWord(word));
-  const custom = getCustomWordsAvailableInBuiltinDictionary(selection.customDictionaryEn).filter(word => word.length === selection.wordLength && !isBlacklistedWord(word));
-  const extras = EXTRA_VALID_GUESSES.filter(word => word.length === selection.wordLength && !isBlacklistedWord(word));
+  const builtin = ALL_WORDS_EN.map(normalizeWord).filter(word => word.length === selection.wordLength && isAllowedValidationWord(word));
+  const custom = getCustomWordsAvailableInBuiltinDictionary(selection.customDictionaryEn).filter(word => word.length === selection.wordLength && isAllowedValidationWord(word));
+  const extras = EXTRA_VALID_GUESSES.filter(word => word.length === selection.wordLength && isAllowedValidationWord(word));
   return Array.from(new Set([...builtin, ...custom, ...extras]));
 };
 
