@@ -11,6 +11,7 @@ const accuracy = (word: WordPerformance) => attempts(word) ? Math.round(word.cor
 const learned = (word: WordPerformance) => word.correct > 0 && accuracy(word) >= 80;
 const byMistakes = (a: WordPerformance, b: WordPerformance) => b.mistakes - a.mistakes || attempts(b) - attempts(a) || a.word.localeCompare(b.word);
 const byFrequency = (a: WordPerformance, b: WordPerformance) => attempts(b) - attempts(a) || b.mistakes - a.mistakes || a.word.localeCompare(b.word);
+const getEncounteredWords = (learner?: ManagedLearner): WordPerformance[] => Object.values(learner?.stats.wordPerformance ?? {}).filter(word => attempts(word) > 0).sort(byFrequency);
 
 export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOpenDictionaryStudio }) => {
   const isTeacher = userProfile.role === 'teacher' || userProfile.accountMode === 'teacher';
@@ -26,7 +27,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
   const [notice, setNotice] = useState<string | null>(null);
   const learner = learners.find(item => item.id === selectedId) || learners[0];
   const collections = userProfile.dictionaryCollections || [];
-  const encounteredWords = useMemo(() => Object.values(learner?.stats.wordPerformance || {}).filter(word => attempts(word) > 0).sort(byFrequency), [learner]);
+  const encounteredWords = useMemo(() => getEncounteredWords(learner), [learner]);
   const learnedWords = encounteredWords.filter(learned);
   const errorWords = useMemo(() => encounteredWords.filter(word => word.mistakes > 0).sort(byMistakes), [encounteredWords]);
   const normalizedCode = code.trim().toUpperCase();
