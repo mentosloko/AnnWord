@@ -3,7 +3,7 @@ import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface LandingMixScreenProps { onLogin: () => void; onStartPractice: () => void; onStartKids: () => void; }
 
-const HERO_IMAGE = '/assets/landing/annword-hero-boy-pet.svg';
+const HERO_IMAGE = '/assets/landing/landing_right_corner.webp';
 
 const benefits = [
   { icon: '⏱️', title: 'Коротко', text: 'Одна тренировка занимает несколько минут: легко начать сегодня и вернуться завтра.' },
