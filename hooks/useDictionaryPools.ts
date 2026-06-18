@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { ALL_WORDS_EN, COMMON_WORDS_EN } from '../dictionaries/mainEnglish';
-import { hasRussianTranslation, toCustomEnrichedWords } from '../services/dictionaryEngine';
+import { hasRussianTranslation, isAllowedSecretWord, isAllowedValidationWord, toCustomEnrichedWords } from '../services/dictionaryEngine';
+import { isKidsMode } from '../services/modeFlags';
 import { getPremiumDictionaryEntries, getPremiumDictionaryWords, hasPremiumDictionaryAccess } from '../services/premiumDictionaryCatalog';
-import { isBlacklistedWord } from '../services/wordBlacklist';
 import { EnrichedWord, GameSettings, UserProfile } from '../types';
 
 interface UseDictionaryPoolsArgs {
@@ -17,8 +17,10 @@ type ModeWordPoolOptions = {
 export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPoolsArgs) => {
   const getSecretWordPool = useCallback((): EnrichedWord[] => {
     let pool: EnrichedWord[] = [];
+    const kidsMode = isKidsMode(userProfile);
+    const canUsePremiumDictionary = !kidsMode && settings.dictionarySource === 'premium' && hasPremiumDictionaryAccess(userProfile);
 
-    if (settings.dictionarySource === 'premium' && hasPremiumDictionaryAccess(userProfile)) {
+    if (canUsePremiumDictionary) {
       pool = getPremiumDictionaryEntries(settings.activePremiumDictionaryId, settings.difficulty);
     } else if (settings.dictionarySource === 'custom') {
       pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
@@ -30,11 +32,12 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
       pool = pool.map(word => ({ ...word, word: word.word.toUpperCase() }));
     }
 
-    return pool.filter(word => !word.word.endsWith('S') || word.word.endsWith('SS'));
+    return pool.filter(word => isAllowedSecretWord(word.word));
   }, [settings.activePremiumDictionaryId, settings.dictionarySource, settings.difficulty, userProfile]);
 
   const getValidationPool = useCallback((): string[] => {
-    const premiumWords = settings.dictionarySource === 'premium' && hasPremiumDictionaryAccess(userProfile)
+    const kidsMode = isKidsMode(userProfile);
+    const premiumWords = !kidsMode && settings.dictionarySource === 'premium' && hasPremiumDictionaryAccess(userProfile)
       ? getPremiumDictionaryWords(settings.activePremiumDictionaryId, settings.difficulty)
       : [];
     const combinedPool = [
@@ -42,7 +45,8 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
       ...premiumWords,
     ]
       .filter(word => word.length === settings.wordLength)
-      .map(word => word.toUpperCase());
+      .map(word => word.toUpperCase())
+      .filter(word => isAllowedValidationWord(word));
 
     return Array.from(new Set(combinedPool));
   }, [settings.activePremiumDictionaryId, settings.dictionarySource, settings.difficulty, settings.wordLength, userProfile]);
