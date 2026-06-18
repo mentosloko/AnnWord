@@ -1,5 +1,6 @@
 import { ALL_WORDS_EN, COMMON_WORDS_EN } from '../dictionaries/mainEnglish';
 import { DifficultyLevel, DictionarySource, EnrichedWord, WordLength } from '../types';
+import { isBlacklistedWord } from './wordBlacklist';
 
 export interface DictionarySelection {
   source: DictionarySource;
@@ -27,6 +28,7 @@ export const hasRussianTranslation = (translation: string | undefined | null): b
 const TRANSLATED_WORD_BY_KEY = new Map(
   COMMON_WORDS_EN
     .filter(item => hasRussianTranslation(item.translation))
+    .filter(item => !isBlacklistedWord(item.word))
     .map(item => [normalizeWord(item.word), { ...item, word: normalizeWord(item.word) }]),
 );
 
@@ -42,12 +44,12 @@ export const normalizeCustomDictionary = (words: string[] = []): string[] => {
   return normalized;
 };
 
-/** Playable custom words must have a real Russian translation in the common dictionary. */
+/** Playable custom words must have a real Russian translation in the common dictionary and must not be blacklisted. */
 export const getCustomWordsAvailableInBuiltinDictionary = (words: string[] = []): string[] =>
-  normalizeCustomDictionary(words).filter(word => TRANSLATED_WORD_BY_KEY.has(word));
+  normalizeCustomDictionary(words).filter(word => TRANSLATED_WORD_BY_KEY.has(word) && !isBlacklistedWord(word));
 
 export const getCustomWordsMissingTranslation = (words: string[] = []): string[] =>
-  normalizeCustomDictionary(words).filter(word => !TRANSLATED_WORD_BY_KEY.has(word));
+  normalizeCustomDictionary(words).filter(word => !TRANSLATED_WORD_BY_KEY.has(word) && !isBlacklistedWord(word));
 
 export const toCustomEnrichedWords = (words: string[] = []): EnrichedWord[] =>
   getCustomWordsAvailableInBuiltinDictionary(words)
@@ -57,13 +59,14 @@ export const toCustomEnrichedWords = (words: string[] = []): EnrichedWord[] =>
 
 export const isAllowedSecretWord = (word: string): boolean => {
   const clean = normalizeWord(word);
-  return Boolean(clean) && (!clean.endsWith('S') || clean.endsWith('SS'));
+  return Boolean(clean) && !isBlacklistedWord(clean) && (!clean.endsWith('S') || clean.endsWith('SS'));
 };
 
 export const getBuiltinSecretWordPool = (selection: Pick<DictionarySelection, 'wordLength' | 'difficulty'>): EnrichedWord[] => {
   let pool = COMMON_WORDS_EN
     .filter(item => hasRussianTranslation(item.translation))
-    .map(item => ({ ...item, word: normalizeWord(item.word) }));
+    .map(item => ({ ...item, word: normalizeWord(item.word) }))
+    .filter(item => !isBlacklistedWord(item.word));
   if (selection.difficulty !== 'ALL') pool = pool.filter(item => item.level === selection.difficulty);
   return pool.filter(item => item.word.length === selection.wordLength && isAllowedSecretWord(item.word));
 };
@@ -77,9 +80,9 @@ export const getSecretWordPool = (selection: DictionarySelection): EnrichedWord[
 };
 
 export const getValidationPool = (selection: Pick<DictionarySelection, 'wordLength' | 'customDictionaryEn'>): string[] => {
-  const builtin = ALL_WORDS_EN.map(normalizeWord).filter(word => word.length === selection.wordLength);
-  const custom = getCustomWordsAvailableInBuiltinDictionary(selection.customDictionaryEn).filter(word => word.length === selection.wordLength);
-  const extras = EXTRA_VALID_GUESSES.filter(word => word.length === selection.wordLength);
+  const builtin = ALL_WORDS_EN.map(normalizeWord).filter(word => word.length === selection.wordLength && !isBlacklistedWord(word));
+  const custom = getCustomWordsAvailableInBuiltinDictionary(selection.customDictionaryEn).filter(word => word.length === selection.wordLength && !isBlacklistedWord(word));
+  const extras = EXTRA_VALID_GUESSES.filter(word => word.length === selection.wordLength && !isBlacklistedWord(word));
   return Array.from(new Set([...builtin, ...custom, ...extras]));
 };
 
