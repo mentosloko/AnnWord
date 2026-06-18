@@ -2,15 +2,17 @@ import React from 'react';
 import { ClientEntryPath } from '../../services/clientEntryPath';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
+type PublicModeEntryPath = Exclude<ClientEntryPath, 'home' | 'landing_mix'>;
+
 interface ModeEntryScreenProps {
-  entryPath: Exclude<ClientEntryPath, 'home'>;
+  entryPath: PublicModeEntryPath;
   isAuthenticated: boolean;
   onLogin: () => void;
   onRegister: () => void;
   onBackHome: () => void;
 }
 
-const copy = {
+const copy: Record<PublicModeEntryPath, { title: string; eyebrow: string; description: string; imageSrc: string; bullets: string[]; cta: string }> = {
   practice: {
     title: 'AnnWord Practice',
     eyebrow: 'Для самостоятельной практики',
@@ -35,7 +37,7 @@ const copy = {
     bullets: ['Подключение учеников по коду', 'Словари преподавателя', 'Просмотр прогресса'],
     cta: 'Создать Teacher-аккаунт',
   },
-} as const;
+};
 
 export const ModeEntryScreen: React.FC<ModeEntryScreenProps> = ({ entryPath, isAuthenticated, onLogin, onRegister, onBackHome }) => {
   const item = copy[entryPath];
