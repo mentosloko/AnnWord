@@ -42,7 +42,7 @@ export const getFulfilledRequestedTreat = (profile: UserProfile): ShopItem | nul
 export const getWorld = (id?: PetWorldId): PetWorldDefinition => PET_WORLDS.find(world => world.id === id) || PET_WORLDS[0];
 export const getActiveWorld = (pet: PetState): PetWorldDefinition => pet.activeWorldDate === londonDateKey() ? getWorld(pet.activeWorldId) : PET_WORLDS[0];
 export const hasActiveDailyWorld = (pet: PetState): boolean => pet.activeWorldDate === londonDateKey() && pet.activeWorldId !== undefined && pet.activeWorldId !== 'default_room';
-export const getEarnedStickers = (pet: PetState): StreakSticker[] => STREAK_STICKERS.filter(sticker => (pet.earnedStickerIds || []).includes(sticker.id));
+export const getEarnedStickers = (pet: PetState): StreakSticker[] => STREAK_STICKERS.filter(sticker => (pet.earnedStickerIds || []).includes(sticker.id) || (pet.dailyStreak || 0) >= sticker.days);
 export const getLevelAvailableAccessories = (level: number): ShopItem[] => getShopItemsByType('accessory').filter(item => item.minLevel <= level);
 export const getRequestedTreat = (profile: UserProfile): ShopItem | null => {
   if (getFulfilledRequestedTreat(profile)) return null;
