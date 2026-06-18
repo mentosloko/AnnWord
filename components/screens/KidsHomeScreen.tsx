@@ -16,7 +16,7 @@ const games = [
   ['Спринт', '/assets/games/game_sprint.webp'],
   ['Виселица', '/assets/games/game_hangman.webp'],
   ['Память', '/assets/games/game_memory.webp'],
-  ['Квадрат слов', '/assets/games/game_anagrams.webp'],
+  ['Квадрат слов', '/assets/games/line_game.webp'],
 ] as const;
 export const KidsHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, dailyQuestReward, onCloseDailyQuestReward, onStartDailyQuest, hasActiveClassicGame, hasActiveAnagramGame, onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare, onOpenShop, onOpenProfile, onOpenPetRoom, onOpenAdultRoom }) => {
   const actions = [onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare];
