@@ -1,0 +1,83 @@
+<svg width="720" height="500" viewBox="0 0 720 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="40" y1="30" x2="680" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEF5FF"/>
+      <stop offset="0.55" stop-color="#F6F0FF"/>
+      <stop offset="1" stop-color="#FFF7ED"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="250" y1="165" x2="440" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#0F3AA6"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#1E3A8A" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect x="14" y="18" width="692" height="464" rx="42" fill="url(#bg)"/>
+  <circle cx="583" cy="100" r="62" fill="#DBEAFE" opacity="0.75"/>
+  <circle cx="106" cy="395" r="84" fill="#E0E7FF" opacity="0.7"/>
+  <path d="M120 102C143 76 170 84 188 109" stroke="#BFDBFE" stroke-width="12" stroke-linecap="round" opacity="0.7"/>
+  <path d="M548 390C590 369 635 381 657 419" stroke="#FED7AA" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+
+  <g filter="url(#shadow)">
+    <rect x="56" y="70" width="176" height="94" rx="22" fill="white"/>
+    <text x="82" y="107" fill="#475569" font-family="Inter,Arial" font-size="16" font-weight="800">Streak</text>
+    <text x="82" y="140" fill="#0F172A" font-family="Inter,Arial" font-size="32" font-weight="900">12 дней 🔥</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="502" y="82" width="146" height="112" rx="24" fill="white"/>
+    <text x="528" y="118" fill="#64748B" font-family="Inter,Arial" font-size="15" font-weight="800">Daily quest</text>
+    <rect x="528" y="139" width="82" height="10" rx="5" fill="#FED7AA"/>
+    <rect x="528" y="139" width="55" height="10" rx="5" fill="#F59E0B"/>
+    <text x="528" y="172" fill="#0F172A" font-family="Inter,Arial" font-size="21" font-weight="900">3 / 5</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="48" y="258" width="210" height="138" rx="28" fill="white"/>
+    <text x="78" y="294" fill="#64748B" font-family="Inter,Arial" font-size="15" font-weight="800">Слово дня</text>
+    <g font-family="Inter,Arial" font-size="30" font-weight="900" fill="#0F172A">
+      <rect x="75" y="315" width="38" height="38" rx="10" fill="#EFF6FF"/>
+      <text x="88" y="344">C</text>
+      <rect x="121" y="315" width="38" height="38" rx="10" fill="#EFF6FF"/>
+      <text x="134" y="344">A</text>
+      <rect x="167" y="315" width="38" height="38" rx="10" fill="#EFF6FF"/>
+      <text x="180" y="344">T</text>
+    </g>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path d="M350 210C411 210 463 264 463 350V437H237V350C237 264 289 210 350 210Z" fill="url(#blue)"/>
+    <path d="M294 237C305 209 324 193 350 193C376 193 395 209 406 237C391 254 372 263 350 263C328 263 309 254 294 237Z" fill="#1D4ED8"/>
+    <circle cx="350" cy="152" r="70" fill="#F8C99E"/>
+    <path d="M284 145C291 96 326 67 379 77C421 85 435 117 424 153C396 134 361 118 306 127C303 136 296 143 284 145Z" fill="#7C2D12"/>
+    <circle cx="323" cy="158" r="8" fill="#111827"/>
+    <circle cx="379" cy="158" r="8" fill="#111827"/>
+    <path d="M330 190C344 203 366 203 380 190" stroke="#7C2D12" stroke-width="7" stroke-linecap="round"/>
+    <path d="M281 227C239 244 224 285 229 331" stroke="#1D4ED8" stroke-width="26" stroke-linecap="round"/>
+    <path d="M419 229C462 249 482 286 485 336" stroke="#1D4ED8" stroke-width="26" stroke-linecap="round"/>
+    <path d="M489 338C511 337 525 322 528 298" stroke="#F8C99E" stroke-width="22" stroke-linecap="round"/>
+    <path d="M528 299C529 276 520 261 503 252" stroke="#F8C99E" stroke-width="16" stroke-linecap="round"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="478" y="293" width="159" height="151" rx="32" fill="white"/>
+    <path d="M521 339C521 309 595 309 595 339V386C595 424 521 424 521 386V339Z" fill="#F59E0B"/>
+    <path d="M520 330L497 301L508 357" fill="#F59E0B"/>
+    <path d="M596 330L620 301L609 357" fill="#F59E0B"/>
+    <circle cx="537" cy="363" r="7" fill="#111827"/>
+    <circle cx="579" cy="363" r="7" fill="#111827"/>
+    <path d="M549 389C557 398 570 398 578 389" stroke="#7C2D12" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="558" cy="376" r="7" fill="#7C2D12"/>
+    <rect x="516" y="416" width="86" height="12" rx="6" fill="#DBEAFE"/>
+    <rect x="516" y="416" width="58" height="12" rx="6" fill="#22C55E"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="272" y="341" width="160" height="78" rx="22" fill="white"/>
+    <rect x="295" y="363" width="32" height="32" rx="9" fill="#EFF6FF"/>
+    <text x="306" y="388" fill="#0F172A" font-family="Inter,Arial" font-size="24" font-weight="900">L</text>
+    <rect x="336" y="363" width="32" height="32" rx="9" fill="#EFF6FF"/>
+    <text x="347" y="388" fill="#0F172A" font-family="Inter,Arial" font-size="24" font-weight="900">I</text>
+    <rect x="377" y="363" width="32" height="32" rx="9" fill="#EFF6FF"/>
+    <text x="386" y="388" fill="#0F172A" font-family="Inter,Arial" font-size="24" font-weight="900">G</text>
+  </g>
+</svg>
