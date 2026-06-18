@@ -49,14 +49,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 }) => {
   const parentMode = isKidsMode(userProfile, isAuthenticated);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
-  const source = parentMode && settings.dictionarySource === 'premium' ? 'builtin' : settings.dictionarySource;
+  const source = settings.dictionarySource;
   const canStart = source !== 'custom' || (hasPremium && customDictionaryWords.length > 0);
 
   const selectSource = (nextSource: DictionarySource) => {
-    if (nextSource === 'premium' && parentMode) {
-      onSettingsChange({ ...settings, dictionarySource: 'builtin', useCustomDictionary: false });
-      return;
-    }
     if ((nextSource === 'custom' || nextSource === 'premium') && !isAuthenticated) {
       onLogin();
       return;
@@ -83,11 +79,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
       <section className="mt-2" aria-labelledby="dictionary-source-title">
         <h2 id="dictionary-source-title" className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Слова для игры</h2>
-        <div className={`grid gap-2 ${parentMode ? 'grid-cols-2' : 'grid-cols-3'}`} role="group" aria-label="Источник слов">
+        <div className="grid grid-cols-3 gap-2" role="group" aria-label="Источник слов">
           <button type="button" aria-pressed={source === 'builtin'} onClick={() => selectSource('builtin')} className={`rounded-2xl border-2 p-3 text-left ${source === 'builtin' ? 'border-indigo-300 bg-indigo-50' : 'border-indigo-100'}`}>
-            <div className="text-xl" aria-hidden="true">📚</div>
-            <div className="text-sm font-black">Встроенный</div>
-            <div className="text-[11px] font-bold text-gray-400">по уровням</div>
+            <div className="text-xl" aria-hidden="true">{parentMode ? '🌈' : '📚'}</div>
+            <div className="text-sm font-black">{parentMode ? 'Детский' : 'Встроенный'}</div>
+            <div className="text-[11px] font-bold text-gray-400">{parentMode ? 'бесплатно' : 'по уровням'}</div>
           </button>
           <button type="button" aria-pressed={source === 'custom' && hasPremium} onClick={() => selectSource('custom')} className={`relative rounded-2xl border-2 p-3 text-left ${source === 'custom' && hasPremium ? 'border-purple-300 bg-purple-50' : 'border-indigo-100'}`}>
             <span className="absolute right-3 top-3 text-sm" aria-hidden="true">{hasPremium ? '✨' : '🔒'}</span>
@@ -95,12 +91,12 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             <div className="text-sm font-black">Мой словарь</div>
             <div className="text-[11px] font-bold text-gray-400">{hasPremium ? `${customDictionaryWords.length} слов` : 'Premium'}</div>
           </button>
-          {!parentMode && <button type="button" aria-pressed={source === 'premium' && hasPremium} onClick={() => selectSource('premium')} className={`relative rounded-2xl border-2 p-3 text-left ${source === 'premium' && hasPremium ? 'border-amber-300 bg-amber-50' : 'border-indigo-100'}`}>
+          <button type="button" aria-pressed={source === 'premium' && hasPremium} onClick={() => selectSource('premium')} className={`relative rounded-2xl border-2 p-3 text-left ${source === 'premium' && hasPremium ? 'border-amber-300 bg-amber-50' : 'border-indigo-100'}`}>
             <span className="absolute right-3 top-3 text-sm" aria-hidden="true">{hasPremium ? '✅' : '🔒'}</span>
             <div className="text-xl" aria-hidden="true">✨</div>
             <div className="text-sm font-black">Premium</div>
-            <div className="text-[11px] font-bold text-gray-400">подборки</div>
-          </button>}
+            <div className="text-[11px] font-bold text-gray-400">{parentMode ? 'детские наборы' : 'подборки'}</div>
+          </button>
         </div>
       </section>
 
