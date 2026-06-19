@@ -7,7 +7,7 @@ import { useClassicGameController } from './hooks/useClassicGameController';
 import { useDictionaryPools } from './hooks/useDictionaryPools';
 import { useDictionaryUpload } from './hooks/useDictionaryUpload';
 import { useProfileEconomy } from './hooks/useProfileEconomy';
-import { AccountMode, DailyQuestCompletionReward, DailyQuestState, DictionarySource, GameRewardType, PetState, ShopItem, UserStats, ViewState } from './types';
+import { AccountMode, DailyQuestCompletionReward, DailyQuestState, DictionarySource, GameRewardType, PetState, ShopItem, UserStats, ViewState, WordLearningHistory } from './types';
 import { analyticsService } from './services/analyticsService';
 import { GameRewardInput } from './services/gamificationRules';
 import { updateReviewPriorities, WordPracticeResult } from './services/gameSessionEngine';
@@ -24,9 +24,33 @@ const isLengthAgnosticMode = (mode: PlayableModeRoute): boolean => LENGTH_AGNOST
 const toAnalyticsGameType = (mode: PlayableModeRoute): GameRewardType => mode === 'game' ? 'wordle' : mode === 'anagrams' ? 'anagram' : mode === 'letter_square' ? 'letterSquare' : mode;
 const isRewardStatWin = (input: GameRewardInput): boolean => { if ('wonForStats' in input && typeof input.wonForStats === 'boolean') return input.wonForStats; if (input.type === 'wordle' || input.type === 'hangman') return Boolean(input.won); if (input.type === 'sprint' || input.type === 'anagram' || input.type === 'translation' || input.type === 'letterSquare') return Math.max(0, Math.round(input.guessedWords || 0)) > 0; if (input.type === 'memory') return Math.max(0, Math.round(input.clicks || 0)) > 0; return false; };
 const shouldCountRewardInStats = (input: GameRewardInput): boolean => input.type !== 'other' && (input.type !== 'anagram' || Boolean(input.statsOnly));
-const addRewardToStats = (stats: UserStats, input: GameRewardInput): UserStats => { if (!shouldCountRewardInStats(input)) return stats; const next: UserStats = { ...stats, wordsGuessed: { ...stats.wordsGuessed }, wordsToReview: { ...(stats.wordsToReview || {}) }, wordPerformance: stats.wordPerformance ? { ...stats.wordPerformance } : undefined }; next.gamesPlayed += 1; if (isRewardStatWin(input)) next.gamesWon += 1; return next; };
+const addRewardToStats = (stats: UserStats, input: GameRewardInput): UserStats => { if (!shouldCountRewardInStats(input)) return stats; const next: UserStats = { ...stats, wordsGuessed: { ...stats.wordsGuessed }, wordsToReview: { ...(stats.wordsToReview || {}) }, wordPerformance: stats.wordPerformance ? { ...stats.wordPerformance } : undefined, wordLearningHistory: stats.wordLearningHistory ? { ...stats.wordLearningHistory } : undefined }; next.gamesPlayed += 1; if (isRewardStatWin(input)) next.gamesWon += 1; return next; };
 const normalizePracticeWord = (word: string) => word.trim().toUpperCase();
-const addPracticeWordToStats = (stats: UserStats, word: string, result: WordPracticeResult): UserStats => { const normalizedWord = normalizePracticeWord(word); if (!normalizedWord) return stats; const mastered = result === 'mastered'; const previousPerformance = stats.wordPerformance?.[normalizedWord] || { word: normalizedWord, attempts: 0, correct: 0, mistakes: 0 }; const wordsGuessed = { ...stats.wordsGuessed }; if (mastered) wordsGuessed[normalizedWord] = (wordsGuessed[normalizedWord] || 0) + 1; return { ...stats, wordsGuessed, wordsToReview: updateReviewPriorities(stats.wordsToReview || {}, normalizedWord, result), wordPerformance: { ...(stats.wordPerformance || {}), [normalizedWord]: { ...previousPerformance, attempts: previousPerformance.attempts + 1, correct: previousPerformance.correct + (mastered ? 1 : 0), mistakes: previousPerformance.mistakes + (mastered ? 0 : 1), lastPracticedAt: new Date().toISOString() } } }; };
+const MAX_WORD_HISTORY_EVENTS = 80;
+const updateWordLearningHistory = (stats: UserStats, word: string, result: WordPracticeResult, nextReview: Record<string, number>, at: string): Record<string, WordLearningHistory> => {
+  const mastered = result === 'mastered';
+  const previous = stats.wordLearningHistory?.[word] || { word, mistakeCount: 0, resolvedCount: 0, currentReviewPriority: Math.max(0, Math.round(stats.wordsToReview?.[word] || 0)), events: [] };
+  const previousPriority = Math.max(0, Math.round(stats.wordsToReview?.[word] ?? previous.currentReviewPriority ?? 0));
+  const nextPriority = Math.max(0, Math.round(nextReview[word] || 0));
+  const wasDifficult = previousPriority > 0 || previous.mistakeCount > 0;
+  const eventType = mastered ? (wasDifficult ? 'resolved' : 'mastered') : 'mistake';
+  const nextEvents = [...(previous.events || []), { at, type: eventType, reviewPriorityAfter: nextPriority }].slice(-MAX_WORD_HISTORY_EVENTS);
+  return {
+    ...(stats.wordLearningHistory || {}),
+    [word]: {
+      ...previous,
+      word,
+      firstMistakeAt: !mastered && !previous.firstMistakeAt ? at : previous.firstMistakeAt,
+      lastMistakeAt: mastered ? previous.lastMistakeAt : at,
+      lastResolvedAt: mastered && wasDifficult ? at : previous.lastResolvedAt,
+      mistakeCount: previous.mistakeCount + (mastered ? 0 : 1),
+      resolvedCount: previous.resolvedCount + (mastered && wasDifficult ? 1 : 0),
+      currentReviewPriority: nextPriority,
+      events: nextEvents,
+    },
+  };
+};
+const addPracticeWordToStats = (stats: UserStats, word: string, result: WordPracticeResult): UserStats => { const normalizedWord = normalizePracticeWord(word); if (!normalizedWord) return stats; const mastered = result === 'mastered'; const now = new Date().toISOString(); const previousPerformance = stats.wordPerformance?.[normalizedWord] || { word: normalizedWord, attempts: 0, correct: 0, mistakes: 0 }; const wordsGuessed = { ...stats.wordsGuessed }; if (mastered) wordsGuessed[normalizedWord] = (wordsGuessed[normalizedWord] || 0) + 1; const wordsToReview = updateReviewPriorities(stats.wordsToReview || {}, normalizedWord, result); return { ...stats, wordsGuessed, wordsToReview, wordLearningHistory: updateWordLearningHistory(stats, normalizedWord, result, wordsToReview, now), wordPerformance: { ...(stats.wordPerformance || {}), [normalizedWord]: { ...previousPerformance, attempts: previousPerformance.attempts + 1, correct: previousPerformance.correct + (mastered ? 1 : 0), mistakes: previousPerformance.mistakes + (mastered ? 0 : 1), lastPracticedAt: now } } }; };
 
 const AppV2: React.FC = () => {
   const [route, setRouteState] = useState<ViewState>('landing'); const [entryPath, setEntryPathState] = useState<ClientEntryPath>(() => getInitialEntryPath()); const [selectedPlayMode, setSelectedPlayMode] = useState<PlayableModeRoute>('game'); const [showLoginModal, setShowLoginModal] = useState(false); const [showRulesModal, setShowRulesModal] = useState(false); const [dailyQuest, setDailyQuest] = useState<DailyQuestState | null>(null); const [dailyQuestReward, setDailyQuestReward] = useState<DailyQuestCompletionReward | null>(null);
