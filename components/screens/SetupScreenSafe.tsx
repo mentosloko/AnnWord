@@ -32,7 +32,7 @@ const MODE_LABELS: Record<PlayableModeRoute, string> = {
   sprint: 'Спринт',
   memory: 'Память',
   hangman: 'Виселица',
-  letter_square: 'Квадрат слов',
+  letter_square: 'Змейка',
 };
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({
