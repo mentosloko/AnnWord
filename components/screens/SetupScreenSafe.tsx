@@ -95,7 +95,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           <button type="button" aria-pressed={source === 'custom' && hasPremium} onClick={() => selectSource('custom')} className={`relative min-w-0 rounded-2xl border-2 p-2 text-left sm:p-3 ${source === 'custom' && hasPremium ? 'border-purple-300 bg-purple-50' : 'border-indigo-100'}`}>
             <span className="absolute right-2 top-2 text-xs sm:right-3 sm:top-3 sm:text-sm" aria-hidden="true">{hasPremium ? '✨' : '🔒'}</span>
             <div className="text-lg sm:text-xl" aria-hidden="true">🧩</div>
-            <div className="truncate text-xs font-black sm:text-sm">Мой</div>
+            <div className="truncate text-xs font-black sm:text-sm">Свои слова</div>
             <div className="truncate text-[10px] font-bold text-gray-400 sm:text-[11px]">{hasPremium ? `${customDictionaryWords.length} слов` : 'Premium'}</div>
           </button>
           <button type="button" aria-pressed={source === 'premium' && hasPremium} onClick={() => selectSource('premium')} className={`relative min-w-0 rounded-2xl border-2 p-2 text-left sm:p-3 ${source === 'premium' && hasPremium ? 'border-amber-300 bg-amber-50' : 'border-indigo-100'}`}>
@@ -107,9 +107,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         </div>
       </section>
 
+      {!hasPremium && <button type="button" onClick={onOpenPremium} className="mt-4 w-full rounded-2xl border-2 border-amber-100 bg-amber-50 px-4 py-3 text-left transition hover:bg-amber-100/70">
+        <span className="block text-sm font-black text-amber-900">👑 Хотите сыграть по нужным словам?</span>
+        <span className="mt-1 block text-xs font-bold leading-relaxed text-amber-800/80">В Premium можно выбрать тему или добавить слова из школы, курса, учебника или работы.</span>
+      </button>}
+
       {source === 'custom' && hasPremium && <section className="mt-4 rounded-2xl border-2 border-dashed border-purple-100 bg-purple-50/50 p-4">
-        <span className="block font-black text-indigo-950">{customDictionaryWords.length ? 'Мой словарь выбран' : 'Мой словарь пока пуст'}</span>
-        {isUploadingDictionary && <p className="mt-2 text-xs font-bold text-purple-700">Сохраняю словарь...</p>}
+        <span className="block font-black text-indigo-950">{customDictionaryWords.length ? 'Слова из вашего списка выбраны' : 'Список слов пока пуст'}</span>
+        {isUploadingDictionary && <p className="mt-2 text-xs font-bold text-purple-700">Сохраняю слова...</p>}
       </section>}
 
       {source === 'premium' && hasPremium && <section className="mt-4 rounded-2xl border-2 border-dashed border-amber-100 bg-amber-50/60 p-4">
