@@ -25,10 +25,10 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
   const minWords = Math.min(...dictionaries.map(item => item.wordCount));
   const maxWords = Math.max(...dictionaries.map(item => item.wordCount));
   const premiumTitle = kidsMode ? 'Kids Premium' : 'AnnWord Premium';
-  const headline = kidsMode ? 'Расширенные детские словари и кабинет родителя' : '10 тематических словарей с уровнями сложности';
+  const headline = kidsMode ? 'Игры по словам, которые ребёнку действительно нужно повторить' : 'Учите не случайные слова, а нужные именно вам';
   const body = kidsMode
-    ? `Откройте ${totalWords} детских слов по классам и темам: школа, дом, животные, чтение и ежедневные ситуации. Плюс код преподавателя, назначение слов и отчёты для родителя.`
-    : `Откройте ${totalWords} игровых слов: Business, Travel, Medicine, IELTS, IT, Finance, Legal, Science, Everyday+ и Food. В словарях есть уровни A1–C2, а каждый набор сейчас содержит от ${minWords} до ${maxWords} слов.`;
+    ? `В бесплатном режиме ребёнок играет по базовому набору. Premium открывает детские темы и возможность добавить слова из школы, курса или учебника — чтобы тренировка была ближе к реальным занятиям.`
+    : `Откройте тематические словари и добавляйте слова из работы, экзамена, курса или своей темы. Сейчас доступно ${totalWords} игровых слов в наборах Business, Travel, Medicine, IELTS, IT, Finance, Legal, Science, Everyday+ и Food.`;
   const [loadingPlan, setLoadingPlan] = useState<ProdamusPlanCode | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
@@ -57,11 +57,11 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
             <div className="rounded-3xl border-2 border-purple-50 bg-purple-50/60 p-4"><div className="text-3xl font-black text-purple-700">{totalWords}</div><div className="text-xs font-black uppercase tracking-widest text-purple-400">слов</div></div>
             <div className="rounded-3xl border-2 border-green-50 bg-green-50/60 p-4"><div className="text-3xl font-black text-green-700">A1–C2</div><div className="text-xs font-black uppercase tracking-widest text-green-400">уровни</div></div>
           </div>
-          {kidsMode && <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            {['Код преподавателя', 'Слова в активный словарь', 'Отчёты на почту'].map(item => <div key={item} className="rounded-2xl border-2 border-amber-100 bg-amber-50 px-4 py-3 text-sm font-black text-amber-800">{item}</div>)}
-          </div>}
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {(kidsMode ? ['Детские темы', 'Слова из школы или курса', 'Все игры по выбранным словам'] : ['Темы под цель', 'Слова из вашего списка', `От ${minWords} до ${maxWords} слов в наборе`]).map(item => <div key={item} className="rounded-2xl border-2 border-amber-100 bg-amber-50 px-4 py-3 text-sm font-black text-amber-800">{item}</div>)}
+          </div>
           <div className="mt-6">
-            {hasPremium ? <button type="button" onClick={onOpenDictionarySetup} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-sm transition hover:bg-indigo-700">{kidsMode ? 'Выбрать детский словарь' : 'Выбрать Premium-словарь'}</button> : PAYMENTS_ENABLED ? <div className="grid gap-3 sm:grid-cols-2">
+            {hasPremium ? <button type="button" onClick={onOpenDictionarySetup} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-sm transition hover:bg-indigo-700">{kidsMode ? 'Выбрать слова для ребёнка' : 'Выбрать слова для тренировки'}</button> : PAYMENTS_ENABLED ? <div className="grid gap-3 sm:grid-cols-2">
               {PRODAMUS_PLAN_OPTIONS.map(plan => <button key={plan.code} type="button" disabled={loadingPlan !== null} onClick={() => void startPayment(plan.code)} className="rounded-2xl border-2 border-amber-100 bg-amber-500 px-5 py-4 text-left font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-600 disabled:cursor-wait disabled:opacity-70"><span className="block text-lg">{plan.title}</span><span className="mt-1 block text-sm text-white/85">{plan.amountRub.toLocaleString('ru-RU')} ₽</span><span className="mt-2 block text-xs text-white/75">{loadingPlan === plan.code ? 'Открываю оплату…' : 'Перейти к оплате Prodamus'}</span></button>)}
             </div> : DEV_TRIAL_ENABLED && onTestUnlockPremium ? <button type="button" onClick={onTestUnlockPremium} className="rounded-2xl bg-amber-500 px-6 py-4 font-black text-white shadow-sm transition hover:bg-amber-600">Открыть Premium на 7 дней</button> : <button type="button" disabled className="rounded-2xl bg-gray-100 px-6 py-4 font-black text-gray-400">Оплата скоро будет подключена</button>}
             <button type="button" onClick={onBack} className="mt-3 rounded-2xl border-2 border-indigo-100 bg-white px-6 py-4 font-black text-indigo-700 transition hover:bg-indigo-50">Вернуться</button>
