@@ -23,19 +23,19 @@ export const DAILY_QUEST_DEFINITIONS: Record<string, QuestCopy> = {
   hangman_one: { title: 'Почти без промаха', description: 'Победи в Виселице, допустив не более 1 ошибки.' },
   hangman_clean: { title: 'Слово без промаха', description: 'Победи в Виселице, допустив не более 2 ошибок.' },
   hangman_win: { title: 'Спаси слово', description: 'Победи в Виселице.' },
-  letter_square_four: { title: 'Квадрат слов', description: 'Собери не менее 4 слов в игре Квадрат слов.' },
-  letter_square_six: { title: 'Квадрат дня', description: 'Собери не менее 6 слов в игре Квадрат слов.' },
+  letter_square_four: { title: 'Змейка', description: 'Собери не менее 4 слов в игре Змейка.' },
+  letter_square_six: { title: 'Змейка дня', description: 'Собери не менее 6 слов в игре Змейка.' },
   all_five_games: { title: 'Большое приключение', description: 'За сегодня: победи в Классике и Виселице, заверши Память, собери 5 анаграмм и отгадай 6 слов в Спринте.' },
 };
 
-const modeLabels: Record<string, string> = { wordle: 'Классика', sprint: 'Спринт', anagram: 'Анаграммы', memory: 'Память', hangman: 'Виселица', letterSquare: 'Квадрат слов', letter_square: 'Квадрат слов' };
+const modeLabels: Record<string, string> = { wordle: 'Классика', sprint: 'Спринт', anagram: 'Анаграммы', memory: 'Память', hangman: 'Виселица', letterSquare: 'Змейка', letter_square: 'Змейка' };
 const validWorldIds: PetWorldId[] = ['default_room', 'theatre', 'amusement_park', 'ice_rink', 'opera', 'sausage_fridge'];
 
 export const getDailyQuestTargetModes = (quest?: Pick<DailyQuestState, 'kind' | 'title' | 'description'> | null): DailyQuestTargetMode[] => {
   if (!quest) return [];
   const text = `${quest.kind} ${quest.title} ${quest.description}`.toLowerCase();
   if (quest.kind === 'all_five_games' || text.includes('all_five_games')) return ['game', 'anagrams', 'sprint', 'memory', 'hangman'];
-  if (text.includes('letter_square') || text.includes('lettersquare') || text.includes('квадрат')) return ['letter_square'];
+  if (text.includes('letter_square') || text.includes('lettersquare') || text.includes('квадрат') || text.includes('змейк')) return ['letter_square'];
   if (text.includes('hangman') || text.includes('виселиц')) return ['hangman'];
   if (text.includes('sprint') || text.includes('спринт')) return ['sprint'];
   if (text.includes('memory') || text.includes('памят')) return ['memory'];
