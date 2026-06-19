@@ -46,7 +46,7 @@ Set in Prodamus personal account / payment form settings:
 ```text
 Success URL:  https://<domain>/payment/success
 Return/Fail:   https://<domain>/payment/fail
-Webhook URL:  https://<domain>/api/payments/prodamus/webhook
+Webhook URL:  https://<domain>/api/payments/prodamus/notify
 ```
 
 The create-payment endpoint also sends these URLs when it builds the payform checkout URL.
@@ -59,7 +59,7 @@ The create-payment endpoint also sends these URLs when it builds the payform che
 4. Vercel function creates a `premium_payments` row with status `pending`.
 5. Vercel function builds a signed payform URL for `manto-school.payform.ru` and returns it.
 6. Browser redirects to Prodamus.
-7. Prodamus sends payment webhook to `/api/payments/prodamus/webhook`.
+7. Prodamus sends payment webhook to `/api/payments/prodamus/notify`.
 8. Webhook verifies the signature and paid status.
 9. Webhook calls `activate_paid_premium_payment` in Supabase.
 10. Supabase extends `premium_expires_at`, sets `subscription_tier = premium`, and enables `featureFlags.premiumDictionaries` plus `featureFlags.adultRoom`.
