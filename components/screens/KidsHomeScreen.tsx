@@ -73,24 +73,29 @@ export const KidsHomeScreen: React.FC<Props> = ({
   return <ScreenContainer className="max-w-6xl pb-20 pt-4">
     <section className="grid gap-5 lg:grid-cols-[0.88fr_1.12fr]">
       <main className="order-1 lg:order-2">
-        <div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="overflow-hidden rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:p-6">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_21rem] xl:items-center">
             <div>
-              <div className="text-xs font-black uppercase tracking-widest text-indigo-400">AnnWord Kids</div>
-              <h1 className="mt-1 text-3xl font-black leading-tight text-indigo-950 sm:text-4xl">Во что сыграем?</h1>
-              <p className="mt-2 text-sm font-bold text-gray-500">Выбери игру, собери слова и порадуй питомца.</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-widest text-indigo-400">AnnWord Kids</div>
+                  <h1 className="mt-1 text-3xl font-black leading-tight text-indigo-950 sm:text-4xl">Во что сыграем?</h1>
+                  <p className="mt-2 text-sm font-bold text-gray-500">Выбери игру, собери слова и порадуй питомца.</p>
+                </div>
+                <button type="button" onClick={onOpenProfile} className="rounded-2xl bg-indigo-50 px-4 py-2 text-sm font-black text-indigo-700">Профиль</button>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="rounded-2xl bg-yellow-50 px-3 py-2 text-center"><CoinIcon className="text-xl" /><div className="text-lg font-black text-yellow-700">{userProfile.coins}</div><div className="text-[10px] font-black uppercase tracking-widest text-yellow-600/70">монет</div></div>
+                <div className="rounded-2xl bg-purple-50 px-3 py-2 text-center"><div className="text-lg font-black text-purple-700">{mood.label}</div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-purple-100"><div className={`h-full ${mood.barClass}`} style={{ width: `${normalizeMoodScore(userProfile.pet)}%` }} /></div><div className="mt-1 text-[10px] font-black uppercase tracking-widest text-purple-600/70">настроение</div></div>
+                <div className="rounded-2xl bg-indigo-50 px-3 py-2 text-center"><div className="text-lg font-black text-indigo-700">ур. {userProfile.pet.level}</div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-indigo-100"><div className="h-full rounded-full bg-indigo-600" style={{ width: `${xpPercent}%` }} /></div><div className="mt-1 text-[10px] font-black uppercase tracking-widest text-indigo-600/70">XP</div></div>
+              </div>
+              {!hasPremium && onOpenPremium && <button type="button" onClick={onOpenPremium} className="mt-4 flex w-full flex-col gap-2 rounded-3xl border-2 border-amber-100 bg-amber-50 px-4 py-3 text-left transition hover:-translate-y-0.5 hover:bg-amber-100/70 sm:flex-row sm:items-center sm:justify-between">
+                <span><span className="block text-sm font-black text-amber-900">🎒 Повторяйте школьные слова в играх</span><span className="mt-1 block text-xs font-bold leading-relaxed text-amber-800/80">Добавьте слова из школы, курса или учебника — ребёнок будет тренировать их в знакомых играх.</span></span>
+                <span className="shrink-0 rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-black text-white">Подобрать слова</span>
+              </button>}
             </div>
-            <button type="button" onClick={onOpenProfile} className="rounded-2xl bg-indigo-50 px-4 py-2 text-sm font-black text-indigo-700">Профиль</button>
+            <div className="relative hidden h-56 xl:block" aria-hidden="true"><img src="/assets/hero/kids-mascot.webp" alt="" className="absolute bottom-[-2.5rem] right-[-1.25rem] h-[18rem] w-[31rem] max-w-none object-contain object-right-bottom" draggable={false} loading="eager" /></div>
           </div>
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <div className="rounded-2xl bg-yellow-50 px-3 py-2 text-center"><CoinIcon className="text-xl" /><div className="text-lg font-black text-yellow-700">{userProfile.coins}</div><div className="text-[10px] font-black uppercase tracking-widest text-yellow-600/70">монет</div></div>
-            <div className="rounded-2xl bg-purple-50 px-3 py-2 text-center"><div className="text-lg font-black text-purple-700">{mood.label}</div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-purple-100"><div className={`h-full ${mood.barClass}`} style={{ width: `${normalizeMoodScore(userProfile.pet)}%` }} /></div><div className="mt-1 text-[10px] font-black uppercase tracking-widest text-purple-600/70">настроение</div></div>
-            <div className="rounded-2xl bg-indigo-50 px-3 py-2 text-center"><div className="text-lg font-black text-indigo-700">ур. {userProfile.pet.level}</div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-indigo-100"><div className="h-full rounded-full bg-indigo-600" style={{ width: `${xpPercent}%` }} /></div><div className="mt-1 text-[10px] font-black uppercase tracking-widest text-indigo-600/70">XP</div></div>
-          </div>
-          {!hasPremium && onOpenPremium && <button type="button" onClick={onOpenPremium} className="mt-4 flex w-full flex-col gap-2 rounded-3xl border-2 border-amber-100 bg-amber-50 px-4 py-3 text-left transition hover:-translate-y-0.5 hover:bg-amber-100/70 sm:flex-row sm:items-center sm:justify-between">
-            <span><span className="block text-sm font-black text-amber-900">🎒 Повторяйте школьные слова в играх</span><span className="mt-1 block text-xs font-bold leading-relaxed text-amber-800/80">Добавьте слова из школы, курса или учебника — ребёнок будет тренировать их в знакомых играх.</span></span>
-            <span className="shrink-0 rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-black text-white">Подобрать слова</span>
-          </button>}
           <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
             {games.map(([label, src], index) => <button key={label} type="button" onClick={actions[index]} className="relative min-h-[7.5rem] rounded-3xl border-2 border-indigo-50 bg-white p-2 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-100 hover:shadow-md">
               <img src={src} alt="" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" draggable={false} />
