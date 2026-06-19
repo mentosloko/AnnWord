@@ -14,3 +14,9 @@
     font: inherit;
   }
 }
+
+@layer components {
+  img[src="/assets/kids-mascot.webp"] {
+    display: none !important;
+  }
+}
