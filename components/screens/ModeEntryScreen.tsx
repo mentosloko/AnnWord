@@ -16,7 +16,7 @@ const copy: Record<PublicModeEntryPath, { title: string; eyebrow: string; descri
   practice: {
     title: 'AnnWord Practice',
     eyebrow: 'Для самостоятельной практики',
-    description: 'Тренируйте английские слова в коротких игровых режимах: классика, анаграммы, спринт, память, виселица, 1 из 2 и квадрат слов.',
+    description: 'Тренируйте английские слова в коротких игровых режимах: классика, анаграммы, спринт, память, виселица, 1 из 2 и змейка.',
     imageSrc: '/assets/branding/annword-logo-mark.svg',
     bullets: ['Ежедневные задания и дни подряд', 'Статистика ошибок и слов к повторению', 'Premium и собственные словари'],
     cta: 'Создать Practice-аккаунт',
