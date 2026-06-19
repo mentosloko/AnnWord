@@ -94,7 +94,7 @@ export const KidsHomeScreen: React.FC<Props> = ({
                 <span className="shrink-0 rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-black text-white">Подобрать слова</span>
               </button>}
             </div>
-            <div className="relative hidden h-56 xl:block" aria-hidden="true"><img src="/assets/hero/kids-mascot.webp" alt="" className="absolute bottom-[-2.5rem] right-[-1.25rem] h-[18rem] w-[31rem] max-w-none object-contain object-right-bottom" draggable={false} loading="eager" /></div>
+            <div className="relative hidden h-56 xl:block" aria-hidden="true"><img src="/assets/kids-mascot.webp" alt="" className="absolute bottom-[-2.5rem] right-[-1.25rem] h-[18rem] w-[31rem] max-w-none object-contain object-right-bottom" draggable={false} loading="eager" /></div>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
             {games.map(([label, src], index) => <button key={label} type="button" onClick={actions[index]} className="relative min-h-[7.5rem] rounded-3xl border-2 border-indigo-50 bg-white p-2 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-100 hover:shadow-md">
