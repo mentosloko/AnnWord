@@ -109,7 +109,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
       {source === 'custom' && hasPremium && <section className="mt-4 rounded-2xl border-2 border-dashed border-purple-100 bg-purple-50/50 p-4">
         <span className="block font-black text-indigo-950">{customDictionaryWords.length ? 'Мой словарь выбран' : 'Мой словарь пока пуст'}</span>
-        <span className="block text-xs font-bold text-gray-500">Редактирование словаря перенесено в раздел «Словари».</span>
         {isUploadingDictionary && <p className="mt-2 text-xs font-bold text-purple-700">Сохраняю словарь...</p>}
       </section>}
 
