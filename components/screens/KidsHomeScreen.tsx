@@ -4,6 +4,7 @@ import { getCharacterProgressPercent, getCharacterStageLabel, getNextLevelThresh
 import { getMoodDisplay } from '../../services/moodDisplay';
 import { getPetEmoji } from '../../services/petEngine';
 import { getPuppyCharacterAssetUrl } from '../../services/petAssets';
+import { hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
 import { CoinIcon } from '../CoinIcon';
 import { DailyQuestCard, DailyQuestRewardModal } from '../DailyQuestCard';
 import { ScreenContainer } from '../layout/ScreenContainer';
@@ -27,6 +28,7 @@ type Props = {
   onOpenProfile?: () => void;
   onOpenPetRoom?: () => void;
   onOpenAdultRoom?: () => void;
+  onOpenPremium?: () => void;
 };
 
 const games = [
@@ -58,6 +60,7 @@ export const KidsHomeScreen: React.FC<Props> = ({
   onOpenProfile,
   onOpenPetRoom,
   onOpenAdultRoom,
+  onOpenPremium,
 }) => {
   const actions = [onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare];
   const petUrl = getPuppyCharacterAssetUrl(userProfile.pet);
@@ -65,6 +68,7 @@ export const KidsHomeScreen: React.FC<Props> = ({
   const xpPercent = getCharacterProgressPercent(userProfile.pet);
   const nextLevelXp = getNextLevelThreshold(userProfile.pet.level || 1);
   const lastInventoryItem = userProfile.inventory.find(item => item.quantity > 0);
+  const hasPremium = hasPremiumDictionaryAccess(userProfile);
 
   return <ScreenContainer className="max-w-6xl pb-20 pt-4">
     <section className="grid gap-5 lg:grid-cols-[0.88fr_1.12fr]">
@@ -83,6 +87,10 @@ export const KidsHomeScreen: React.FC<Props> = ({
             <div className="rounded-2xl bg-purple-50 px-3 py-2 text-center"><div className="text-lg font-black text-purple-700">{mood.label}</div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-purple-100"><div className={`h-full ${mood.barClass}`} style={{ width: `${normalizeMoodScore(userProfile.pet)}%` }} /></div><div className="mt-1 text-[10px] font-black uppercase tracking-widest text-purple-600/70">настроение</div></div>
             <div className="rounded-2xl bg-indigo-50 px-3 py-2 text-center"><div className="text-lg font-black text-indigo-700">ур. {userProfile.pet.level}</div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-indigo-100"><div className="h-full rounded-full bg-indigo-600" style={{ width: `${xpPercent}%` }} /></div><div className="mt-1 text-[10px] font-black uppercase tracking-widest text-indigo-600/70">XP</div></div>
           </div>
+          {!hasPremium && onOpenPremium && <button type="button" onClick={onOpenPremium} className="mt-4 flex w-full flex-col gap-2 rounded-3xl border-2 border-amber-100 bg-amber-50 px-4 py-3 text-left transition hover:-translate-y-0.5 hover:bg-amber-100/70 sm:flex-row sm:items-center sm:justify-between">
+            <span><span className="block text-sm font-black text-amber-900">🎒 Повторяйте школьные слова в играх</span><span className="mt-1 block text-xs font-bold leading-relaxed text-amber-800/80">Добавьте слова из школы, курса или учебника — ребёнок будет тренировать их в знакомых играх.</span></span>
+            <span className="shrink-0 rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-black text-white">Подобрать слова</span>
+          </button>}
           <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
             {games.map(([label, src], index) => <button key={label} type="button" onClick={actions[index]} className="relative min-h-[7.5rem] rounded-3xl border-2 border-indigo-50 bg-white p-2 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-100 hover:shadow-md">
               <img src={src} alt="" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" draggable={false} />
