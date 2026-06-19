@@ -74,7 +74,7 @@ export const KidsHomeScreen: React.FC<Props> = ({
     <section className="grid gap-5 lg:grid-cols-[0.88fr_1.12fr]">
       <main className="order-1 lg:order-2">
         <div className="overflow-hidden rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:p-6">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_21rem] xl:items-center">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-center">
             <div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -94,7 +94,7 @@ export const KidsHomeScreen: React.FC<Props> = ({
                 <span className="shrink-0 rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-black text-white">Подобрать слова</span>
               </button>}
             </div>
-            <div className="relative hidden h-56 xl:block" aria-hidden="true"><img src="/assets/kids-mascot.webp" alt="" className="absolute bottom-[-2.5rem] right-[-1.25rem] h-[18rem] w-[31rem] max-w-none object-contain object-right-bottom" draggable={false} loading="eager" /></div>
+            <div className="relative hidden h-56 overflow-hidden xl:block" aria-hidden="true"><img src="/assets/kids-mascot.webp" alt="" className="h-full w-full object-contain object-right-bottom" draggable={false} loading="eager" /></div>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
             {games.map(([label, src], index) => <button key={label} type="button" onClick={actions[index]} className="relative min-h-[7.5rem] rounded-3xl border-2 border-indigo-50 bg-white p-2 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-100 hover:shadow-md">
