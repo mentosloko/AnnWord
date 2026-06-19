@@ -1,1 +1,1 @@
-export * from '../../_lib/premiumPlans';
+export * from '../../_lib/premiumPlans.ts';
