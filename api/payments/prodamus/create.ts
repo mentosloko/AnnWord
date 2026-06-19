@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { createHmac } from 'crypto';
+import { publicCallbackUrl } from '../../_lib/publicCallbackUrl';
 
 const serviceKeyName = ['SUPABASE', 'SERVICE', 'ROLE', 'KEY'].join('_');
 const env = (name: string, fallback = '') => process.env[name] || fallback;
@@ -39,6 +40,7 @@ export default async function handler(req: any, res: any) {
     if (userError || !userData.user) return res.status(401).json({ error: 'Unauthorized' });
     const orderId = `annword_${plan.code}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
     const origin = appUrl();
+    const callbackOrigin = publicCallbackUrl();
     const email = userData.user.email || '';
     const payload: Record<string, any> = {
       do: 'pay',
@@ -57,7 +59,7 @@ export default async function handler(req: any, res: any) {
       paid_content: plan.paidContent,
       urlSuccess: `${origin}/payment/success?order_id=${encodeURIComponent(orderId)}`,
       urlReturn: `${origin}/payment/fail?order_id=${encodeURIComponent(orderId)}`,
-      urlNotification: `${origin}/api/payments/prodamus/notify`,
+      urlNotification: `${callbackOrigin}/api/payments/prodamus/notify`,
       sys: env('PRODAMUS_SYS_CODE', 'annword'),
       currency: 'rub',
       demo_mode: '1',
