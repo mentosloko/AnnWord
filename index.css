@@ -16,6 +16,14 @@
 }
 
 @layer components {
+  div[class*="xl:grid-cols-[minmax(0,1fr)_24rem]"] {
+    display: block !important;
+  }
+
+  div[aria-hidden="true"][class*="h-56"][class*="xl:block"] {
+    display: none !important;
+  }
+
   img[src="/assets/kids-mascot.webp"] {
     display: none !important;
   }
