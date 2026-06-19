@@ -5,6 +5,6 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "rewrites": [
-    { "source": "/((?!assets/|favicon.ico|manifest.webmanifest|sw.js).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|assets/|favicon.ico|manifest.webmanifest|sw.js).*)", "destination": "/index.html" }
   ]
 }
