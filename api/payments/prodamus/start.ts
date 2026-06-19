@@ -16,8 +16,13 @@ const plans: Record<string, Plan> = {
   kids_year: { code: 'kids_year', months: 12, productName: 'Доступ к AnnWord Premium на 1 год', amountRub: 3000, periodDays: 365, paidContent: 'Доступ к AnnWord Premium на 1 год' },
 };
 const isObject = (value: unknown): value is Record<string, any> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-const sortDeep = (value: any): any => Array.isArray(value) ? value.map(sortDeep) : isObject(value) ? Object.keys(value).sort().reduce((acc: Record<string, any>, key) => { if (typeof value[key] !== 'undefined') acc[key] = sortDeep(value[key]); return acc; }, {}) : value;
-const sign = (payload: Record<string, any>, key: string): string => { const copy = { ...payload }; delete copy.signature; delete copy.sign; const digest = createHmac('sha256', key).update(JSON.stringify(sortDeep(copy))).digest(); return env('PRODAMUS_SIGNATURE_FORMAT', 'hex').toLowerCase() === 'base64' ? digest.toString('base64') : digest.toString('hex'); };
+const normalizeForSignature = (value: any): any => {
+  if (Array.isArray(value)) return value.map(normalizeForSignature);
+  if (isObject(value)) return Object.keys(value).sort().reduce((acc: Record<string, any>, key) => { if (key !== 'signature' && key !== 'sign' && typeof value[key] !== 'undefined') acc[key] = normalizeForSignature(value[key]); return acc; }, {});
+  return String(value ?? '');
+};
+const signatureBody = (payload: Record<string, any>): string => JSON.stringify(normalizeForSignature(payload)).replace(/\//g, '\\/');
+const sign = (payload: Record<string, any>, key: string): string => createHmac('sha256', key).update(signatureBody(payload)).digest('hex');
 const append = (params: URLSearchParams, key: string, value: any): void => { if (value === undefined || value === null) return; if (Array.isArray(value)) return value.forEach((item, index) => append(params, `${key}[${index}]`, item)); if (isObject(value)) return Object.entries(value).forEach(([childKey, childValue]) => append(params, `${key}[${childKey}]`, childValue)); params.append(key, String(value)); };
 const query = (payload: Record<string, any>): string => { const params = new URLSearchParams(); Object.entries(payload).forEach(([key, value]) => append(params, key, value)); return params.toString(); };
 
@@ -38,16 +43,16 @@ export default async function handler(req: any, res: any) {
     const payload: Record<string, any> = {
       do: 'pay',
       order_id: orderId,
-      order_sum: plan.amountRub,
+      order_sum: String(plan.amountRub),
       customer_email: email,
       products: [{
         name: plan.productName,
-        price: plan.amountRub,
-        quantity: 1,
+        price: String(plan.amountRub),
+        quantity: '1',
         sku: plan.code,
         type: 'service',
-        paymentMethod: 1,
-        paymentObject: 4,
+        paymentMethod: '1',
+        paymentObject: '4',
       }],
       paid_content: plan.paidContent,
       urlSuccess: `${origin}/payment/success?order_id=${encodeURIComponent(orderId)}`,
@@ -55,16 +60,16 @@ export default async function handler(req: any, res: any) {
       urlNotification: `${origin}/api/payments/prodamus/notify`,
       sys: env('PRODAMUS_SYS_CODE', 'annword'),
       currency: 'rub',
-      demo_mode: 1,
+      demo_mode: '1',
       type: 'json',
       callbackType: 'json',
-      payments_limit: 1,
+      payments_limit: '1',
       _param_user_id: userData.user.id,
       _param_plan_code: plan.code,
     };
     payload.signature = sign(payload, required('PRODAMUS_SECRET_KEY'));
     const checkoutUrl = `${payformUrl()}/?${query(payload)}`;
-    const { error: insertError } = await supabase.from('premium_payments').insert({ user_id: userData.user.id, provider: 'prodamus', provider_order_id: orderId, plan_code: plan.code, period_days: plan.periodDays, amount_rub: plan.amountRub, currency: 'RUB', status: 'pending', checkout_url: checkoutUrl, customer_email: email, raw_payload: { checkout: payload, product_name: plan.productName, paid_content: plan.paidContent, demo_mode: true } });
+    const { error: insertError } = await supabase.from('premium_payments').insert({ user_id: userData.user.id, provider: 'prodamus', provider_order_id: orderId, plan_code: plan.code, period_days: plan.periodDays, amount_rub: plan.amountRub, currency: 'RUB', status: 'pending', checkout_url: checkoutUrl, customer_email: email, raw_payload: { checkout: payload, signature_body: signatureBody(payload), product_name: plan.productName, paid_content: plan.paidContent, demo_mode: true } });
     if (insertError) throw insertError;
     return res.status(200).json({ orderId, checkoutUrl, plan: { code: plan.code, title: plan.productName, amountRub: plan.amountRub, periodDays: plan.periodDays } });
   } catch (error: unknown) {
