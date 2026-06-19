@@ -1,17 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { STARTER_CHARACTERS, createStarterCharacter } from '../../services/characterCatalog';
+import { getPetCharacterAssetUrl } from '../../services/petAssets';
 import { PetState } from '../../types';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface CharacterOnboardingScreenProps {
   onComplete: (character: PetState) => Promise<void> | void;
+  onOpenPremium?: () => void;
 }
 
 const VISIBLE_STARTER_CHARACTERS = STARTER_CHARACTERS.filter(character => character.type === 'Puppy');
 const normalizeCharacterName = (value: string) => value.trim().replace(/\s+/g, ' ');
 
-export const CharacterOnboardingScreen: React.FC<CharacterOnboardingScreenProps> = ({ onComplete }) => {
+export const CharacterOnboardingScreen: React.FC<CharacterOnboardingScreenProps> = ({ onComplete, onOpenPremium }) => {
   const starterCharacters = VISIBLE_STARTER_CHARACTERS.length > 0 ? VISIBLE_STARTER_CHARACTERS : [STARTER_CHARACTERS[0]];
   const hasChoice = starterCharacters.length > 1;
   const [selectedType, setSelectedType] = useState(starterCharacters[0].type);
@@ -23,6 +25,11 @@ export const CharacterOnboardingScreen: React.FC<CharacterOnboardingScreenProps>
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const normalizedName = normalizeCharacterName(characterName);
+  const previewPet = useMemo(
+    () => createStarterCharacter(selectedType, normalizedName || selectedCharacter.defaultName),
+    [normalizedName, selectedCharacter.defaultName, selectedType],
+  );
+  const previewAssetUrl = getPetCharacterAssetUrl(previewPet);
 
   const handleSelect = (type: string) => {
     const nextCharacter = starterCharacters.find(character => character.type === type) || starterCharacters[0];
@@ -55,10 +62,29 @@ export const CharacterOnboardingScreen: React.FC<CharacterOnboardingScreenProps>
           <p className="mx-auto mt-3 max-w-xl text-sm font-bold leading-relaxed text-gray-600 sm:text-base">Он будет радоваться играм ребёнка, получать опыт и открывать новые элементы мотивации.</p>
         </div>
 
+        <div className="mx-auto mt-6 max-w-4xl rounded-[2rem] border-2 border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50 p-4 shadow-sm sm:p-5">
+          <div className="grid gap-4 md:grid-cols-[1.25fr_0.75fr] md:items-center">
+            <div>
+              <div className="inline-flex rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-widest text-amber-600 shadow-sm">AnnWord Premium</div>
+              <h2 className="mt-3 text-2xl font-black leading-tight text-indigo-950">Больше слов и контроль для родителя с самого старта</h2>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {['Расширенные детские словари', 'Код для преподавателя', 'Назначение слов и отчёты'].map(item => <div key={item} className="rounded-2xl bg-white px-3 py-3 text-xs font-black leading-snug text-indigo-700 shadow-sm">{item}</div>)}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 md:items-end">
+              <div className="rounded-2xl bg-white px-4 py-3 text-center shadow-sm">
+                <div className="text-lg font-black text-indigo-950">от 300 ₽</div>
+                <div className="text-[11px] font-black uppercase tracking-widest text-gray-400">за месяц</div>
+              </div>
+              {onOpenPremium && <button type="button" onClick={onOpenPremium} className="w-full rounded-2xl bg-amber-500 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-amber-600 md:w-auto">Посмотреть Premium</button>}
+            </div>
+          </div>
+        </div>
+
         <div className={`mx-auto mt-7 grid max-w-4xl gap-5 ${hasChoice ? 'lg:grid-cols-[1fr_1.1fr]' : 'lg:grid-cols-[0.9fr_1.1fr]'}`}>
           <section className="rounded-[2rem] border-2 border-purple-50 bg-gradient-to-br from-purple-50 to-indigo-50 p-5 text-center">
-            <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mx-auto flex h-44 w-44 items-center justify-center rounded-[2rem] bg-white text-8xl shadow-inner sm:h-56 sm:w-56 sm:text-9xl" aria-hidden="true">
-              {selectedCharacter.emoji}
+            <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mx-auto flex h-44 w-44 items-center justify-center rounded-[2rem] bg-white shadow-inner sm:h-56 sm:w-56" aria-hidden="true">
+              {previewAssetUrl ? <img src={previewAssetUrl} alt="" className="h-full w-full object-contain p-3" /> : <span className="text-8xl sm:text-9xl">{selectedCharacter.emoji}</span>}
             </motion.div>
             <h2 className="mt-5 text-2xl font-black text-indigo-950">{selectedCharacter.title}</h2>
             <p className="mx-auto mt-2 max-w-xs text-sm font-bold leading-relaxed text-gray-500">{selectedCharacter.description}</p>
@@ -69,7 +95,9 @@ export const CharacterOnboardingScreen: React.FC<CharacterOnboardingScreenProps>
             {hasChoice && <div className="mb-5 grid gap-3 sm:grid-cols-3" aria-label="Выбор питомца">
               {starterCharacters.map(character => {
                 const isSelected = selectedType === character.type;
-                return <button key={character.type} type="button" aria-pressed={isSelected} onClick={() => handleSelect(character.type)} className={`rounded-2xl border-2 p-3 text-center transition ${isSelected ? 'border-indigo-500 bg-indigo-50' : 'border-indigo-50 bg-white hover:border-indigo-200'}`}><div className="text-4xl" aria-hidden="true">{character.emoji}</div><div className="mt-2 text-sm font-black text-indigo-950">{character.title}</div></button>;
+                const optionPet = createStarterCharacter(character.type, character.defaultName);
+                const optionAssetUrl = getPetCharacterAssetUrl(optionPet);
+                return <button key={character.type} type="button" aria-pressed={isSelected} onClick={() => handleSelect(character.type)} className={`rounded-2xl border-2 p-3 text-center transition ${isSelected ? 'border-indigo-500 bg-indigo-50' : 'border-indigo-50 bg-white hover:border-indigo-200'}`}><div className="mx-auto flex h-12 w-12 items-center justify-center" aria-hidden="true">{optionAssetUrl ? <img src={optionAssetUrl} alt="" className="h-full w-full object-contain" /> : <span className="text-4xl">{character.emoji}</span>}</div><div className="mt-2 text-sm font-black text-indigo-950">{character.title}</div></button>;
               })}
             </div>}
 
