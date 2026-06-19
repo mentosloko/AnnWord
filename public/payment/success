@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AnnWord · подтверждение оплаты</title>
+</head>
+<body>
+  <p>Подтверждаем оплату AnnWord Premium…</p>
+  <script>
+    window.location.replace('/api/payments/prodamus/success' + window.location.search);
+  </script>
+  <noscript>
+    <a href="/api/payments/prodamus/success">Продолжить подтверждение оплаты</a>
+  </noscript>
+</body>
+</html>
