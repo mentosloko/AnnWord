@@ -10,7 +10,10 @@ export type CharStatus = 'correct' | 'present' | 'absent' | 'initial';
 
 export interface FeatureFlags { adultRoom?: boolean; premiumDictionaries?: boolean; dailyWorldReward?: boolean; treatRequests?: boolean; streakStickers?: boolean; levelWardrobe?: boolean; }
 export interface WordPerformance { word: string; attempts: number; correct: number; mistakes: number; lastPracticedAt?: string; }
-export interface UserStats { gamesPlayed: number; gamesWon: number; wordsGuessed: Record<string, number>; wordsToReview?: Record<string, number>; wordPerformance?: Record<string, WordPerformance>; }
+export type WordLearningEventType = 'mistake' | 'resolved' | 'mastered';
+export interface WordLearningEvent { at: string; type: WordLearningEventType; reviewPriorityAfter: number; }
+export interface WordLearningHistory { word: string; firstMistakeAt?: string; lastMistakeAt?: string; lastResolvedAt?: string; mistakeCount: number; resolvedCount: number; currentReviewPriority: number; events: WordLearningEvent[]; }
+export interface UserStats { gamesPlayed: number; gamesWon: number; wordsGuessed: Record<string, number>; wordsToReview?: Record<string, number>; wordPerformance?: Record<string, WordPerformance>; wordLearningHistory?: Record<string, WordLearningHistory>; }
 export type CharacterMood = 'sad' | 'calm' | 'happy' | 'joyful' | 'super_happy' | 'neutral' | 'excited';
 export type CharacterStage = 'stage_1' | 'stage_2' | 'stage_3' | 'stage_4';
 export type InventoryItemType = 'food' | 'pet' | 'accessory' | 'home' | 'mystery' | 'sticker';
