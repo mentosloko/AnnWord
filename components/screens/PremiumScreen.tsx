@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { UserProfile } from '../../types';
 import { getKidsDictionaryCatalog } from '../../services/kidsDictionaryCatalog';
 import { isKidsMode } from '../../services/modeFlags';
 import { formatPremiumExpiresAt } from '../../services/premiumAccess';
 import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
+import { prodamusPaymentService, PRODAMUS_PLAN_OPTIONS, ProdamusPlanCode } from '../../services/prodamusPaymentService';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 type PremiumScreenProps = {
@@ -13,7 +14,8 @@ type PremiumScreenProps = {
   onTestUnlockPremium?: () => void;
 };
 
-const PAYMENTS_ENABLED = import.meta.env.DEV && import.meta.env.VITE_ENABLE_TEST_PREMIUM_UNLOCK === 'true';
+const PAYMENTS_ENABLED = import.meta.env.VITE_ENABLE_PRODAMUS_PAYMENTS === 'true';
+const DEV_TRIAL_ENABLED = import.meta.env.DEV && import.meta.env.VITE_ENABLE_TEST_PREMIUM_UNLOCK === 'true';
 
 export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBack, onOpenDictionarySetup, onTestUnlockPremium }) => {
   const kidsMode = isKidsMode(userProfile, true);
@@ -27,6 +29,20 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
   const body = kidsMode
     ? `Откройте ${totalWords} детских слов по классам и темам: школа, дом, животные, чтение и ежедневные ситуации. Плюс код преподавателя, назначение слов и отчёты для родителя.`
     : `Откройте ${totalWords} игровых слов: Business, Travel, Medicine, IELTS, IT, Finance, Legal, Science, Everyday+ и Food. В словарях есть уровни A1–C2, а каждый набор сейчас содержит от ${minWords} до ${maxWords} слов.`;
+  const [loadingPlan, setLoadingPlan] = useState<ProdamusPlanCode | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  const startPayment = async (planCode: ProdamusPlanCode) => {
+    setLoadingPlan(planCode);
+    setPaymentError(null);
+    try {
+      const payment = await prodamusPaymentService.createPayment(planCode);
+      window.location.href = payment.checkoutUrl;
+    } catch (error: unknown) {
+      setPaymentError(error instanceof Error ? error.message : 'Не удалось перейти к оплате.');
+      setLoadingPlan(null);
+    }
+  };
 
   return <ScreenContainer className="max-w-6xl pb-20 pt-6">
     <button type="button" onClick={onBack} className="mb-4 inline-flex items-center gap-2 rounded-2xl border-2 border-indigo-100 bg-white px-4 py-2 font-black text-indigo-700 transition hover:bg-indigo-50">← Назад</button>
@@ -44,11 +60,14 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
           {kidsMode && <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {['Код преподавателя', 'Слова в активный словарь', 'Отчёты на почту'].map(item => <div key={item} className="rounded-2xl border-2 border-amber-100 bg-amber-50 px-4 py-3 text-sm font-black text-amber-800">{item}</div>)}
           </div>}
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            {hasPremium ? <button type="button" onClick={onOpenDictionarySetup} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-sm transition hover:bg-indigo-700">{kidsMode ? 'Выбрать детский словарь' : 'Выбрать Premium-словарь'}</button> : PAYMENTS_ENABLED && onTestUnlockPremium ? <button type="button" onClick={onTestUnlockPremium} className="rounded-2xl bg-amber-500 px-6 py-4 font-black text-white shadow-sm transition hover:bg-amber-600">Открыть Premium на 7 дней</button> : <button type="button" disabled className="rounded-2xl bg-gray-100 px-6 py-4 font-black text-gray-400">Оплата скоро будет подключена</button>}
-            <button type="button" onClick={onBack} className="rounded-2xl border-2 border-indigo-100 bg-white px-6 py-4 font-black text-indigo-700 transition hover:bg-indigo-50">Вернуться</button>
+          <div className="mt-6">
+            {hasPremium ? <button type="button" onClick={onOpenDictionarySetup} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-sm transition hover:bg-indigo-700">{kidsMode ? 'Выбрать детский словарь' : 'Выбрать Premium-словарь'}</button> : PAYMENTS_ENABLED ? <div className="grid gap-3 sm:grid-cols-2">
+              {PRODAMUS_PLAN_OPTIONS.map(plan => <button key={plan.code} type="button" disabled={loadingPlan !== null} onClick={() => void startPayment(plan.code)} className="rounded-2xl border-2 border-amber-100 bg-amber-500 px-5 py-4 text-left font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-600 disabled:cursor-wait disabled:opacity-70"><span className="block text-lg">{plan.title}</span><span className="mt-1 block text-sm text-white/85">{plan.amountRub.toLocaleString('ru-RU')} ₽</span><span className="mt-2 block text-xs text-white/75">{loadingPlan === plan.code ? 'Открываю оплату…' : 'Перейти к оплате Prodamus'}</span></button>)}
+            </div> : DEV_TRIAL_ENABLED && onTestUnlockPremium ? <button type="button" onClick={onTestUnlockPremium} className="rounded-2xl bg-amber-500 px-6 py-4 font-black text-white shadow-sm transition hover:bg-amber-600">Открыть Premium на 7 дней</button> : <button type="button" disabled className="rounded-2xl bg-gray-100 px-6 py-4 font-black text-gray-400">Оплата скоро будет подключена</button>}
+            <button type="button" onClick={onBack} className="mt-3 rounded-2xl border-2 border-indigo-100 bg-white px-6 py-4 font-black text-indigo-700 transition hover:bg-indigo-50">Вернуться</button>
           </div>
-          {hasPremium ? <p className="mt-3 text-xs font-bold leading-relaxed text-gray-400">Premium активен до: {formatPremiumExpiresAt(userProfile.premiumExpiresAt)}.</p> : <p className="mt-3 text-xs font-bold leading-relaxed text-gray-400">В production тестовое открытие Premium отключено. Доступ будет выдаваться после оплаты или бесплатного временного доступа.</p>}
+          {paymentError && <p role="alert" className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{paymentError}</p>}
+          {hasPremium ? <p className="mt-3 text-xs font-bold leading-relaxed text-gray-400">Premium активен до: {formatPremiumExpiresAt(userProfile.premiumExpiresAt)}.</p> : <p className="mt-3 text-xs font-bold leading-relaxed text-gray-400">Оплата проходит через Prodamus. Premium включается только после серверного подтверждения оплаты.</p>}
         </div>
         <div className="rounded-[2rem] border-2 border-amber-100 bg-amber-50/60 p-4">
           <div className="grid grid-cols-2 gap-3">
