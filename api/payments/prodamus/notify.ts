@@ -9,8 +9,13 @@ const bodyOf = (req: any): Record<string, unknown> => typeof req.body === 'strin
 const text = (value: unknown): string => String(value || '').trim();
 const lower = (value: unknown): string => text(value).toLowerCase();
 const isObject = (value: unknown): value is Record<string, any> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-const sortDeep = (value: any): any => Array.isArray(value) ? value.map(sortDeep) : isObject(value) ? Object.keys(value).sort().reduce((acc: Record<string, any>, key) => { if (typeof value[key] !== 'undefined') acc[key] = sortDeep(value[key]); return acc; }, {}) : value;
-const sign = (payload: Record<string, any>, key: string): string => { const copy = { ...payload }; delete copy.signature; delete copy.sign; const digest = createHmac('sha256', key).update(JSON.stringify(sortDeep(copy))).digest(); return env('PRODAMUS_SIGNATURE_FORMAT', 'hex').toLowerCase() === 'base64' ? digest.toString('base64') : digest.toString('hex'); };
+const normalizeForSignature = (value: any): any => {
+  if (Array.isArray(value)) return value.map(normalizeForSignature);
+  if (isObject(value)) return Object.keys(value).sort().reduce((acc: Record<string, any>, key) => { if (key !== 'signature' && key !== 'sign' && typeof value[key] !== 'undefined') acc[key] = normalizeForSignature(value[key]); return acc; }, {});
+  return String(value ?? '');
+};
+const signatureBody = (payload: Record<string, any>): string => JSON.stringify(normalizeForSignature(payload)).replace(/\//g, '\\/');
+const sign = (payload: Record<string, any>, key: string): string => createHmac('sha256', key).update(signatureBody(payload)).digest('hex');
 const safe = (left: string, right: string): boolean => { const a = Buffer.from(left); const b = Buffer.from(right); return a.length === b.length && timingSafeEqual(a, b); };
 const incoming = (req: any, body: Record<string, unknown>): string => text(req.headers?.['x-signature'] || req.headers?.['x-prodamus-signature'] || req.headers?.signature || req.headers?.sign || body.signature || body.sign);
 const trusted = (req: any, body: Record<string, unknown>): boolean => env('PRODAMUS_REQUIRE_WEBHOOK_SIGNATURE', 'true') === 'false' || safe(incoming(req, body), sign(body as Record<string, any>, required('PRODAMUS_SECRET_KEY')));
