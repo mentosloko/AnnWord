@@ -1,62 +1,17 @@
 import React from 'react';
 
 interface AuthBootstrapGateProps {
-  title?: string;
-  message?: string;
   error?: string | null;
   onRetry?: () => void;
+  mode?: 'blocking' | 'inline';
 }
 
-export const AuthBootstrapGate: React.FC<AuthBootstrapGateProps> = ({
-  title = 'Подключаем профиль',
-  message = 'Проверяю вход, загружаю словарь и статистику. Ещё пару секунд — и можно играть.',
-  error,
-  onRetry,
-}) => (
-  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 px-4 text-indigo-950">
-    <div className="relative w-full max-w-md overflow-hidden rounded-[2.5rem] border-2 border-indigo-100 bg-white p-6 text-center shadow-2xl sm:p-8">
-      <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-indigo-100/70 blur-2xl" />
-      <div className="absolute -bottom-16 -left-16 h-40 w-40 rounded-full bg-purple-100/80 blur-2xl" />
+const SkeletonLines = () => <div className="space-y-3" aria-hidden="true"><div className="h-4 w-36 animate-pulse rounded-full bg-indigo-100" /><div className="h-3 w-full animate-pulse rounded-full bg-slate-100" /><div className="h-3 w-4/5 animate-pulse rounded-full bg-slate-100" /></div>;
 
-      <div className="relative">
-        <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-gradient-to-br from-indigo-100 to-purple-100 text-6xl shadow-inner">
-          {error ? '🧩' : '📚'}
-        </div>
+export const AuthBootstrapGate: React.FC<AuthBootstrapGateProps> = ({ error, onRetry, mode = 'blocking' }) => {
+  if (error) return <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 px-4 text-indigo-950 backdrop-blur-sm"><div className="w-full max-w-sm rounded-[2rem] border-2 border-rose-100 bg-white p-5 text-center shadow-xl"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-2xl">🧩</div><h1 className="mt-4 text-xl font-black text-indigo-950">Не удалось восстановить вход</h1><p className="mt-2 text-sm font-bold leading-relaxed text-gray-500">{error}</p><p className="mt-3 rounded-2xl bg-indigo-50 p-3 text-xs font-bold text-indigo-700">Гостевой режим не включаю автоматически, чтобы не перепутать профиль и не сбросить прогресс.</p>{onRetry && <button type="button" onClick={onRetry} className="mt-5 w-full rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-indigo-700">Повторить</button>}</div></div>;
 
-        {!error && (
-          <div className="mx-auto mb-5 h-2 w-40 overflow-hidden rounded-full bg-indigo-50 border border-indigo-100">
-            <div className="h-full w-1/2 animate-[loadingBar_1.2s_ease-in-out_infinite] rounded-full bg-indigo-600" />
-          </div>
-        )}
+  if (mode === 'inline') return <div className="pointer-events-none fixed inset-x-3 top-3 z-[9999] mx-auto max-w-md rounded-2xl border border-indigo-100 bg-white/90 px-4 py-3 shadow-lg shadow-indigo-950/5 backdrop-blur-md" role="status" aria-live="polite"><div className="flex items-center gap-3"><div className="h-9 w-9 shrink-0 animate-pulse rounded-xl bg-indigo-100" /><div className="min-w-0 flex-1"><div className="text-xs font-black uppercase tracking-widest text-indigo-400">Синхронизация</div><div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-indigo-50"><div className="h-full w-1/3 animate-[loadingBar_1.2s_ease-in-out_infinite] rounded-full bg-indigo-500" /></div></div></div><style>{`@keyframes loadingBar { 0% { transform: translateX(-120%); } 50% { transform: translateX(120%); } 100% { transform: translateX(320%); } }`}</style></div>;
 
-        <div className="rounded-3xl border-2 border-indigo-50 bg-indigo-50/70 px-4 py-3 text-left shadow-sm">
-          <div className="text-xs font-black uppercase tracking-widest text-indigo-400">Профиль и словарь</div>
-          <div className="mt-1 text-sm font-bold text-indigo-900">
-            {error ? 'Не получилось загрузить профиль. Гостевой режим не включаю, чтобы не сбросить прогресс.' : 'Почти готово: синхронизирую доступ, словари и статистику.'}
-          </div>
-        </div>
-
-        <div className="mt-6 text-2xl font-black text-indigo-950">{error ? 'Не удалось восстановить вход' : title}</div>
-        <div className="mt-3 text-sm leading-relaxed text-gray-500">{error || message}</div>
-
-        {error && onRetry && (
-          <button
-            type="button"
-            onClick={onRetry}
-            className="mt-6 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-indigo-100 transition hover:bg-indigo-700"
-          >
-            Повторить загрузку
-          </button>
-        )}
-      </div>
-
-      <style>{`
-        @keyframes loadingBar {
-          0% { transform: translateX(-110%); }
-          50% { transform: translateX(60%); }
-          100% { transform: translateX(220%); }
-        }
-      `}</style>
-    </div>
-  </div>
-);
+  return <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white px-4 text-indigo-950"><div className="w-full max-w-md rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm"><div className="mb-5 flex items-center gap-3"><div className="h-14 w-14 animate-pulse rounded-2xl bg-indigo-100" /><div className="flex-1"><div className="h-4 w-40 animate-pulse rounded-full bg-indigo-100" /><div className="mt-3 h-3 w-28 animate-pulse rounded-full bg-slate-100" /></div></div><div className="rounded-3xl bg-indigo-50/60 p-4"><SkeletonLines /></div><div className="mt-4 grid grid-cols-3 gap-2"><div className="h-16 animate-pulse rounded-2xl bg-slate-100" /><div className="h-16 animate-pulse rounded-2xl bg-slate-100" /><div className="h-16 animate-pulse rounded-2xl bg-slate-100" /></div><p className="mt-4 text-center text-xs font-bold text-gray-400">Восстанавливаю профиль и словари…</p></div></div>;
+};
