@@ -1,0 +1,20 @@
+const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const append = (params, key, value) => {
+  if (typeof value === 'undefined' || value === null) return;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => append(params, `${key}[${index}]`, item));
+    return;
+  }
+  if (isObject(value)) {
+    Object.entries(value).forEach(([childKey, childValue]) => append(params, `${key}[${childKey}]`, childValue));
+    return;
+  }
+  params.append(key, String(value));
+};
+
+export const toQuery = (payload) => {
+  const params = new URLSearchParams();
+  Object.entries(payload).forEach(([key, value]) => append(params, key, value));
+  return params.toString();
+};
