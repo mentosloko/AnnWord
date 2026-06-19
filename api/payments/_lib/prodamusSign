@@ -1,0 +1,29 @@
+import { createHmac, timingSafeEqual } from 'crypto';
+import { optional } from './serverEnv';
+
+const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+const sortDeep = (value) => {
+  if (Array.isArray(value)) return value.map(sortDeep);
+  if (!isObject(value)) return value;
+  return Object.keys(value).sort().reduce((acc, key) => {
+    if (typeof value[key] !== 'undefined') acc[key] = sortDeep(value[key]);
+    return acc;
+  }, {});
+};
+const bodyForSign = (payload) => {
+  const copy = { ...payload };
+  delete copy.signature;
+  delete copy.sign;
+  return JSON.stringify(sortDeep(copy));
+};
+
+export const makeSignature = (payload, key) => {
+  const digest = createHmac('sha256', key).update(bodyForSign(payload)).digest();
+  return optional('PRODAMUS_SIGNATURE_FORMAT', 'hex').toLowerCase() === 'base64' ? digest.toString('base64') : digest.toString('hex');
+};
+
+export const safeEqual = (left, right) => {
+  const a = Buffer.from(left);
+  const b = Buffer.from(right);
+  return a.length === b.length && timingSafeEqual(a, b);
+};
