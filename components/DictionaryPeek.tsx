@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { WordLength } from '../types';
+import { PaidActionButton } from './PaidActionButton';
 
 interface DictionaryPeekProps {
   words?: string[];
@@ -15,7 +16,7 @@ interface DictionaryPeekProps {
   chargeLabel?: string;
 }
 
-export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], wordLength, compact = false, iconOnly = false, locked = false, lockedMessage = 'Мой словарь доступен после регистрации.', label = 'Мой словарь', icon = '📖', emptyLabel, onBeforeOpen, chargeLabel = 'Просмотр словаря считается подсказкой.' }) => {
+export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], wordLength, compact = false, iconOnly = false, locked = false, lockedMessage = 'Мой словарь доступен после регистрации.', label = 'Мой словарь', icon = '📖', emptyLabel, onBeforeOpen, chargeLabel = 'Перед открытием будет списана 1 монета.' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [wasCharged, setWasCharged] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +38,7 @@ export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], word
     setError(null);
     if (!locked && onBeforeOpen && !wasCharged) {
       const allowed = await onBeforeOpen();
-      if (!allowed) { setError('Недостаточно монет для подсказки.'); return; }
+      if (!allowed) { setError('Недостаточно монет для просмотра словаря.'); return; }
       setWasCharged(true);
     }
     setIsOpen(true);
@@ -45,9 +46,9 @@ export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], word
 
   return (
     <>
-      <button type="button" onClick={() => void open()} aria-label={locked ? lockedMessage : `Открыть словарь: ${label}`} className={buttonClass} title={locked ? lockedMessage : `Открыть словарь: ${label}`}>
+      {onBeforeOpen && !locked && !iconOnly ? <PaidActionButton label={`${icon} ${label}`} price={1} paid={wasCharged} compact={compact} onClick={() => void open()} /> : <button type="button" onClick={() => void open()} aria-label={locked ? lockedMessage : `Открыть словарь: ${label}${onBeforeOpen && !wasCharged ? '. Стоимость 1 монета' : ''}`} className={buttonClass} title={locked ? lockedMessage : `Открыть словарь: ${label}`}>
         {iconOnly ? (locked ? '🔒' : icon) : locked ? `🔒 ${label}` : `${icon} ${label}`}
-      </button>
+      </button>}
       {error && <div role="alert" className="fixed right-3 top-20 z-[95] rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 shadow-lg">{error}</div>}
       {isOpen && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-indigo-950/45 p-3 backdrop-blur-sm sm:p-6">
@@ -59,7 +60,7 @@ export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], word
                 <p className="mt-1 text-sm font-bold text-gray-500">
                   {locked ? 'Доступно после регистрации' : <>{wordLength ? `Слова из ${wordLength} букв · ` : ''}{normalizedWords.length} слов</>}
                 </p>
-                {!locked && onBeforeOpen && <p className="mt-1 text-xs font-bold text-amber-600">{wasCharged ? 'Подсказка оплачена для этой игры.' : chargeLabel}</p>}
+                {!locked && onBeforeOpen && <p className="mt-1 text-xs font-bold text-amber-600">{wasCharged ? 'Просмотр словаря оплачен для этой игры.' : chargeLabel}</p>}
               </div>
               <button type="button" aria-label="Закрыть словарь" onClick={() => setIsOpen(false)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-2xl font-black text-indigo-600">×</button>
             </header>
