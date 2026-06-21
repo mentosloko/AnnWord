@@ -1,8 +1,9 @@
 import React from 'react';
-import { DictionarySource, GameSettings, UserProfile } from '../../types';
+import { DailyQuestState, DictionarySource, GameSettings, UserProfile } from '../../types';
 import { isKidsMode } from '../../services/modeFlags';
 import { getKidsDictionaryCatalog, getKidsPremiumDictionaryWords } from '../../services/kidsDictionaryCatalog';
 import { getPremiumDictionaryCatalog, getPremiumDictionaryWords, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
+import { QuestContextBanner } from '../QuestContextBanner';
 import { ScreenContainer } from '../layout/ScreenContainer';
 import { PlayableModeRoute } from '../AppScreens';
 
@@ -14,6 +15,7 @@ interface SetupScreenProps {
   isUploadingDictionary: boolean;
   isAuthenticated: boolean;
   userProfile: UserProfile;
+  questContext?: DailyQuestState | null;
   hasActiveClassicGame?: boolean;
   onResumeClassicGame?: () => boolean;
   onSettingsChange: (settings: GameSettings) => void;
@@ -43,6 +45,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   isUploadingDictionary,
   isAuthenticated,
   userProfile,
+  questContext,
   hasActiveClassicGame = false,
   onResumeClassicGame,
   onOpenPremium,
@@ -80,6 +83,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
       </div>
       <div className="h-11 w-11" />
     </div>
+
+    {questContext && <div className="mb-4"><QuestContextBanner quest={questContext} /></div>}
 
     <div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:p-6">
       {setupError && <div role="alert" aria-live="assertive" className="mb-4 rounded-2xl border-2 border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{setupError}</div>}
@@ -132,7 +137,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         Продолжить сохранённую игру
       </button>}
       <button type="button" onClick={onStartGame} disabled={!canStart} className={`mt-3 w-full rounded-2xl py-4 font-black ${canStart ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-        {canStart ? `${hasActiveClassicGame && selectedPlayMode === 'game' ? 'Начать новую: ' : 'Начать: '}${MODE_LABELS[selectedPlayMode]}` : source === 'custom' && !hasPremium ? 'Нужен Premium' : 'Нет слов для игры'}
+        {canStart ? `${hasActiveClassicGame && selectedPlayMode === 'game' ? 'Начать новую: ' : 'Начать: '}${MODE_LABELS[selectedPlayMode]}${questContext ? ' · задание' : ''}` : source === 'custom' && !hasPremium ? 'Нужен Premium' : 'Нет слов для игры'}
       </button>
     </div>
   </ScreenContainer>;
