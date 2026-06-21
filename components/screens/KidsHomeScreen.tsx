@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { DailyQuestCompletionReward, DailyQuestState, UserProfile } from '../../types';
 import { getCharacterProgressPercent, getCharacterStageLabel, getNextLevelThreshold, normalizeMoodScore } from '../../services/gamificationRules';
 import { getMoodDisplay } from '../../services/moodDisplay';
-import { getPetEmoji } from '../../services/petEngine';
-import { getPuppyCharacterAssetUrl } from '../../services/petAssets';
+import { getPetCharacterAssetUrl } from '../../services/petAssets';
 import { hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
 import { CoinIcon } from '../CoinIcon';
 import { DailyQuestCard, DailyQuestRewardModal } from '../DailyQuestCard';
@@ -41,6 +40,12 @@ const games = [
   ['Змейка', '/assets/games/line_game.webp'],
 ] as const;
 
+const PetImageSkeleton = () => <div className="flex h-64 w-64 scale-125 flex-col items-center justify-center rounded-[2rem] bg-indigo-50/80 p-8" aria-hidden="true">
+  <div className="h-28 w-28 animate-pulse rounded-full bg-indigo-100" />
+  <div className="mt-5 h-4 w-36 animate-pulse rounded-full bg-indigo-100" />
+  <div className="mt-2 h-3 w-24 animate-pulse rounded-full bg-indigo-100/80" />
+</div>;
+
 export const KidsHomeScreen: React.FC<Props> = ({
   userProfile,
   dailyQuest,
@@ -63,9 +68,11 @@ export const KidsHomeScreen: React.FC<Props> = ({
   onOpenPremium,
 }) => {
   const actions = [onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare];
-  const petUrl = getPuppyCharacterAssetUrl(userProfile.pet);
-  const [petImageFailed, setPetImageFailed] = useState(false);
-  useEffect(() => setPetImageFailed(false), [petUrl]);
+  const petUrl = getPetCharacterAssetUrl(userProfile.pet);
+  const [petImageReady, setPetImageReady] = useState(false);
+  const [petImageError, setPetImageError] = useState(false);
+  useEffect(() => { setPetImageReady(false); setPetImageError(false); }, [petUrl]);
+  const showPetSkeleton = !petUrl || petImageError || !petImageReady;
   const mood = getMoodDisplay(normalizeMoodScore(userProfile.pet));
   const xpPercent = getCharacterProgressPercent(userProfile.pet);
   const nextLevelXp = getNextLevelThreshold(userProfile.pet.level || 1);
@@ -117,7 +124,9 @@ export const KidsHomeScreen: React.FC<Props> = ({
         </div>
         <button type="button" onClick={onOpenPetRoom} className="mx-auto mt-5 flex h-52 w-full max-w-[16rem] items-center justify-center overflow-hidden rounded-[2rem] bg-white/95 shadow-inner sm:h-56">
           <span className="sr-only">Комната питомца</span>
-          {petUrl && !petImageFailed ? <img src={petUrl} alt="" className="h-64 w-64 scale-125 object-cover" draggable={false} onError={() => setPetImageFailed(true)} /> : <span className="text-7xl">{getPetEmoji(userProfile.pet)}</span>}
+          <span className="sr-only" aria-live="polite">{showPetSkeleton ? 'Загружаем питомца' : 'Питомец загружен'}</span>
+          {showPetSkeleton && <PetImageSkeleton />}
+          {petUrl && !petImageError && <img src={petUrl} alt="" className={`h-64 w-64 scale-125 object-cover transition-opacity duration-300 ${petImageReady ? 'opacity-100' : 'absolute opacity-0'}`} draggable={false} onLoad={() => setPetImageReady(true)} onError={() => setPetImageError(true)} />}
         </button>
         <div className="mt-5 grid grid-cols-2 gap-3">
           <button type="button" onClick={onOpenShop} aria-label={`Монеты: ${userProfile.coins}. Открыть магазин`} className="rounded-3xl bg-white/10 p-4 text-left"><CoinIcon className="text-3xl" /><div className="mt-3 text-3xl font-black">{userProfile.coins}</div><div className="text-xs font-black uppercase tracking-widest text-white/60">монет</div></button>
