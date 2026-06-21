@@ -4,7 +4,7 @@ import { hasRussianTranslation, isAllowedSecretWord, isAllowedValidationWord, to
 import { getAllKidsDictionaryWords, getFreeKidsDictionaryEntries, getKidsPremiumDictionaryEntries, getKidsPremiumDictionaryWords } from '../services/kidsDictionaryCatalog';
 import { isKidsMode } from '../services/modeFlags';
 import { getPremiumDictionaryEntries, getPremiumDictionaryWords, hasPremiumDictionaryAccess } from '../services/premiumDictionaryCatalog';
-import { EnrichedWord, GameSettings, UserProfile } from '../types';
+import { EnrichedWord, GameSettings, UserProfile, WordLength } from '../types';
 
 interface UseDictionaryPoolsArgs {
   settings: GameSettings;
@@ -44,19 +44,22 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
     return pool.filter(word => isAllowedSecretWord(word.word));
   }, [settings.activePremiumDictionaryId, settings.dictionarySource, settings.difficulty, userProfile]);
 
-  const getValidationPool = useCallback((): string[] => {
+  const getValidationPool = useCallback((wordLengthOverride?: WordLength): string[] => {
+    const validationWordLength = wordLengthOverride ?? settings.wordLength;
     const kidsMode = isKidsMode(userProfile);
     const hasPremium = hasPremiumDictionaryAccess(userProfile);
     const premiumWords = kidsMode
       ? (hasPremium ? getKidsPremiumDictionaryWords(settings.activePremiumDictionaryId, settings.difficulty) : [])
       : (settings.dictionarySource === 'premium' && hasPremium ? getPremiumDictionaryWords(settings.activePremiumDictionaryId, settings.difficulty) : []);
     const kidsWords = kidsMode ? getAllKidsDictionaryWords() : [];
+    const customWords = userProfile.customDictionaryEn || [];
     const combinedPool = [
       ...ALL_WORDS_EN,
       ...kidsWords,
       ...premiumWords,
+      ...customWords,
     ]
-      .filter(word => word.length === settings.wordLength)
+      .filter(word => word.length === validationWordLength)
       .map(word => word.toUpperCase())
       .filter(word => isAllowedValidationWord(word));
 
