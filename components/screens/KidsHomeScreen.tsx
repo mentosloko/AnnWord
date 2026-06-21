@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { DailyQuestCompletionReward, DailyQuestState, UserProfile } from '../../types';
 import { getCharacterProgressPercent, getCharacterStageLabel, getNextLevelThreshold, normalizeMoodScore } from '../../services/gamificationRules';
 import { getMoodDisplay } from '../../services/moodDisplay';
@@ -64,6 +64,8 @@ export const KidsHomeScreen: React.FC<Props> = ({
 }) => {
   const actions = [onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare];
   const petUrl = getPuppyCharacterAssetUrl(userProfile.pet);
+  const [petImageFailed, setPetImageFailed] = useState(false);
+  useEffect(() => setPetImageFailed(false), [petUrl]);
   const mood = getMoodDisplay(normalizeMoodScore(userProfile.pet));
   const xpPercent = getCharacterProgressPercent(userProfile.pet);
   const nextLevelXp = getNextLevelThreshold(userProfile.pet.level || 1);
@@ -115,7 +117,7 @@ export const KidsHomeScreen: React.FC<Props> = ({
         </div>
         <button type="button" onClick={onOpenPetRoom} className="mx-auto mt-5 flex h-52 w-full max-w-[16rem] items-center justify-center overflow-hidden rounded-[2rem] bg-white/95 shadow-inner sm:h-56">
           <span className="sr-only">Комната питомца</span>
-          {petUrl ? <img src={petUrl} alt="" className="h-64 w-64 scale-125 object-cover" draggable={false} /> : <span className="text-7xl">{getPetEmoji(userProfile.pet)}</span>}
+          {petUrl && !petImageFailed ? <img src={petUrl} alt="" className="h-64 w-64 scale-125 object-cover" draggable={false} onError={() => setPetImageFailed(true)} /> : <span className="text-7xl">{getPetEmoji(userProfile.pet)}</span>}
         </button>
         <div className="mt-5 grid grid-cols-2 gap-3">
           <button type="button" onClick={onOpenShop} aria-label={`Монеты: ${userProfile.coins}. Открыть магазин`} className="rounded-3xl bg-white/10 p-4 text-left"><CoinIcon className="text-3xl" /><div className="mt-3 text-3xl font-black">{userProfile.coins}</div><div className="text-xs font-black uppercase tracking-widest text-white/60">монет</div></button>
