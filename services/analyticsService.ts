@@ -6,6 +6,7 @@ const ANALYTICS_QUEUE_KEY = 'annword_analytics_queue_v1';
 const FLUSH_DELAY_MS = 3000;
 const MAX_BATCH_SIZE = 25;
 const MAX_STORED_EVENTS = 200;
+const MAX_FAILURE_BACKOFF_MS = 60_000;
 
 export type AnalyticsEventType = 'game' | 'reward' | 'economy' | 'inventory' | 'character' | 'dictionary' | 'auth' | 'navigation';
 
@@ -50,6 +51,7 @@ export interface QueuedAnalyticsEvent {
 let queue: QueuedAnalyticsEvent[] | null = null;
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let isFlushing = false;
+let consecutiveFlushFailures = 0;
 
 const isBrowser = (): boolean => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
@@ -132,12 +134,17 @@ const sendEvents = async (events: QueuedAnalyticsEvent[]): Promise<void> => {
   if (error) throw error;
 };
 
+const getFlushDelay = (): number => {
+  if (consecutiveFlushFailures <= 0) return FLUSH_DELAY_MS;
+  return Math.min(MAX_FAILURE_BACKOFF_MS, FLUSH_DELAY_MS * 2 ** Math.min(consecutiveFlushFailures, 5));
+};
+
 const scheduleFlush = (): void => {
   if (flushTimer || !isBrowser()) return;
   flushTimer = setTimeout(() => {
     flushTimer = null;
     void analyticsService.flush();
-  }, FLUSH_DELAY_MS);
+  }, getFlushDelay());
 };
 
 export const analyticsService = {
@@ -149,7 +156,7 @@ export const analyticsService = {
       persistQueue();
       scheduleFlush();
     } catch (error) {
-      console.error('Analytics enqueue failed', error);
+      console.warn('Analytics enqueue failed', error);
     }
   },
 
@@ -164,10 +171,12 @@ export const analyticsService = {
 
     try {
       await sendEvents(batch);
+      consecutiveFlushFailures = 0;
     } catch (error) {
+      consecutiveFlushFailures += 1;
       queue = [...batch, ...readQueue()].slice(-MAX_STORED_EVENTS);
       persistQueue();
-      console.error('Analytics flush failed', error);
+      console.warn('Analytics flush failed', { error, consecutiveFlushFailures, retryInMs: getFlushDelay() });
     } finally {
       isFlushing = false;
       if (readQueue().length > 0) scheduleFlush();
@@ -177,10 +186,12 @@ export const analyticsService = {
   sendNow: async (events: QueuedAnalyticsEvent[]): Promise<void> => {
     try {
       await sendEvents(events);
+      consecutiveFlushFailures = 0;
     } catch (error) {
+      consecutiveFlushFailures += 1;
       queue = [...events, ...readQueue()].slice(-MAX_STORED_EVENTS);
       persistQueue();
-      console.error('Analytics immediate send failed', error);
+      console.warn('Analytics immediate send failed', { error, consecutiveFlushFailures });
     }
   },
 };
