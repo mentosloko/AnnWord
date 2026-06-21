@@ -16,7 +16,14 @@ const getCellSize = (wordLength: WordLength): string => {
   return `min(calc((100vw - 1.1rem - (${wordLength - 1} * ${horizontalGap})) / ${wordLength}), calc((100dvh - 10.25rem) / 6), ${maxSize})`;
 };
 
-const Cell: React.FC<{ letter: string; status: CharStatus; wordLength: WordLength }> = ({ letter, status, wordLength }) => {
+const statusText = (status: CharStatus): string => {
+  if (status === 'correct') return 'буква на правильном месте';
+  if (status === 'present') return 'буква есть в слове, но в другом месте';
+  if (status === 'absent') return 'буквы нет в слове';
+  return 'пока без проверки';
+};
+
+const Cell: React.FC<{ letter: string; status: CharStatus; wordLength: WordLength; row: number; column: number }> = ({ letter, status, wordLength, row, column }) => {
   const baseClasses = 'shrink-0 min-w-0 border-2 flex items-center justify-center text-[clamp(1rem,4.8vw,2rem)] font-black uppercase select-none transition-all duration-300 rounded-xl sm:rounded-2xl tracking-[0.06em] font-mono leading-none';
   let statusClasses = '';
 
@@ -36,7 +43,8 @@ const Cell: React.FC<{ letter: string; status: CharStatus; wordLength: WordLengt
   }
 
   const size = getCellSize(wordLength);
-  return <div className={`${baseClasses} ${statusClasses}`} style={{ width: size, height: size }}>{letter}</div>;
+  const ariaLabel = `Попытка ${row + 1}, буква ${column + 1}: ${letter || 'пусто'}, ${statusText(status)}`;
+  return <div role="gridcell" aria-label={ariaLabel} className={`${baseClasses} ${statusClasses}`} style={{ width: size, height: size }}>{letter}</div>;
 };
 
 export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, wordLength, maxGuesses, shakeRowIndex }) => {
@@ -73,16 +81,16 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
     if (i < guesses.length) {
       const guess = guesses[i];
       const statuses = getRowStatuses(guess);
-      rowContent = guess.split('').map((letter, idx) => <Cell key={idx} letter={letter} status={statuses[idx]} wordLength={wordLength} />);
+      rowContent = guess.split('').map((letter, idx) => <Cell key={idx} letter={letter} status={statuses[idx]} wordLength={wordLength} row={i} column={idx} />);
     } else if (i === guesses.length) {
       const chars = currentGuess.split('');
-      rowContent = Array.from({ length: wordLength }).map((_, idx) => <Cell key={idx} letter={chars[idx] || ''} status="initial" wordLength={wordLength} />);
+      rowContent = Array.from({ length: wordLength }).map((_, idx) => <Cell key={idx} letter={chars[idx] || ''} status="initial" wordLength={wordLength} row={i} column={idx} />);
     } else {
-      rowContent = Array.from({ length: wordLength }).map((_, idx) => <Cell key={idx} letter="" status="initial" wordLength={wordLength} />);
+      rowContent = Array.from({ length: wordLength }).map((_, idx) => <Cell key={idx} letter="" status="initial" wordLength={wordLength} row={i} column={idx} />);
     }
 
     rows.push(
-      <div key={i} className={`flex w-full justify-center gap-[min(1.1vw,0.34rem)] ${isShake ? 'animate-shake' : ''}`} style={{ animation: isShake ? 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both' : 'none' }}>
+      <div key={i} role="row" aria-label={`Попытка ${i + 1}`} className={`flex w-full justify-center gap-[min(1.1vw,0.34rem)] ${isShake ? 'animate-shake' : ''}`} style={{ animation: isShake ? 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both' : 'none' }}>
         {rowContent}
       </div>
     );
@@ -98,7 +106,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
           40%, 60% { transform: translate3d(4px, 0, 0); }
         }
       `}</style>
-      <div className="flex h-full w-full max-w-[min(42rem,100vw)] flex-col items-center justify-center gap-[min(0.5dvh,0.32rem)] p-0.5">
+      <div role="grid" aria-label="Поле игры Классика" className="flex h-full w-full max-w-[min(42rem,100vw)] flex-col items-center justify-center gap-[min(0.5dvh,0.32rem)] p-0.5">
         {rows}
       </div>
     </>
