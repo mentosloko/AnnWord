@@ -15,6 +15,9 @@ interface Props {
   isAuthenticated?: boolean;
   keyStatuses: Record<string, CharStatus>;
   shakeRowIndex: number | null;
+  dictionaryWords?: string[];
+  dictionaryLabel?: string;
+  dictionaryIcon?: string;
   onChar: (char: string) => void;
   onDelete: () => void;
   onEnter: () => void;
@@ -30,7 +33,7 @@ const blur = () => { if (typeof document !== 'undefined' && document.activeEleme
 const inferAuth = (profile: UserProfile): boolean => profile.username !== 'Гость' || Boolean(profile.role) || Boolean(profile.accountMode);
 const getActiveWordLength = (gameState: GameState, fallback: WordLength): WordLength => (gameState.secretWord?.length === 4 || gameState.secretWord?.length === 5 || gameState.secretWord?.length === 6 ? gameState.secretWord.length as WordLength : fallback);
 
-export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userProfile, isAuthenticated, keyStatuses, shakeRowIndex, onChar, onDelete, onEnter, onHint, onRestart, onBackHome, onRegister, onDictionaryPeek }) => {
+export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userProfile, isAuthenticated, keyStatuses, shakeRowIndex, dictionaryWords = [], dictionaryLabel = 'Мой словарь', dictionaryIcon = '📖', onChar, onDelete, onEnter, onHint, onRestart, onBackHome, onRegister, onDictionaryPeek }) => {
   const authenticated = isAuthenticated ?? inferAuth(userProfile);
   const showKidsRewards = isKidsMode(userProfile, authenticated);
   const [showRules, setShowRules] = useState(false);
@@ -42,6 +45,9 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
   const activeWordLength = getActiveWordLength(gameState, settings.wordLength);
   const reward = finished ? calculateGameReward({ type: 'wordle', won: gameState.gameStatus === 'won' }) : null;
   const progress = showKidsRewards && reward ? applyGameRewardToCharacter(userProfile.pet, reward) : null;
+  const hintLabel = showKidsRewards
+    ? userProfile.coins > 0 ? 'Подсказка · 1★' : 'Подсказка · нужно 1★'
+    : 'Подсказка';
 
   useEffect(() => { if (typeof window === 'undefined') return; setSeen(localStorage.getItem(RULES) === 'true'); }, []);
   useEffect(() => { if (gameState.currentGuess.length > 0 || finished) setShowHint(false); }, [gameState.currentGuess, finished]);
@@ -57,10 +63,10 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
         <header className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 sm:gap-2">
           <button type="button" onClick={onBackHome} aria-label="Назад в меню" className="flex h-[clamp(2.1rem,6.2dvh,2.75rem)] w-[clamp(2.1rem,6.2dvh,2.75rem)] items-center justify-center rounded-xl border-2 border-indigo-100 bg-white text-lg font-black text-indigo-700 shadow-sm">←</button>
           <div className="flex min-w-0 justify-center">
-            {authenticated ? <button type="button" onClick={clickHint} disabled={finished || hintUsed} className="min-w-[7.75rem] rounded-xl border-2 border-blue-100 bg-blue-50 px-2.5 py-[clamp(0.3rem,1dvh,0.55rem)] text-[clamp(0.7rem,1.7dvh,0.875rem)] font-black text-blue-700 disabled:opacity-50 sm:min-w-[9rem]">{gameState.loadingHint ? '...' : hintUsed ? 'Подсказка использована' : 'Подсказка'}</button> : <button type="button" onClick={register} className="min-w-[7.75rem] rounded-xl border-2 border-purple-100 bg-purple-50 px-2.5 py-[clamp(0.3rem,1dvh,0.55rem)] text-[clamp(0.7rem,1.7dvh,0.875rem)] font-black text-purple-700 sm:min-w-[9rem]">Регистрация</button>}
+            {authenticated ? <button type="button" onClick={clickHint} disabled={finished || hintUsed} aria-label={hintLabel} className="min-w-[7.75rem] rounded-xl border-2 border-blue-100 bg-blue-50 px-2.5 py-[clamp(0.3rem,1dvh,0.55rem)] text-[clamp(0.7rem,1.7dvh,0.875rem)] font-black text-blue-700 disabled:opacity-50 sm:min-w-[9rem]">{gameState.loadingHint ? '...' : hintUsed ? 'Подсказка использована' : hintLabel}</button> : <button type="button" onClick={register} className="min-w-[7.75rem] rounded-xl border-2 border-purple-100 bg-purple-50 px-2.5 py-[clamp(0.3rem,1dvh,0.55rem)] text-[clamp(0.7rem,1.7dvh,0.875rem)] font-black text-purple-700 sm:min-w-[9rem]">Регистрация</button>}
           </div>
           <div className="flex items-center gap-1">
-            <DictionaryPeek words={userProfile.customDictionaryEn} wordLength={activeWordLength} iconOnly locked={!authenticated} lockedMessage="Мой словарь доступен после регистрации в Kids или Practice." onBeforeOpen={showKidsRewards ? onDictionaryPeek : undefined} chargeLabel="Просмотр словаря стоит как подсказка." />
+            <DictionaryPeek words={dictionaryWords} wordLength={activeWordLength} iconOnly locked={!authenticated} lockedMessage="Словарь доступен после регистрации в Kids или Practice." label={dictionaryLabel} icon={dictionaryIcon} onBeforeOpen={showKidsRewards ? onDictionaryPeek : undefined} chargeLabel="Просмотр словаря стоит как подсказка." />
             <button type="button" aria-label="Показать правила" aria-expanded={showRules} onClick={() => { blur(); setShowHint(false); setShowRules(value => !value); }} className={`flex h-9 w-9 items-center justify-center rounded-xl border font-black ${seen ? 'border-indigo-50 bg-white text-indigo-300' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}`}>?</button>
             <button type="button" aria-label="Начать игру заново" onClick={restart} className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 text-lg font-black text-indigo-700">↻</button>
           </div>
