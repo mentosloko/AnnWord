@@ -3,6 +3,7 @@ import { PetState, ShopItem, UserProfile, UserStats } from '../types';
 import { analyticsService, QueuedAnalyticsEvent } from '../services/analyticsService';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 import { applyItemUseLocally, applyPurchaseLocally } from '../services/economyEngine';
+import { gameEventLedgerService } from '../services/gameEventLedgerService';
 
 interface UseProfileEconomyArgs {
   currentUserId: string | null;
@@ -183,12 +184,15 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     if (currentUserId) {
       try {
         const userService = await getUserService();
+        const analyticsEvents = [...(options.analyticsEvents || []), rewardEvent];
+        const ledgerEvents = gameEventLedgerService.createRewardEvents(currentUserId, input, analyticsEvents, reward);
         const updatedProfile = await userService.applyGameResult(
           currentUserId,
           nextStats,
           nextPet,
           reward.coins,
-          [...(options.analyticsEvents || []), rewardEvent],
+          analyticsEvents,
+          ledgerEvents,
         );
         setUserProfile(updatedProfile);
       } catch (error) {
