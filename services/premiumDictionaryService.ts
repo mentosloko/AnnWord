@@ -10,6 +10,7 @@ export interface PremiumDictionaryDraft {
 }
 
 const SCHEMA_NOT_READY_CODES = new Set(['PGRST202', '42P01', '42703', '42883']);
+const SOURCES: CustomDictionaryCollection['source'][] = ['manual', 'ocr', 'class', 'topic'];
 const schemaNotReady = (error: any): boolean => Boolean(error) && (
   SCHEMA_NOT_READY_CODES.has(String(error.code || ''))
   || /does not exist|could not find the function|schema cache|column .* does not exist/i.test(String(error.message || ''))
@@ -18,18 +19,45 @@ const schemaNotReady = (error: any): boolean => Boolean(error) && (
 const normalizeWords = (words: string[]): string[] => Array.from(new Set(
   words.map(word => word.trim().toUpperCase()).filter(word => /^[A-Z][A-Z'-]{1,}$/.test(word)),
 ));
+const readString = (data: any, camel: string, snake?: string): string | undefined => {
+  const value = typeof data?.[camel] === 'string' ? data[camel] : snake && typeof data?.[snake] === 'string' ? data[snake] : undefined;
+  return value && value.trim() ? value : undefined;
+};
+const normalizeSource = (value: unknown, fallback: CustomDictionaryCollection['source'] = 'manual'): CustomDictionaryCollection['source'] => SOURCES.includes(value as CustomDictionaryCollection['source']) ? value as CustomDictionaryCollection['source'] : fallback;
 
 const normalizeCollection = (data: any, draft: PremiumDictionaryDraft, words: string[]): CustomDictionaryCollection => ({
   id: String(data?.id || crypto.randomUUID()),
   title: String(data?.title || draft.title || 'Новый словарь'),
-  source: (data?.source || draft.source) as CustomDictionaryCollection['source'],
+  source: normalizeSource(data?.source, draft.source),
   words,
-  classLabel: typeof data?.classLabel === 'string' ? data.classLabel : draft.classLabel,
-  theme: typeof data?.theme === 'string' ? data.theme : draft.theme,
-  createdAt: typeof data?.createdAt === 'string' ? data.createdAt : new Date().toISOString(),
+  classLabel: readString(data, 'classLabel', 'class_label') || draft.classLabel,
+  theme: readString(data, 'theme') || draft.theme,
+  createdAt: readString(data, 'createdAt', 'created_at') || new Date().toISOString(),
 });
+const normalizeStoredCollection = (data: any): CustomDictionaryCollection | null => {
+  const words = normalizeWords(Array.isArray(data?.words) ? data.words.filter((item: unknown): item is string => typeof item === 'string') : []);
+  if (!words.length) return null;
+  return {
+    id: String(data?.id || crypto.randomUUID()),
+    title: readString(data, 'title') || 'Словарь для ученика',
+    source: normalizeSource(data?.source),
+    words,
+    classLabel: readString(data, 'classLabel', 'class_label'),
+    theme: readString(data, 'theme'),
+    createdAt: readString(data, 'createdAt', 'created_at') || new Date().toISOString(),
+  };
+};
 
 export const premiumDictionaryService = {
+  async listCollections(): Promise<CustomDictionaryCollection[]> {
+    const { data, error } = await supabase.rpc('list_my_dictionary_collections');
+    if (error) {
+      if (schemaNotReady(error)) return [];
+      throw error;
+    }
+    return (Array.isArray(data) ? data : []).map(normalizeStoredCollection).filter((item): item is CustomDictionaryCollection => Boolean(item));
+  },
+
   async saveCollection(draft: PremiumDictionaryDraft): Promise<CustomDictionaryCollection> {
     const words = normalizeWords(draft.words);
     if (!words.length) throw new Error('Добавьте хотя бы одно английское слово.');
