@@ -225,7 +225,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
           <div className="rounded-2xl bg-white p-3">Не будут в Wordle 4–6: <b>{preview.outsideLength.length}</b>{preview.outsideLength.length ? ` · ${preview.outsideLength.slice(0, 8).join(', ')}` : ''}</div>
         </div>}
       </section>
-      <p className="mt-2 text-xs font-bold text-gray-500">Можно вставить слова списком, через пробел или из учебника: приложение само оставит английские слова и уберёт дубликаты.</p>
+      <p className="mt-2 text-xs font-bold text-gray-500">Можно вставить слова списком или через пробел: приложение само оставит английские слова и уберёт дубликаты.</p>
       {!canCreate && <p className="mt-2 text-xs font-bold text-gray-500">Сохранение заблокировано до подключения Premium.</p>}
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
