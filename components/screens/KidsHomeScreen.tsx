@@ -78,6 +78,7 @@ export const KidsHomeScreen: React.FC<Props> = ({
   const nextLevelXp = getNextLevelThreshold(userProfile.pet.level || 1);
   const lastInventoryItem = userProfile.inventory.find(item => item.quantity > 0);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
+  const streakDays = Math.max(0, Math.round(userProfile.pet.dailyStreak || 0));
 
   return <ScreenContainer className="max-w-6xl pb-20 pt-4">
     <section className="grid gap-5 lg:grid-cols-[0.88fr_1.12fr]">
@@ -114,7 +115,7 @@ export const KidsHomeScreen: React.FC<Props> = ({
             </button>)}
           </div>
         </div>
-        {dailyQuest && <DailyQuestCard quest={dailyQuest} onStart={onStartDailyQuest} onOpenPetRoom={onOpenPetRoom} onOpenShop={onOpenShop} />}
+        {dailyQuest && <DailyQuestCard quest={dailyQuest} streakDays={streakDays} onStart={onStartDailyQuest} onOpenPetRoom={onOpenPetRoom} onOpenShop={onOpenShop} />}
       </main>
 
       <aside className="order-2 rounded-[2rem] bg-gradient-to-br from-purple-700 to-indigo-700 p-5 text-white shadow-xl sm:p-7 lg:order-1">
@@ -138,6 +139,6 @@ export const KidsHomeScreen: React.FC<Props> = ({
         </div>
       </aside>
     </section>
-    {dailyQuestReward && onCloseDailyQuestReward && <DailyQuestRewardModal reward={dailyQuestReward} onClose={onCloseDailyQuestReward} onOpenPetRoom={onOpenPetRoom} onOpenShop={onOpenShop} />}
+    {dailyQuestReward && onCloseDailyQuestReward && <DailyQuestRewardModal reward={dailyQuestReward} streakDays={streakDays} onClose={onCloseDailyQuestReward} onOpenPetRoom={onOpenPetRoom} onOpenShop={onOpenShop} />}
   </ScreenContainer>;
 };
