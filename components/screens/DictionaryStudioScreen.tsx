@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { browserOcrService } from '../../services/browserOcr';
 import { PremiumDictionaryDraft } from '../../services/premiumDictionaryService';
-import { UserProfile } from '../../types';
+import { CustomDictionaryCollection, UserProfile } from '../../types';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface DictionaryStudioScreenProps {
@@ -36,6 +36,8 @@ const parsePreview = (value: string) => {
     playableCount: playable.length,
   };
 };
+const latestCollection = (collections: CustomDictionaryCollection[] = []): CustomDictionaryCollection | undefined =>
+  [...collections].sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''))[0] || collections[0];
 
 export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ userProfile, onBack, onSaveDictionary }) => {
   const isTeacher = userProfile.role === 'teacher' || userProfile.accountMode === 'teacher';
@@ -47,17 +49,27 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
   const premiumNotExpired = !userProfile.premiumExpiresAt || Date.parse(userProfile.premiumExpiresAt) > Date.now();
   const canCreate = isTeacher || userProfile.role === 'admin' || (userProfile.subscriptionTier === 'premium' && premiumNotExpired);
   const canUseOcr = !isTeacher && canCreate;
-  const originalDraft = userProfile.customDictionaryEn.join('\n');
+  const activeTeacherCollection = isTeacher ? latestCollection(userProfile.dictionaryCollections || []) : undefined;
+  const originalDraft = (isTeacher ? activeTeacherCollection?.words || [] : userProfile.customDictionaryEn).join('\n');
+  const editorSourceKey = isTeacher ? activeTeacherCollection?.id || 'teacher-empty' : 'custom-dictionary';
 
-  const [title, setTitle] = useState(isTeacher ? 'Словарь для ученика' : 'Мой словарь');
-  const [classLabel, setClassLabel] = useState('');
-  const [theme, setTheme] = useState('');
-  const [source, setSource] = useState<PremiumDictionaryDraft['source']>('manual');
+  const [title, setTitle] = useState(activeTeacherCollection?.title || (isTeacher ? 'Словарь для ученика' : 'Мой словарь'));
+  const [classLabel, setClassLabel] = useState(activeTeacherCollection?.classLabel || '');
+  const [theme, setTheme] = useState(activeTeacherCollection?.theme || '');
+  const [source, setSource] = useState<PremiumDictionaryDraft['source']>(activeTeacherCollection?.source || 'manual');
   const [draft, setDraft] = useState(originalDraft);
   const [ocrProgress, setOcrProgress] = useState<number | null>(null);
   const [ocrMessage, setOcrMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTitle(activeTeacherCollection?.title || (isTeacher ? 'Словарь для ученика' : 'Мой словарь'));
+    setClassLabel(activeTeacherCollection?.classLabel || '');
+    setTheme(activeTeacherCollection?.theme || '');
+    setSource(activeTeacherCollection?.source || 'manual');
+    setDraft(originalDraft);
+  }, [activeTeacherCollection?.classLabel, activeTeacherCollection?.source, activeTeacherCollection?.theme, activeTeacherCollection?.title, editorSourceKey, isTeacher, originalDraft]);
 
   const words = useMemo(() => parseWords(draft), [draft]);
   const preview = useMemo(() => parsePreview(draft), [draft]);
@@ -124,23 +136,23 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
 
   const resetDraft = () => {
     setDraft(originalDraft);
-    setSource('manual');
+    setSource(activeTeacherCollection?.source || 'manual');
     setNotice('Редактор возвращён к текущему сохранённому списку слов.');
   };
 
   return <ScreenContainer className="max-w-5xl pb-20">
     <header className="mb-5 flex items-center justify-between gap-3">
-      <button type="button" onClick={onBack} className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button>
+      <button type="button" aria-label="Назад" onClick={onBack} className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button>
       <div className="text-center">
         <div className="text-xs font-black uppercase tracking-widest text-purple-500">{isTeacher ? 'AnnWord Teacher' : 'Premium'}</div>
-        <h1 className="text-2xl font-black text-indigo-950 sm:text-3xl">{isTeacher ? 'Словарь для ученика' : 'Мой словарь'}</h1>
+        <h1 className="text-2xl font-black text-indigo-950 sm:text-3xl">{isTeacher ? 'Словарь преподавателя' : 'Мой словарь'}</h1>
       </div>
-      <div className="rounded-full bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">{canUseOcr ? 'Фото' : isTeacher ? 'OCR позже' : 'Premium'}</div>
+      <div className="rounded-full bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">{canUseOcr ? 'Фото' : isTeacher ? `${userProfile.dictionaryCollections?.length || 0} словарей` : 'Premium'}</div>
     </header>
 
     {notice && <div role="status" aria-live="polite" className="mb-4 flex justify-between rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">
       <span>{notice}</span>
-      <button type="button" onClick={() => setNotice(null)}>×</button>
+      <button type="button" aria-label="Закрыть сообщение" onClick={() => setNotice(null)}>×</button>
     </div>}
 
     {!canCreate && <div className="mb-5 rounded-3xl border-2 border-purple-100 bg-purple-50 p-5">
@@ -150,7 +162,8 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
 
     {isTeacher && <div className="mb-5 rounded-3xl border-2 border-indigo-100 bg-indigo-50 p-5">
       <h2 className="text-xl font-black text-indigo-950">Словари для учеников</h2>
-      <p className="mt-2 text-sm font-bold text-indigo-700">Создайте список вручную, сохраните его и назначьте подключённому ученику в кабинете преподавателя. Распознавание фото для преподавателя появится позднее.</p>
+      <p className="mt-2 text-sm font-bold text-indigo-700">Редактор открывает последний сохранённый словарь преподавателя. Создайте или обновите список, затем назначьте его ученику в разделе «Ученики».</p>
+      {activeTeacherCollection && <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-black text-indigo-700">Открыт словарь: {activeTeacherCollection.title} · {activeTeacherCollection.words.length} слов</p>}
     </div>}
 
     <main className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm">
@@ -170,9 +183,9 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
 
       <div className={`grid gap-3 ${isTeacher ? 'sm:grid-cols-3' : ''}`}>
         {isTeacher && <>
-          <input value={title} onChange={event => setTitle(event.target.value)} placeholder="Название словаря" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold text-indigo-950 sm:col-span-3" />
-          <input value={classLabel} onChange={event => { setClassLabel(event.target.value); setSource('class'); }} placeholder="Класс: 3А" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
-          <input value={theme} onChange={event => { setTheme(event.target.value); if (!classLabel) setSource('topic'); }} placeholder="Тема: Еда" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
+          <input value={title} onChange={event => setTitle(event.target.value)} placeholder="Название словаря" aria-label="Название словаря" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold text-indigo-950 sm:col-span-3" />
+          <input value={classLabel} onChange={event => { setClassLabel(event.target.value); setSource('class'); }} placeholder="Класс: 3А" aria-label="Класс" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
+          <input value={theme} onChange={event => { setTheme(event.target.value); if (!classLabel) setSource('topic'); }} placeholder="Тема: Еда" aria-label="Тема словаря" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
         </>}
         {canUseOcr
           ? <label className="cursor-pointer rounded-xl border-2 border-dashed border-purple-200 bg-purple-50 px-3 py-2.5 text-center text-sm font-black text-purple-700">
