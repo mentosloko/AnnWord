@@ -4,6 +4,7 @@ import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { query } from "../db";
 import { readRequiredEnv, runtimeConfig } from "../config";
+import { prodamusNotifyRouter } from "./prodamusNotifyRoutes";
 
 export const paymentRouter = Router();
 
@@ -41,6 +42,8 @@ const append = (params: URLSearchParams, key: string, value: unknown): void => {
   params.append(key, String(value));
 };
 const queryString = (payload: Record<string, unknown>): string => { const params = new URLSearchParams(); Object.entries(payload).forEach(([key, value]) => append(params, key, value)); return params.toString(); };
+
+paymentRouter.use(prodamusNotifyRouter);
 
 paymentRouter.post("/create", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
