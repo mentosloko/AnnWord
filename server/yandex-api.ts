@@ -16,6 +16,13 @@ const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+app.use((req, _res, next) => {
+  const appSession = req.headers["x-annword-session"];
+  if (typeof appSession === "string" && appSession.trim() && !req.headers.authorization) {
+    req.headers.authorization = `Bearer ${appSession.trim()}`;
+  }
+  next();
+});
 app.use(
   cors({
     origin(origin, callback) {
