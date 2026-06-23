@@ -1,0 +1,1 @@
+-- Activity service tables will be added in follow-up migrations.
