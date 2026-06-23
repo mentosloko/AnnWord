@@ -1,4 +1,4 @@
-import { GameSettings, UserProfile, EnrichedWord } from '../types';
+import { GameSettings, UserProfile, EnrichedWord, DictionarySource } from '../types';
 import {
   buildDictionaryPools,
   getDictionaryEmptyStateMessage,
@@ -15,7 +15,7 @@ export interface PreparedGameDictionary {
   secretWordPool: EnrichedWord[];
   validationPool: string[];
   errorMessage: string | null;
-  dictionarySourceUsed: 'builtin' | 'custom';
+  dictionarySourceUsed: DictionarySource;
 }
 
 export const prepareGameDictionary = ({ settings, userProfile }: GameDictionaryContext): PreparedGameDictionary => {
