@@ -1,5 +1,3 @@
-create extension if not exists pgcrypto;
-
 create table if not exists public.app_users (
   id uuid primary key default gen_random_uuid(),
   email text not null unique,
@@ -180,7 +178,7 @@ begin
 
   update public.premium_payments
      set status = 'paid',
-         provider_payment_id = coalesce(nullif(trim(p_provider_payment_id), ''), provider_payment_id),
+         provider_payment_id = coalesce(nullif(trim(p_provider_payment_id, '')), provider_payment_id),
          paid_at = now(),
          premium_expires_at = v_next_expires,
          raw_payload = coalesce(p_raw_payload, '{}'::jsonb)
