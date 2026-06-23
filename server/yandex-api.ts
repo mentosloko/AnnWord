@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import express, { type Request, type Response } from "express";
 import { checkDatabaseHealth, closeDatabasePool } from "./db";
 import { runtimeConfig } from "./config";
+import { authRouter } from "./routes/authRoutes";
+import { profileRouter } from "./routes/profileRoutes";
 
 dotenv.config();
 
@@ -63,6 +65,9 @@ app.get("/api/runtime-config", (_req: Request, res: Response) => {
     hasObjectStorage: Boolean(runtimeConfig.s3Endpoint && runtimeConfig.s3FrontendBucket && runtimeConfig.s3AssetsBucket),
   });
 });
+
+app.use("/api/auth", authRouter);
+app.use("/api/profile", profileRouter);
 
 app.use("/api", (_req: Request, res: Response) => {
   res.status(404).json({
