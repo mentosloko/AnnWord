@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { applyGameResult, getOrCreateProfile, syncProfileState, updateProfileDictionary, updateWeeklyReportEmail } from "../profileRepository";
+import { listDictionaryCollections, saveDictionaryCollection } from "../dictionaryCollectionRepository";
 
 export const profileRouter = Router();
 
@@ -19,6 +20,24 @@ profileRouter.get("/me", async (req: AuthenticatedRequest, res) => {
     res.json({ profile });
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : "Profile load failed" });
+  }
+});
+
+profileRouter.get("/dictionary-collections", async (req: AuthenticatedRequest, res) => {
+  try {
+    const collections = await listDictionaryCollections(req.user!.id);
+    res.json({ collections });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "Dictionary collections load failed" });
+  }
+});
+
+profileRouter.post("/dictionary-collections", async (req: AuthenticatedRequest, res) => {
+  try {
+    const collection = await saveDictionaryCollection(req.user!.id, req.body || {});
+    res.status(201).json({ collection });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "Dictionary collection save failed" });
   }
 });
 
