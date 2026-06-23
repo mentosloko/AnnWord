@@ -50,7 +50,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onCloseRef.current();
       if (event.key !== 'Tab' || !dialogRef.current) return;
-      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])'));
+      const focusable: HTMLElement[] = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])'));
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -108,38 +108,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none"
             />
           </div>
-
           <div>
             <label htmlFor="auth-password" className="mb-1 block text-xs font-bold uppercase text-gray-500">Пароль</label>
             <input
               id="auth-password"
               required
-              minLength={6}
               type="password"
+              minLength={8}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
-              placeholder="••••••••"
+              placeholder="минимум 8 символов"
               className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none"
             />
           </div>
-
-          <button type="submit" disabled={isLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 font-bold text-white transition hover:bg-indigo-700 disabled:opacity-70">
-            {isLoading ? <LoaderIcon /> : null}
-            {mode === 'login' ? 'Войти' : 'Создать аккаунт'}
-          </button>
+          <button type="submit" disabled={isLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 p-3 font-bold text-white transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70">{isLoading && <LoaderIcon />}{mode === 'login' ? 'Войти' : 'Создать аккаунт'}</button>
         </form>
-
-        <div className="my-4 flex items-center gap-3"><div className="h-px flex-1 bg-gray-200" /><span className="text-xs font-bold uppercase text-gray-400">или</span><div className="h-px flex-1 bg-gray-200" /></div>
-        <button type="button" onClick={onYandexLogin} disabled={isLoading} className="w-full rounded-xl border-2 border-gray-200 py-3 font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-70">Продолжить через Яндекс</button>
-        <p className="mt-2 text-center text-xs font-bold text-gray-400">Откроется страница Яндекса для безопасного входа.</p>
-
-        <div className="mt-6 text-center text-sm text-gray-500">
-          {mode === 'login' ? 'Нет аккаунта?' : 'Уже есть аккаунт?'}{' '}
-          <button type="button" onClick={() => onModeChange(mode === 'login' ? 'register' : 'login')} className="font-bold text-indigo-600 hover:underline">
-            {mode === 'login' ? 'Зарегистрироваться' : 'Войти'}
-          </button>
-        </div>
+        <button type="button" disabled={isLoading} onClick={onYandexLogin} className="mt-3 w-full rounded-xl border-2 border-indigo-100 bg-white p-3 font-bold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-wait disabled:opacity-70">Войти через Яндекс</button>
+        <button type="button" disabled={isLoading} onClick={() => onModeChange(mode === 'login' ? 'register' : 'login')} className="mt-4 w-full text-sm font-bold text-indigo-600 hover:text-indigo-800">{mode === 'login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}</button>
       </div>
     </div>
   );
