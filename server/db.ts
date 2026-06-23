@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg";
 import { runtimeConfig } from "./config";
 
 let pool: Pool | undefined;
@@ -26,6 +26,35 @@ function getPool(): Pool | undefined {
   }
 
   return pool;
+}
+
+export function requirePool(): Pool {
+  const databasePool = getPool();
+  if (!databasePool) {
+    throw new Error("DATABASE_URL or PGHOST/PGDATABASE/PGUSER/PGPASSWORD are not configured");
+  }
+
+  return databasePool;
+}
+
+export async function query<T extends QueryResultRow = QueryResultRow>(text: string, params: unknown[] = []): Promise<QueryResult<T>> {
+  return requirePool().query<T>(text, params);
+}
+
+export async function transaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await requirePool().connect();
+
+  try {
+    await client.query("begin");
+    const result = await callback(client);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
