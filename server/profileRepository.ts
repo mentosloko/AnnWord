@@ -45,10 +45,36 @@ const DEFAULT_STATS: UserStats = {
   wordPerformance: {},
 };
 
+const cleanWords = (value: unknown): string[] => Array.isArray(value)
+  ? Array.from(new Set(value.filter((word): word is string => typeof word === "string").map((word) => word.trim().toUpperCase()).filter(Boolean)))
+  : [];
+
+async function addAssignedWords(userId: string, profile: UserProfile): Promise<UserProfile> {
+  const result = await query<{ words: string[] }>(
+    `select coalesce(array_agg(distinct word) filter (where word is not null), '{}') as words
+       from assigned_word_sets s
+       left join lateral unnest(s.words) word on true
+      where s.learner_user_id = $1
+        and s.archived_at is null`,
+    [userId],
+  );
+  const assignedWords = cleanWords(result.rows[0]?.words);
+  if (!assignedWords.length) return profile;
+  return {
+    ...profile,
+    assignedWords,
+    customDictionaryEn: Array.from(new Set([...(profile.customDictionaryEn || []), ...assignedWords])),
+  };
+}
+
+async function mapProfile(userId: string, row: unknown): Promise<UserProfile> {
+  return addAssignedWords(userId, mapProfileFromDB(row));
+}
+
 export async function getProfileById(userId: string): Promise<UserProfile | null> {
   const result = await query(`select ${PROFILE_COLUMNS} from profiles where id = $1`, [userId]);
   const row = result.rows[0];
-  return row ? mapProfileFromDB(row) : null;
+  return row ? mapProfile(userId, row) : null;
 }
 
 export async function createProfileForUser(client: PoolClient, userId: string, username: string, role: "admin" | "user" = "user"): Promise<UserProfile> {
@@ -80,7 +106,7 @@ export async function createProfileForUser(client: PoolClient, userId: string, u
     ],
   );
 
-  return mapProfileFromDB(result.rows[0]);
+  return mapProfile(userId, result.rows[0]);
 }
 
 export async function getOrCreateProfile(userId: string, username: string): Promise<UserProfile> {
@@ -106,7 +132,7 @@ export async function getOrCreateProfile(userId: string, username: string): Prom
     ],
   );
 
-  return mapProfileFromDB(result.rows[0]);
+  return mapProfile(userId, result.rows[0]);
 }
 
 export async function updateProfileDictionary(userId: string, dictionary: string[]): Promise<UserProfile> {
@@ -123,7 +149,7 @@ export async function updateProfileDictionary(userId: string, dictionary: string
     throw new Error("Profile not found");
   }
 
-  return mapProfileFromDB(result.rows[0]);
+  return mapProfile(userId, result.rows[0]);
 }
 
 export async function updateWeeklyReportEmail(userId: string, email: string): Promise<UserProfile> {
@@ -145,7 +171,7 @@ export async function updateWeeklyReportEmail(userId: string, email: string): Pr
     throw new Error("Profile not found");
   }
 
-  return mapProfileFromDB(result.rows[0]);
+  return mapProfile(userId, result.rows[0]);
 }
 
 export async function syncProfileState(userId: string, profile: Pick<UserProfile, "inventory" | "pet" | "coins">): Promise<UserProfile> {
@@ -169,7 +195,7 @@ export async function syncProfileState(userId: string, profile: Pick<UserProfile
     throw new Error("Profile not found");
   }
 
-  return mapProfileFromDB(result.rows[0]);
+  return mapProfile(userId, result.rows[0]);
 }
 
 export async function applyGameResult(userId: string, stats: UserStats, pet: PetState, coinsDelta: number): Promise<UserProfile> {
@@ -188,5 +214,5 @@ export async function applyGameResult(userId: string, stats: UserStats, pet: Pet
     throw new Error("Profile not found");
   }
 
-  return mapProfileFromDB(result.rows[0]);
+  return mapProfile(userId, result.rows[0]);
 }
