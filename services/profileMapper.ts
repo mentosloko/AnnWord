@@ -22,13 +22,16 @@ const normalizeFeatureFlags = (value: unknown): FeatureFlags => !isPlainObject(v
 });
 const normalizePerformance = (value: unknown): Record<string, WordPerformance> => {
   if (!isPlainObject(value)) return {};
-  return Object.fromEntries(Object.entries(value).filter(([, item]) => isPlainObject(item)).map(([key, item]) => [key, {
-    word: typeof item.word === 'string' ? item.word : key,
-    attempts: typeof item.attempts === 'number' ? item.attempts : 0,
-    correct: typeof item.correct === 'number' ? item.correct : 0,
-    mistakes: typeof item.mistakes === 'number' ? item.mistakes : 0,
-    lastPracticedAt: typeof item.lastPracticedAt === 'string' ? item.lastPracticedAt : undefined,
-  }]));
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => isPlainObject(item)).map(([key, item]) => {
+    const record = item as Record<string, unknown>;
+    return [key, {
+      word: typeof record.word === 'string' ? record.word : key,
+      attempts: typeof record.attempts === 'number' ? record.attempts : 0,
+      correct: typeof record.correct === 'number' ? record.correct : 0,
+      mistakes: typeof record.mistakes === 'number' ? record.mistakes : 0,
+      lastPracticedAt: typeof record.lastPracticedAt === 'string' ? record.lastPracticedAt : undefined,
+    }];
+  }));
 };
 
 export const normalizeDictionaryField = (value: unknown): string[] => Array.isArray(value) ? normalizeCustomDictionary(value.filter((item): item is string => typeof item === 'string')) : [];
