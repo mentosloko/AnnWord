@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Request } from "express";
 import {
   requireAuth,
   makeUserPayload,
@@ -13,6 +14,7 @@ import {
   type AuthenticatedRequest,
   type BackendUser,
 } from "../auth";
+import { runtimeConfig } from "../config";
 import { transaction } from "../db";
 import { createProfileForUser } from "../profileRepository";
 
@@ -20,6 +22,13 @@ export const authRouter = Router();
 
 const readText = (value: unknown): string => (typeof value === "string" ? value : "");
 const field = ["creden", "tial"].join("");
+const base = (value: string): string => value.replace(/\/+$/, "");
+
+function yandexCallbackUrl(req: Request): string {
+  const proto = readText(req.headers["x-forwarded-proto"]) || req.protocol || "https";
+  const apiUrl = runtimeConfig.apiUrl || `${proto}://${req.get("host")}`;
+  return `${base(apiUrl)}/api/auth/yandex/callback`;
+}
 
 authRouter.post("/email/account", async (req, res) => {
   try {
@@ -62,6 +71,26 @@ authRouter.post("/email/session", async (req, res) => {
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : "Session create failed" });
   }
+});
+
+authRouter.get("/yandex", (req, res) => {
+  try {
+    if (!runtimeConfig.yandexClientId || !runtimeConfig.yandexClientSecret) {
+      res.status(503).json({ error: "Yandex OAuth is not configured" });
+      return;
+    }
+    const redirect = new URL("https://oauth.yandex.ru/authorize");
+    redirect.searchParams.set("response_type", "code");
+    redirect.searchParams.set("client_id", runtimeConfig.yandexClientId);
+    redirect.searchParams.set("redirect_uri", yandexCallbackUrl(req));
+    res.redirect(302, redirect.toString());
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "Yandex auth start failed" });
+  }
+});
+
+authRouter.get("/yandex/callback", (_req, res) => {
+  res.redirect(302, `${base(runtimeConfig.appUrl)}?auth_error=yandex_callback_not_ready`);
 });
 
 authRouter.get("/me", requireAuth, (req: AuthenticatedRequest, res) => {
