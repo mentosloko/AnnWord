@@ -24,10 +24,11 @@ export const AccessibleDialog: React.FC<AccessibleDialogProps> = ({ open, titleI
       if (event.key !== 'Tab') return;
       const dialog = dialogRef.current;
       if (!dialog) return;
-      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')).filter(item => !item.hasAttribute('disabled'));
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
+      const focusable: HTMLElement[] = Array.from(dialog.querySelectorAll<HTMLElement>('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])'));
+      const enabledFocusable = focusable.filter(item => !item.hasAttribute('disabled'));
+      if (enabledFocusable.length === 0) return;
+      const first = enabledFocusable[0];
+      const last = enabledFocusable[enabledFocusable.length - 1];
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
