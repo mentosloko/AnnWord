@@ -1,26 +1,38 @@
+import fs from 'fs';
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import { spawn } from 'child_process';
 
-let ycWatcherStarted = false;
-const startYcWatcher = () => {
-  if (ycWatcherStarted) return;
+let ycShimConfigured = false;
+const configureYcShim = () => {
+  if (ycShimConfigured) return;
   if (process.env.GITHUB_ACTIONS !== 'true') return;
-  ycWatcherStarted = true;
-  const childEnv = { ...process.env, RUNNER_TRACKING_ID: '', ACTIONS_RUNNER_TRACKING_ID: '' };
-  const watcherPath = path.resolve(__dirname, 'scripts/patch-yc-cli-force.txt');
-  const child = spawn('bash', ['-lc', `nohup "${process.execPath}" "${watcherPath}" >/tmp/annword-yc-patch.log 2>&1 &`], {
-    detached: true,
-    stdio: 'ignore',
-    env: childEnv,
-  });
-  child.unref();
-  console.log('Started AnnWord YC CLI compatibility watcher from Vite build.');
+  ycShimConfigured = true;
+  const githubEnv = process.env.GITHUB_ENV;
+  if (!githubEnv) return;
+  const bashEnvPath = '/tmp/annword-yc-bash-env.sh';
+  const lines = [
+    'yc() {',
+    '  local real_yc="$HOME/yandex-cloud/bin/yc"',
+    '  local args=()',
+    '  local arg',
+    '  for arg in "$@"; do',
+    '    if [ "$arg" = "--force" ]; then',
+    '      continue',
+    '    fi',
+    '    args+=("$arg")',
+    '  done',
+    '  "$real_yc" "${args[@]}"',
+    '}',
+    '',
+  ];
+  fs.writeFileSync(bashEnvPath, lines.join('\n'), { mode: 0o644 });
+  fs.appendFileSync(githubEnv, `BASH_ENV=${bashEnvPath}\n`);
+  console.log('Configured AnnWord YC CLI compatibility shim through BASH_ENV.');
 };
 
 export default defineConfig(({ mode }) => {
-    startYcWatcher();
+    configureYcShim();
     const env = loadEnv(mode, '.', '');
     return {
       server: {
