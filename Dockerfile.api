@@ -15,4 +15,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "npm run db:yandex:migrate && npm run api:start"]
+CMD ["sh", "scripts/start-yandex-api.sh"]
