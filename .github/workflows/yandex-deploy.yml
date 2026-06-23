@@ -33,7 +33,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Typecheck and smoke checks
+      - name: Typecheck
+        run: npm run lint
+
+      - name: Yandex deploy env smoke check
         env:
           YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
           YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
@@ -52,7 +55,7 @@ jobs:
           PRODAMUS_SECRET: ${{ secrets.PRODAMUS_SECRET }}
           YANDEX_CLIENT_ID: ${{ secrets.YANDEX_CLIENT_ID }}
           YANDEX_CLIENT_SECRET: ${{ secrets.YANDEX_CLIENT_SECRET }}
-        run: npm run check
+        run: npm run api:check
 
       - name: Build frontend
         env:
