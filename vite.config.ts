@@ -77,7 +77,6 @@ const yandexSpaFallbackPlugin = () => ({
     const indexHtml = fs.readFileSync(indexPath);
     fs.writeFileSync(path.join(outDir, '404.html'), indexHtml);
     for (const route of spaFallbackRoutes) {
-      fs.writeFileSync(path.join(outDir, route), indexHtml);
       const routeDir = path.join(outDir, route);
       fs.mkdirSync(routeDir, { recursive: true });
       fs.writeFileSync(path.join(routeDir, 'index.html'), indexHtml);
