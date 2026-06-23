@@ -1,6 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import { closeDatabasePool, query } from "../server/db";
+import { closeDatabasePool, query, transaction } from "../server/db";
 
 const migrationsDir = path.resolve(process.cwd(), "db", "yandex");
 
@@ -32,15 +32,11 @@ async function main(): Promise<void> {
 
     const sql = await readFile(path.join(migrationsDir, file), "utf8");
     console.log(`apply ${file}`);
-    await query("begin");
-    try {
-      await query(sql);
-      await query("insert into public.annword_schema_migrations(version) values ($1)", [file]);
-      await query("commit");
-    } catch (error) {
-      await query("rollback");
-      throw error;
-    }
+
+    await transaction(async (client) => {
+      await client.query(sql);
+      await client.query("insert into public.annword_schema_migrations(version) values ($1)", [file]);
+    });
   }
 
   console.log("Yandex PostgreSQL migrations applied.");
