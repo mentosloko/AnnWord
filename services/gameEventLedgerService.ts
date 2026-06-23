@@ -2,6 +2,7 @@ import { supabase } from '../supabase';
 import { GameRewardInput } from './gamificationRules';
 import { QueuedAnalyticsEvent } from './analyticsService';
 import { WordPracticeResult } from './gameSessionEngine';
+import { isBackendApiConfigured } from './backendApiClient';
 
 export type GameLedgerEventType = 'game_started' | 'game_finished' | 'word_failed' | 'word_mastered' | 'reward_granted';
 
@@ -86,6 +87,7 @@ export const gameEventLedgerService = {
   async sendNow(events: Array<GameLedgerEvent | null | undefined>): Promise<void> {
     const safeEvents = events.filter((event): event is GameLedgerEvent => Boolean(event));
     if (!safeEvents.length) return;
+    if (isBackendApiConfigured) return;
     const { error } = await supabase.rpc('record_game_events', { p_events: safeEvents });
     if (error) throw error;
   },
