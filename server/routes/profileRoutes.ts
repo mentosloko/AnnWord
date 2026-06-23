@@ -3,10 +3,12 @@ import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { applyGameResult, getOrCreateProfile, syncProfileState, updateProfileDictionary, updateWeeklyReportEmail } from "../profileRepository";
 import { listDictionaryCollections, saveDictionaryCollection } from "../dictionaryCollectionRepository";
+import { assignedWordsRouter } from "./assignedWordsRoutes";
 
 export const profileRouter = Router();
 
 profileRouter.use(requireAuth);
+profileRouter.use(assignedWordsRouter);
 
 profileRouter.get("/me", async (req: AuthenticatedRequest, res) => {
   try {
