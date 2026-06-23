@@ -69,7 +69,7 @@ export const runtimeConfig = {
   env: readRuntimeEnv(),
   port: readPort(),
   appUrl: readOptionalEnv("APP_URL") || "http://localhost:3000",
-  apiUrl: readOptionalEnv("API_URL"),
+  apiUrl: readOptionalEnv("API_URL") || readOptionalEnv("YC_API_PUBLIC_URL"),
   databaseUrl: readDatabaseUrl(),
   yandexClientId: readOptionalEnv("YANDEX_CLIENT_ID"),
   yandexClientSecret: readOptionalEnv("YANDEX_CLIENT_SECRET"),
