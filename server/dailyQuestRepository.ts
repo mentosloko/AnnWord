@@ -2,6 +2,7 @@ import { query } from "./db";
 import { getProfileById } from "./profileRepository";
 import type { DailyQuestKind, DailyQuestState, UserProfile } from "../types";
 import type { GameRewardInput } from "../services/gamificationRules";
+import { DAILY_QUEST_DEFINITIONS } from "../services/dailyQuest";
 
 type DailyQuestRow = {
   user_id: string;
@@ -13,6 +14,8 @@ type DailyQuestRow = {
   reward_item_id: string | null;
   reward_world_id: string | null;
 };
+
+type DailyQuestWithVariant = DailyQuestState & { variantKey?: string };
 
 export type DailyQuestResult = {
   quest: DailyQuestState;
@@ -43,6 +46,8 @@ const QUEST_VARIANTS: Array<{ kind: DailyQuestKind; variantKey: string }> = [
   { kind: "all_five_games", variantKey: "all_five_games" },
 ];
 
+const modeLabels: Record<string, string> = { wordle: "Классика", sprint: "Спринт", anagram: "Анаграммы", memory: "Память", hangman: "Виселица", letter_square: "Змейка", letterSquare: "Змейка" };
+
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -68,28 +73,38 @@ function pickVariant(userId: string, questDate: string) {
   return QUEST_VARIANTS[stableIndex(`${userId}:${questDate}:daily-quest-v3`, QUEST_VARIANTS.length)];
 }
 
-function toQuest(row: DailyQuestRow): DailyQuestState {
-  const progress = row.progress || {};
-  const completedModes = Array.isArray((progress as { completed_modes?: unknown }).completed_modes)
-    ? (progress as { completed_modes: unknown[] }).completed_modes
+function getVariantKey(progress: Record<string, unknown>, kind: DailyQuestKind): string {
+  return typeof progress.variant_key === "string" ? progress.variant_key : kind;
+}
+
+function readCompletedModes(progress: Record<string, unknown>): string[] {
+  return Array.isArray(progress.completed_modes)
+    ? Array.from(new Set(progress.completed_modes.filter((mode): mode is string => typeof mode === "string")))
     : [];
+}
+
+function toQuest(row: DailyQuestRow): DailyQuestWithVariant {
+  const progress = row.progress || {};
+  const variantKey = getVariantKey(progress, row.kind);
+  const completedModes = readCompletedModes(progress);
+  const definition = DAILY_QUEST_DEFINITIONS[variantKey] || DAILY_QUEST_DEFINITIONS[row.kind];
   return {
     questDate: formatDate(row.quest_date),
     kind: row.kind,
-    title: "",
-    description: "",
+    title: definition?.title || "Ежедневное задание",
+    description: definition?.description || "Выполни тренировку сегодня.",
     progressLabel: row.kind === "all_five_games"
-      ? `${completedModes.length}/5: ${completedModes.join(", ") || "начни с любой игры"}`
+      ? `${completedModes.length}/5: ${completedModes.map((mode) => modeLabels[mode] || mode).join(", ") || "начни с любой игры"}`
       : row.completed ? "Испытание выполнено" : "Ещё не выполнено",
     completed: Boolean(row.completed),
     completedAt: formatDateTime(row.completed_at),
     rewardItemId: row.reward_item_id,
     rewardWorldId: row.reward_world_id as DailyQuestState["rewardWorldId"],
-    variantKey: typeof (progress as { variant_key?: unknown }).variant_key === "string" ? String((progress as { variant_key: unknown }).variant_key) : row.kind,
-  } as DailyQuestState & { variantKey: string };
+    variantKey,
+  };
 }
 
-export async function getOrCreateDailyQuest(userId: string): Promise<DailyQuestState> {
+export async function getOrCreateDailyQuest(userId: string): Promise<DailyQuestWithVariant> {
   const questDate = todayKey();
   const existing = await query<DailyQuestRow>(
     `select user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id
@@ -122,7 +137,16 @@ function boolFrom(value: unknown): boolean {
   return value === true || value === "true";
 }
 
-function qualifies(quest: DailyQuestState & { variantKey?: string }, input: GameRewardInput): boolean {
+function completedModeFromInput(input: GameRewardInput): string | null {
+  if (input.type === "wordle" && boolFrom(input.won)) return "wordle";
+  if (input.type === "sprint" && numberFrom(input.guessedWords) >= 6) return "sprint";
+  if (input.type === "anagram" && numberFrom(input.guessedWords) >= 5) return "anagram";
+  if (input.type === "memory" && numberFrom(input.clicks) > 0) return "memory";
+  if (input.type === "hangman" && boolFrom(input.won)) return "hangman";
+  return null;
+}
+
+function qualifies(quest: DailyQuestWithVariant, input: GameRewardInput): boolean {
   const variantKey = quest.variantKey || quest.kind;
   if (quest.completed) return true;
   if (quest.kind === "wordle_four") {
@@ -147,26 +171,33 @@ function qualifies(quest: DailyQuestState & { variantKey?: string }, input: Game
 }
 
 export async function applyDailyQuestResult(userId: string, input: GameRewardInput): Promise<DailyQuestResult> {
-  const quest = await getOrCreateDailyQuest(userId) as DailyQuestState & { variantKey?: string };
+  const quest = await getOrCreateDailyQuest(userId);
   let completed = qualifies(quest, input);
+
   if (quest.kind === "all_five_games" && !quest.completed) {
-    const result = await query<DailyQuestRow>(
+    const rowResult = await query<DailyQuestRow>(
+      `select user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id
+         from daily_quests
+        where user_id = $1 and quest_date = $2
+        for update`,
+      [userId, todayKey()],
+    );
+    const row = rowResult.rows[0];
+    const progress = row?.progress || { variant_key: "all_five_games", completed_modes: [] };
+    const mode = completedModeFromInput(input);
+    const completedModes = mode ? Array.from(new Set([...readCompletedModes(progress), mode])) : readCompletedModes(progress);
+    progress.completed_modes = completedModes;
+    const updatedProgress = await query<DailyQuestRow>(
       `update daily_quests
-          set progress = jsonb_set(
-                progress,
-                '{completed_modes}',
-                (select to_jsonb(array_agg(distinct mode)) from unnest(coalesce(array(select jsonb_array_elements_text(progress->'completed_modes')), '{}') || array[$3]) mode),
-                true
-              ),
+          set progress = $3::jsonb,
               updated_at = now()
         where user_id = $1 and quest_date = $2
         returning user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id`,
-      [userId, todayKey(), input.type === "letterSquare" ? "letter_square" : input.type],
+      [userId, todayKey(), JSON.stringify(progress)],
     );
-    const nextQuest = toQuest(result.rows[0]) as DailyQuestState & { variantKey?: string };
-    const modes = String(nextQuest.progressLabel || "").match(/^(\d+)\/5/);
-    completed = Number(modes?.[1] || 0) >= 5;
+    completed = readCompletedModes(updatedProgress.rows[0]?.progress || {}).length >= 5;
   }
+
   if (!completed) return { quest: await getOrCreateDailyQuest(userId), reward: null, profile: null };
 
   const updated = await query<DailyQuestRow>(
