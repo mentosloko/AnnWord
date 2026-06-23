@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log*
+dist
+dist-ssr
+playwright-report
+test-results
+coverage
+.git
+.github
+.vercel
+.env
+.env.*.local
+*.local
+.DS_Store
