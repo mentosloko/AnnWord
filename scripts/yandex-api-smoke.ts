@@ -11,12 +11,12 @@ const requiredForDeploy = [
   "S3_FRONTEND_BUCKET",
   "S3_ASSETS_BUCKET",
   "APP_URL",
+  "JWT_SECRET",
+  "COOKIE_SECRET",
 ] as const;
 
 const optionalRuntime = [
   "SESSION_SECRET",
-  "JWT_SECRET",
-  "COOKIE_SECRET",
   "PRODAMUS_SECRET",
   "YANDEX_CLIENT_ID",
   "YANDEX_CLIENT_SECRET",
