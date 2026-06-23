@@ -7,6 +7,7 @@ import { authRouter } from "./routes/authRoutes";
 import { profileRouter } from "./routes/profileRoutes";
 import { paymentRouter } from "./routes/paymentRoutes";
 import { familyRouter } from "./routes/familyRoutes";
+import { mentorRouter } from "./routes/mentorRoutes";
 
 dotenv.config();
 
@@ -72,6 +73,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api/payments/prodamus", paymentRouter);
 app.use("/api/family", familyRouter);
+app.use("/api/mentor", mentorRouter);
 
 app.use("/api", (_req: Request, res: Response) => {
   res.status(404).json({
