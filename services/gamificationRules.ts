@@ -12,15 +12,15 @@ interface RewardAdjustment {
   wonForStats?: boolean;
 }
 
-export type GameRewardInput =
-  | ({ type: 'wordle'; won: boolean; attempts?: number } & RewardAdjustment)
-  | ({ type: 'sprint'; guessedWords: number } & RewardAdjustment)
-  | ({ type: 'anagram'; guessedWords: number } & RewardAdjustment)
-  | ({ type: 'translation'; guessedWords: number } & RewardAdjustment)
-  | ({ type: 'memory'; clicks: number } & RewardAdjustment)
-  | ({ type: 'hangman'; won: boolean; mistakes: number; maxMistakes: number } & RewardAdjustment)
-  | ({ type: 'letterSquare'; guessedWords: number } & RewardAdjustment)
-  | ({ type: 'other' } & RewardAdjustment);
+export type GameRewardInput = ({
+  type: 'wordle' | 'sprint' | 'anagram' | 'translation' | 'memory' | 'hangman' | 'letterSquare' | 'other';
+  won?: boolean;
+  attempts?: number;
+  guessedWords?: number;
+  clicks?: number;
+  mistakes?: number;
+  maxMistakes?: number;
+} & RewardAdjustment);
 
 export interface GameRewardResult { xp: number; coins: number; mood: number; label: string; }
 export interface CharacterProgressResult { pet: PetState; previousLevel: number; newLevel: number; previousStage: CharacterStage; newStage: CharacterStage; leveledUp: boolean; stagedUp: boolean; }
