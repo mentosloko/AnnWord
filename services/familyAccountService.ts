@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { AccountMode } from '../types';
+import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
 
 export interface ChildSetupResult {
   childName: string;
@@ -14,6 +15,10 @@ type ChildRpcResponse = {
   childShareCode?: string;
   child_slots_limit?: number;
   childSlotsLimit?: number;
+};
+
+type AccessCheckResponse = {
+  ok?: boolean;
 };
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -71,6 +76,14 @@ const validateParentPin = (pin: string): string => {
 
 export const familyAccountService = {
   async selectAccountMode(mode: AccountMode): Promise<void> {
+    if (isBackendApiConfigured) {
+      await backendApiRequest<{ ok: boolean }>('/api/family/account-mode', {
+        method: 'POST',
+        body: { mode },
+      });
+      return;
+    }
+
     const role = mode === 'parent' ? 'parent' : mode === 'teacher' ? 'teacher' : 'user';
     const featureFlags = mode === 'player' ? {} : { adultRoom: true };
 
@@ -92,6 +105,17 @@ export const familyAccountService = {
     const normalizedName = validateChildName(childName);
     const normalizedPin = validateParentPin(pin);
 
+    if (isBackendApiConfigured) {
+      const data = await backendApiRequest<ChildRpcResponse>('/api/family/child', {
+        method: 'POST',
+        body: {
+          childName: normalizedName,
+          accessCode: normalizedPin,
+        },
+      });
+      return normalizeChildSetupResult(data);
+    }
+
     const { data, error } = await supabase.rpc('create_single_child_profile', {
       p_child_name: normalizedName,
       p_parent_pin: normalizedPin
@@ -106,6 +130,14 @@ export const familyAccountService = {
 
   async verifyParentPin(pin: string): Promise<boolean> {
     const normalizedPin = validateParentPin(pin);
+
+    if (isBackendApiConfigured) {
+      const data = await backendApiRequest<AccessCheckResponse>('/api/family/access-check', {
+        method: 'POST',
+        body: { accessCode: normalizedPin },
+      });
+      return data.ok === true;
+    }
 
     const { data, error } = await supabase.rpc('verify_parent_pin', {
       p_pin: normalizedPin
