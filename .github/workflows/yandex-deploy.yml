@@ -109,6 +109,7 @@ jobs:
           S3_ASSETS_BUCKET: ${{ secrets.S3_ASSETS_BUCKET }}
           APP_URL: ${{ secrets.APP_URL }}
           API_URL: ${{ secrets.API_URL }}
+          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
         run: |
           yc serverless container revision deploy \
             --container-id "$YC_SERVERLESS_CONTAINER_ID" \
@@ -133,7 +134,8 @@ jobs:
             --environment S3_FRONTEND_BUCKET="$S3_FRONTEND_BUCKET" \
             --environment S3_ASSETS_BUCKET="$S3_ASSETS_BUCKET" \
             --environment APP_URL="$APP_URL" \
-            --environment API_URL="$API_URL"
+            --environment API_URL="$API_URL" \
+            --environment YC_API_PUBLIC_URL="$YC_API_PUBLIC_URL"
 
       - name: Install AWS CLI for Object Storage upload
         run: python -m pip install --user --upgrade awscli
