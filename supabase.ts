@@ -4,11 +4,13 @@ import { createClient } from '@supabase/supabase-js';
 const viteEnv = ((import.meta as any).env || {}) as Record<string, string | undefined>;
 const supabaseUrl = viteEnv.VITE_SUPABASE_URL;
 const supabaseAnonKey = viteEnv.VITE_SUPABASE_ANON_KEY;
+const backendApiUrl = viteEnv.VITE_API_URL;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+const isBackendApiConfigured = Boolean(backendApiUrl);
 
 const configurationError = {
-  message: 'Supabase не настроен для этого Vercel-деплоя: добавьте VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY в Vercel Environment Variables и пересоберите проект.'
+  message: 'Supabase не настроен для этого деплоя. Для Yandex-контуров используйте backend API; для Supabase-контуров добавьте VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY и пересоберите проект.'
 };
 
 const fakeQuery = {
@@ -53,7 +55,7 @@ const fakeSupabaseClient = {
   rpc: async () => ({ data: null, error: configurationError })
 };
 
-if (!isSupabaseConfigured && typeof console !== 'undefined') {
+if (!isSupabaseConfigured && !isBackendApiConfigured && typeof console !== 'undefined') {
   console.warn(configurationError.message);
 }
 
