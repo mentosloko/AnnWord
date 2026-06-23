@@ -2,13 +2,14 @@
 
 This runbook covers the first safe deploy from branch `infra/ru-cloud-migration`.
 
-The first deploy does **not** switch production traffic from Vercel/Supabase. It only verifies that the Yandex Cloud skeleton works:
+The first deploy does **not** switch production traffic from Vercel/Supabase. It only verifies that the Yandex Cloud contour works:
 
 - backend Docker image builds and is pushed to Yandex Container Registry;
 - `annword-api-prod` receives a new Serverless Container revision;
 - frontend `dist/` is uploaded to `annword-frontend-prod`;
 - API health endpoint responds;
-- API can connect to Yandex Managed PostgreSQL.
+- API can connect to Yandex Managed PostgreSQL;
+- email auth, Yandex OAuth, Prodamus callbacks, family/teacher routes are reachable through the new backend.
 
 ## GitHub Actions workflow
 
@@ -24,6 +25,14 @@ It runs on:
 workflow_dispatch
 push to infra/ru-cloud-migration
 ```
+
+Manual `workflow_dispatch` has an input:
+
+```text
+run_migrations=false | true
+```
+
+Use `run_migrations=true` only when the runner can reach Yandex Managed PostgreSQL. If the database has no public access, run migrations from an environment inside Yandex Cloud instead.
 
 ## Required GitHub Actions Secrets
 
@@ -42,10 +51,12 @@ PGDATABASE
 PGUSER
 PGPASSWORD
 
-SESSION_SECRET
+APP_URL
+API_URL or YC_API_PUBLIC_URL
 JWT_SECRET
 COOKIE_SECRET
 
+SESSION_SECRET
 PRODAMUS_SECRET
 YANDEX_CLIENT_ID
 YANDEX_CLIENT_SECRET
@@ -57,13 +68,24 @@ S3_FRONTEND_BUCKET
 S3_ASSETS_BUCKET
 ```
 
-Optional, but recommended before real frontend/API integration:
+Notes:
+
+- `APP_URL` must be the public frontend URL.
+- `API_URL` or `YC_API_PUBLIC_URL` must be the public API URL used by the frontend and OAuth callback.
+- `JWT_SECRET` signs backend sessions.
+- `COOKIE_SECRET` signs parent access PIN digests.
+- `PRODAMUS_SECRET` is required before real paid checkout/webhook testing.
+- `YANDEX_CLIENT_ID` and `YANDEX_CLIENT_SECRET` are required before Yandex OAuth testing.
+
+## Yandex OAuth callback
+
+In the Yandex OAuth application, configure callback URL:
 
 ```text
-APP_URL
-API_URL
-YC_API_PUBLIC_URL
+https://<public-api-url>/api/auth/yandex/callback
 ```
+
+The same public API URL should be available as `API_URL` or `YC_API_PUBLIC_URL` in GitHub secrets and backend runtime env.
 
 ## Expected API endpoints
 
@@ -85,6 +107,36 @@ and for database:
 
 ```json
 {"status":"ok","database":{"configured":true,"ok":true}}
+```
+
+Auth-protected endpoint smoke checks should return `401` before login:
+
+```text
+GET /api/profile/me
+GET /api/profile/assigned-words
+GET /api/mentor/learners
+```
+
+## Manual smoke after first deploy
+
+1. Open frontend from Yandex Object Storage/custom domain.
+2. Register/login by email.
+3. Check that profile loads and stays loaded after refresh.
+4. Create parent account and child access code.
+5. Login as teacher, connect by child share code, assign a saved dictionary.
+6. Login as learner/parent and verify assigned words appear in profile/dictionary counters and custom-word games.
+7. Create Prodamus payment in demo mode.
+8. Verify `urlNotification` points to:
+
+```text
+https://<public-api-url>/api/payments/prodamus/notify
+```
+
+9. Return from success/fail payment pages and verify SPA handles:
+
+```text
+/?payment=success&order_id=...
+/?payment=fail&order_id=...
 ```
 
 ## Common failures
@@ -136,7 +188,11 @@ PGUSER
 PGPASSWORD
 ```
 
-If PostgreSQL has no public access, the Serverless Container still may connect depending on network/service settings, but GitHub Actions cannot connect directly from outside. The first skeleton does not run DB migrations from GitHub Actions yet.
+If PostgreSQL has no public access, GitHub Actions cannot connect directly from outside. Run migrations from an environment inside Yandex Cloud, then deploy with `run_migrations=false`.
+
+### Email login works but authenticated API calls return `401`
+
+This usually means frontend and API are on different sites and the browser is not sending the session cookie. During cutover, prefer same-site custom domains for frontend and API, or apply a local auth-token fallback patch before production cutover.
 
 ## Rollback
 
