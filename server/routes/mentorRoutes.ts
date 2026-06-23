@@ -15,6 +15,7 @@ mentorRouter.get("/learners", async (req: AuthenticatedRequest, res) => {
     const result = await query(
       `select p.id,
               coalesce(p.child_display_name, p.username, 'Ученик') as name,
+              l.class_label,
               p.child_share_code,
               p.stats,
               max(s.created_at) as last_assigned_at,
@@ -24,7 +25,7 @@ mentorRouter.get("/learners", async (req: AuthenticatedRequest, res) => {
          left join assigned_word_sets s on s.adult_user_id = l.adult_user_id and s.learner_user_id = l.learner_user_id and s.archived_at is null
          left join lateral unnest(s.words) word on true
         where l.adult_user_id = $1
-        group by p.id, p.username, p.child_display_name, p.child_share_code, p.stats
+        group by p.id, p.username, p.child_display_name, p.child_share_code, p.stats, l.class_label
         order by name`,
       [req.user!.id],
     );
@@ -52,6 +53,9 @@ mentorRouter.post("/assign", async (req: AuthenticatedRequest, res) => {
   try {
     const learnerId = text(req.body?.learnerId);
     const collectionId = text(req.body?.collectionId);
+    if (!learnerId || !collectionId) { res.status(400).json({ error: "Learner and collection are required" }); return; }
+    const link = await query("select 1 from adult_learner_links where adult_user_id = $1 and learner_user_id = $2 limit 1", [req.user!.id, learnerId]);
+    if (!link.rows.length) { res.status(403).json({ error: "Learner is not connected" }); return; }
     const profile = await query<{ dictionary_collections: unknown }>("select dictionary_collections from profiles where id = $1", [req.user!.id]);
     const collections = Array.isArray(profile.rows[0]?.dictionary_collections) ? profile.rows[0].dictionary_collections as any[] : [];
     const collection = collections.find(item => String(item?.id || "") === collectionId);
