@@ -1,0 +1,44 @@
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const binDir = path.join(os.homedir(), 'yandex-cloud', 'bin');
+const ycPath = path.join(binDir, 'yc');
+const realPath = path.join(binDir, 'yc-annword-real');
+const marker = 'AnnWord YC CLI compatibility wrapper';
+
+const wrapper = [
+  '#!/usr/bin/env node',
+  `// ${marker}`,
+  "const { spawnSync } = require('child_process');",
+  "const path = require('path');",
+  "const real = path.join(__dirname, 'yc-annword-real');",
+  "const args = process.argv.slice(2).filter(arg => arg !== '--force');",
+  "const result = spawnSync(real, args, { stdio: 'inherit' });",
+  "process.exit(typeof result.status === 'number' ? result.status : 1);",
+  '',
+].join('\n');
+
+(async () => {
+  const deadline = Date.now() + 20 * 60 * 1000;
+  while (Date.now() < deadline) {
+    try {
+      if (fs.existsSync(ycPath)) {
+        const current = fs.readFileSync(ycPath, 'utf8');
+        if (current.includes(marker) || fs.existsSync(realPath)) {
+          process.exit(0);
+        }
+        fs.renameSync(ycPath, realPath);
+        fs.writeFileSync(ycPath, wrapper, { mode: 0o755 });
+        fs.chmodSync(realPath, 0o755);
+        fs.chmodSync(ycPath, 0o755);
+        process.exit(0);
+      }
+    } catch (error) {
+      console.error('Failed to patch YC CLI:', error && error.message ? error.message : error);
+    }
+    await sleep(1000);
+  }
+  process.exit(0);
+})();
