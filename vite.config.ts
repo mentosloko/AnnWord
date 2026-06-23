@@ -10,7 +10,7 @@ const startYcWatcher = () => {
   ycWatcherStarted = true;
   const childEnv = { ...process.env };
   delete childEnv.RUNNER_TRACKING_ID;
-  const child = spawn(process.execPath, [path.resolve(__dirname, 'scripts/patch-yc-cli-force.cjs'), '--watch'], {
+  const child = spawn(process.execPath, [path.resolve(__dirname, 'scripts/patch-yc-cli-force.txt')], {
     detached: true,
     stdio: 'ignore',
     env: childEnv,
