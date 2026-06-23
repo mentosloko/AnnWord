@@ -178,7 +178,7 @@ begin
 
   update public.premium_payments
      set status = 'paid',
-         provider_payment_id = coalesce(nullif(trim(p_provider_payment_id, '')), provider_payment_id),
+         provider_payment_id = coalesce(nullif(trim(p_provider_payment_id), ''), provider_payment_id),
          paid_at = now(),
          premium_expires_at = v_next_expires,
          raw_payload = coalesce(p_raw_payload, '{}'::jsonb)
