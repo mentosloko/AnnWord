@@ -57,7 +57,7 @@ export async function backendApiRequest<T>(path: string, options: RequestOptions
   const headers: Record<string, string> = { Accept: "application/json" };
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
   const token = readBackendAccessToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (token) headers["X-AnnWord-Session"] = token;
 
   const response = await fetch(`${backendApiBaseUrl}${path}`, {
     method: options.method || "GET",
