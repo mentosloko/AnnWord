@@ -67,6 +67,24 @@ const configureYcShim = () => {
   console.log('Configured AnnWord YC CLI compatibility shim through BASH_ENV.');
 };
 
+const spaFallbackRoutes = ['practice', 'kids', 'teacher', 'landing-mix'];
+const yandexSpaFallbackPlugin = () => ({
+  name: 'annword-yandex-spa-fallbacks',
+  closeBundle() {
+    const outDir = path.resolve(__dirname, 'dist');
+    const indexPath = path.join(outDir, 'index.html');
+    if (!fs.existsSync(indexPath)) return;
+    const indexHtml = fs.readFileSync(indexPath);
+    fs.writeFileSync(path.join(outDir, '404.html'), indexHtml);
+    for (const route of spaFallbackRoutes) {
+      fs.writeFileSync(path.join(outDir, route), indexHtml);
+      const routeDir = path.join(outDir, route);
+      fs.mkdirSync(routeDir, { recursive: true });
+      fs.writeFileSync(path.join(routeDir, 'index.html'), indexHtml);
+    }
+  },
+});
+
 export default defineConfig(({ mode }) => {
     configureYcShim();
     const env = loadEnv(mode, '.', '');
@@ -75,7 +93,7 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
       },
-      plugins: [react()],
+      plugins: [react(), yandexSpaFallbackPlugin()],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
