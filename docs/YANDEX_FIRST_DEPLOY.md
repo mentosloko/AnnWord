@@ -72,6 +72,7 @@ Notes:
 
 - `APP_URL` must be the public frontend URL.
 - `API_URL` or `YC_API_PUBLIC_URL` must be the public API URL used by the frontend and OAuth callback.
+- `DATABASE_URL` value must be only the PostgreSQL URL, without the `DATABASE_URL=` prefix. URL-encode the password before putting it into the URL if it contains punctuation or reserved URL characters.
 - `JWT_SECRET` signs backend sessions.
 - `COOKIE_SECRET` signs parent access PIN digests.
 - `PRODAMUS_SECRET` is required before real paid checkout/webhook testing.
@@ -187,6 +188,8 @@ PGDATABASE
 PGUSER
 PGPASSWORD
 ```
+
+For `DATABASE_URL`, encode the password for URL usage. For example, `@`, `#`, `%`, `&`, `/`, `:`, and `?` must not appear raw inside the password segment of the URL.
 
 If PostgreSQL has no public access, GitHub Actions cannot connect directly from outside. Run migrations from an environment inside Yandex Cloud, then deploy with `run_migrations=false`.
 
