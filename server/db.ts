@@ -10,6 +10,19 @@ export type DatabaseHealth = {
   error?: string;
 };
 
+function normalizeDatabaseConnectionString(connectionString: string): string {
+  try {
+    const url = new URL(connectionString);
+    url.searchParams.delete("sslmode");
+    url.searchParams.delete("sslcert");
+    url.searchParams.delete("sslkey");
+    url.searchParams.delete("sslrootcert");
+    return url.toString();
+  } catch {
+    return connectionString;
+  }
+}
+
 function getPool(): Pool | undefined {
   if (!runtimeConfig.databaseUrl) {
     return undefined;
@@ -17,7 +30,7 @@ function getPool(): Pool | undefined {
 
   if (!pool) {
     pool = new Pool({
-      connectionString: runtimeConfig.databaseUrl,
+      connectionString: normalizeDatabaseConnectionString(runtimeConfig.databaseUrl),
       ssl: { rejectUnauthorized: false },
       max: Number.parseInt(process.env.PGPOOL_MAX || "5", 10),
       idleTimeoutMillis: 30_000,
