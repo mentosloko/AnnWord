@@ -14,13 +14,13 @@ interface MemoryGameProps {
 }
 interface Card { id: number; content: string; type: 'en' | 'ru'; pairId: number; isFlipped: boolean; isMatched: boolean; }
 export const buildMemoryDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => buildPlayableGameDictionary(customDictionaryEn, fallbackDictionary);
-const shuffle = <T,>(items: T[]): T[] => [...items].sort(() => Math.random() - 0.5);
-const createMemoryCards = (dictionary: EnrichedWord[]): Card[] => {
-  const selectedWords = shuffle(dictionary).slice(0, Math.min(6, dictionary.length));
+const shuffle = <T,>(items: T[], random: () => number = Math.random): T[] => [...items].sort(() => random() - 0.5);
+export const createMemoryCards = (dictionary: EnrichedWord[], random: () => number = Math.random): Card[] => {
+  const selectedWords = shuffle(dictionary, random).slice(0, Math.min(6, dictionary.length));
   return shuffle(selectedWords.flatMap((word, pairId) => [
     { id: pairId * 2, content: word.word, type: 'en' as const, pairId, isFlipped: false, isMatched: false },
     { id: pairId * 2 + 1, content: word.translation, type: 'ru' as const, pairId, isFlipped: false, isMatched: false },
-  ]));
+  ]), random);
 };
 
 export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onGameReward }) => {
