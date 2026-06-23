@@ -12,21 +12,22 @@ type PremiumSuccessScreenProps = {
 
 export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ userProfile, onPrimaryAction, onBackHome }) => {
   const kidsMode = isKidsMode(userProfile, true);
-  const title = kidsMode ? 'Kids Premium подключён' : 'AnnWord Premium подключён';
+  const title = kidsMode ? 'Kids Premium почти готов' : 'AnnWord Premium почти готов';
   const ctaLabel = kidsMode ? 'Добавить слова ребёнка' : 'Добавить свои слова';
   const ctaHint = kidsMode ? 'Добавьте слова из школы, курса или учебника, чтобы ребёнок повторял их в играх.' : 'Загрузите слова из работы, экзамена, курса или своей темы и тренируйте их в играх.';
   const benefits = kidsMode
     ? ['Детские темы: школа, дом, животные, еда', 'Слова для первых классов', 'Тренировка по словам из школы или курса']
     : ['Тематические словари по задачам', 'Слова по уровням A1–C2', 'Тренировка по вашему списку слов'];
+  const confirmed = Boolean(userProfile.premiumExpiresAt);
 
   return <ScreenContainer className="max-w-5xl pb-20 pt-8">
     <section className="overflow-hidden rounded-[2.5rem] border-2 border-green-100 bg-white shadow-sm">
       <div className="grid gap-6 p-6 lg:grid-cols-[0.9fr_1.1fr] lg:p-8">
         <div className="rounded-[2rem] bg-gradient-to-br from-green-50 via-emerald-50 to-indigo-50 p-6">
           <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white text-5xl shadow-sm" aria-hidden="true">✅</div>
-          <div className="mt-6 inline-flex rounded-full bg-green-100 px-4 py-2 text-xs font-black uppercase tracking-widest text-green-700">Оплата прошла</div>
-          <h1 className="mt-4 text-4xl font-black leading-tight text-indigo-950 sm:text-5xl">{title}</h1>
-          <p className="mt-4 text-base font-bold leading-relaxed text-gray-600">Доступ уже активирован. Теперь можно выбрать тему или добавить слова, которые нужно повторить в играх.</p>
+          <div className="mt-6 inline-flex rounded-full bg-green-100 px-4 py-2 text-xs font-black uppercase tracking-widest text-green-700">{confirmed ? 'Premium активен' : 'Оплата принята'}</div>
+          <h1 className="mt-4 text-4xl font-black leading-tight text-indigo-950 sm:text-5xl">{confirmed ? (kidsMode ? 'Kids Premium подключён' : 'AnnWord Premium подключён') : title}</h1>
+          <p className="mt-4 text-base font-bold leading-relaxed text-gray-600">{confirmed ? 'Доступ уже активирован. Теперь можно выбрать тему или добавить слова, которые нужно повторить в играх.' : 'Мы ждём серверное подтверждение оплаты. Обычно это занимает немного времени; после подтверждения Premium включится автоматически.'}</p>
           {userProfile.premiumExpiresAt && <p className="mt-4 rounded-2xl bg-white/80 px-4 py-3 text-sm font-black text-green-700">Premium активен до: {formatPremiumExpiresAt(userProfile.premiumExpiresAt)}</p>}
         </div>
         <div className="flex flex-col justify-center">
