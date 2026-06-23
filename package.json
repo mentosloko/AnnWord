@@ -9,6 +9,7 @@
     "api:dev": "tsx watch server/yandex-api.ts",
     "api:start": "tsx server/yandex-api.ts",
     "api:check": "tsx scripts/yandex-api-smoke.ts",
+    "api:contract": "tsx scripts/yandex-api-contract-smoke.ts",
     "db:yandex:migrate": "tsx scripts/yandex-db-migrate.ts",
     "test": "vitest",
     "test:run": "vitest run",
