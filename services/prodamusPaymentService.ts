@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
 
 export type ProdamusPlanCode = 'kids_month' | 'kids_year';
 
@@ -22,6 +23,10 @@ export interface ProdamusPaymentResponse {
 
 export const prodamusPaymentService = {
   createPayment: async (planCode: ProdamusPlanCode): Promise<ProdamusPaymentResponse> => {
+    if (isBackendApiConfigured) {
+      return backendApiRequest<ProdamusPaymentResponse>('/api/payments/prodamus/create', { method: 'POST', body: { planCode } });
+    }
+
     const { data, error } = await supabase.auth.getSession();
     if (error || !data.session?.access_token) throw new Error('Для покупки Premium нужно войти в аккаунт.');
 
