@@ -18,6 +18,7 @@ const plans: Record<string, Plan> = {
 const isObject = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const appUrl = (): string => (process.env.PRODAMUS_APP_URL || runtimeConfig.appUrl || "https://annword.ru").replace(/\/+$/, "");
 const apiUrl = (): string => (runtimeConfig.apiUrl || process.env.API_URL || appUrl()).replace(/\/+$/, "");
+const appReturnUrl = (payment: "success" | "fail", orderId: string): string => `${appUrl()}/?payment=${payment}&order_id=${encodeURIComponent(orderId)}`;
 const payformUrl = (): string => {
   const raw = (process.env.PRODAMUS_PAYFORM_HOST || "manto-school.payform.ru").trim();
   return (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).replace(/\/+$/, "");
@@ -54,7 +55,6 @@ paymentRouter.post("/create", requireAuth, async (req: AuthenticatedRequest, res
     }
     const user = req.user!;
     const orderId = `annword_${plan.code}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
-    const origin = appUrl();
     const callbackOrigin = apiUrl();
     const payload: Record<string, unknown> = {
       do: "pay",
@@ -63,8 +63,8 @@ paymentRouter.post("/create", requireAuth, async (req: AuthenticatedRequest, res
       customer_email: user.email,
       products: [{ name: plan.productName, price: String(plan.amountRub), quantity: "1", sku: plan.code, type: "service", paymentMethod: "1", paymentObject: "4" }],
       paid_content: plan.paidContent,
-      urlSuccess: `${origin}/payment/success?order_id=${encodeURIComponent(orderId)}`,
-      urlReturn: `${origin}/payment/fail?order_id=${encodeURIComponent(orderId)}`,
+      urlSuccess: appReturnUrl("success", orderId),
+      urlReturn: appReturnUrl("fail", orderId),
       urlNotification: `${callbackOrigin}/api/payments/prodamus/notify`,
       sys: process.env.PRODAMUS_SYS_CODE || "annword",
       currency: "rub",
