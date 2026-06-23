@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { CustomDictionaryCollection } from '../types';
+import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
 
 export interface PremiumDictionaryDraft {
   title: string;
@@ -8,6 +9,14 @@ export interface PremiumDictionaryDraft {
   classLabel?: string;
   theme?: string;
 }
+
+type DictionaryCollectionsResponse = {
+  collections?: unknown[];
+};
+
+type DictionaryCollectionResponse = {
+  collection?: unknown;
+};
 
 const SCHEMA_NOT_READY_CODES = new Set(['PGRST202', '42P01', '42703', '42883']);
 const SOURCES: CustomDictionaryCollection['source'][] = ['manual', 'ocr', 'class', 'topic'];
@@ -50,6 +59,13 @@ const normalizeStoredCollection = (data: any): CustomDictionaryCollection | null
 
 export const premiumDictionaryService = {
   async listCollections(): Promise<CustomDictionaryCollection[]> {
+    if (isBackendApiConfigured) {
+      const data = await backendApiRequest<DictionaryCollectionsResponse>('/api/profile/dictionary-collections');
+      return (Array.isArray(data.collections) ? data.collections : [])
+        .map(normalizeStoredCollection)
+        .filter((item): item is CustomDictionaryCollection => Boolean(item));
+    }
+
     const { data, error } = await supabase.rpc('list_my_dictionary_collections');
     if (error) {
       if (schemaNotReady(error)) return [];
@@ -61,6 +77,21 @@ export const premiumDictionaryService = {
   async saveCollection(draft: PremiumDictionaryDraft): Promise<CustomDictionaryCollection> {
     const words = normalizeWords(draft.words);
     if (!words.length) throw new Error('Добавьте хотя бы одно английское слово.');
+
+    if (isBackendApiConfigured) {
+      const data = await backendApiRequest<DictionaryCollectionResponse>('/api/profile/dictionary-collections', {
+        method: 'POST',
+        body: {
+          title: draft.title,
+          words,
+          source: draft.source,
+          classLabel: draft.classLabel || null,
+          theme: draft.theme || null,
+        },
+      });
+      return normalizeCollection(data.collection, draft, words);
+    }
+
     const { data, error } = await supabase.rpc('save_premium_dictionary_collection', {
       p_title: draft.title,
       p_words: words,
