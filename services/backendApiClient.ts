@@ -22,7 +22,15 @@ export function writeBackendAccessToken(token: string | null | undefined): void 
     if (token) window.localStorage.setItem(BACKEND_TOKEN_STORAGE_KEY, token);
     else window.localStorage.removeItem(BACKEND_TOKEN_STORAGE_KEY);
   } catch {
-    // Token persistence must not break the app shell.
+    // Local auth persistence must not break the app shell.
+  }
+}
+
+function rememberBackendSession(payload: unknown): void {
+  if (!payload || typeof payload !== "object") return;
+  const value = (payload as { access_token?: unknown }).access_token;
+  if (typeof value === "string" && value.length > 0) {
+    writeBackendAccessToken(value);
   }
 }
 
@@ -60,8 +68,10 @@ export async function backendApiRequest<T>(path: string, options: RequestOptions
 
   const payload = await response.json().catch(() => null) as { error?: string } | T | null;
   if (!response.ok) {
+    if (response.status === 401) writeBackendAccessToken(null);
     throw new BackendApiError(payload && typeof payload === "object" && "error" in payload && payload.error ? payload.error : "Backend API request failed", response.status);
   }
 
+  rememberBackendSession(payload);
   return payload as T;
 }
