@@ -2,6 +2,15 @@ name: Deploy to Yandex Cloud
 
 on:
   workflow_dispatch:
+    inputs:
+      run_migrations:
+        description: "Run Yandex PostgreSQL migrations before deploy"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
   push:
     branches:
       - infra/ru-cloud-migration
@@ -49,6 +58,9 @@ jobs:
           S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
           S3_FRONTEND_BUCKET: ${{ secrets.S3_FRONTEND_BUCKET }}
           S3_ASSETS_BUCKET: ${{ secrets.S3_ASSETS_BUCKET }}
+          APP_URL: ${{ secrets.APP_URL }}
+          API_URL: ${{ secrets.API_URL }}
+          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
@@ -56,6 +68,12 @@ jobs:
           YANDEX_CLIENT_ID: ${{ secrets.YANDEX_CLIENT_ID }}
           YANDEX_CLIENT_SECRET: ${{ secrets.YANDEX_CLIENT_SECRET }}
         run: npm run api:check
+
+      - name: Run Yandex PostgreSQL migrations
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_migrations == 'true' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run db:yandex:migrate
 
       - name: Build frontend
         env:
