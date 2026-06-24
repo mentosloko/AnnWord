@@ -34,40 +34,28 @@ concurrency:
 
 jobs:
   migrate-core-data:
-    name: Migrate core data
+    name: Migrate data inside Yandex backend
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Apply Yandex schema migrations first
+      - name: Call Yandex-side migration endpoint
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npm run db:yandex:migrate
-
-      - name: Run user skeleton migration
-        env:
-          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          ANNWORD_MIGRATION_APPLY: ${{ inputs.apply }}
-          ANNWORD_MIGRATION_EMAIL_CONFLICT: skip
-        run: npm run db:migrate:users
-
-      - name: Run core data migration
-        env:
-          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          ANNWORD_MIGRATION_APPLY: ${{ inputs.apply }}
-          ANNWORD_MIGRATION_INCLUDE_GAME_EVENTS: ${{ inputs.include_game_events }}
-          ANNWORD_MIGRATION_INCLUDE_ANALYTICS: ${{ inputs.include_analytics }}
-        run: npm run db:migrate:core
+          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+          ANNWORD_MIGRATION_SECRET: ${{ secrets.ANNWORD_MIGRATION_SECRET }}
+          APPLY: ${{ inputs.apply }}
+          INCLUDE_GAME_EVENTS: ${{ inputs.include_game_events }}
+          INCLUDE_ANALYTICS: ${{ inputs.include_analytics }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANNWORD_MIGRATION_SECRET:-}" ]; then
+            echo "ANNWORD_MIGRATION_SECRET is not configured. Add it to GitHub Secrets and redeploy backend."
+            exit 1
+          fi
+          API_URL="${YC_API_PUBLIC_URL%/}/api/admin/migration/supabase"
+          BODY=$(node -e "console.log(JSON.stringify({apply: process.env.APPLY === 'true', includeGameEvents: process.env.INCLUDE_GAME_EVENTS !== 'false', includeAnalytics: process.env.INCLUDE_ANALYTICS === 'true'}))")
+          curl --fail-with-body -sS \
+            -X POST "$API_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-AnnWord-Migration-Secret: $ANNWORD_MIGRATION_SECRET" \
+            --data "$BODY"
