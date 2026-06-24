@@ -1,0 +1,65 @@
+name: Yandex Runtime Smoke
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Deploy to Yandex Cloud
+    types:
+      - completed
+    branches:
+      - infra/ru-cloud-migration
+
+concurrency:
+  group: yandex-runtime-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Smoke Yandex frontend and API
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Check Yandex runtime endpoints
+        env:
+          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          set -euo pipefail
+          API_URL="${YC_API_PUBLIC_URL%/}"
+          FRONTEND_URL="${APP_URL%/}"
+
+          if [ -z "$API_URL" ]; then
+            echo "YC_API_PUBLIC_URL is not configured"
+            exit 1
+          fi
+
+          echo "Checking API health"
+          curl --fail-with-body -sS "$API_URL/api/health" | tee /tmp/annword-health.json
+
+          echo "Checking DB health"
+          curl --fail-with-body -sS "$API_URL/api/health/db" | tee /tmp/annword-db-health.json
+
+          echo "Checking runtime config"
+          curl --fail-with-body -sS "$API_URL/api/runtime-config" | tee /tmp/annword-runtime-config.json
+
+          node - <<'NODE'
+          const fs = require('fs');
+          const health = JSON.parse(fs.readFileSync('/tmp/annword-health.json', 'utf8'));
+          const db = JSON.parse(fs.readFileSync('/tmp/annword-db-health.json', 'utf8'));
+          const config = JSON.parse(fs.readFileSync('/tmp/annword-runtime-config.json', 'utf8'));
+          if (health.status !== 'ok') throw new Error('API health is not ok');
+          if (db.status !== 'ok' || !db.database?.ok) throw new Error('DB health is not ok');
+          if (!config.hasDatabase) throw new Error('Runtime config has no database');
+          if (!config.hasProdamus) throw new Error('Runtime config has no Prodamus secret');
+          console.log('Yandex API smoke passed');
+          NODE
+
+          if [ -n "$FRONTEND_URL" ]; then
+            echo "Checking frontend"
+            curl --fail-with-body -sS -I "$FRONTEND_URL" | head -n 20
+          else
+            echo "APP_URL is not configured; frontend check skipped"
+          fi
