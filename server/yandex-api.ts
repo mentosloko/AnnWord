@@ -12,6 +12,7 @@ import { dailyQuestRouter } from "./routes/dailyQuestRoutes";
 import { analyticsRouter } from "./routes/analyticsRoutes";
 import { gameEventRouter } from "./routes/gameEventRoutes";
 import { migrationRouter } from "./routes/migrationRoutes";
+import { migrationSchemaRouter } from "./routes/migrationSchemaRoutes";
 
 dotenv.config();
 
@@ -89,6 +90,7 @@ app.use("/api/mentor", mentorRouter);
 app.use("/api/daily-quest", dailyQuestRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/game-events", gameEventRouter);
+app.use("/api/admin/migration", migrationSchemaRouter);
 app.use("/api/admin/migration", migrationRouter);
 
 app.use("/api", (_req: Request, res: Response) => {
