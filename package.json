@@ -12,6 +12,7 @@
     "api:contract": "tsx scripts/yandex-api-contract-smoke.ts",
     "db:yandex:migrate": "tsx scripts/yandex-db-migrate.ts",
     "assets:audit": "tsx scripts/audit-assets.ts",
+    "daily-quest:smoke": "tsx scripts/daily-quest-smoke.ts",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
