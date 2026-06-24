@@ -1,0 +1,62 @@
+name: Yandex Data Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Write data into Yandex PostgreSQL"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      include_game_events:
+        description: "Copy game_events"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      include_analytics:
+        description: "Copy analytics_events"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+concurrency:
+  group: yandex-data-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate-core-data:
+    name: Migrate data inside Yandex backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Call Yandex-side migration endpoint
+        env:
+          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+          ANNWORD_MIGRATION_SECRET: ${{ secrets.ANNWORD_MIGRATION_SECRET }}
+          APPLY: ${{ inputs.apply }}
+          INCLUDE_GAME_EVENTS: ${{ inputs.include_game_events }}
+          INCLUDE_ANALYTICS: ${{ inputs.include_analytics }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANNWORD_MIGRATION_SECRET:-}" ]; then
+            echo "ANNWORD_MIGRATION_SECRET is not configured. Add it to GitHub Secrets and redeploy backend."
+            exit 1
+          fi
+          API_URL="${YC_API_PUBLIC_URL%/}/api/admin/migration/supabase"
+          BODY=$(node -e "console.log(JSON.stringify({apply: process.env.APPLY === 'true', includeGameEvents: process.env.INCLUDE_GAME_EVENTS !== 'false', includeAnalytics: process.env.INCLUDE_ANALYTICS === 'true'}))")
+          echo "Calling Yandex-side migration endpoint at ${API_URL}"
+          curl --fail-with-body -sS \
+            -X POST "$API_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-AnnWord-Migration-Secret: $ANNWORD_MIGRATION_SECRET" \
+            --data "$BODY"
