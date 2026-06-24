@@ -1,4 +1,5 @@
 import { InventoryItem, PetState, ShopItem } from '../types';
+import { assetUrl } from './assetUrl';
 
 const ACCESSORY_IDS = ['bow', 'glasses', 'hat', 'hero_cape', 'star_collar', 'crown'] as const;
 const ACCESSORY_ORDER = [...ACCESSORY_IDS];
@@ -7,7 +8,7 @@ const PET_ASSET_SLUGS: Record<string, string> = {
   Dragon: 'dragon',
   RoboCat: 'robocat',
 };
-const MYSTERY_BOX_ASSET_URL = '/assets/rewards/mystery-box.webp';
+const MYSTERY_BOX_ASSET_URL = assetUrl('/assets/rewards/mystery-box.webp');
 
 const getPetAssetSlug = (petType?: string): string | null => {
   if (!petType) return null;
@@ -20,7 +21,7 @@ const getPetCharacterExtension = (petType?: string): 'png' | 'webp' =>
 const getPetBaseAssetUrl = (petType?: string): string | null => {
   const slug = getPetAssetSlug(petType);
   if (!slug) return null;
-  return `/assets/pets/${slug}/base/idle.${getPetCharacterExtension(petType)}`;
+  return assetUrl(`/assets/pets/${slug}/base/idle.${getPetCharacterExtension(petType)}`);
 };
 
 const getPetRenderedBasePath = (petType?: string): string | null => {
@@ -28,12 +29,12 @@ const getPetRenderedBasePath = (petType?: string): string | null => {
   if (!slug) return null;
 
   const renderedFolder = petType === 'Puppy' ? 'with-accessories' : 'rendered';
-  return `/assets/pets/${slug}/${renderedFolder}`;
+  return assetUrl(`/assets/pets/${slug}/${renderedFolder}`);
 };
 
 const getPetAccessoryBasePath = (petType?: string): string | null => {
   const slug = getPetAssetSlug(petType);
-  return slug ? `/assets/pets/${slug}/accessories` : null;
+  return slug ? assetUrl(`/assets/pets/${slug}/accessories`) : null;
 };
 
 const getAccessoryKey = (accessories: string[]): string =>
@@ -98,12 +99,12 @@ export const getPuppyCharacterPreloadUrls = (): string[] => {
 
 export const getShopImageUrl = (item: ShopItem, petType: string = 'Puppy'): string | undefined => {
   if (item.id === 'mystery_box') return MYSTERY_BOX_ASSET_URL;
-  if (item.type === 'accessory') return getPetAccessoryAssetUrl(item.id, petType) || item.imageUrl;
-  return item.imageUrl;
+  if (item.type === 'accessory') return getPetAccessoryAssetUrl(item.id, petType) || (item.imageUrl ? assetUrl(item.imageUrl) : undefined);
+  return item.imageUrl ? assetUrl(item.imageUrl) : undefined;
 };
 
 export const getInventoryImageUrl = (item: InventoryItem, pet?: PetState): string | null => {
   if (item.id === 'mystery_box') return MYSTERY_BOX_ASSET_URL;
   if (item.type === 'accessory') return getPetAccessoryAssetUrl(item.id, pet?.type || 'Puppy');
-  return item.metadata?.imageUrl || null;
+  return item.metadata?.imageUrl ? assetUrl(item.metadata.imageUrl) : null;
 };
