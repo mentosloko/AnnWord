@@ -55,6 +55,14 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npm run db:yandex:migrate
 
+      - name: Run user skeleton migration
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ANNWORD_MIGRATION_APPLY: ${{ inputs.apply }}
+          ANNWORD_MIGRATION_EMAIL_CONFLICT: skip
+        run: npm run db:migrate:users
+
       - name: Run core data migration
         env:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
