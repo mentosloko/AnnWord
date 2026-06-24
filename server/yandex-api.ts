@@ -8,6 +8,9 @@ import { profileRouter } from "./routes/profileRoutes";
 import { paymentRouter } from "./routes/paymentRoutes";
 import { familyRouter } from "./routes/familyRoutes";
 import { mentorRouter } from "./routes/mentorRoutes";
+import { dailyQuestRouter } from "./routes/dailyQuestRoutes";
+import { analyticsRouter } from "./routes/analyticsRoutes";
+import { gameEventRouter } from "./routes/gameEventRoutes";
 
 dotenv.config();
 
@@ -82,6 +85,9 @@ app.use("/api/profile", profileRouter);
 app.use("/api/payments/prodamus", paymentRouter);
 app.use("/api/family", familyRouter);
 app.use("/api/mentor", mentorRouter);
+app.use("/api/daily-quest", dailyQuestRouter);
+app.use("/api/analytics", analyticsRouter);
+app.use("/api/game-events", gameEventRouter);
 
 app.use("/api", (_req: Request, res: Response) => {
   res.status(404).json({
