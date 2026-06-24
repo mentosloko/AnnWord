@@ -3,6 +3,8 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
+process.env.VITE_ENABLE_PRODAMUS_PAYMENTS ||= 'true';
+
 let ycShimConfigured = false;
 const configureYcShim = () => {
   if (ycShimConfigured) return;
