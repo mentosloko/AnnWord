@@ -1,16 +1,14 @@
 name: Yandex Data Migration Dry Run
 
 on:
-  push:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Deploy to Yandex Cloud
+    types:
+      - completed
     branches:
       - infra/ru-cloud-migration
-    paths:
-      - ".github/workflows/yandex-data-migration-dry-run.yml"
-      - ".github/workflows/yandex-data-migration.yml"
-      - "scripts/migrate-user-skeletons-to-yandex.ts"
-      - "scripts/migrate-core-data-to-yandex.ts"
-      - "scripts/yandex-db-migrate.ts"
-      - "package.json"
 
 concurrency:
   group: yandex-data-migration-dry-run
@@ -18,35 +16,25 @@ concurrency:
 
 jobs:
   dry-run:
-    name: Dry-run Supabase to Yandex migration
+    name: Dry-run Supabase to Yandex migration inside backend
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Dry-run user skeleton migration
+      - name: Call Yandex-side dry-run endpoint
         env:
-          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          ANNWORD_MIGRATION_APPLY: "false"
-          ANNWORD_MIGRATION_EMAIL_CONFLICT: skip
-        run: npm run db:migrate:users
-
-      - name: Dry-run core data migration
-        env:
-          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          ANNWORD_MIGRATION_APPLY: "false"
-          ANNWORD_MIGRATION_INCLUDE_GAME_EVENTS: "true"
-          ANNWORD_MIGRATION_INCLUDE_ANALYTICS: "false"
-        run: npm run db:migrate:core
+          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+          ANNWORD_MIGRATION_SECRET: ${{ secrets.ANNWORD_MIGRATION_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANNWORD_MIGRATION_SECRET:-}" ]; then
+            echo "ANNWORD_MIGRATION_SECRET is not configured. Skipping dry-run."
+            exit 0
+          fi
+          API_URL="${YC_API_PUBLIC_URL%/}/api/admin/migration/supabase"
+          curl --fail-with-body -sS \
+            -X POST "$API_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-AnnWord-Migration-Secret: $ANNWORD_MIGRATION_SECRET" \
+            --data '{"apply":false,"includeGameEvents":true,"includeAnalytics":false}'
