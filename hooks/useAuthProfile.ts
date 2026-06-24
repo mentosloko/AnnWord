@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { User } from '@supabase/supabase-js';
-import { authService, AuthEventName } from '../services/authService';
+import { authService, AuthEventName, AuthBootstrapResult } from '../services/authService';
 import { GUEST_PROFILE } from '../constants/profileDefaults';
 import { DictionarySource, DifficultyLevel, GameSettings, UserProfile, WordLength } from '../types';
 import { profileCache } from '../services/profileCache';
@@ -14,6 +14,27 @@ const SETTINGS_STORAGE_PREFIX = 'annword_game_settings_v1:';
 const isWordLength = (value: unknown): value is WordLength => value === 4 || value === 5 || value === 6;
 const isDictionarySource = (value: unknown): value is DictionarySource => value === 'builtin' || value === 'custom' || value === 'premium';
 const isDifficulty = (value: unknown): value is DifficultyLevel => value === 'ALL' || value === 'A1' || value === 'A2' || value === 'B1' || value === 'B2' || value === 'C1' || value === 'C2';
+const isPaymentReturn = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const payment = new URLSearchParams(window.location.search).get('payment');
+  return payment === 'success' || payment === 'fail';
+};
+const sleep = (ms: number): Promise<void> => new Promise(resolve => window.setTimeout(resolve, ms));
+const getInitialSessionWithPaymentRetry = async (paymentReturn: boolean): Promise<AuthBootstrapResult> => {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const result = await authService.getInitialSession();
+      if (!paymentReturn || result.user || attempt === 2) return result;
+    } catch (error) {
+      lastError = error;
+      if (!paymentReturn || attempt === 2) throw error;
+    }
+    await sleep(500 + attempt * 500);
+  }
+  if (lastError) throw lastError;
+  return authService.getInitialSession();
+};
 const readStoredSettings = (userId: string | null): PersistedGameSettings => {
   if (!userId || typeof window === 'undefined') return {};
   try {
@@ -55,6 +76,7 @@ export const useAuthProfile = () => {
   const hasCachedProfile = Boolean(initialSnapshot);
   const cachedProfileHasEstablishedAccess = initialProfile.role === 'admin' || Boolean(initialProfile.accountMode);
   const initialCachedUserId = initialSnapshot?.userId || null;
+  const paymentReturnRef = useRef(isPaymentReturn());
   const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus>('loading');
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
@@ -73,7 +95,7 @@ export const useAuthProfile = () => {
   const setUserProfile = useCallback((next: UserProfile | ((prev: UserProfile) => UserProfile)) => { setUserProfileState(prev => { const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(prev) : next; const safeProfile = preserveEstablishedAccountAccess(prev, resolved); profileCache.write(safeProfile, currentUserIdRef.current); return safeProfile; }); }, []);
   const resetToGuest = useCallback(() => { currentUserIdRef.current = null; setCachedUserId(null); setCurrentUser(null); profileCache.clear(); setUserProfileState(GUEST_PROFILE); setSettings(createInitialSettings()); }, []);
   const loadProfileForUser = useCallback(async (user: User) => { const { userService } = await import('../services/userService'); const profile = await userService.getOrCreateProfile(user.id, user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Пользователь', user.email || undefined); profileCache.write(profile, user.id); setUserProfileState(profile); setSettings(prev => ({ ...prev, ...readStoredSettings(user.id), username: profile.username })); }, []);
-  useEffect(() => { let cancelled = false; const finishInitialCheck = (status: AuthBootstrapStatus, error: string | null = null) => { if (cancelled) return; initialSessionCheckedRef.current = true; bootstrapCompleteRef.current = true; setBootstrapStatus(status); setBootstrapError(error); setIsRestoringSession(false); }; const failInitialCheck = (error: unknown, fallbackMessage: string) => { console.error(fallbackMessage, error); if (hasCachedProfile && cachedProfileHasEstablishedAccess) finishInitialCheck('ready'); else finishInitialCheck('error', getAuthErrorMessage(error, fallbackMessage)); }; authService.getInitialSession().then(async ({ user }) => { if (cancelled) return; if (!user) { resetToGuest(); finishInitialCheck('ready'); return; } currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); await loadProfileForUser(user); finishInitialCheck('ready'); }).catch(error => failInitialCheck(error, 'Не удалось восстановить сессию.')); const silentlySyncAuthenticatedUser = async (event: AuthEventName, user: User) => { const isFreshLogin = event === 'SIGNED_IN' && currentUserIdRef.current !== user.id; try { if (event === 'TOKEN_REFRESHED') { currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return; } if (isFreshLogin) { await loadProfileForUser(user); if (cancelled) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return; } currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); if (event === 'SIGNED_IN' || event === 'USER_UPDATED') await loadProfileForUser(user); } catch (error: unknown) { console.error('Не удалось синхронизировать профиль пользователя.', error); if (isFreshLogin && !cancelled) setAuthError(getAuthErrorMessage(error, 'Не удалось загрузить профиль пользователя.')); } finally { if (event === 'SIGNED_IN' && !cancelled) setIsAuthLoading(false); } }; const unsubscribe = authService.onAuthStateChange((event, _session, user) => { if (event === 'INITIAL_SESSION') return; if (event === 'SIGNED_OUT' || !user) { setIsAuthLoading(false); resetToGuest(); if (!initialSessionCheckedRef.current) finishInitialCheck('ready'); return; } if (!initialSessionCheckedRef.current) return; void silentlySyncAuthenticatedUser(event, user); }); return () => { cancelled = true; unsubscribe(); }; }, [cachedProfileHasEstablishedAccess, hasCachedProfile, loadProfileForUser, resetToGuest]);
+  useEffect(() => { let cancelled = false; const paymentReturn = paymentReturnRef.current; const finishInitialCheck = (status: AuthBootstrapStatus, error: string | null = null) => { if (cancelled) return; initialSessionCheckedRef.current = true; bootstrapCompleteRef.current = true; setBootstrapStatus(status); setBootstrapError(error); setIsRestoringSession(false); }; const keepCachedProfileReady = (): boolean => { if (!hasCachedProfile || !initialCachedUserId) return false; currentUserIdRef.current = initialCachedUserId; setCachedUserId(initialCachedUserId); finishInitialCheck('ready'); return true; }; const failInitialCheck = (error: unknown, fallbackMessage: string) => { console.error(fallbackMessage, error); if ((paymentReturn && keepCachedProfileReady()) || (hasCachedProfile && cachedProfileHasEstablishedAccess)) finishInitialCheck('ready'); else finishInitialCheck('error', getAuthErrorMessage(error, fallbackMessage)); }; getInitialSessionWithPaymentRetry(paymentReturn).then(async ({ user }) => { if (cancelled) return; if (!user) { if (paymentReturn && keepCachedProfileReady()) return; resetToGuest(); finishInitialCheck('ready'); return; } currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); await loadProfileForUser(user); finishInitialCheck('ready'); }).catch(error => failInitialCheck(error, 'Не удалось восстановить сессию.')); const silentlySyncAuthenticatedUser = async (event: AuthEventName, user: User) => { const isFreshLogin = event === 'SIGNED_IN' && currentUserIdRef.current !== user.id; try { if (event === 'TOKEN_REFRESHED') { currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return; } if (isFreshLogin) { await loadProfileForUser(user); if (cancelled) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return; } currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); if (event === 'SIGNED_IN' || event === 'USER_UPDATED') await loadProfileForUser(user); } catch (error: unknown) { console.error('Не удалось синхронизировать профиль пользователя.', error); if (isFreshLogin && !cancelled) setAuthError(getAuthErrorMessage(error, 'Не удалось загрузить профиль пользователя.')); } finally { if (event === 'SIGNED_IN' && !cancelled) setIsAuthLoading(false); } }; const unsubscribe = authService.onAuthStateChange((event, _session, user) => { if (event === 'INITIAL_SESSION') return; if (event === 'SIGNED_OUT' || !user) { setIsAuthLoading(false); if (paymentReturn && keepCachedProfileReady()) return; resetToGuest(); if (!initialSessionCheckedRef.current) finishInitialCheck('ready'); return; } if (!initialSessionCheckedRef.current) return; void silentlySyncAuthenticatedUser(event, user); }); return () => { cancelled = true; unsubscribe(); }; }, [cachedProfileHasEstablishedAccess, hasCachedProfile, initialCachedUserId, loadProfileForUser, resetToGuest]);
   useEffect(() => { if (!currentUser) return; setTempUsername(''); setTempPassword(''); }, [currentUser]);
   useEffect(() => { if (isRestoringSession) return; writeStoredSettings(currentUser?.id || cachedUserId, settings); }, [cachedUserId, currentUser?.id, isRestoringSession, settings]);
   const openLoginMode = useCallback(() => { setAuthMode('login'); setAuthError(null); setTempPassword(''); }, []);
