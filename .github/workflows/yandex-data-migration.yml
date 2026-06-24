@@ -39,6 +39,24 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      - name: Prepare Yandex migration schema
+        env:
+          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+          ANNWORD_MIGRATION_SECRET: ${{ secrets.ANNWORD_MIGRATION_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANNWORD_MIGRATION_SECRET:-}" ]; then
+            echo "ANNWORD_MIGRATION_SECRET is not configured. Add it to GitHub Secrets and redeploy backend."
+            exit 1
+          fi
+          API_URL="${YC_API_PUBLIC_URL%/}/api/admin/migration/prepare"
+          echo "Calling Yandex-side schema preparation endpoint at ${API_URL}"
+          curl --fail-with-body -sS \
+            -X POST "$API_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-AnnWord-Migration-Secret: $ANNWORD_MIGRATION_SECRET" \
+            --data '{}'
+
       - name: Call Yandex-side migration endpoint
         env:
           YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
@@ -48,10 +66,6 @@ jobs:
           INCLUDE_ANALYTICS: ${{ inputs.include_analytics }}
         run: |
           set -euo pipefail
-          if [ -z "${ANNWORD_MIGRATION_SECRET:-}" ]; then
-            echo "ANNWORD_MIGRATION_SECRET is not configured. Add it to GitHub Secrets and redeploy backend."
-            exit 1
-          fi
           API_URL="${YC_API_PUBLIC_URL%/}/api/admin/migration/supabase"
           BODY=$(node -e "console.log(JSON.stringify({apply: process.env.APPLY === 'true', includeGameEvents: process.env.INCLUDE_GAME_EVENTS !== 'false', includeAnalytics: process.env.INCLUDE_ANALYTICS === 'true'}))")
           echo "Calling Yandex-side migration endpoint at ${API_URL}"
