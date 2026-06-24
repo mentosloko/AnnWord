@@ -118,6 +118,8 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
           PRODAMUS_SECRET: ${{ secrets.PRODAMUS_SECRET }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          ANNWORD_MIGRATION_SECRET: ${{ secrets.ANNWORD_MIGRATION_SECRET }}
           YANDEX_CLIENT_ID: ${{ secrets.YANDEX_CLIENT_ID }}
           YANDEX_CLIENT_SECRET: ${{ secrets.YANDEX_CLIENT_SECRET }}
           S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
@@ -144,6 +146,8 @@ jobs:
             --environment JWT_SECRET="$JWT_SECRET" \
             --environment COOKIE_SECRET="$COOKIE_SECRET" \
             --environment PRODAMUS_SECRET="$PRODAMUS_SECRET" \
+            --environment SUPABASE_DATABASE_URL="$SUPABASE_DATABASE_URL" \
+            --environment ANNWORD_MIGRATION_SECRET="$ANNWORD_MIGRATION_SECRET" \
             --environment YANDEX_CLIENT_ID="$YANDEX_CLIENT_ID" \
             --environment YANDEX_CLIENT_SECRET="$YANDEX_CLIENT_SECRET" \
             --environment S3_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" \
