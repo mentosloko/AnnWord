@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { DailyQuestCompletionReward, DailyQuestState } from '../types';
+import { assetUrl } from '../services/assetUrl';
 import { getShopImageUrl } from '../services/petAssets';
 import { getWorld } from '../services/premiumFeatureCatalog';
 
-const MYSTERY_BOX_IMAGE = '/assets/rewards/mystery-box.webp';
+const MYSTERY_BOX_IMAGE = assetUrl('/assets/rewards/mystery-box.webp');
 const T = {
   hours: 'ч', minutes: 'мин', quest: 'Ежедневное испытание', petTask: 'Задание от питомца', practiceTask: 'Ежедневная практика', done: 'Выполнено', progress: 'Прогресс', openBg: 'Открыт фон', newBg: 'Награда: новый фон', boxOpen: 'Секретная коробка открыта', boxReward: 'Награда: секретная коробка', chooseRoom: 'Можно выбрать в комнате питомца', randomTreat: 'Внутри случайное лакомство', practiceTodo: 'Выполните одну короткую тренировку', practiceDone: 'Задание выполнено. Можно выбрать любую игру.', play: 'Играть', questDone: 'Задание выполнено', bgOpened: 'Новый фон открыт!', box: 'Секретная коробка!', invite: 'Питомец приглашает вас в новое место.', prepared: 'Питомец приготовил награду за сегодняшнее испытание.', roomBg: 'Фон комнаты', gotTreat: 'Выпало лакомство', reward: 'Награда', great: 'Здорово!', petRoom: 'В комнату питомца', shop: 'В магазин', viewReward: 'Посмотреть награду', rewardReceived: 'Награда получена', streak: 'Дней подряд', streakOne: 'день подряд', streakFew: 'дня подряд', streakMany: 'дней подряд'
 };
