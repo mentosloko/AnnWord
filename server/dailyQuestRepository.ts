@@ -47,13 +47,18 @@ const QUEST_VARIANTS: Array<{ kind: DailyQuestKind; variantKey: string }> = [
 ];
 
 const modeLabels: Record<string, string> = { wordle: "Классика", sprint: "Спринт", anagram: "Анаграммы", memory: "Память", hangman: "Виселица", letter_square: "Змейка", letterSquare: "Змейка" };
+const LONDON_DATE_FORMAT = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" });
 
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+function todayKey(date = new Date()): string {
+  const parts = LONDON_DATE_FORMAT.formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return year && month && day ? `${year}-${month}-${day}` : date.toISOString().slice(0, 10);
 }
 
 function formatDate(value: string | Date): string {
-  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+  return value instanceof Date ? todayKey(value) : String(value).slice(0, 10);
 }
 
 function formatDateTime(value: string | Date | null): string | null {
@@ -159,8 +164,7 @@ function qualifies(quest: DailyQuestWithVariant, input: GameRewardInput): boolea
     return input.type === "sprint" && numberFrom(input.guessedWords) >= target;
   }
   if (quest.kind === "memory_sixteen") {
-    const target = variantKey === "memory_twelve" ? 12 : variantKey === "memory_fourteen" ? 14 : variantKey === "memory_eighteen" ? 18 : variantKey === "memory_twenty" ? 20 : 16;
-    return input.type === "memory" && numberFrom(input.clicks, 999) <= target;
+    return input.type === "memory" && numberFrom(input.clicks) > 0;
   }
   if (quest.kind === "hangman_clean") {
     if (variantKey === "hangman_win") return input.type === "hangman" && boolFrom(input.won);
@@ -171,6 +175,7 @@ function qualifies(quest: DailyQuestWithVariant, input: GameRewardInput): boolea
 }
 
 export async function applyDailyQuestResult(userId: string, input: GameRewardInput): Promise<DailyQuestResult> {
+  const questDate = todayKey();
   const quest = await getOrCreateDailyQuest(userId);
   let completed = qualifies(quest, input);
 
@@ -180,7 +185,7 @@ export async function applyDailyQuestResult(userId: string, input: GameRewardInp
          from daily_quests
         where user_id = $1 and quest_date = $2
         for update`,
-      [userId, todayKey()],
+      [userId, questDate],
     );
     const row = rowResult.rows[0];
     const progress = row?.progress || { variant_key: "all_five_games", completed_modes: [] };
@@ -193,7 +198,7 @@ export async function applyDailyQuestResult(userId: string, input: GameRewardInp
               updated_at = now()
         where user_id = $1 and quest_date = $2
         returning user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id`,
-      [userId, todayKey(), JSON.stringify(progress)],
+      [userId, questDate, JSON.stringify(progress)],
     );
     completed = readCompletedModes(updatedProgress.rows[0]?.progress || {}).length >= 5;
   }
@@ -207,7 +212,7 @@ export async function applyDailyQuestResult(userId: string, input: GameRewardInp
             updated_at = now()
       where user_id = $1 and quest_date = $2
       returning user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id`,
-    [userId, todayKey()],
+    [userId, questDate],
   );
   return { quest: toQuest(updated.rows[0]), reward: null, profile: await getProfileById(userId) };
 }
