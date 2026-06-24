@@ -47,10 +47,10 @@ const QUEST_VARIANTS: Array<{ kind: DailyQuestKind; variantKey: string }> = [
 ];
 
 const modeLabels: Record<string, string> = { wordle: "Классика", sprint: "Спринт", anagram: "Анаграммы", memory: "Память", hangman: "Виселица", letter_square: "Змейка", letterSquare: "Змейка" };
-const LONDON_DATE_FORMAT = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" });
+const MOSCOW_DATE_FORMAT = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Moscow", year: "numeric", month: "2-digit", day: "2-digit" });
 
 function todayKey(date = new Date()): string {
-  const parts = LONDON_DATE_FORMAT.formatToParts(date);
+  const parts = MOSCOW_DATE_FORMAT.formatToParts(date);
   const year = parts.find((part) => part.type === "year")?.value;
   const month = parts.find((part) => part.type === "month")?.value;
   const day = parts.find((part) => part.type === "day")?.value;
