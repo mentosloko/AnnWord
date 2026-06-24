@@ -45,26 +45,45 @@ export const getDailyQuestTargetModes = (quest?: Pick<DailyQuestState, 'kind' | 
 
 export const getDailyQuestPrimaryMode = (quest?: Pick<DailyQuestState, 'kind' | 'title' | 'description'> | null): DailyQuestTargetMode => getDailyQuestTargetModes(quest)[0] || 'game';
 
+const firstDefined = (...values: unknown[]): unknown => values.find(value => value !== undefined && value !== null);
+const stringOrNull = (value: unknown): string | null => typeof value === 'string' && value.trim() ? value : null;
+const dateKeyOrNull = (value: unknown): string | null => {
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value !== 'string' || !value.trim()) return null;
+  return value.slice(0, 10);
+};
+const readCompletedModes = (value: any): string[] => {
+  const raw = firstDefined(value?.completedModes, value?.completed_modes, value?.progress?.completed_modes);
+  return Array.isArray(raw) ? raw.filter((mode): mode is string => typeof mode === 'string') : [];
+};
+
 export const normalizeDailyQuest = (value: any): DailyQuestState | null => {
-  if (!value || !value.quest_date || !value.kind) return null;
-  const kind = value.kind as DailyQuestKind;
-  const variantKey = typeof value.variant_key === 'string' ? value.variant_key : kind;
+  if (!value || typeof value !== 'object') return null;
+  const questDate = dateKeyOrNull(firstDefined(value.questDate, value.quest_date));
+  const kind = stringOrNull(value.kind) as DailyQuestKind | null;
+  if (!questDate || !kind) return null;
+
+  const variantKey = stringOrNull(firstDefined(value.variantKey, value.variant_key, value.progress?.variant_key)) || kind;
   const definition = DAILY_QUEST_DEFINITIONS[variantKey] || DAILY_QUEST_DEFINITIONS[kind];
   if (!definition) return null;
-  const completedModes = Array.isArray(value.completed_modes) ? value.completed_modes : [];
-  const rawWorldId = value.reward_world_id || value.progress?.reward_world_id;
+
+  const completed = Boolean(value.completed);
+  const completedModes = readCompletedModes(value);
+  const rawWorldId = firstDefined(value.rewardWorldId, value.reward_world_id, value.progress?.reward_world_id);
   const rewardWorldId = validWorldIds.includes(rawWorldId as PetWorldId) ? rawWorldId as PetWorldId : null;
+  const progressLabel = stringOrNull(value.progressLabel) || (kind === 'all_five_games'
+    ? `${completedModes.length}/5: ${completedModes.map((mode: string) => modeLabels[mode] || mode).join(', ') || 'начни с любой игры'}`
+    : completed ? 'Испытание выполнено' : 'Ещё не выполнено');
+
   return {
-    questDate: value.quest_date,
+    questDate,
     kind,
-    title: definition.title,
-    description: definition.description,
-    progressLabel: kind === 'all_five_games'
-      ? `${completedModes.length}/5: ${completedModes.map((mode: string) => modeLabels[mode] || mode).join(', ') || 'начни с любой игры'}`
-      : value.completed ? 'Испытание выполнено' : 'Ещё не выполнено',
-    completed: Boolean(value.completed),
-    completedAt: value.completed_at || null,
-    rewardItemId: value.reward_item_id || null,
+    title: stringOrNull(value.title) || definition.title,
+    description: stringOrNull(value.description) || definition.description,
+    progressLabel,
+    completed,
+    completedAt: stringOrNull(firstDefined(value.completedAt, value.completed_at)),
+    rewardItemId: stringOrNull(firstDefined(value.rewardItemId, value.reward_item_id)),
     rewardWorldId,
   };
 };
