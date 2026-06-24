@@ -11,6 +11,7 @@
     "api:check": "tsx scripts/yandex-api-smoke.ts",
     "api:contract": "tsx scripts/yandex-api-contract-smoke.ts",
     "db:yandex:migrate": "tsx scripts/yandex-db-migrate.ts",
+    "db:migrate:users": "tsx scripts/migrate-user-skeletons-to-yandex.ts",
     "db:migrate:core": "tsx scripts/migrate-core-data-to-yandex.ts",
     "assets:audit": "tsx scripts/audit-assets.ts",
     "daily-quest:smoke": "tsx scripts/daily-quest-smoke.ts",
