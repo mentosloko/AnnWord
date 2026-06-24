@@ -3,7 +3,7 @@ import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { query } from "../db";
-import { readRequiredEnv, runtimeConfig } from "../config";
+import { runtimeConfig } from "../config";
 import { prodamusNotifyRouter } from "./prodamusNotifyRoutes";
 
 export const paymentRouter = Router();
@@ -11,8 +11,8 @@ export const paymentRouter = Router();
 type Plan = { code: "kids_month" | "kids_year"; productName: string; amountRub: number; periodDays: 31 | 365; paidContent: string };
 
 const plans: Record<string, Plan> = {
-  kids_month: { code: "kids_month", productName: "Доступ к AnnWord Premium на 1 месяц", amountRub: 300, periodDays: 31, paidContent: "Доступ к AnnWord Premium на 1 месяц" },
-  kids_year: { code: "kids_year", productName: "Доступ к AnnWord Premium на 1 год", amountRub: 3000, periodDays: 365, paidContent: "Доступ к AnnWord Premium на 1 год" },
+  kids_month: { code: "kids_month", productName: "AnnWord Premium для ребенка — 1 месяц", amountRub: 300, periodDays: 31, paidContent: "AnnWord Premium для ребенка — 1 месяц" },
+  kids_year: { code: "kids_year", productName: "AnnWord Premium для ребенка — 1 год", amountRub: 3000, periodDays: 365, paidContent: "AnnWord Premium для ребенка — 1 год" },
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -35,7 +35,7 @@ const normalizeForSignature = (value: unknown): unknown => {
   return String(value ?? "");
 };
 const signatureBody = (payload: Record<string, unknown>): string => JSON.stringify(normalizeForSignature(payload)).replace(/\//g, "\\/");
-const sign = (payload: Record<string, unknown>): string => createHmac("sha256", readRequiredEnv("PRODAMUS_SECRET")).update(signatureBody(payload)).digest("hex");
+const sign = (payload: Record<string, unknown>): string => createHmac("sha256", runtimeConfig.prodamusSecret!).update(signatureBody(payload)).digest("hex");
 const append = (params: URLSearchParams, key: string, value: unknown): void => {
   if (value === undefined || value === null) return;
   if (Array.isArray(value)) return value.forEach((item, index) => append(params, `${key}[${index}]`, item));
@@ -48,6 +48,11 @@ paymentRouter.use(prodamusNotifyRouter);
 
 paymentRouter.post("/create", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
+    if (!runtimeConfig.prodamusSecret) {
+      res.status(503).json({ error: "Оплата Premium временно не настроена. Нужно добавить PRODAMUS_SECRET в окружение backend и повторить попытку." });
+      return;
+    }
+
     const plan = plans[String(req.body?.planCode || "")];
     if (!plan) {
       res.status(400).json({ error: "Unknown Premium plan" });
