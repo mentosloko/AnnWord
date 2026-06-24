@@ -1,6 +1,6 @@
 import { supabase } from '../supabase';
 import { GameRewardType, ViewState } from '../types';
-import { isBackendApiConfigured } from './backendApiClient';
+import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
 
 const ANALYTICS_SESSION_KEY = 'annword_analytics_session_id';
 const ANALYTICS_QUEUE_KEY = 'annword_analytics_queue_v1';
@@ -84,16 +84,6 @@ const persistQueue = (): void => {
   }
 };
 
-const clearQueue = (): void => {
-  queue = [];
-  if (!isBrowser()) return;
-  try {
-    window.localStorage.removeItem(ANALYTICS_QUEUE_KEY);
-  } catch {
-    // Analytics must never break the app.
-  }
-};
-
 export const getAnalyticsSessionId = (): string | null => {
   if (!isBrowser()) return null;
 
@@ -141,7 +131,14 @@ export const createAnalyticsEvent = ({ userId, eventType, eventName, gameType = 
 
 const sendEvents = async (events: QueuedAnalyticsEvent[]): Promise<void> => {
   if (events.length === 0) return;
-  if (isBackendApiConfigured) return;
+  if (isBackendApiConfigured) {
+    await backendApiRequest('/api/analytics/events', {
+      method: 'POST',
+      body: { events },
+    });
+    return;
+  }
+
   const { error } = await supabase.rpc('record_analytics_events', { p_events: events });
   if (error) throw error;
 };
@@ -163,7 +160,6 @@ export const analyticsService = {
   createEvent: createAnalyticsEvent,
 
   trackEvent: (input: TrackEventInput): void => {
-    if (isBackendApiConfigured) return;
     try {
       readQueue().push(createAnalyticsEvent(input));
       persistQueue();
@@ -174,10 +170,6 @@ export const analyticsService = {
   },
 
   flush: async (): Promise<void> => {
-    if (isBackendApiConfigured) {
-      clearQueue();
-      return;
-    }
     if (isFlushing) return;
     const currentQueue = readQueue();
     if (currentQueue.length === 0) return;
@@ -201,7 +193,6 @@ export const analyticsService = {
   },
 
   sendNow: async (events: QueuedAnalyticsEvent[]): Promise<void> => {
-    if (isBackendApiConfigured) return;
     try {
       await sendEvents(events);
       consecutiveFlushFailures = 0;
