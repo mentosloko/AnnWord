@@ -156,6 +156,21 @@ const scheduleFlush = (): void => {
   }, getFlushDelay());
 };
 
+const flushBatchInBackground = async (batch: QueuedAnalyticsEvent[]): Promise<void> => {
+  try {
+    await sendEvents(batch);
+    consecutiveFlushFailures = 0;
+  } catch (error) {
+    consecutiveFlushFailures += 1;
+    queue = [...batch, ...readQueue()].slice(-MAX_STORED_EVENTS);
+    persistQueue();
+    console.warn('Analytics flush failed', { error, consecutiveFlushFailures, retryInMs: getFlushDelay() });
+  } finally {
+    isFlushing = false;
+    if (readQueue().length > 0) scheduleFlush();
+  }
+};
+
 export const analyticsService = {
   createEvent: createAnalyticsEvent,
 
@@ -177,19 +192,7 @@ export const analyticsService = {
     isFlushing = true;
     const batch = currentQueue.splice(0, MAX_BATCH_SIZE);
     persistQueue();
-
-    try {
-      await sendEvents(batch);
-      consecutiveFlushFailures = 0;
-    } catch (error) {
-      consecutiveFlushFailures += 1;
-      queue = [...batch, ...readQueue()].slice(-MAX_STORED_EVENTS);
-      persistQueue();
-      console.warn('Analytics flush failed', { error, consecutiveFlushFailures, retryInMs: getFlushDelay() });
-    } finally {
-      isFlushing = false;
-      if (readQueue().length > 0) scheduleFlush();
-    }
+    void flushBatchInBackground(batch);
   },
 
   sendNow: async (events: QueuedAnalyticsEvent[]): Promise<void> => {
