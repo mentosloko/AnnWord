@@ -22,6 +22,8 @@ export const authRouter = Router();
 
 const readText = (value: unknown): string => (typeof value === "string" ? value : "");
 const field = ["creden", "tial"].join("");
+const isLegacyMigratedPassword = (hash: string): boolean => hash.startsWith("migration-disabled-") || !hash.startsWith("scrypt$");
+const legacyPasswordMessage = "Этот аккаунт перенесён из старой системы, но старый пароль не был перенесён. Войдите через Яндекс с тем же email, затем задайте новый пароль в профиле.";
 
 authRouter.post("/email/account", async (req, res) => {
   try {
@@ -44,6 +46,7 @@ authRouter.post("/email/account", async (req, res) => {
     res.status(201).json(makeSessionPayload(user, token));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Account create failed";
+    console.error("Email account create failed", error);
     res.status(/duplicate|unique/i.test(message) ? 409 : 400).json({ error: message });
   }
 });
@@ -52,6 +55,10 @@ authRouter.post("/email/session", async (req, res) => {
   try {
     const body = req.body || {};
     const user = await findUserByEmail(readText(body.email));
+    if (user && (user.passwordResetRequired || isLegacyMigratedPassword(user.passwordHash))) {
+      res.status(403).json({ error: legacyPasswordMessage, code: "legacy_password_reset_required" });
+      return;
+    }
     const supplied = readText(body[field]);
     const accepted = user ? verifyPassword(supplied, user.passwordHash) : false;
     if (!user || !accepted) {
