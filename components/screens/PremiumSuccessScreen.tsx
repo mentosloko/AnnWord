@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { UserProfile } from '../../types';
 import { isKidsMode } from '../../services/modeFlags';
 import { formatPremiumExpiresAt } from '../../services/premiumAccess';
@@ -19,6 +19,14 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
     ? ['Детские темы: школа, дом, животные, еда', 'Слова для первых классов', 'Тренировка по словам из школы или курса']
     : ['Тематические словари по задачам', 'Слова по уровням A1–C2', 'Тренировка по вашему списку слов'];
   const confirmed = Boolean(userProfile.premiumExpiresAt);
+  const refreshScheduledRef = useRef(false);
+
+  useEffect(() => {
+    if (confirmed || refreshScheduledRef.current || typeof window === 'undefined') return;
+    refreshScheduledRef.current = true;
+    const timer = window.setTimeout(() => window.location.reload(), 3500);
+    return () => window.clearTimeout(timer);
+  }, [confirmed]);
 
   return <ScreenContainer className="max-w-5xl pb-20 pt-8">
     <section className="overflow-hidden rounded-[2.5rem] border-2 border-green-100 bg-white shadow-sm">
@@ -27,7 +35,7 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
           <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white text-5xl shadow-sm" aria-hidden="true">✅</div>
           <div className="mt-6 inline-flex rounded-full bg-green-100 px-4 py-2 text-xs font-black uppercase tracking-widest text-green-700">{confirmed ? 'Premium активен' : 'Оплата принята'}</div>
           <h1 className="mt-4 text-4xl font-black leading-tight text-indigo-950 sm:text-5xl">{confirmed ? (kidsMode ? 'Kids Premium подключён' : 'AnnWord Premium подключён') : title}</h1>
-          <p className="mt-4 text-base font-bold leading-relaxed text-gray-600">{confirmed ? 'Доступ уже активирован. Теперь можно выбрать тему или добавить слова, которые нужно повторить в играх.' : 'Мы ждём серверное подтверждение оплаты. Обычно это занимает немного времени; после подтверждения Premium включится автоматически.'}</p>
+          <p className="mt-4 text-base font-bold leading-relaxed text-gray-600">{confirmed ? 'Доступ уже активирован. Теперь можно выбрать тему или добавить слова, которые нужно повторить в играх.' : 'Мы ждём серверное подтверждение оплаты. Обычно это занимает немного времени; страница один раз обновится автоматически, чтобы подтянуть Premium.'}</p>
           {userProfile.premiumExpiresAt && <p className="mt-4 rounded-2xl bg-white/80 px-4 py-3 text-sm font-black text-green-700">Premium активен до: {formatPremiumExpiresAt(userProfile.premiumExpiresAt)}</p>}
         </div>
         <div className="flex flex-col justify-center">
