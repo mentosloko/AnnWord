@@ -29,15 +29,16 @@ const writeWebhookLog = async (body: Record<string, unknown>, status: string, si
   await query(`insert into prodamus_webhook_events (provider_order_id, provider_payment_id, status, signature_valid, is_paid, error, raw_payload) values ($1, $2, $3, $4, $5, $6, $7::jsonb)`, [readProviderOrderId(body) || null, readProviderPaymentId(body) || null, status, signatureValid, paid, error instanceof Error ? error.message : typeof error === "string" ? error : null, JSON.stringify(body)]).catch(logError => console.error("Failed to write Prodamus webhook log", logError));
 };
 const isOrderNotFound = (error: unknown): boolean => error instanceof Error && /payment order not found/i.test(error.message);
+const ok = (res: { status: (code: number) => { json: (body: unknown) => void } }, status: string = "ok"): void => res.status(200).json({ status });
 
 prodamusNotifyRouter.post("/notify", async (req, res) => {
   const body = (isObject(req.body) ? req.body : {}) as Record<string, unknown>;
   try {
     const trusted = isTrusted(req.headers as Record<string, unknown>, body);
     const paid = isPaidPayload(body);
-    if (!trusted) { await writeWebhookLog(body, "bad_signature", false, paid); res.status(401).send("Bad signature"); return; }
+    if (!trusted) { await writeWebhookLog(body, "bad_signature", false, paid); res.status(401).json({ status: "bad_signature" }); return; }
     const providerOrderId = readProviderOrderId(body);
-    if (!providerOrderId) { await writeWebhookLog(body, "missing_order_id", true, paid); res.status(200).send("OK"); return; }
+    if (!providerOrderId) { await writeWebhookLog(body, "missing_order_id", true, paid); ok(res, "missing_order_id"); return; }
     const providerPaymentId = readProviderPaymentId(body) || null;
     if (paid) {
       try {
@@ -47,15 +48,15 @@ prodamusNotifyRouter.post("/notify", async (req, res) => {
         if (!isOrderNotFound(error)) throw error;
         await writeWebhookLog(body, "order_not_found", true, true, error);
       }
-      res.status(200).send("OK");
+      ok(res);
       return;
     }
     await query("update premium_payments set status = 'ignored', provider_payment_id = $1, raw_payload = $2::jsonb where provider = 'prodamus' and provider_order_id = $3 and status <> 'paid'", [providerPaymentId, JSON.stringify(body), providerOrderId]);
     await writeWebhookLog(body, "ignored", true, false);
-    res.status(200).send("OK");
+    ok(res, "ignored");
   } catch (error) {
     console.error("Prodamus notify failed", error);
     await writeWebhookLog(body, "error", null, null, error);
-    res.status(500).send(error instanceof Error ? error.message : "Webhook failed");
+    res.status(500).json({ status: "error", error: error instanceof Error ? error.message : "Webhook failed" });
   }
 });
