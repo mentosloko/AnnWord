@@ -1,10 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
+import { createHash, randomBytes } from "node:crypto";
 import cors from "cors";
 import dotenv from "dotenv";
 import express, { type Request, type Response } from "express";
-import { checkDatabaseHealth, closeDatabasePool } from "./db";
+import { checkDatabaseHealth, closeDatabasePool, query, transaction } from "./db";
 import { runtimeConfig } from "./config";
+import { createSessionToken, makeSessionPayload, writeSessionCookie, type BackendUser } from "./auth";
+import { appBack, completeYa } from "./ya";
 import { authRouter } from "./routes/authRoutes";
 import { profileRouter } from "./routes/profileRoutes";
 import { paymentRouter } from "./routes/paymentRoutes";
@@ -29,22 +32,51 @@ const rewriteSessionCookie = (cookie: string): string => {
   const withSecure = /;\s*Secure/i.test(withoutSameSite) ? withoutSameSite : `${withoutSameSite}; Secure`;
   return `${withSecure}; SameSite=None`;
 };
-const isYandexOAuthCallback = (req: Request): boolean => {
-  const originalPath = (req.originalUrl || req.url || "").split("?")[0];
-  return originalPath === "/api/auth/yandex/callback";
-};
-const rewriteFrontendRedirectToApiOrigin = (location: string): string => {
-  if (!runtimeConfig.apiUrl) return location;
-  try {
-    const target = new URL(location);
-    const apiOrigin = new URL(runtimeConfig.apiUrl);
-    target.protocol = apiOrigin.protocol;
-    target.host = apiOrigin.host;
-    return target.toString();
-  } catch {
-    return location;
-  }
-};
+const readText = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
+const hashHandoff = (value: string): string => createHash("sha256").update(value).digest("hex");
+const newHandoff = (): string => randomBytes(32).toString("base64url");
+
+async function createYandexHandoff(user: BackendUser): Promise<string> {
+  const code = newHandoff();
+  await query(
+    `insert into oauth_handoffs (code_hash, user_id, expires_at)
+     values ($1, $2, now() + interval '5 minutes')`,
+    [hashHandoff(code), user.id],
+  );
+  await query("delete from oauth_handoffs where expires_at < now() - interval '1 day' or consumed_at < now() - interval '1 day'");
+  return code;
+}
+
+async function consumeYandexHandoff(code: string): Promise<BackendUser | null> {
+  if (!code || code.length < 20) return null;
+  return transaction(async (client) => {
+    const result = await client.query<{
+      code_hash: string;
+      id: string;
+      email: string;
+      full_name: string | null;
+      password_reset_required: boolean;
+    }>(
+      `select h.code_hash, u.id, u.email, u.full_name, u.password_reset_required
+         from oauth_handoffs h
+         join app_users u on u.id = h.user_id
+        where h.code_hash = $1
+          and h.consumed_at is null
+          and h.expires_at > now()
+        for update of h`,
+      [hashHandoff(code)],
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+    await client.query("update oauth_handoffs set consumed_at = now() where code_hash = $1", [row.code_hash]);
+    return {
+      id: row.id,
+      email: row.email,
+      name: row.full_name || undefined,
+      passwordResetRequired: row.password_reset_required,
+    } satisfies BackendUser;
+  });
+}
 
 app.disable("x-powered-by");
 app.use((req, res, next) => {
@@ -53,11 +85,6 @@ app.use((req, res, next) => {
     if (typeof name === "string" && name.toLowerCase() === "set-cookie") {
       if (Array.isArray(value)) return originalSetHeader(name, value.map(rewriteSessionCookie));
       if (typeof value === "string") return originalSetHeader(name, rewriteSessionCookie(value));
-    }
-    if (typeof name === "string" && name.toLowerCase() === "location" && typeof value === "string" && isYandexOAuthCallback(req)) {
-      const rewritten = rewriteFrontendRedirectToApiOrigin(value);
-      console.log("Yandex OAuth callback redirect", { toApiOrigin: rewritten !== value });
-      return originalSetHeader(name, rewritten);
     }
     return originalSetHeader(name, value);
   }) as typeof res.setHeader;
@@ -131,6 +158,44 @@ app.get("/api/payments/prodamus/notify", (_req: Request, res: Response) => {
 });
 app.head("/api/payments/prodamus/notify", (_req: Request, res: Response) => {
   res.status(200).end();
+});
+
+app.get("/api/auth/yandex/callback", async (req: Request, res: Response) => {
+  try {
+    const fail = readText(req.query.error);
+    if (fail) {
+      res.redirect(302, appBack({ auth_error: fail }));
+      return;
+    }
+    const yandexCode = readText(req.query.code);
+    if (!yandexCode) {
+      res.redirect(302, appBack({ auth_error: "missing_yandex_code" }));
+      return;
+    }
+    const user = await completeYa(req, yandexCode);
+    const appCode = await createYandexHandoff(user);
+    console.log("Yandex OAuth handoff created", { userId: user.id });
+    res.redirect(302, appBack({ auth: "yandex", oauth_code: appCode }));
+  } catch (error) {
+    console.error("Yandex OAuth callback failed", error);
+    res.redirect(302, appBack({ auth_error: error instanceof Error ? error.message : "yandex_auth_failed" }));
+  }
+});
+
+app.post("/api/auth/yandex/exchange", async (req: Request, res: Response) => {
+  try {
+    const user = await consumeYandexHandoff(readText((req.body || {}).code));
+    if (!user) {
+      res.status(401).json({ error: "Invalid or expired Yandex login code" });
+      return;
+    }
+    const sessionToken = createSessionToken(user);
+    writeSessionCookie(res, sessionToken);
+    res.json(makeSessionPayload(user, sessionToken));
+  } catch (error) {
+    console.error("Yandex OAuth exchange failed", error);
+    res.status(400).json({ error: error instanceof Error ? error.message : "Yandex exchange failed" });
+  }
 });
 
 app.use("/api/auth", authRouter);
