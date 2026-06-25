@@ -19,20 +19,52 @@ dotenv.config();
 const app = express();
 
 const SESSION_COOKIE_PREFIX = "annword_session=";
+const OAUTH_HANDOFF_HASH_KEY = "annword_backend_session";
 const rewriteSessionCookie = (cookie: string): string => {
   if (!cookie.startsWith(SESSION_COOKIE_PREFIX) || process.env.NODE_ENV !== "production") return cookie;
   const withoutSameSite = cookie.replace(/;\s*SameSite=(Lax|Strict|None)/i, "");
   const withSecure = /;\s*Secure/i.test(withoutSameSite) ? withoutSameSite : `${withoutSameSite}; Secure`;
   return `${withSecure}; SameSite=None`;
 };
+const readSessionCookieToken = (cookie: string): string | null => {
+  if (!cookie.startsWith(SESSION_COOKIE_PREFIX)) return null;
+  return decodeURIComponent(cookie.slice(SESSION_COOKIE_PREFIX.length).split(";")[0] || "") || null;
+};
+const appendOAuthHandoff = (location: string, token: string | null): string => {
+  if (!token) return location;
+  try {
+    const target = new URL(location);
+    const hash = new URLSearchParams(target.hash.replace(/^#/, ""));
+    hash.set(OAUTH_HANDOFF_HASH_KEY, token);
+    target.hash = hash.toString();
+    return target.toString();
+  } catch {
+    return location;
+  }
+};
 
 app.disable("x-powered-by");
-app.use((_req, res, next) => {
+app.use((req, res, next) => {
   const originalSetHeader = res.setHeader.bind(res);
+  let oauthSessionToken: string | null = null;
   res.setHeader = ((name: string, value: number | string | readonly string[]) => {
     if (typeof name === "string" && name.toLowerCase() === "set-cookie") {
-      if (Array.isArray(value)) return originalSetHeader(name, value.map(rewriteSessionCookie));
-      if (typeof value === "string") return originalSetHeader(name, rewriteSessionCookie(value));
+      if (Array.isArray(value)) {
+        const rewritten = value.map((cookie) => {
+          const token = readSessionCookieToken(cookie);
+          if (token) oauthSessionToken = token;
+          return rewriteSessionCookie(cookie);
+        });
+        return originalSetHeader(name, rewritten);
+      }
+      if (typeof value === "string") {
+        const token = readSessionCookieToken(value);
+        if (token) oauthSessionToken = token;
+        return originalSetHeader(name, rewriteSessionCookie(value));
+      }
+    }
+    if (typeof name === "string" && name.toLowerCase() === "location" && typeof value === "string" && req.path === "/api/auth/yandex/callback") {
+      return originalSetHeader(name, appendOAuthHandoff(value, oauthSessionToken));
     }
     return originalSetHeader(name, value);
   }) as typeof res.setHeader;
