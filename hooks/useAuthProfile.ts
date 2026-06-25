@@ -85,7 +85,18 @@ const writeStoredSettings = (userId: string | null, settings: GameSettings): voi
     // Local preference persistence must not break auth/profile loading.
   }
 };
-const isUserProfile = (value: unknown): value is UserProfile => Boolean(value) && typeof value === 'object' && typeof (value as UserProfile).id === 'string' && typeof (value as UserProfile).username === 'string';
+const isUserProfile = (value: unknown): value is UserProfile => {
+  if (!value || typeof value !== 'object') return false;
+  const profile = value as Partial<UserProfile>;
+  return typeof profile.username === 'string'
+    && Array.isArray(profile.customDictionaryEn)
+    && Boolean(profile.stats)
+    && typeof profile.stats === 'object'
+    && Boolean(profile.pet)
+    && typeof profile.pet === 'object'
+    && typeof profile.coins === 'number'
+    && Array.isArray(profile.inventory);
+};
 
 export const createInitialSettings = (): GameSettings => ({ wordLength: 5, useCustomDictionary: false, dictionarySource: 'builtin', difficulty: 'ALL', username: 'Гость' });
 const getAuthErrorMessage = (error: unknown, fallback: string): string => { const message = error instanceof Error ? error.message : typeof error === 'object' && error && 'message' in error ? String((error as { message?: unknown }).message || '') : ''; const normalized = message.toLowerCase(); if (normalized.includes('перенесён из старой системы') || normalized.includes('legacy_password_reset_required')) return message || 'Аккаунт перенесён из старой системы. Войдите через Яндекс с тем же email.'; if (normalized.includes('invalid login credentials')) return 'Неверная электронная почта или пароль.'; if (normalized.includes('email not confirmed')) return 'Подтвердите электронную почту перед входом.'; if (normalized.includes('user already registered') || normalized.includes('already been registered') || normalized.includes('already exists') || normalized.includes('duplicate key') || normalized.includes('уже существует')) return 'Аккаунт с такой электронной почтой уже существует.'; if (normalized.includes('password should be') || normalized.includes('weak password')) return 'Пароль слишком простой или короткий.'; if (normalized.includes('rate limit') || normalized.includes('too many requests')) return 'Слишком много попыток. Попробуйте позже.'; if (normalized.includes('network') || normalized.includes('fetch')) return 'Не удалось подключиться к серверу. Проверьте интернет и попробуйте снова.'; return message || fallback; };
