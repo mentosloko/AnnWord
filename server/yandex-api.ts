@@ -29,6 +29,10 @@ const rewriteSessionCookie = (cookie: string): string => {
   const withSecure = /;\s*Secure/i.test(withoutSameSite) ? withoutSameSite : `${withoutSameSite}; Secure`;
   return `${withSecure}; SameSite=None`;
 };
+const isYandexOAuthCallback = (req: Request): boolean => {
+  const originalPath = (req.originalUrl || req.url || "").split("?")[0];
+  return originalPath === "/api/auth/yandex/callback";
+};
 const rewriteFrontendRedirectToApiOrigin = (location: string): string => {
   if (!runtimeConfig.apiUrl) return location;
   try {
@@ -50,8 +54,10 @@ app.use((req, res, next) => {
       if (Array.isArray(value)) return originalSetHeader(name, value.map(rewriteSessionCookie));
       if (typeof value === "string") return originalSetHeader(name, rewriteSessionCookie(value));
     }
-    if (typeof name === "string" && name.toLowerCase() === "location" && typeof value === "string" && req.path === "/api/auth/yandex/callback") {
-      return originalSetHeader(name, rewriteFrontendRedirectToApiOrigin(value));
+    if (typeof name === "string" && name.toLowerCase() === "location" && typeof value === "string" && isYandexOAuthCallback(req)) {
+      const rewritten = rewriteFrontendRedirectToApiOrigin(value);
+      console.log("Yandex OAuth callback redirect", { toApiOrigin: rewritten !== value });
+      return originalSetHeader(name, rewritten);
     }
     return originalSetHeader(name, value);
   }) as typeof res.setHeader;
