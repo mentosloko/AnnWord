@@ -67,6 +67,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
   const title = mode === 'login' ? 'Вход' : 'Регистрация';
+  const showLegacyRecoveryHint = mode === 'login' && Boolean(error);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" role="presentation">
@@ -86,7 +87,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {error && (
           <div id="auth-modal-error" className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-600" role="alert">
-            ⚠️ {error}
+            <p>⚠️ {error}</p>
+            {showLegacyRecoveryHint && (
+              <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 p-3 text-left text-xs font-bold leading-relaxed text-amber-800">
+                <p>Если это старый аккаунт AnnWord до переноса, старый пароль мог не сохраниться. Попробуйте войти через Яндекс с тем же email — профиль будет подтянут автоматически.</p>
+                <button type="button" disabled={isLoading} onClick={onYandexLogin} className="mt-2 w-full rounded-lg bg-amber-500 px-3 py-2 text-sm font-black text-white transition hover:bg-amber-600 disabled:cursor-wait disabled:opacity-70">Войти через Яндекс</button>
+              </div>
+            )}
           </div>
         )}
 
@@ -114,11 +121,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               id="auth-password"
               required
               type="password"
-              minLength={8}
+              minLength={mode === 'register' ? 8 : undefined}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
-              placeholder="минимум 8 символов"
+              placeholder={mode === 'login' ? 'ваш пароль' : 'минимум 8 символов'}
               className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none"
             />
           </div>
