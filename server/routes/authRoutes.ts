@@ -23,7 +23,8 @@ export const authRouter = Router();
 const readText = (value: unknown): string => (typeof value === "string" ? value : "");
 const field = ["creden", "tial"].join("");
 const isLegacyMigratedPassword = (hash: string): boolean => hash.startsWith("migration-disabled-") || !hash.startsWith("scrypt$");
-const legacyPasswordMessage = "Этот аккаунт перенесён из старой системы, но старый пароль не был перенесён. Войдите через Яндекс с тем же email, затем задайте новый пароль в профиле.";
+const legacyPasswordMessage = "Этот аккаунт перенесён из старой системы, но старый пароль не был перенесён. Войдите через Яндекс с тем же email — так мы сможем подтянуть ваш профиль.";
+const invalidLoginMessage = "Неверная электронная почта или пароль. Если это старый аккаунт AnnWord до переноса, старый пароль мог не сохраниться. Попробуйте войти через Яндекс с тем же email.";
 const writeSession = (res: { json: (body: unknown) => void; status: (code: number) => { json: (body: unknown) => void } }, user: BackendUser, status = 200): void => {
   const token = createSessionToken(user);
   writeSessionCookie(res as never, token);
@@ -75,7 +76,7 @@ authRouter.post("/email/session", async (req, res) => {
     const supplied = readText(body[field]);
     const accepted = user ? verifyPassword(supplied, user.passwordHash) : false;
     if (!user || !accepted) {
-      res.status(401).json({ error: "Invalid email or credential" });
+      res.status(401).json({ error: invalidLoginMessage });
       return;
     }
     writeSession(res, user);
