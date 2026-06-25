@@ -24,10 +24,15 @@ const readText = (value: unknown): string => (typeof value === "string" ? value 
 const field = ["creden", "tial"].join("");
 const isLegacyMigratedPassword = (hash: string): boolean => hash.startsWith("migration-disabled-") || !hash.startsWith("scrypt$");
 const legacyPasswordMessage = "Этот аккаунт перенесён из старой системы, но старый пароль не был перенесён. Войдите через Яндекс с тем же email, затем задайте новый пароль в профиле.";
+const writeSession = (res: { json: (body: unknown) => void; status: (code: number) => { json: (body: unknown) => void } }, user: BackendUser, status = 200): void => {
+  const token = createSessionToken(user);
+  writeSessionCookie(res as never, token);
+  res.status(status).json(makeSessionPayload(user, token));
+};
 
 authRouter.post("/email/account", async (req, res) => {
+  const body = req.body || {};
   try {
-    const body = req.body || {};
     const input = validateNewUserInput(readText(body.email), readText(body[field]), readText(body.name));
     const user = await transaction(async (client) => {
       const id = newUserId();
@@ -41,13 +46,21 @@ authRouter.post("/email/account", async (req, res) => {
       const row = result.rows[0];
       return { id: row.id, email: row.email, name: row.full_name || undefined, passwordResetRequired: row.password_reset_required } satisfies BackendUser;
     });
-    const token = createSessionToken(user);
-    writeSessionCookie(res, token);
-    res.status(201).json(makeSessionPayload(user, token));
+    writeSession(res, user, 201);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Account create failed";
     console.error("Email account create failed", error);
-    res.status(/duplicate|unique/i.test(message) ? 409 : 400).json({ error: message });
+    if (/duplicate|unique/i.test(message)) {
+      const user = await findUserByEmail(readText(body.email)).catch(() => null);
+      const supplied = readText(body[field]);
+      if (user && !user.passwordResetRequired && !isLegacyMigratedPassword(user.passwordHash) && verifyPassword(supplied, user.passwordHash)) {
+        writeSession(res, user);
+        return;
+      }
+      res.status(409).json({ error: "Аккаунт с такой электронной почтой уже существует." });
+      return;
+    }
+    res.status(400).json({ error: message });
   }
 });
 
@@ -65,9 +78,7 @@ authRouter.post("/email/session", async (req, res) => {
       res.status(401).json({ error: "Invalid email or credential" });
       return;
     }
-    const token = createSessionToken(user);
-    writeSessionCookie(res, token);
-    res.json(makeSessionPayload(user, token));
+    writeSession(res, user);
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : "Session create failed" });
   }
