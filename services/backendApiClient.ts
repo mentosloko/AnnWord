@@ -62,7 +62,7 @@ export async function backendApiRequest<T>(path: string, options: RequestOptions
   const response = await fetch(`${backendApiBaseUrl}${path}`, {
     method: options.method || "GET",
     headers,
-    credentials: "omit",
+    credentials: "include",
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
 
