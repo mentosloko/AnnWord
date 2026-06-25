@@ -101,6 +101,13 @@ app.get("/api/runtime-config", (_req: Request, res: Response) => {
   });
 });
 
+app.get("/api/payments/prodamus/notify", (_req: Request, res: Response) => {
+  res.status(200).send("OK");
+});
+app.head("/api/payments/prodamus/notify", (_req: Request, res: Response) => {
+  res.status(200).end();
+});
+
 app.use("/api/auth", authRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api/payments/prodamus", paymentRouter);
