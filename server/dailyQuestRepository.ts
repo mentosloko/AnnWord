@@ -146,7 +146,7 @@ function completedModeFromInput(input: GameRewardInput): string | null {
   if (input.type === "wordle" && boolFrom(input.won)) return "wordle";
   if (input.type === "sprint" && numberFrom(input.guessedWords) > 0) return "sprint";
   if (input.type === "anagram" && numberFrom(input.guessedWords) > 0) return "anagram";
-  if (input.type === "memory" && (boolFrom((input as { won?: unknown }).won) || numberFrom(input.clicks) > 0)) return "memory";
+  if (input.type === "memory") return "memory";
   if (input.type === "hangman" && boolFrom(input.won)) return "hangman";
   return null;
 }
