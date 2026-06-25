@@ -15,4 +15,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["sh", "scripts/start-yandex-api.sh"]
+CMD ["npm", "run", "api:start"]
