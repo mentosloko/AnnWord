@@ -18,7 +18,26 @@ dotenv.config();
 
 const app = express();
 
+const SESSION_COOKIE_PREFIX = "annword_session=";
+const rewriteSessionCookie = (cookie: string): string => {
+  if (!cookie.startsWith(SESSION_COOKIE_PREFIX) || process.env.NODE_ENV !== "production") return cookie;
+  const withoutSameSite = cookie.replace(/;\s*SameSite=(Lax|Strict|None)/i, "");
+  const withSecure = /;\s*Secure/i.test(withoutSameSite) ? withoutSameSite : `${withoutSameSite}; Secure`;
+  return `${withSecure}; SameSite=None`;
+};
+
 app.disable("x-powered-by");
+app.use((_req, res, next) => {
+  const originalSetHeader = res.setHeader.bind(res);
+  res.setHeader = ((name: string, value: number | string | readonly string[]) => {
+    if (typeof name === "string" && name.toLowerCase() === "set-cookie") {
+      if (Array.isArray(value)) return originalSetHeader(name, value.map(rewriteSessionCookie));
+      if (typeof value === "string") return originalSetHeader(name, rewriteSessionCookie(value));
+    }
+    return originalSetHeader(name, value);
+  }) as typeof res.setHeader;
+  next();
+});
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use((req, _res, next) => {
