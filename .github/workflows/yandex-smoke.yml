@@ -45,6 +45,18 @@ jobs:
           echo "Checking runtime config"
           curl --fail-with-body -sS "$API_URL/api/runtime-config" | tee /tmp/annword-runtime-config.json
 
+          echo "Checking Prodamus notify URL probe"
+          curl --fail-with-body -sS "$API_URL/api/payments/prodamus/notify" | grep -q "OK"
+          curl --fail-with-body -sS -I "$API_URL/api/payments/prodamus/notify" | head -n 20
+
+          echo "Checking migration endpoint is closed"
+          MIGRATION_STATUS=$(curl -sS -o /tmp/annword-migration-response.json -w "%{http_code}" -X POST "$API_URL/api/admin/migration/supabase" -H 'Content-Type: application/json' --data '{"apply":false}')
+          if [ "$MIGRATION_STATUS" != "404" ]; then
+            echo "Migration endpoint is not closed; status=$MIGRATION_STATUS"
+            cat /tmp/annword-migration-response.json
+            exit 1
+          fi
+
           node - <<'NODE'
           const fs = require('fs');
           const health = JSON.parse(fs.readFileSync('/tmp/annword-health.json', 'utf8'));
