@@ -121,7 +121,7 @@ export async function getOrCreateDailyQuest(userId: string): Promise<DailyQuestW
 
   const variant = pickVariant(userId, questDate);
   const progress = variant.kind === "all_five_games"
-    ? { variant_key: variant.variantKey, completed_modes: [], anagram_words: 0 }
+    ? { variant_key: variant.variantKey, completed_modes: [] }
     : { variant_key: variant.variantKey };
   const created = await query<DailyQuestRow>(
     `insert into daily_quests (user_id, quest_date, kind, progress)
@@ -144,9 +144,9 @@ function boolFrom(value: unknown): boolean {
 
 function completedModeFromInput(input: GameRewardInput): string | null {
   if (input.type === "wordle" && boolFrom(input.won)) return "wordle";
-  if (input.type === "sprint" && numberFrom(input.guessedWords) >= 6) return "sprint";
-  if (input.type === "anagram" && numberFrom(input.guessedWords) >= 5) return "anagram";
-  if (input.type === "memory" && numberFrom(input.clicks) > 0) return "memory";
+  if (input.type === "sprint" && numberFrom(input.guessedWords) > 0) return "sprint";
+  if (input.type === "anagram" && numberFrom(input.guessedWords) > 0) return "anagram";
+  if (input.type === "memory" && (boolFrom((input as { won?: unknown }).won) || numberFrom(input.clicks) > 0)) return "memory";
   if (input.type === "hangman" && boolFrom(input.won)) return "hangman";
   return null;
 }
