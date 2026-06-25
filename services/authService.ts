@@ -1,6 +1,6 @@
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
-import { BackendApiError, backendApiBaseUrl, backendApiRequest, isBackendApiConfigured } from './backendApiClient';
+import { BackendApiError, backendApiBaseUrl, backendApiRequest, isBackendApiConfigured, writeBackendAccessToken } from './backendApiClient';
 
 export interface AuthBootstrapResult {
   session: Session | null;
@@ -151,9 +151,13 @@ export const authService = {
 
   signOut: async (): Promise<void> => {
     if (isBackendApiConfigured) {
-      await backendApiRequest<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
+      const logoutRequest = backendApiRequest<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }).catch((error) => {
+        console.warn('Backend logout request failed after local sign-out', error);
+      });
+      writeBackendAccessToken(null);
       currentBackendAuth = { session: null, user: null };
       emitBackendAuth('SIGNED_OUT', currentBackendAuth);
+      await logoutRequest;
       return;
     }
 
