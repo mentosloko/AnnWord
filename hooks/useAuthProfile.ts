@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { authService, AuthEventName, AuthBootstrapResult } from '../services/authService';
+import { backendApiRequest, isBackendApiConfigured } from '../services/backendApiClient';
 import { GUEST_PROFILE } from '../constants/profileDefaults';
 import { DictionarySource, DifficultyLevel, GameSettings, UserProfile, WordLength } from '../types';
 import { profileCache } from '../services/profileCache';
@@ -19,8 +20,26 @@ const isPaymentReturn = (): boolean => {
   const payment = new URLSearchParams(window.location.search).get('payment');
   return payment === 'success' || payment === 'fail';
 };
+const takeYandexOauthCode = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('oauth_code');
+  if (!code) return null;
+  params.delete('oauth_code');
+  params.delete('auth');
+  const query = params.toString();
+  window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}` || '/');
+  return code;
+};
+const consumeYandexOauthCode = async (): Promise<void> => {
+  if (!isBackendApiConfigured) return;
+  const code = takeYandexOauthCode();
+  if (!code) return;
+  await backendApiRequest('/api/auth/yandex/exchange', { method: 'POST', body: { code } });
+};
 const sleep = (ms: number): Promise<void> => new Promise(resolve => window.setTimeout(resolve, ms));
 const getInitialSessionWithPaymentRetry = async (paymentReturn: boolean): Promise<AuthBootstrapResult> => {
+  await consumeYandexOauthCode();
   let lastError: unknown = null;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
