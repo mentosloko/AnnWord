@@ -27,6 +27,11 @@ type BackendMePayload = {
   user?: BackendUserPayload | null;
 };
 
+type EmailSignupResult = {
+  ok?: boolean;
+  needsEmailConfirmation?: boolean;
+};
+
 type AuthSubscriber = (event: AuthEventName, session: Session | null, user: User | null) => void;
 const backendSubscribers = new Set<AuthSubscriber>();
 let currentBackendAuth: AuthBootstrapResult = { session: null, user: null };
@@ -132,12 +137,11 @@ export const authService = {
 
   signUpWithEmail: async (email: string, password: string): Promise<{ needsEmailConfirmation: boolean }> => {
     if (isBackendApiConfigured) {
-      currentBackendAuth = toAuthBootstrap(await backendApiRequest<BackendSessionPayload>('/api/auth/email/account', {
+      const result = await backendApiRequest<EmailSignupResult>('/api/auth/email/account', {
         method: 'POST',
-        body: { email, credential: password, name: email.split('@')[0] },
-      }));
-      emitBackendAuth('SIGNED_IN', currentBackendAuth);
-      return { needsEmailConfirmation: false };
+        body: { email, name: email.split('@')[0] },
+      });
+      return { needsEmailConfirmation: result.needsEmailConfirmation !== false };
     }
 
     const { data, error } = await supabase.auth.signUp({
