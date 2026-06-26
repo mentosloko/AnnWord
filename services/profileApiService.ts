@@ -1,18 +1,7 @@
 import type { PetState, UserProfile, UserStats } from "../types";
 import { backendApiRequest } from "./backendApiClient";
-import { assignedWordsService } from "./assignedWordsService";
 
-const withAssignedWords = async (profile: UserProfile): Promise<UserProfile> => {
-  try {
-    const result = await assignedWordsService.loadAssignedWords();
-    return result.words.length ? { ...profile, assignedWords: result.words } : profile;
-  } catch (error) {
-    console.warn("Could not hydrate assigned words", error);
-    return profile;
-  }
-};
-
-const readProfile = async (request: Promise<{ profile: UserProfile }>): Promise<UserProfile> => withAssignedWords((await request).profile);
+const readProfile = async (request: Promise<{ profile: UserProfile }>): Promise<UserProfile> => (await request).profile;
 
 export const profileApiService = {
   async getCurrentProfile(): Promise<UserProfile> {
