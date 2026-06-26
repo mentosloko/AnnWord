@@ -67,7 +67,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
   const title = mode === 'login' ? 'Вход' : 'Регистрация';
-  const isRegisterMode = mode === 'register';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" role="presentation">
@@ -91,12 +90,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {isRegisterMode && (
-          <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-xs font-bold leading-relaxed text-indigo-700">
-            Укажите email — мы отправим ссылку для подтверждения и входа.
-          </div>
-        )}
-
         <form
           onSubmit={(event) => { event.preventDefault(); onSubmit(); }}
           className="space-y-4"
@@ -115,22 +108,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none"
             />
           </div>
-          {!isRegisterMode && (
-            <div>
-              <label htmlFor="auth-password" className="mb-1 block text-xs font-bold uppercase text-gray-500">Пароль</label>
-              <input
-                id="auth-password"
-                required
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => onPasswordChange(event.target.value)}
-                placeholder="ваш пароль"
-                className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none"
-              />
-            </div>
-          )}
-          <button type="submit" disabled={isLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 p-3 font-bold text-white transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70">{isLoading && <LoaderIcon />}{isRegisterMode ? 'Отправить ссылку' : 'Войти'}</button>
+          <div>
+            <label htmlFor="auth-password" className="mb-1 block text-xs font-bold uppercase text-gray-500">Пароль</label>
+            <input
+              id="auth-password"
+              required
+              type="password"
+              minLength={mode === 'register' ? 8 : undefined}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              value={password}
+              onChange={(event) => onPasswordChange(event.target.value)}
+              placeholder={mode === 'login' ? 'ваш пароль' : 'минимум 8 символов'}
+              className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <button type="submit" disabled={isLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 p-3 font-bold text-white transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70">{isLoading && <LoaderIcon />}{mode === 'login' ? 'Войти' : 'Создать аккаунт'}</button>
         </form>
         <button type="button" disabled={isLoading} onClick={onYandexLogin} className="mt-3 w-full rounded-xl border-2 border-indigo-100 bg-white p-3 font-bold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-wait disabled:opacity-70">Войти через Яндекс</button>
         <button type="button" disabled={isLoading} onClick={() => onModeChange(mode === 'login' ? 'register' : 'login')} className="mt-4 w-full text-sm font-bold text-indigo-600 hover:text-indigo-800">{mode === 'login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}</button>
