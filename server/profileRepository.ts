@@ -106,7 +106,7 @@ export async function createProfileForUser(client: PoolClient, userId: string, u
     ],
   );
 
-  return mapProfile(userId, result.rows[0]);
+  return mapProfileFromDB(result.rows[0]);
 }
 
 export async function getOrCreateProfile(userId: string, username: string): Promise<UserProfile> {
