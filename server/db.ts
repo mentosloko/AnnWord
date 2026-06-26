@@ -23,6 +23,36 @@ function normalizeDatabaseConnectionString(connectionString: string): string {
   }
 }
 
+function isRetryableConnectionError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error || "").toLowerCase();
+  return message.includes("connection terminated")
+    || message.includes("connection reset")
+    || message.includes("connection closed")
+    || message.includes("server closed the connection")
+    || message.includes("econnreset")
+    || message.includes("terminating connection");
+}
+
+async function resetPoolAfterConnectionError(): Promise<void> {
+  const currentPool = pool;
+  pool = undefined;
+  if (!currentPool) return;
+  await currentPool.end().catch(() => undefined);
+}
+
+async function withPoolRetry<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!isRetryableConnectionError(error)) {
+      throw error;
+    }
+
+    await resetPoolAfterConnectionError();
+    return operation();
+  }
+}
+
 function getPool(): Pool | undefined {
   if (!runtimeConfig.databaseUrl) {
     return undefined;
@@ -51,28 +81,29 @@ export function requirePool(): Pool {
 }
 
 export async function query<T extends QueryResultRow = QueryResultRow>(text: string, params: unknown[] = []): Promise<QueryResult<T>> {
-  return requirePool().query<T>(text, params);
+  return withPoolRetry(() => requirePool().query<T>(text, params));
 }
 
 export async function transaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
-  const client = await requirePool().connect();
+  return withPoolRetry(async () => {
+    const client = await requirePool().connect();
 
-  try {
-    await client.query("begin");
-    const result = await callback(client);
-    await client.query("commit");
-    return result;
-  } catch (error) {
-    await client.query("rollback");
-    throw error;
-  } finally {
-    client.release();
-  }
+    try {
+      await client.query("begin");
+      const result = await callback(client);
+      await client.query("commit");
+      return result;
+    } catch (error) {
+      await client.query("rollback").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  });
 }
 
 export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
-  const databasePool = getPool();
-  if (!databasePool) {
+  if (!getPool()) {
     return {
       configured: false,
       ok: false,
@@ -83,7 +114,7 @@ export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
   const startedAt = Date.now();
 
   try {
-    const result = await databasePool.query<{ ok: number }>("select 1 as ok");
+    const result = await query<{ ok: number }>("select 1 as ok");
     const ok = result.rows[0]?.ok === 1;
 
     return {
