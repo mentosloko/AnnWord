@@ -65,6 +65,8 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
           PRODAMUS_SECRET: ${{ secrets.PRODAMUS_SECRET }}
+          PRODAMUS_DEMO_MODE: ${{ secrets.PRODAMUS_DEMO_MODE }}
+          PRODAMUS_PAYFORM_HOST: ${{ secrets.PRODAMUS_PAYFORM_HOST }}
           YANDEX_CLIENT_ID: ${{ secrets.YANDEX_CLIENT_ID }}
           YANDEX_CLIENT_SECRET: ${{ secrets.YANDEX_CLIENT_SECRET }}
         run: npm run api:check
@@ -118,6 +120,8 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
           PRODAMUS_SECRET: ${{ secrets.PRODAMUS_SECRET }}
+          PRODAMUS_DEMO_MODE: ${{ secrets.PRODAMUS_DEMO_MODE }}
+          PRODAMUS_PAYFORM_HOST: ${{ secrets.PRODAMUS_PAYFORM_HOST }}
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           ANNWORD_MIGRATION_SECRET: ${{ secrets.ANNWORD_MIGRATION_SECRET }}
           YANDEX_CLIENT_ID: ${{ secrets.YANDEX_CLIENT_ID }}
@@ -146,6 +150,8 @@ jobs:
             --environment JWT_SECRET="$JWT_SECRET" \
             --environment COOKIE_SECRET="$COOKIE_SECRET" \
             --environment PRODAMUS_SECRET="$PRODAMUS_SECRET" \
+            --environment PRODAMUS_DEMO_MODE="${PRODAMUS_DEMO_MODE:-0}" \
+            --environment PRODAMUS_PAYFORM_HOST="${PRODAMUS_PAYFORM_HOST:-manto-school.payform.ru}" \
             --environment SUPABASE_DATABASE_URL="$SUPABASE_DATABASE_URL" \
             --environment ANNWORD_MIGRATION_SECRET="$ANNWORD_MIGRATION_SECRET" \
             --environment YANDEX_CLIENT_ID="$YANDEX_CLIENT_ID" \
