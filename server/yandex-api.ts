@@ -33,6 +33,23 @@ const rewriteSessionCookie = (cookie: string): string => {
   return `${withSecure}; SameSite=None`;
 };
 const readText = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
+const normalizeOrigin = (value: string): string => value.replace(/\/$/, "");
+const addAllowedOrigin = (origins: Set<string>, value: unknown): void => {
+  const normalized = normalizeOrigin(readText(value));
+  if (!normalized) return;
+
+  origins.add(normalized);
+
+  try {
+    const url = new URL(normalized);
+    if (url.protocol === "https:" && url.hostname === "annword.ru") {
+      url.protocol = "http:";
+      origins.add(normalizeOrigin(url.toString()));
+    }
+  } catch {
+    // Ignore malformed optional CORS values and keep the explicitly normalized value above.
+  }
+};
 const hashHandoff = (value: string): string => createHash("sha256").update(value).digest("hex");
 const newHandoff = (): string => randomBytes(32).toString("base64url");
 
@@ -107,13 +124,10 @@ app.use(
         return;
       }
 
-      const allowedOrigins = new Set(
-        [runtimeConfig.appUrl, runtimeConfig.apiUrl, process.env.CORS_ORIGIN]
-          .filter((value): value is string => Boolean(value))
-          .map((value) => value.replace(/\/$/, "")),
-      );
+      const allowedOrigins = new Set<string>();
+      [runtimeConfig.appUrl, runtimeConfig.apiUrl, process.env.CORS_ORIGIN].forEach((value) => addAllowedOrigin(allowedOrigins, value));
 
-      const normalizedOrigin = origin.replace(/\/$/, "");
+      const normalizedOrigin = normalizeOrigin(origin);
       callback(null, allowedOrigins.size === 0 || allowedOrigins.has(normalizedOrigin));
     },
     credentials: true,
