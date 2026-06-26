@@ -169,7 +169,7 @@ jobs:
           S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
           S3_FRONTEND_BUCKET: ${{ secrets.S3_FRONTEND_BUCKET }}
         run: |
-          python -m awscli --endpoint-url "$S3_ENDPOINT" s3 sync dist "s3://${S3_FRONTEND_BUCKET}" --delete
+          python -m awscli --endpoint-url "$S3_ENDPOINT" s3 sync dist "s3://${S3_FRONTEND_BUCKET}" --delete --exclude ".well-known/acme-challenge/*"
 
       - name: Deployment summary
         run: |
