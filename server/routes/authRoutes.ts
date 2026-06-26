@@ -1,16 +1,16 @@
 import { Router } from "express";
 import {
   requireAuth,
-  makeUserPayload,
   makeSessionPayload,
   clearSessionCookie,
   createSessionToken,
   findUserByEmail,
+  readBearerOrCookieToken,
   verifyPassword,
+  verifySessionToken,
   writeSessionCookie,
   validateNewUserInput,
   newUserId,
-  type AuthenticatedRequest,
   type BackendUser,
 } from "../auth";
 import { runtimeConfig } from "../config";
@@ -24,6 +24,7 @@ const readText = (value: unknown): string => (typeof value === "string" ? value 
 const field = ["creden", "tial"].join("");
 const isLegacyMigratedPassword = (hash: string): boolean => hash.startsWith("migration-disabled-") || !hash.startsWith("scrypt$");
 const legacyPasswordMessage = "Этот аккаунт перенесён из старой системы, но старый пароль не был перенесён. Войдите через Яндекс с тем же email.";
+const nameFromEmail = (email: string): string => email.split("@")[0] || "Пользователь";
 const writeSession = (res: { json: (body: unknown) => void; status: (code: number) => { json: (body: unknown) => void } }, user: BackendUser, status = 200): void => {
   const token = createSessionToken(user);
   writeSessionCookie(res as never, token);
@@ -117,11 +118,27 @@ authRouter.get("/yandex/callback", async (req, res) => {
   }
 });
 
-authRouter.get("/me", requireAuth, (req: AuthenticatedRequest, res) => {
-  res.json({ user: req.user ? makeUserPayload(req.user) : null });
+authRouter.get("/me", (req, res) => {
+  const token = readBearerOrCookieToken(req);
+  const payload = token ? verifySessionToken(token) : null;
+  if (!token || !payload) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  writeSessionCookie(res, token);
+  res.json({
+    cookie_synced: true,
+    user: {
+      id: payload.sub,
+      email: payload.email,
+      name: nameFromEmail(payload.email),
+      passwordResetRequired: false,
+    },
+  });
 });
 
-authRouter.post("/logout", (_req, res) => {
+authRouter.post("/logout", requireAuth, (_req, res) => {
   clearSessionCookie(res);
   res.json({ ok: true });
 });
