@@ -12,6 +12,8 @@ interface AccessibleDialogProps {
   onEscape?: () => void;
 }
 
+const isFocusableElement = (item: Element): item is HTMLElement => item instanceof HTMLElement && !item.hasAttribute('disabled');
+
 export const AccessibleDialog: React.FC<AccessibleDialogProps> = ({ open, titleId, descriptionId, labelledBy, describedBy, className = '', overlayClassName = '', children, onEscape }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -24,7 +26,7 @@ export const AccessibleDialog: React.FC<AccessibleDialogProps> = ({ open, titleI
       if (event.key !== 'Tab') return;
       const dialog = dialogRef.current;
       if (!dialog) return;
-      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')).filter(item => !item.hasAttribute('disabled'));
+      const focusable = Array.from(dialog.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')).filter(isFocusableElement);
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
