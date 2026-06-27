@@ -25,11 +25,6 @@ jobs:
         with:
           show-progress: false
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
       - name: Install dependencies
         run: |
           if [ -f package-lock.json ]; then
