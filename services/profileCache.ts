@@ -1,6 +1,6 @@
 import { UserProfile } from '../types';
 import { GUEST_PROFILE } from '../constants/profileDefaults';
-import { mapProfileFromDB, normalizeDictionaryField, normalizePet, normalizeStats } from './profileMapper';
+import { normalizeDictionaryField, normalizePet, normalizeStats } from './profileMapper';
 
 const PROFILE_CACHE_KEY = 'annword_cached_profile_v1';
 const PROFILE_CACHE_VERSION = 1;
@@ -21,15 +21,25 @@ const isBrowser = (): boolean => typeof window !== 'undefined' && typeof window.
 
 const normalizeProfile = (profile: UserProfile): UserProfile => {
   try {
-    return mapProfileFromDB({
+    return {
       username: profile.username || GUEST_PROFILE.username,
       role: profile.role || 'user',
-      custom_dictionary_en: normalizeDictionaryField(profile.customDictionaryEn || []),
+      accountMode: profile.accountMode,
+      subscriptionTier: profile.subscriptionTier || 'free',
+      premiumExpiresAt: profile.premiumExpiresAt,
+      childDisplayName: profile.childDisplayName,
+      childShareCode: profile.childShareCode,
+      childSlotsLimit: profile.childSlotsLimit,
+      featureFlags: profile.featureFlags ? { ...profile.featureFlags } : {},
+      customDictionaryEn: normalizeDictionaryField(profile.customDictionaryEn || []),
+      dictionaryCollections: Array.isArray(profile.dictionaryCollections) ? profile.dictionaryCollections : undefined,
+      managedLearners: Array.isArray(profile.managedLearners) ? profile.managedLearners : undefined,
+      weeklyReportEmail: profile.weeklyReportEmail,
       stats: normalizeStats(profile.stats),
       pet: normalizePet(profile.pet),
       coins: Math.max(0, Math.round(profile.coins || 0)),
       inventory: Array.isArray(profile.inventory) ? profile.inventory : [],
-    });
+    };
   } catch {
     return GUEST_PROFILE;
   }
