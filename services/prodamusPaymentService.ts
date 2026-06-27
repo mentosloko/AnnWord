@@ -10,8 +10,8 @@ export interface ProdamusPlanOption {
 }
 
 export const PRODAMUS_PLAN_OPTIONS: ProdamusPlanOption[] = [
-  { code: 'kids_month', title: 'Доступ к AnnWord Premium на 1 месяц', amountRub: 300, periodDays: 31 },
-  { code: 'kids_year', title: 'Доступ к AnnWord Premium на 1 год', amountRub: 3000, periodDays: 365 },
+  { code: 'kids_month', title: 'AnnWord Premium — 1 месяц', amountRub: 300, periodDays: 31 },
+  { code: 'kids_year', title: 'AnnWord Premium — 1 год', amountRub: 3000, periodDays: 365 },
 ];
 
 export interface ProdamusPaymentResponse {
