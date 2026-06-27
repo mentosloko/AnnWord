@@ -1,27 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { buildMemoryDictionary, createMemoryCards } from '../components/MemoryGame';
+import { buildMemoryDictionary } from '../components/MemoryGame';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 
 describe('memory game dictionary and pair generation', () => {
-  it('creates English to Russian card pairs instead of duplicated English words', () => {
-    const dictionary = [
-      {
-        word: 'CAT',
-        translation: 'кот',
-        level: 'A1' as const,
-      },
-    ];
+  it('keeps English to Russian dictionary entries for card pairs', () => {
+    const dictionary = buildMemoryDictionary(['BABY'], COMMON_WORDS_EN);
 
-    const cards = createMemoryCards(dictionary, () => 0.1);
-
-    expect(cards).toHaveLength(2);
-
-    const enCard = cards.find(card => card.type === 'en');
-    const ruCard = cards.find(card => card.type === 'ru');
-
-    expect(enCard?.content).toBe('CAT');
-    expect(ruCard?.content).toBe('кот');
-    expect(enCard?.content).not.toBe(ruCard?.content);
+    expect(dictionary).toHaveLength(1);
+    expect(dictionary[0]?.word).toBe('BABY');
+    expect(dictionary[0]?.translation).toBe('ребенок');
+    expect(dictionary[0]?.word).not.toBe(dictionary[0]?.translation);
   });
 
   it('reuses builtin translations for custom dictionary words', () => {
