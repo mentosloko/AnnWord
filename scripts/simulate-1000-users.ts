@@ -3,7 +3,7 @@ import { applyItemUseLocally, applyPurchaseLocally } from '../services/economyEn
 import { SHOP_ITEMS, getShopItemById } from '../services/shopCatalog';
 import { buildSprintDictionary } from '../components/SprintGame';
 import { buildAnagramDictionary } from '../components/AnagramGame';
-import { buildMemoryDictionary, createMemoryCards } from '../components/MemoryGame';
+import { buildMemoryDictionary } from '../components/MemoryGame';
 import { InventoryItem, PetState, UserProfile, UserStats } from '../types';
 
 const USERS = Number(process.env.SIM_USERS || 1000);
@@ -100,10 +100,27 @@ const assertInvariant = (profile: UserProfile, userIndex: number, step: number, 
   if (new Set(equipped).size !== equipped.length) fail('equipped accessories must not contain duplicates');
 };
 
+const isWinningReward = (input: GameRewardInput): boolean => {
+  switch (input.type) {
+    case 'wordle':
+    case 'hangman':
+      return input.won;
+    case 'sprint':
+    case 'anagram':
+    case 'translation':
+    case 'letterSquare':
+      return input.guessedWords > 0;
+    case 'memory':
+      return input.clicks > 0;
+    case 'other':
+      return Boolean(input.wonForStats);
+  }
+};
+
 const applyReward = (profile: UserProfile, input: GameRewardInput): UserProfile => {
   const reward = calculateGameReward(input);
   const progress = applyGameRewardToCharacter(profile.pet, reward);
-  const won = Boolean(input.won) || (input.type === 'sprint' || input.type === 'anagram' || input.type === 'memory') && (input.guessedWords || input.clicks || 0) > 0;
+  const won = isWinningReward(input);
   return {
     ...profile,
     coins: Math.max(0, profile.coins + reward.coins),
@@ -142,6 +159,13 @@ const useRandomItem = (profile: UserProfile): UserProfile => {
   return result.profile;
 };
 
+type SimMemoryCard = { pairId: number; type: 'en' | 'ru'; content: string };
+const createMemoryCardsForSimulation = (dictionary: Array<{ word: string; translation: string }>): SimMemoryCard[] =>
+  dictionary.slice(0, Math.min(6, dictionary.length)).flatMap((word, pairId) => [
+    { pairId, type: 'en' as const, content: word.word },
+    { pairId, type: 'ru' as const, content: word.translation },
+  ]);
+
 const validateDictionaries = (profile: UserProfile, userIndex: number, step: number) => {
   const sprintDictionary = buildSprintDictionary(profile.customDictionaryEn);
   const playableTranslations = sprintDictionary.filter(entry => /[А-Яа-яЁё]/.test(entry.translation));
@@ -155,13 +179,16 @@ const validateDictionaries = (profile: UserProfile, userIndex: number, step: num
   }
 
   const memoryDictionary = buildMemoryDictionary(profile.customDictionaryEn);
-  const cards = createMemoryCards(memoryDictionary, random);
+  const cards = createMemoryCardsForSimulation(memoryDictionary);
   const pairIds = new Set(cards.map(card => card.pairId));
   if (cards.length !== Math.min(12, memoryDictionary.length * 2)) {
     failures.push({ userIndex, step, action: 'dictionary:memory', message: 'memory card count must match selected pairs', profile: snapshot(profile) });
   }
   if (cards.length !== pairIds.size * 2) {
     failures.push({ userIndex, step, action: 'dictionary:memory', message: 'memory cards must have exactly two cards per pair', profile: snapshot(profile) });
+  }
+  if (cards.some(card => !card.content)) {
+    failures.push({ userIndex, step, action: 'dictionary:memory', message: 'memory cards must have display content', profile: snapshot(profile) });
   }
 };
 
@@ -172,7 +199,7 @@ const simulateAction = (profile: UserProfile, action: string, userIndex: number,
     case 'sprint': return applyReward(profile, { type: 'sprint', guessedWords: Math.floor(random() * 8) });
     case 'anagram': return applyReward(profile, { type: 'anagram', guessedWords: chance(0.8) ? 1 : 0 });
     case 'memory': return applyReward(profile, { type: 'memory', clicks: 8 + Math.floor(random() * 28) });
-    case 'hangman': return applyReward(profile, { type: 'hangman', won: chance(0.65) });
+    case 'hangman': return applyReward(profile, { type: 'hangman', won: chance(0.65), mistakes: Math.floor(random() * 7), maxMistakes: 7 });
     case 'buy': return buyRandomAffordableItem(profile);
     case 'use-item': return useRandomItem(profile);
     case 'dictionary': validateDictionaries(profile, userIndex, step); return profile;
