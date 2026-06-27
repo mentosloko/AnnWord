@@ -36,11 +36,24 @@ jobs:
       - name: Lint
         run: npm exec -- tsc --noEmit --pretty false
 
-      - name: Unit tests
+      - name: Unit tests capture
         run: |
           set +e
           npm exec -- vitest run --reporter=dot > unit.log 2>&1
-          code=$?
+          echo $? > unit.exit
+        continue-on-error: true
+
+      - name: Upload unit log
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-log
+          path: |
+            unit.log
+            unit.exit
+
+      - name: Unit tests gate
+        run: |
+          code=$(cat unit.exit)
           tail -n 80 unit.log
           exit $code
 
