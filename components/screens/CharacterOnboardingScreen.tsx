@@ -46,6 +46,8 @@ export const CharacterOnboardingScreen: React.FC<CharacterOnboardingScreenProps>
     setError(null);
     try {
       await onComplete(createStarterCharacter(selectedType, normalizedName));
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Не удалось сохранить питомца. Попробуйте ещё раз.');
     } finally {
       setIsSaving(false);
     }
