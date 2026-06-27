@@ -16,7 +16,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Quiet git advice
-        run: git config --global advice.detachedHead false
+        run: |
+          git config --global advice.detachedHead false
+          git config --global init.defaultBranch main
 
       - name: Checkout
         uses: actions/checkout@v4
