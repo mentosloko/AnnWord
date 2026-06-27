@@ -1,4 +1,4 @@
-import { FeatureFlags, InventoryItem, PetState, UserProfile, UserStats, WordPerformance } from '../types';
+import { FeatureFlags, InventoryItem, PetState, UserProfile, UserStats, WordLearningEventType, WordLearningHistory, WordPerformance } from '../types';
 import { normalizeCustomDictionary } from './dictionaryEngine';
 import { deriveCharacterLevel, deriveCharacterStage, deriveMoodFromScore, getTotalXpForLevel, normalizeMoodScore } from './gamificationRules';
 
@@ -6,8 +6,9 @@ const DEFAULT_PET: PetState = {
   name: 'Щенок', type: 'Puppy', level: 1, mood: 'happy', xp: 0, moodScore: 60, stage: 'stage_1', characterOnboarded: false,
   hunger: 100, energy: 100, equippedAccessories: [], activeWorldId: 'default_room', dailyStreak: 0, earnedStickerIds: [],
 };
-const DEFAULT_STATS: UserStats = { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {}, wordsToReview: {}, wordPerformance: {} };
+const DEFAULT_STATS: UserStats = { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {}, wordsToReview: {}, wordPerformance: {}, wordLearningHistory: {} };
 const DEFAULT_PET_FEATURE_FLAGS: FeatureFlags = { dailyWorldReward: true, treatRequests: true, streakStickers: true, levelWardrobe: true };
+const WORD_LEARNING_EVENT_TYPES: WordLearningEventType[] = ['mistake', 'resolved', 'mastered'];
 const isPlainObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const flagEnabledByDefault = (value: Record<string, unknown>, key: keyof FeatureFlags): boolean => value[key] !== false;
 const normalizeStringArray = (value: unknown): string[] => Array.isArray(value) ? Array.from(new Set(value.filter((item): item is string => typeof item === 'string').map(item => item.trim()).filter(Boolean))) : [];
@@ -21,14 +22,52 @@ const normalizeFeatureFlags = (value: unknown): FeatureFlags => !isPlainObject(v
   levelWardrobe: flagEnabledByDefault(value, 'levelWardrobe'),
 });
 const normalizePerformance = (value: unknown): Record<string, WordPerformance> => {
-  if (!isPlainObject(value)) return {};
-  return Object.fromEntries(Object.entries(value).filter(([, item]) => isPlainObject(item)).map(([key, item]) => [key, {
-    word: typeof item.word === 'string' ? item.word : key,
-    attempts: typeof item.attempts === 'number' ? item.attempts : 0,
-    correct: typeof item.correct === 'number' ? item.correct : 0,
-    mistakes: typeof item.mistakes === 'number' ? item.mistakes : 0,
-    lastPracticedAt: typeof item.lastPracticedAt === 'string' ? item.lastPracticedAt : undefined,
-  }]));
+  const result: Record<string, WordPerformance> = {};
+  if (!isPlainObject(value)) return result;
+  for (const [key, item] of Object.entries(value)) {
+    if (!isPlainObject(item)) continue;
+    result[key] = {
+      word: typeof item.word === 'string' ? item.word : key,
+      attempts: typeof item.attempts === 'number' ? item.attempts : 0,
+      correct: typeof item.correct === 'number' ? item.correct : 0,
+      mistakes: typeof item.mistakes === 'number' ? item.mistakes : 0,
+      lastPracticedAt: typeof item.lastPracticedAt === 'string' ? item.lastPracticedAt : undefined,
+    };
+  }
+  return result;
+};
+
+const toWordLearningEventType = (value: unknown): WordLearningEventType | null =>
+  typeof value === 'string' && WORD_LEARNING_EVENT_TYPES.includes(value as WordLearningEventType) ? value as WordLearningEventType : null;
+
+const normalizeLearningHistory = (value: unknown): Record<string, WordLearningHistory> => {
+  const result: Record<string, WordLearningHistory> = {};
+  if (!isPlainObject(value)) return result;
+  for (const [key, item] of Object.entries(value)) {
+    if (!isPlainObject(item)) continue;
+    const events = Array.isArray(item.events)
+      ? item.events.filter(isPlainObject).map(event => {
+          const type = toWordLearningEventType(event.type);
+          if (!type) return null;
+          return {
+            at: typeof event.at === 'string' ? event.at : '',
+            type,
+            reviewPriorityAfter: typeof event.reviewPriorityAfter === 'number' ? event.reviewPriorityAfter : 0,
+          };
+        }).filter((event): event is WordLearningHistory['events'][number] => Boolean(event && event.at))
+      : [];
+    result[key] = {
+      word: typeof item.word === 'string' ? item.word : key,
+      firstMistakeAt: typeof item.firstMistakeAt === 'string' ? item.firstMistakeAt : undefined,
+      lastMistakeAt: typeof item.lastMistakeAt === 'string' ? item.lastMistakeAt : undefined,
+      lastResolvedAt: typeof item.lastResolvedAt === 'string' ? item.lastResolvedAt : undefined,
+      mistakeCount: typeof item.mistakeCount === 'number' ? item.mistakeCount : 0,
+      resolvedCount: typeof item.resolvedCount === 'number' ? item.resolvedCount : 0,
+      currentReviewPriority: typeof item.currentReviewPriority === 'number' ? item.currentReviewPriority : 0,
+      events,
+    };
+  }
+  return result;
 };
 
 export const normalizeDictionaryField = (value: unknown): string[] => Array.isArray(value) ? normalizeCustomDictionary(value.filter((item): item is string => typeof item === 'string')) : [];
@@ -38,6 +77,7 @@ export const normalizeStats = (value: unknown): UserStats => !isPlainObject(valu
   wordsGuessed: normalizeWordCounters(value.wordsGuessed),
   wordsToReview: normalizeWordCounters(value.wordsToReview),
   wordPerformance: normalizePerformance(value.wordPerformance),
+  wordLearningHistory: normalizeLearningHistory(value.wordLearningHistory),
 });
 
 export const normalizePet = (value: unknown, applyWardrobeMoodRule = false): PetState => {
