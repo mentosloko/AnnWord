@@ -12,7 +12,7 @@ interface AccessibleDialogProps {
   onEscape?: () => void;
 }
 
-const isFocusableElement = (item: Element): item is HTMLElement => item instanceof HTMLElement && !item.hasAttribute('disabled');
+const isFocusableElement = (item: unknown): item is HTMLElement => item instanceof HTMLElement && !item.hasAttribute('disabled');
 
 export const AccessibleDialog: React.FC<AccessibleDialogProps> = ({ open, titleId, descriptionId, labelledBy, describedBy, className = '', overlayClassName = '', children, onEscape }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
