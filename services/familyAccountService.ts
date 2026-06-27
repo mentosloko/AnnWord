@@ -71,17 +71,12 @@ const validateParentPin = (pin: string): string => {
 
 export const familyAccountService = {
   async selectAccountMode(mode: AccountMode): Promise<void> {
-    const role = mode === 'parent' ? 'parent' : mode === 'teacher' ? 'teacher' : 'user';
-    const featureFlags = mode === 'player' ? {} : { adultRoom: true };
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session?.user.id) {
+      throw new Error('Для выбора типа аккаунта нужно войти.');
+    }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        role,
-        account_mode: mode,
-        feature_flags: featureFlags
-      })
-      .eq('id', (await supabase.auth.getSession()).data.session?.user.id);
+    const { error } = await supabase.rpc('select_account_mode', { p_mode: mode });
 
     if (error) {
       throw new Error(getErrorMessage(error, 'Не удалось выбрать тип аккаунта.'));
