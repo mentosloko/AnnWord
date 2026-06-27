@@ -5,7 +5,7 @@ const assert = (condition: unknown, message: string) => {
   if (!condition) throw new Error(`Route contract smoke test failed: ${message}`);
 };
 
-const requiredRoutes: ViewState[] = ['landing', 'profile', 'setup', 'game', 'review', 'anagrams', 'translation', 'sprint', 'memory', 'hangman', 'letter_square', 'shop', 'pet_room', 'account_mode_setup', 'character_onboarding', 'family_setup', 'adult_room', 'dictionary_settings', 'dictionary_studio', 'premium', 'admin'];
+const requiredRoutes: ViewState[] = ['landing', 'profile', 'setup', 'game', 'review', 'anagrams', 'translation', 'sprint', 'memory', 'hangman', 'letter_square', 'shop', 'pet_room', 'account_mode_setup', 'character_onboarding', 'family_setup', 'adult_room', 'dictionary_settings', 'dictionary_studio', 'premium', 'premium_success', 'admin'];
 
 for (const route of requiredRoutes) assert(isKnownRoute(route), `route must be known: ${route}`);
 assert(KNOWN_ROUTES.length === requiredRoutes.length, 'KNOWN_ROUTES must match ViewState route count');
