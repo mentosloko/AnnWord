@@ -52,7 +52,7 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
       ? (hasPremium ? getKidsPremiumDictionaryWords(settings.activePremiumDictionaryId, settings.difficulty) : [])
       : (settings.dictionarySource === 'premium' && hasPremium ? getPremiumDictionaryWords(settings.activePremiumDictionaryId, settings.difficulty) : []);
     const kidsWords = kidsMode ? getAllKidsDictionaryWords() : [];
-    const customWords = userProfile.customDictionaryEn || [];
+    const customWords = toCustomEnrichedWords(userProfile.customDictionaryEn).map(entry => entry.word);
     const combinedPool = [
       ...ALL_WORDS_EN,
       ...kidsWords,
