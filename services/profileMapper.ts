@@ -40,22 +40,28 @@ const normalizePerformance = (value: unknown): Record<string, WordPerformance> =
 const toWordLearningEventType = (value: unknown): WordLearningEventType | null =>
   typeof value === 'string' && WORD_LEARNING_EVENT_TYPES.includes(value as WordLearningEventType) ? value as WordLearningEventType : null;
 
+const normalizeLearningEvents = (value: unknown): WordLearningHistory['events'] => {
+  const events: WordLearningHistory['events'] = [];
+  if (!Array.isArray(value)) return events;
+  for (const rawEvent of value) {
+    if (!isPlainObject(rawEvent)) continue;
+    const type = toWordLearningEventType(rawEvent.type);
+    const at = typeof rawEvent.at === 'string' ? rawEvent.at : null;
+    if (!type || !at) continue;
+    events.push({
+      at,
+      type,
+      reviewPriorityAfter: typeof rawEvent.reviewPriorityAfter === 'number' ? rawEvent.reviewPriorityAfter : 0,
+    });
+  }
+  return events;
+};
+
 const normalizeLearningHistory = (value: unknown): Record<string, WordLearningHistory> => {
   const result: Record<string, WordLearningHistory> = {};
   if (!isPlainObject(value)) return result;
   for (const [key, item] of Object.entries(value)) {
     if (!isPlainObject(item)) continue;
-    const events = Array.isArray(item.events)
-      ? item.events.filter(isPlainObject).map(event => {
-          const type = toWordLearningEventType(event.type);
-          if (!type) return null;
-          return {
-            at: typeof event.at === 'string' ? event.at : '',
-            type,
-            reviewPriorityAfter: typeof event.reviewPriorityAfter === 'number' ? event.reviewPriorityAfter : 0,
-          };
-        }).filter((event): event is WordLearningHistory['events'][number] => Boolean(event && event.at))
-      : [];
     result[key] = {
       word: typeof item.word === 'string' ? item.word : key,
       firstMistakeAt: typeof item.firstMistakeAt === 'string' ? item.firstMistakeAt : undefined,
@@ -64,7 +70,7 @@ const normalizeLearningHistory = (value: unknown): Record<string, WordLearningHi
       mistakeCount: typeof item.mistakeCount === 'number' ? item.mistakeCount : 0,
       resolvedCount: typeof item.resolvedCount === 'number' ? item.resolvedCount : 0,
       currentReviewPriority: typeof item.currentReviewPriority === 'number' ? item.currentReviewPriority : 0,
-      events,
+      events: normalizeLearningEvents(item.events),
     };
   }
   return result;
