@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          show-progress: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -26,13 +28,13 @@ jobs:
       - name: Install dependencies
         run: |
           if [ -f package-lock.json ]; then
-            npm ci
+            npm ci --silent --no-audit --fund=false
           else
-            npm install
+            npm install --silent --no-audit --fund=false
           fi
 
       - name: Lint
-        run: npm run lint
+        run: npm exec -- tsc --noEmit --pretty false
 
       - name: Unit tests
         run: npm run check:unit
