@@ -23,15 +23,17 @@ const getUserService = async () => {
 
 export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }: UseProfileEconomyArgs) => {
   const winCoins = useCallback(async (amount: number) => {
+    const previousProfile = userProfile;
     setUserProfile(prev => ({ ...prev, coins: Math.max(0, prev.coins + amount) }));
     if (!currentUserId) return;
     try {
       const userService = await getUserService();
       await userService.updateCoins(currentUserId, amount);
     } catch (error) {
+      setUserProfile(previousProfile);
       console.error('Failed to sync coins to server', error);
     }
-  }, [currentUserId, setUserProfile]);
+  }, [currentUserId, setUserProfile, userProfile]);
 
   const buyItem = useCallback(async (item: ShopItem) => {
     const localPurchase = applyPurchaseLocally(userProfile, item);
@@ -124,20 +126,24 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
       const updatedProfile = await userService.useItem(currentUserId, itemId, localUse.profile, [useEvent]);
       setUserProfile(updatedProfile);
     } catch (error) {
-      console.error('Failed to sync item usage to server; optimistic local state kept', error);
+      setUserProfile(userProfile);
+      console.error('Failed to sync item usage to server; optimistic state was reverted', error);
     }
   }, [currentUserId, setUserProfile, userProfile]);
 
   const updateCharacter = useCallback(async (pet: PetState) => {
+    const previousProfile = userProfile;
     setUserProfile(prev => ({ ...prev, pet }));
     if (!currentUserId) return;
     try {
       const userService = await getUserService();
       await userService.updateUserPet(currentUserId, pet);
     } catch (error) {
+      setUserProfile(previousProfile);
       console.error('Failed to update character', error);
+      throw new Error('Не удалось сохранить питомца. Проверьте соединение и попробуйте ещё раз.');
     }
-  }, [currentUserId, setUserProfile]);
+  }, [currentUserId, setUserProfile, userProfile]);
 
   const addXP = useCallback(async (amount: number) => {
     const progress = applyGameRewardToCharacter(userProfile.pet, { xp: amount, coins: 0, mood: 0, label: 'XP adjustment' });
@@ -145,6 +151,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
   }, [updateCharacter, userProfile.pet]);
 
   const applyGameReward = useCallback(async (input: GameRewardInput, options: ApplyGameRewardOptions = {}) => {
+    const previousProfile = userProfile;
     const reward = calculateGameReward(input);
     const progress = applyGameRewardToCharacter(userProfile.pet, reward);
     const nextPet: PetState = progress.pet;
@@ -196,7 +203,8 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
         );
         setUserProfile(updatedProfile);
       } catch (error) {
-        console.error('Failed to sync game reward', error);
+        setUserProfile(previousProfile);
+        console.error('Failed to sync game reward; optimistic state was reverted', error);
       }
     } else {
       for (const event of options.analyticsEvents || []) {
@@ -222,6 +230,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
   }, [currentUserId, setUserProfile, userProfile]);
 
   const updateStats = useCallback(async (stats: UserStats) => {
+    const previousProfile = userProfile;
     setUserProfile(prev => ({ ...prev, stats }));
     if (!currentUserId) return;
 
@@ -229,9 +238,10 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
       const userService = await getUserService();
       await userService.updateUserStats(currentUserId, stats);
     } catch (error) {
-      console.error('Failed to update stats', error);
+      setUserProfile(previousProfile);
+      console.error('Failed to update stats; optimistic state was reverted', error);
     }
-  }, [currentUserId, setUserProfile]);
+  }, [currentUserId, setUserProfile, userProfile]);
 
   const updateDictionary = useCallback(async (dictionary: string[]) => {
     if (!currentUserId) {
