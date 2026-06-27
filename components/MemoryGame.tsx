@@ -27,7 +27,9 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
   const showKidsRewards = isKidsMode(userProfile);
   const initializeGame = useCallback(() => { setCards(createMemoryCards(dictionary)); setFlippedCards([]); setMoves(0); setClicks(0); setIsWon(false); rewardAppliedRef.current = false; }, [dictionary]);
   useEffect(() => { if (cards.length === 0 && dictionary.length > 0) initializeGame(); }, [cards.length, dictionary.length, initializeGame]);
-  const registerPractice = (word: string, result: WordPracticeResult) => void Promise.resolve(onWordPractice?.(word, result)).catch(error => console.error('Failed to save memory practice', error));
+  const registerPractice = useCallback((word: string, result: WordPracticeResult) => {
+    void Promise.resolve(onWordPractice?.(word, result)).catch(error => console.error('Failed to save memory practice', error));
+  }, [onWordPractice]);
   const handleCardClick = (id: number) => {
     const selectedCard = cards.find(card => card.id === id);
     if (isWon || flippedCards.length === 2 || selectedCard?.isFlipped || selectedCard?.isMatched) return;
