@@ -14,3 +14,4 @@ export const adminRcAccessService = {
   async listProfiles(): Promise<AdminRcProfile[]> {
     return [];
   },
+};
