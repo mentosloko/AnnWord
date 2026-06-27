@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Quiet git advice
+        run: git config --global advice.detachedHead false
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
