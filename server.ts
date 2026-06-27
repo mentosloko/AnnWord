@@ -18,10 +18,18 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+const normalizeAppUrl = (value: string | undefined): string => {
+  const fallback = `http://localhost:${PORT}`;
+  const raw = (value || fallback).trim().replace(/\/+$/, '');
+  if (!raw) return fallback;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `https://${raw}`;
+};
+
 // --- Yandex OAuth Config ---
 const YANDEX_CLIENT_ID = process.env.YANDEX_CLIENT_ID!;
 const YANDEX_CLIENT_SECRET = process.env.YANDEX_CLIENT_SECRET!;
-const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
+const APP_URL = normalizeAppUrl(process.env.APP_URL);
 const YANDEX_REDIRECT_URI = `${APP_URL}/api/auth/yandex/callback`;
 
 // API health check
