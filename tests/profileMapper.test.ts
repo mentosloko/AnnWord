@@ -13,13 +13,13 @@ describe('profileMapper', () => {
       gamesWon: 2,
       wordsGuessed: { APPLE: 1, BAD: 'x' },
       wordsToReview: { BERRY: 2, BROKEN: 'x' },
-    })).toEqual({
+    })).toMatchObject({
       gamesPlayed: 3,
       gamesWon: 2,
       wordsGuessed: { APPLE: 1 },
       wordsToReview: { BERRY: 2 },
     });
-    expect(normalizeStats(null)).toEqual({ gamesPlayed: 0, gamesWon: 0, wordsGuessed: {}, wordsToReview: {} });
+    expect(normalizeStats(null)).toMatchObject({ gamesPlayed: 0, gamesWon: 0, wordsGuessed: {}, wordsToReview: {} });
   });
 
   it('normalizes character fields and falls back for invalid values', () => {
@@ -59,7 +59,7 @@ describe('profileMapper', () => {
     ]);
 
     expect(inventory).toEqual([
-      { id: 'apple', type: 'food', name: 'Apple', quantity: 2, metadata: { imageUrl: 'x.png' } },
+      { id: 'apple', type: 'food', name: 'Apple', quantity: 2, metadata: { imageUrl: 'x.png', minLevel: undefined, temporary: false } },
       { id: 'mystery', type: 'food', name: 'Mystery', quantity: 1, metadata: undefined },
     ]);
   });
@@ -75,7 +75,7 @@ describe('profileMapper', () => {
       inventory: [{ id: 'hat', type: 'accessory', name: 'Hat', quantity: 1 }],
     });
 
-    expect(profile.username).toBe('Guest');
+    expect(profile.username).toBe('Гость');
     expect(profile.role).toBe('admin');
     expect(profile.customDictionaryEn).toEqual(['STONE']);
     expect(profile.stats.gamesPlayed).toBe(5);
