@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request } from "express";
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import path from "path";
@@ -26,11 +26,30 @@ const normalizeAppUrl = (value: string | undefined): string => {
   return `https://${raw}`;
 };
 
+const firstHeaderValue = (value: string | string[] | undefined): string | undefined => {
+  if (Array.isArray(value)) return value[0];
+  return value;
+};
+
+const getRequestAppUrl = (req: Request): string => {
+  const forwardedHost = firstHeaderValue(req.headers['x-forwarded-host']);
+  const rawHost = forwardedHost || req.get('host');
+  if (!rawHost) return APP_URL;
+
+  const host = rawHost.split(',')[0].trim();
+  const forwardedProto = firstHeaderValue(req.headers['x-forwarded-proto']);
+  const rawProto = forwardedProto || req.protocol || (host.includes('localhost') ? 'http' : 'https');
+  const proto = rawProto.split(',')[0].trim() || 'https';
+
+  return normalizeAppUrl(`${proto}://${host}`);
+};
+
+const getYandexRedirectUri = (appUrl: string): string => `${appUrl}/api/auth/yandex/callback`;
+
 // --- Yandex OAuth Config ---
 const YANDEX_CLIENT_ID = process.env.YANDEX_CLIENT_ID!;
 const YANDEX_CLIENT_SECRET = process.env.YANDEX_CLIENT_SECRET!;
 const APP_URL = normalizeAppUrl(process.env.APP_URL);
-const YANDEX_REDIRECT_URI = `${APP_URL}/api/auth/yandex/callback`;
 
 // API health check
 app.get("/api/health", (req, res) => {
@@ -39,10 +58,12 @@ app.get("/api/health", (req, res) => {
 
 // --- Step 1: Redirect user to Yandex ---
 app.get("/api/auth/yandex", (req, res) => {
+  const appUrl = getRequestAppUrl(req);
+  const yandexRedirectUri = getYandexRedirectUri(appUrl);
   const params = new URLSearchParams({
     response_type: "code",
     client_id: YANDEX_CLIENT_ID,
-    redirect_uri: YANDEX_REDIRECT_URI,
+    redirect_uri: yandexRedirectUri,
     force_confirm: "no",
   });
   res.redirect(`https://oauth.yandex.ru/authorize?${params.toString()}`);
@@ -50,10 +71,12 @@ app.get("/api/auth/yandex", (req, res) => {
 
 // --- Step 2: Yandex redirects back here with ?code= ---
 app.get("/api/auth/yandex/callback", async (req, res) => {
+  const appUrl = getRequestAppUrl(req);
+  const yandexRedirectUri = getYandexRedirectUri(appUrl);
   const code = req.query.code as string;
 
   if (!code) {
-    return res.redirect(`${APP_URL}/?auth_error=no_code`);
+    return res.redirect(`${appUrl}/?auth_error=no_code`);
   }
 
   try {
@@ -66,14 +89,14 @@ app.get("/api/auth/yandex/callback", async (req, res) => {
         code,
         client_id: YANDEX_CLIENT_ID,
         client_secret: YANDEX_CLIENT_SECRET,
-        redirect_uri: YANDEX_REDIRECT_URI,
+        redirect_uri: yandexRedirectUri,
       }),
     });
 
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
       console.error("Yandex token error:", errText);
-      return res.redirect(`${APP_URL}/?auth_error=token_exchange_failed`);
+      return res.redirect(`${appUrl}/?auth_error=token_exchange_failed`);
     }
 
     const tokenData = await tokenRes.json() as { access_token: string };
@@ -85,7 +108,7 @@ app.get("/api/auth/yandex/callback", async (req, res) => {
     });
 
     if (!userRes.ok) {
-      return res.redirect(`${APP_URL}/?auth_error=user_info_failed`);
+      return res.redirect(`${appUrl}/?auth_error=user_info_failed`);
     }
 
     const yandexUser = await userRes.json() as {
@@ -125,7 +148,7 @@ app.get("/api/auth/yandex/callback", async (req, res) => {
 
       if (createError || !newUser?.user) {
         console.error("Failed to create Supabase user:", createError);
-        return res.redirect(`${APP_URL}/?auth_error=user_creation_failed`);
+        return res.redirect(`${appUrl}/?auth_error=user_creation_failed`);
       }
 
       supabaseUserId = newUser.user.id;
@@ -136,13 +159,13 @@ app.get("/api/auth/yandex/callback", async (req, res) => {
       type: "magiclink",
       email,
       options: {
-        redirectTo: APP_URL,
+        redirectTo: appUrl,
       },
     });
 
     if (linkError || !linkData?.properties?.action_link) {
       console.error("Failed to generate magic link:", linkError);
-      return res.redirect(`${APP_URL}/?auth_error=link_failed`);
+      return res.redirect(`${appUrl}/?auth_error=link_failed`);
     }
 
     // action_link is the complete Supabase verify URL — redirect user directly to it
@@ -150,7 +173,7 @@ app.get("/api/auth/yandex/callback", async (req, res) => {
 
   } catch (err) {
     console.error("Yandex OAuth callback error:", err);
-    return res.redirect(`${APP_URL}/?auth_error=server_error`);
+    return res.redirect(`${appUrl}/?auth_error=server_error`);
   }
 });
 
