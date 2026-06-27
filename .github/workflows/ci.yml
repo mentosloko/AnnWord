@@ -37,7 +37,12 @@ jobs:
         run: npm exec -- tsc --noEmit --pretty false
 
       - name: Unit tests
-        run: npm run check:unit
+        run: |
+          set +e
+          npm exec -- vitest run --reporter=dot > unit.log 2>&1
+          code=$?
+          tail -n 80 unit.log
+          exit $code
 
       - name: Smoke checks
         run: npm run check:smoke
