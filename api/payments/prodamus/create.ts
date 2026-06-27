@@ -11,10 +11,19 @@ const bodyOf = (req: any): Record<string, unknown> => typeof req.body === 'strin
 const appUrl = () => env('PRODAMUS_APP_URL', env('APP_URL', 'https://ann-word.vercel.app')).replace(/\/+$/, '');
 const payformUrl = () => { const raw = env('PRODAMUS_PAYFORM_HOST', 'manto-school.payform.ru').trim(); return (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).replace(/\/+$/, ''); };
 
+const PLACEHOLDER_RE = /(^|[\/.:-])(api_url|prodamus_payform_host|payform_host|example\.com|your-domain|ann-word\.vercel\.app)([\/.:-]|$)/i;
+const publicUrl = (label: string, value: string): string => {
+  if (!value || PLACEHOLDER_RE.test(value)) throw new Error(`${label} is not configured with a production URL`);
+  let parsed: URL;
+  try { parsed = new URL(value); } catch { throw new Error(`${label} must be an absolute URL`); }
+  if (!['https:', 'http:'].includes(parsed.protocol)) throw new Error(`${label} must use http or https`);
+  return value.replace(/\/+$/, '');
+};
+
 type Plan = { code: string; months: 1 | 12; productName: string; amountRub: number; periodDays: number; paidContent: string };
 const plans: Record<string, Plan> = {
-  kids_month: { code: 'kids_month', months: 1, productName: 'Доступ к AnnWord Premium на 1 месяц', amountRub: 300, periodDays: 31, paidContent: 'Доступ к AnnWord Premium на 1 месяц' },
-  kids_year: { code: 'kids_year', months: 12, productName: 'Доступ к AnnWord Premium на 1 год', amountRub: 3000, periodDays: 365, paidContent: 'Доступ к AnnWord Premium на 1 год' },
+  kids_month: { code: 'kids_month', months: 1, productName: 'AnnWord Premium — 1 месяц', amountRub: 300, periodDays: 31, paidContent: 'Доступ к AnnWord Premium на 1 месяц' },
+  kids_year: { code: 'kids_year', months: 12, productName: 'AnnWord Premium — 1 год', amountRub: 3000, periodDays: 365, paidContent: 'Доступ к AnnWord Premium на 1 год' },
 };
 const isObject = (value: unknown): value is Record<string, any> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const normalizeForSignature = (value: any): any => {
@@ -39,8 +48,9 @@ export default async function handler(req: any, res: any) {
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError || !userData.user) return res.status(401).json({ error: 'Unauthorized' });
     const orderId = `annword_${plan.code}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
-    const origin = appUrl();
-    const callbackOrigin = publicCallbackUrl();
+    const origin = publicUrl('PRODAMUS_APP_URL/APP_URL', appUrl());
+    const callbackOrigin = publicUrl('PRODAMUS_NOTIFICATION_APP_URL/PRODAMUS_PUBLIC_APP_URL', publicCallbackUrl());
+    const paymentOrigin = publicUrl('PRODAMUS_PAYFORM_HOST', payformUrl());
     const email = userData.user.email || '';
     const payload: Record<string, any> = {
       do: 'pay',
@@ -70,7 +80,7 @@ export default async function handler(req: any, res: any) {
       _param_plan_code: plan.code,
     };
     payload.signature = sign(payload, required('PRODAMUS_SECRET_KEY'));
-    const checkoutUrl = `${payformUrl()}/?${query(payload)}`;
+    const checkoutUrl = `${paymentOrigin}/?${query(payload)}`;
     const { error: insertError } = await supabase.from('premium_payments').insert({ user_id: userData.user.id, provider: 'prodamus', provider_order_id: orderId, plan_code: plan.code, period_days: plan.periodDays, amount_rub: plan.amountRub, currency: 'RUB', status: 'pending', checkout_url: checkoutUrl, customer_email: email, raw_payload: { checkout: payload, signature_body: signatureBody(payload), product_name: plan.productName, paid_content: plan.paidContent, demo_mode: true } });
     if (insertError) throw insertError;
     return res.status(200).json({ orderId, checkoutUrl, plan: { code: plan.code, title: plan.productName, amountRub: plan.amountRub, periodDays: plan.periodDays } });
