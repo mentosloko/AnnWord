@@ -22,6 +22,8 @@ const LoaderIcon = () => (
   </svg>
 );
 
+const isFocusableElement = (item: Element): item is HTMLElement => item instanceof HTMLElement;
+
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   mode,
@@ -50,7 +52,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onCloseRef.current();
       if (event.key !== 'Tab' || !dialogRef.current) return;
-      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])'));
+      const focusable = Array.from(dialogRef.current.querySelectorAll('button:not([disabled]), input:not([disabled])')).filter(isFocusableElement);
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
