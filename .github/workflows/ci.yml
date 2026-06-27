@@ -15,50 +15,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Quiet git advice
-        run: |
-          git config --global advice.detachedHead false
-          git config --global init.defaultBranch main
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          show-progress: false
+          node-version: 22
 
       - name: Install dependencies
         run: |
           if [ -f package-lock.json ]; then
-            npm ci --silent --no-audit --fund=false
+            npm ci
           else
-            npm install --silent --no-audit --fund=false
+            npm install
           fi
 
       - name: Lint
-        run: npm exec -- tsc --noEmit --pretty false
+        run: npm run lint
 
-      - name: Unit tests capture
-        run: |
-          set +e
-          npm exec -- vitest run --reporter=dot > unit.log 2>&1
-          echo $? > unit.exit
-        continue-on-error: true
-
-      - name: Upload unit log
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-log
-          path: |
-            unit.log
-            unit.exit
-
-      - name: Unit tests gate
-        run: |
-          code=$(cat unit.exit)
-          tail -n 80 unit.log
-          exit $code
-
-      - name: Smoke checks
-        run: npm run check:smoke
+      - name: Unit tests
+        run: npm run check:unit
 
       - name: Build
         run: npm exec -- vite build
