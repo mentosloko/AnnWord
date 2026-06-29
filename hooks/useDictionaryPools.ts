@@ -20,6 +20,7 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
     let pool: EnrichedWord[] = [];
     const kidsMode = isKidsMode(userProfile);
     const hasPremium = hasPremiumDictionaryAccess(userProfile);
+    const isPracticeCustomDictionary = !kidsMode && settings.dictionarySource === 'custom';
 
     if (kidsMode) {
       if (settings.dictionarySource === 'premium' && hasPremium) {
@@ -41,7 +42,7 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
       pool = pool.map(word => ({ ...word, word: word.word.toUpperCase() }));
     }
 
-    return pool.filter(word => isAllowedSecretWord(word.word));
+    return pool.filter(word => isPracticeCustomDictionary ? isAllowedValidationWord(word.word) : isAllowedSecretWord(word.word));
   }, [settings.activePremiumDictionaryId, settings.dictionarySource, settings.difficulty, userProfile]);
 
   const getValidationPool = useCallback((wordLengthOverride?: WordLength): string[] => {
