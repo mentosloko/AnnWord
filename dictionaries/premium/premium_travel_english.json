@@ -1,1 +1,1459 @@
-{"title":"Travel English","source":"topic","theme":"travel","words":[{"word":"VISA","level":"A1","translation":"виза"},{"word":"TAXI","level":"A1","translation":"такси"},{"word":"TOUR","level":"A1","translation":"тур"},{"word":"TRIP","level":"A1","translation":"поездка"},{"word":"ROAD","level":"A1","translation":"дорога"},{"word":"RAIL","level":"A1","translation":"железная дорога"},{"word":"TRAM","level":"A1","translation":"трамвай"},{"word":"BOAT","level":"A1","translation":"лодка"},{"word":"SHIP","level":"A1","translation":"корабль"},{"word":"PORT","level":"A2","translation":"порт"},{"word":"GATE","level":"A1","translation":"выход на посадку"},{"word":"SEAT","level":"A1","translation":"место"},{"word":"BAGS","level":"A1","translation":"сумки"},{"word":"MAPS","level":"A1","translation":"карты"},{"word":"BIKE","level":"A1","translation":"велосипед"},{"word":"CITY","level":"A1","translation":"город"},{"word":"FLAG","level":"A1","translation":"флаг"},{"word":"FARE","level":"A2","translation":"стоимость проезда"},{"word":"FERRY","level":"A2","translation":"паром"},{"word":"GUIDE","level":"A1","translation":"гид"},{"word":"HOTEL","level":"A1","translation":"отель"},{"word":"HOSTEL","level":"A2","translation":"хостел"},{"word":"MOTEL","level":"A2","translation":"мотель"},{"word":"PLANE","level":"A1","translation":"самолёт"},{"word":"TRAIN","level":"A1","translation":"поезд"},{"word":"TRUCK","level":"A2","translation":"грузовик"},{"word":"TRUNK","level":"A2","translation":"багажник"},{"word":"CABIN","level":"A2","translation":"каюта / салон"},{"word":"AISLE","level":"A2","translation":"проход"},{"word":"BEACH","level":"A1","translation":"пляж"},{"word":"CANAL","level":"A2","translation":"канал"},{"word":"CANOE","level":"A2","translation":"каноэ"},{"word":"CARGO","level":"B1","translation":"груз"},{"word":"COACH","level":"A2","translation":"автобус / вагон"},{"word":"CRUISE","level":"A2","translation":"круиз"},{"word":"DELAY","level":"A2","translation":"задержка"},{"word":"DRIVE","level":"A1","translation":"ехать за рулём"},{"word":"DRIVER","level":"A2","translation":"водитель"},{"word":"ENTRY","level":"A2","translation":"въезд"},{"word":"FLIGHT","level":"A2","translation":"рейс"},{"word":"GARAGE","level":"A2","translation":"гараж"},{"word":"HIKING","level":"A2","translation":"поход"},{"word":"ISLAND","level":"A2","translation":"остров"},{"word":"JETTY","level":"B1","translation":"причал"},{"word":"JOURNEY","level":"A2","translation":"путешествие"},{"word":"LAGOON","level":"B1","translation":"лагуна"},{"word":"LANE","level":"A1","translation":"полоса / переулок"},{"word":"LOCAL","level":"A1","translation":"местный"},{"word":"LOCKER","level":"A2","translation":"камера хранения"},{"word":"LODGE","level":"A2","translation":"домик / лодж"},{"word":"LOUNGE","level":"B1","translation":"зал ожидания"},{"word":"LUGGAGE","level":"A2","translation":"багаж"},{"word":"MARINE","level":"B1","translation":"морской"},{"word":"METRO","level":"A2","translation":"метро"},{"word":"PALACE","level":"A2","translation":"дворец"},{"word":"PASSPORT","level":"A2","translation":"паспорт"},{"word":"PERMIT","level":"B1","translation":"разрешение"},{"word":"PLAZA","level":"A2","translation":"площадь"},{"word":"PORTER","level":"B1","translation":"носильщик"},{"word":"PUBLIC","level":"A2","translation":"общественный"},{"word":"RENTAL","level":"A2","translation":"аренда"},{"word":"RESORT","level":"A2","translation":"курорт"},{"word":"ROUTE","level":"A2","translation":"маршрут"},{"word":"RUNWAY","level":"B1","translation":"взлётная полоса"},{"word":"SAIL","level":"A1","translation":"плыть под парусом"},{"word":"SNACK","level":"A1","translation":"перекус"},{"word":"STAY","level":"A1","translation":"пребывание"},{"word":"STREET","level":"A1","translation":"улица"},{"word":"STROLL","level":"A2","translation":"прогулка"},{"word":"SUBURB","level":"A2","translation":"пригород"},{"word":"TICKET","level":"A2","translation":"билет"},{"word":"TRACK","level":"A2","translation":"путь / трек"},{"word":"TRAIL","level":"A2","translation":"тропа"},{"word":"TRAVEL","level":"A1","translation":"путешествовать"},{"word":"TREK","level":"B1","translation":"долгий поход"},{"word":"URBAN","level":"A2","translation":"городской"},{"word":"VESSEL","level":"B1","translation":"судно"},{"word":"VILLA","level":"A2","translation":"вилла"},{"word":"VISIT","level":"A1","translation":"посещение"},{"word":"VOYAGE","level":"B1","translation":"морское путешествие"},{"word":"WAGON","level":"A2","translation":"вагон"},{"word":"YACHT","level":"B1","translation":"яхта"},{"word":"ABROAD","level":"A2","translation":"за границей"},{"word":"AIRLINE","level":"A2","translation":"авиакомпания"},{"word":"AIRPORT","level":"A1","translation":"аэропорт"},{"word":"ARRIVAL","level":"A2","translation":"прибытие"},{"word":"BACKPACK","level":"A2","translation":"рюкзак"},{"word":"BAGGAGE","level":"A2","translation":"багаж"},{"word":"BOARDING","level":"A2","translation":"посадка"},{"word":"BOOKING","level":"A2","translation":"бронирование"},{"word":"BORDER","level":"A2","translation":"граница"},{"word":"CAROUSEL","level":"B1","translation":"багажная лента"},{"word":"CURRENCY","level":"A2","translation":"валюта"},{"word":"CUSTOMS","level":"B1","translation":"таможня"},{"word":"DEPARTURE","level":"A2","translation":"отправление"},{"word":"DESTINATION","level":"A2","translation":"пункт назначения"},{"word":"EMBASSY","level":"B1","translation":"посольство"},{"word":"EXCURSION","level":"B1","translation":"экскурсия"},{"word":"GUIDEBOOK","level":"B1","translation":"путеводитель"},{"word":"IMMIGRATION","level":"B1","translation":"иммиграционный контроль"},{"word":"INSURANCE","level":"B1","translation":"страховка"},{"word":"ITINERARY","level":"B2","translation":"маршрут поездки"},{"word":"LANDMARK","level":"B1","translation":"достопримечательность"},{"word":"OVERBOOKING","level":"B2","translation":"овербукинг"},{"word":"PASSENGER","level":"A2","translation":"пассажир"},{"word":"PLATFORM","level":"A2","translation":"платформа"},{"word":"RESERVATION","level":"A2","translation":"бронь"},{"word":"SCHEDULE","level":"A2","translation":"расписание"},{"word":"SIGHTSEEING","level":"B1","translation":"осмотр достопримечательностей"},{"word":"STOPOVER","level":"B1","translation":"пересадка / остановка"},{"word":"TERMINAL","level":"A2","translation":"терминал"},{"word":"TRANSFER","level":"A2","translation":"трансфер"},{"word":"TRANSPORT","level":"A2","translation":"транспорт"},{"word":"VACATION","level":"A2","translation":"отпуск"},{"word":"VOUCHER","level":"B1","translation":"ваучер"},{"word":"CHECKIN","level":"A2","translation":"регистрация"},{"word":"CHECKOUT","level":"A2","translation":"выезд из отеля"},{"word":"TIMETABLE","level":"A2","translation":"расписание"},{"word":"COMPARTMENT","level":"B1","translation":"купе / отсек"},{"word":"JETLAG","level":"B1","translation":"смена часовых поясов"}]}
+{
+  "title": "Travel English",
+  "source": "topic",
+  "theme": "travel",
+  "words": [
+    {
+      "word": "VISA",
+      "level": "A1",
+      "translation": "виза",
+      "isTransliterated": true
+    },
+    {
+      "word": "TAXI",
+      "level": "A1",
+      "translation": "такси",
+      "isTransliterated": true
+    },
+    {
+      "word": "TOUR",
+      "level": "A1",
+      "translation": "тур",
+      "isTransliterated": true
+    },
+    {
+      "word": "TRIP",
+      "level": "A1",
+      "translation": "поездка",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROAD",
+      "level": "A1",
+      "translation": "дорога",
+      "isTransliterated": false
+    },
+    {
+      "word": "RAIL",
+      "level": "A1",
+      "translation": "железная дорога",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRAM",
+      "level": "A1",
+      "translation": "трамвай",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOAT",
+      "level": "A1",
+      "translation": "лодка",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHIP",
+      "level": "A1",
+      "translation": "корабль",
+      "isTransliterated": false
+    },
+    {
+      "word": "PORT",
+      "level": "A2",
+      "translation": "порт",
+      "isTransliterated": false
+    },
+    {
+      "word": "GATE",
+      "level": "A1",
+      "translation": "выход на посадку",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEAT",
+      "level": "A1",
+      "translation": "место",
+      "isTransliterated": false
+    },
+    {
+      "word": "BAGS",
+      "level": "A1",
+      "translation": "сумки",
+      "isTransliterated": false
+    },
+    {
+      "word": "MAPS",
+      "level": "A1",
+      "translation": "карты",
+      "isTransliterated": false
+    },
+    {
+      "word": "BIKE",
+      "level": "A1",
+      "translation": "велосипед",
+      "isTransliterated": false
+    },
+    {
+      "word": "CITY",
+      "level": "A1",
+      "translation": "город",
+      "isTransliterated": false
+    },
+    {
+      "word": "FLAG",
+      "level": "A1",
+      "translation": "флаг",
+      "isTransliterated": false
+    },
+    {
+      "word": "FARE",
+      "level": "A2",
+      "translation": "стоимость проезда",
+      "isTransliterated": false
+    },
+    {
+      "word": "FERRY",
+      "level": "A2",
+      "translation": "паром",
+      "isTransliterated": false
+    },
+    {
+      "word": "GUIDE",
+      "level": "A1",
+      "translation": "гид",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOTEL",
+      "level": "A1",
+      "translation": "отель",
+      "isTransliterated": true
+    },
+    {
+      "word": "HOSTEL",
+      "level": "A2",
+      "translation": "хостел",
+      "isTransliterated": true
+    },
+    {
+      "word": "MOTEL",
+      "level": "A2",
+      "translation": "мотель",
+      "isTransliterated": true
+    },
+    {
+      "word": "PLANE",
+      "level": "A1",
+      "translation": "самолёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRAIN",
+      "level": "A1",
+      "translation": "поезд",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRUCK",
+      "level": "A2",
+      "translation": "грузовик",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRUNK",
+      "level": "A2",
+      "translation": "багажник",
+      "isTransliterated": false
+    },
+    {
+      "word": "CABIN",
+      "level": "A2",
+      "translation": "каюта / салон",
+      "isTransliterated": false
+    },
+    {
+      "word": "AISLE",
+      "level": "A2",
+      "translation": "проход",
+      "isTransliterated": false
+    },
+    {
+      "word": "BEACH",
+      "level": "A1",
+      "translation": "пляж",
+      "isTransliterated": false
+    },
+    {
+      "word": "CANAL",
+      "level": "A2",
+      "translation": "канал",
+      "isTransliterated": false
+    },
+    {
+      "word": "CANOE",
+      "level": "A2",
+      "translation": "каноэ",
+      "isTransliterated": false
+    },
+    {
+      "word": "CARGO",
+      "level": "B1",
+      "translation": "груз",
+      "isTransliterated": false
+    },
+    {
+      "word": "COACH",
+      "level": "A2",
+      "translation": "автобус / вагон",
+      "isTransliterated": false
+    },
+    {
+      "word": "CRUISE",
+      "level": "A2",
+      "translation": "круиз",
+      "isTransliterated": true
+    },
+    {
+      "word": "DELAY",
+      "level": "A2",
+      "translation": "задержка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DRIVE",
+      "level": "A1",
+      "translation": "ехать за рулём",
+      "isTransliterated": false
+    },
+    {
+      "word": "DRIVER",
+      "level": "A2",
+      "translation": "водитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENTRY",
+      "level": "A2",
+      "translation": "въезд",
+      "isTransliterated": false
+    },
+    {
+      "word": "FLIGHT",
+      "level": "A2",
+      "translation": "рейс",
+      "isTransliterated": false
+    },
+    {
+      "word": "GARAGE",
+      "level": "A2",
+      "translation": "гараж",
+      "isTransliterated": true
+    },
+    {
+      "word": "HIKING",
+      "level": "A2",
+      "translation": "поход",
+      "isTransliterated": false
+    },
+    {
+      "word": "ISLAND",
+      "level": "A2",
+      "translation": "остров",
+      "isTransliterated": false
+    },
+    {
+      "word": "JETTY",
+      "level": "B1",
+      "translation": "причал",
+      "isTransliterated": false
+    },
+    {
+      "word": "JOURNEY",
+      "level": "A2",
+      "translation": "путешествие",
+      "isTransliterated": false
+    },
+    {
+      "word": "LAGOON",
+      "level": "B1",
+      "translation": "лагуна",
+      "isTransliterated": true
+    },
+    {
+      "word": "LANE",
+      "level": "A1",
+      "translation": "полоса / переулок",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOCAL",
+      "level": "A1",
+      "translation": "местный",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOCKER",
+      "level": "A2",
+      "translation": "камера хранения",
+      "isTransliterated": false
+    },
+    {
+      "word": "LODGE",
+      "level": "A2",
+      "translation": "домик / лодж",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOUNGE",
+      "level": "B1",
+      "translation": "зал ожидания",
+      "isTransliterated": false
+    },
+    {
+      "word": "LUGGAGE",
+      "level": "A2",
+      "translation": "багаж",
+      "isTransliterated": false
+    },
+    {
+      "word": "MARINE",
+      "level": "B1",
+      "translation": "морской",
+      "isTransliterated": false
+    },
+    {
+      "word": "METRO",
+      "level": "A2",
+      "translation": "метро",
+      "isTransliterated": true
+    },
+    {
+      "word": "PALACE",
+      "level": "A2",
+      "translation": "дворец",
+      "isTransliterated": false
+    },
+    {
+      "word": "PASSPORT",
+      "level": "A2",
+      "translation": "паспорт",
+      "isTransliterated": true
+    },
+    {
+      "word": "PERMIT",
+      "level": "B1",
+      "translation": "разрешение",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLAZA",
+      "level": "A2",
+      "translation": "площадь",
+      "isTransliterated": false
+    },
+    {
+      "word": "PORTER",
+      "level": "B1",
+      "translation": "носильщик",
+      "isTransliterated": false
+    },
+    {
+      "word": "PUBLIC",
+      "level": "A2",
+      "translation": "общественный",
+      "isTransliterated": false
+    },
+    {
+      "word": "RENTAL",
+      "level": "A2",
+      "translation": "аренда",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESORT",
+      "level": "A2",
+      "translation": "курорт",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROUTE",
+      "level": "A2",
+      "translation": "маршрут",
+      "isTransliterated": false
+    },
+    {
+      "word": "RUNWAY",
+      "level": "B1",
+      "translation": "взлётная полоса",
+      "isTransliterated": false
+    },
+    {
+      "word": "SAIL",
+      "level": "A1",
+      "translation": "плыть под парусом",
+      "isTransliterated": false
+    },
+    {
+      "word": "SNACK",
+      "level": "A1",
+      "translation": "перекус",
+      "isTransliterated": false
+    },
+    {
+      "word": "STAY",
+      "level": "A1",
+      "translation": "пребывание",
+      "isTransliterated": false
+    },
+    {
+      "word": "STREET",
+      "level": "A1",
+      "translation": "улица",
+      "isTransliterated": false
+    },
+    {
+      "word": "STROLL",
+      "level": "A2",
+      "translation": "прогулка",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUBURB",
+      "level": "A2",
+      "translation": "пригород",
+      "isTransliterated": false
+    },
+    {
+      "word": "TICKET",
+      "level": "A2",
+      "translation": "билет",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRACK",
+      "level": "A2",
+      "translation": "путь / трек",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRAIL",
+      "level": "A2",
+      "translation": "тропа",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRAVEL",
+      "level": "A1",
+      "translation": "путешествовать",
+      "isTransliterated": false
+    },
+    {
+      "word": "TREK",
+      "level": "B1",
+      "translation": "долгий поход",
+      "isTransliterated": false
+    },
+    {
+      "word": "URBAN",
+      "level": "A2",
+      "translation": "городской",
+      "isTransliterated": false
+    },
+    {
+      "word": "VESSEL",
+      "level": "B1",
+      "translation": "судно",
+      "isTransliterated": false
+    },
+    {
+      "word": "VILLA",
+      "level": "A2",
+      "translation": "вилла",
+      "isTransliterated": true
+    },
+    {
+      "word": "VISIT",
+      "level": "A1",
+      "translation": "посещение",
+      "isTransliterated": false
+    },
+    {
+      "word": "VOYAGE",
+      "level": "B1",
+      "translation": "морское путешествие",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAGON",
+      "level": "A2",
+      "translation": "вагон",
+      "isTransliterated": false
+    },
+    {
+      "word": "YACHT",
+      "level": "B1",
+      "translation": "яхта",
+      "isTransliterated": false
+    },
+    {
+      "word": "ABROAD",
+      "level": "A2",
+      "translation": "за границей",
+      "isTransliterated": false
+    },
+    {
+      "word": "AIRLINE",
+      "level": "A2",
+      "translation": "авиакомпания",
+      "isTransliterated": false
+    },
+    {
+      "word": "AIRPORT",
+      "level": "A1",
+      "translation": "аэропорт",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARRIVAL",
+      "level": "A2",
+      "translation": "прибытие",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACKPACK",
+      "level": "A2",
+      "translation": "рюкзак",
+      "isTransliterated": false
+    },
+    {
+      "word": "BAGGAGE",
+      "level": "A2",
+      "translation": "багаж",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOARDING",
+      "level": "A2",
+      "translation": "посадка",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOOKING",
+      "level": "A2",
+      "translation": "бронирование",
+      "isTransliterated": false
+    },
+    {
+      "word": "BORDER",
+      "level": "A2",
+      "translation": "граница",
+      "isTransliterated": false
+    },
+    {
+      "word": "CAROUSEL",
+      "level": "B1",
+      "translation": "багажная лента",
+      "isTransliterated": false
+    },
+    {
+      "word": "CURRENCY",
+      "level": "A2",
+      "translation": "валюта",
+      "isTransliterated": false
+    },
+    {
+      "word": "CUSTOMS",
+      "level": "B1",
+      "translation": "таможня",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEPARTURE",
+      "level": "A2",
+      "translation": "отправление",
+      "isTransliterated": false
+    },
+    {
+      "word": "DESTINATION",
+      "level": "A2",
+      "translation": "пункт назначения",
+      "isTransliterated": false
+    },
+    {
+      "word": "EMBASSY",
+      "level": "B1",
+      "translation": "посольство",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXCURSION",
+      "level": "B1",
+      "translation": "экскурсия",
+      "isTransliterated": true
+    },
+    {
+      "word": "GUIDEBOOK",
+      "level": "B1",
+      "translation": "путеводитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "IMMIGRATION",
+      "level": "B1",
+      "translation": "иммиграционный контроль",
+      "isTransliterated": false
+    },
+    {
+      "word": "INSURANCE",
+      "level": "B1",
+      "translation": "страховка",
+      "isTransliterated": false
+    },
+    {
+      "word": "ITINERARY",
+      "level": "B2",
+      "translation": "маршрут поездки",
+      "isTransliterated": false
+    },
+    {
+      "word": "LANDMARK",
+      "level": "B1",
+      "translation": "достопримечательность",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERBOOKING",
+      "level": "B2",
+      "translation": "овербукинг",
+      "isTransliterated": true
+    },
+    {
+      "word": "PASSENGER",
+      "level": "A2",
+      "translation": "пассажир",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLATFORM",
+      "level": "A2",
+      "translation": "платформа",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESERVATION",
+      "level": "A2",
+      "translation": "бронь",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCHEDULE",
+      "level": "A2",
+      "translation": "расписание",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIGHTSEEING",
+      "level": "B1",
+      "translation": "осмотр достопримечательностей",
+      "isTransliterated": false
+    },
+    {
+      "word": "STOPOVER",
+      "level": "B1",
+      "translation": "пересадка / остановка",
+      "isTransliterated": false
+    },
+    {
+      "word": "TERMINAL",
+      "level": "A2",
+      "translation": "терминал",
+      "isTransliterated": true
+    },
+    {
+      "word": "TRANSFER",
+      "level": "A2",
+      "translation": "трансфер",
+      "isTransliterated": true
+    },
+    {
+      "word": "TRANSPORT",
+      "level": "A2",
+      "translation": "транспорт",
+      "isTransliterated": true
+    },
+    {
+      "word": "VACATION",
+      "level": "A2",
+      "translation": "отпуск",
+      "isTransliterated": false
+    },
+    {
+      "word": "VOUCHER",
+      "level": "B1",
+      "translation": "ваучер",
+      "isTransliterated": true
+    },
+    {
+      "word": "CHECKIN",
+      "level": "A2",
+      "translation": "регистрация",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHECKOUT",
+      "level": "A2",
+      "translation": "выезд из отеля",
+      "isTransliterated": false
+    },
+    {
+      "word": "TIMETABLE",
+      "level": "A2",
+      "translation": "расписание",
+      "isTransliterated": false
+    },
+    {
+      "word": "COMPARTMENT",
+      "level": "B1",
+      "translation": "купе / отсек",
+      "isTransliterated": false
+    },
+    {
+      "word": "JETLAG",
+      "level": "B1",
+      "translation": "смена часовых поясов",
+      "isTransliterated": false
+    },
+    {
+      "word": "AIR",
+      "level": "A1",
+      "translation": "воздух",
+      "isTransliterated": false
+    },
+    {
+      "word": "BAG",
+      "level": "A1",
+      "translation": "сумка",
+      "isTransliterated": false
+    },
+    {
+      "word": "BED",
+      "level": "A1",
+      "translation": "кровать",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUS",
+      "level": "A1",
+      "translation": "автобус",
+      "isTransliterated": false
+    },
+    {
+      "word": "CAR",
+      "level": "A1",
+      "translation": "машина",
+      "isTransliterated": false
+    },
+    {
+      "word": "DAY",
+      "level": "A1",
+      "translation": "день",
+      "isTransliterated": false
+    },
+    {
+      "word": "FOOD",
+      "level": "A1",
+      "translation": "еда",
+      "isTransliterated": false
+    },
+    {
+      "word": "HELP",
+      "level": "A1",
+      "translation": "помощь",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOME",
+      "level": "A1",
+      "translation": "дом",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROOM",
+      "level": "A1",
+      "translation": "номер",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHOP",
+      "level": "A1",
+      "translation": "магазин",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUN",
+      "level": "A1",
+      "translation": "солнце",
+      "isTransliterated": false
+    },
+    {
+      "word": "WATER",
+      "level": "A1",
+      "translation": "вода",
+      "isTransliterated": false
+    },
+    {
+      "word": "WALK",
+      "level": "A1",
+      "translation": "идти пешком",
+      "isTransliterated": false
+    },
+    {
+      "word": "KEY",
+      "level": "A1",
+      "translation": "ключ",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARRIVE",
+      "level": "A2",
+      "translation": "прибывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEAVE",
+      "level": "A2",
+      "translation": "уезжать",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOOK",
+      "level": "A2",
+      "translation": "бронировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "CANCEL",
+      "level": "A2",
+      "translation": "отменять",
+      "isTransliterated": false
+    },
+    {
+      "word": "CARRY",
+      "level": "A2",
+      "translation": "нести",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHANGE",
+      "level": "A2",
+      "translation": "пересадка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHECK",
+      "level": "A2",
+      "translation": "проверять",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLIMB",
+      "level": "A2",
+      "translation": "подниматься",
+      "isTransliterated": false
+    },
+    {
+      "word": "COAST",
+      "level": "A2",
+      "translation": "побережье",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXIT",
+      "level": "A2",
+      "translation": "выход",
+      "isTransliterated": false
+    },
+    {
+      "word": "FLY",
+      "level": "A2",
+      "translation": "лететь",
+      "isTransliterated": false
+    },
+    {
+      "word": "HILL",
+      "level": "A2",
+      "translation": "холм",
+      "isTransliterated": false
+    },
+    {
+      "word": "LAND",
+      "level": "A2",
+      "translation": "приземляться",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOST",
+      "level": "A2",
+      "translation": "потерянный",
+      "isTransliterated": false
+    },
+    {
+      "word": "PACK",
+      "level": "A2",
+      "translation": "упаковывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "PARK",
+      "level": "A2",
+      "translation": "парковаться",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLUG",
+      "level": "A2",
+      "translation": "вилка",
+      "isTransliterated": false
+    },
+    {
+      "word": "VIEW",
+      "level": "A2",
+      "translation": "вид",
+      "isTransliterated": false
+    },
+    {
+      "word": "WEATHER",
+      "level": "A2",
+      "translation": "погода",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHELTER",
+      "level": "A2",
+      "translation": "укрытие",
+      "isTransliterated": false
+    },
+    {
+      "word": "TENT",
+      "level": "A2",
+      "translation": "палатка",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOWEL",
+      "level": "A2",
+      "translation": "полотенце",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRAFFIC",
+      "level": "A2",
+      "translation": "движение",
+      "isTransliterated": false
+    },
+    {
+      "word": "DIRECT",
+      "level": "A2",
+      "translation": "прямой",
+      "isTransliterated": false
+    },
+    {
+      "word": "DELAYED",
+      "level": "A2",
+      "translation": "задержанный",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERNIGHT",
+      "level": "A2",
+      "translation": "на ночь",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCOMMODATION",
+      "level": "B1",
+      "translation": "жильё",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADAPTER",
+      "level": "B1",
+      "translation": "переходник",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALLOWANCE",
+      "level": "B1",
+      "translation": "разрешённая норма",
+      "isTransliterated": false
+    },
+    {
+      "word": "AMENITY",
+      "level": "B1",
+      "translation": "удобство",
+      "isTransliterated": false
+    },
+    {
+      "word": "ATTRACTION",
+      "level": "B1",
+      "translation": "достопримечательность",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOOKLET",
+      "level": "B1",
+      "translation": "памятка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CAMPSITE",
+      "level": "B1",
+      "translation": "место для лагеря",
+      "isTransliterated": false
+    },
+    {
+      "word": "CANCELLATION",
+      "level": "B1",
+      "translation": "отмена",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHECKPOINT",
+      "level": "B1",
+      "translation": "пункт проверки",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONNECTION",
+      "level": "B1",
+      "translation": "пересадка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CROWDED",
+      "level": "B1",
+      "translation": "переполненный",
+      "isTransliterated": false
+    },
+    {
+      "word": "DETOUR",
+      "level": "B1",
+      "translation": "объезд",
+      "isTransliterated": false
+    },
+    {
+      "word": "FOOTPATH",
+      "level": "B1",
+      "translation": "пешеходная тропа",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOMESTAY",
+      "level": "B1",
+      "translation": "проживание в семье",
+      "isTransliterated": false
+    },
+    {
+      "word": "LANDING",
+      "level": "B1",
+      "translation": "посадка",
+      "isTransliterated": false
+    },
+    {
+      "word": "LAYOVER",
+      "level": "B1",
+      "translation": "пересадка",
+      "isTransliterated": false
+    },
+    {
+      "word": "REFUND",
+      "level": "B1",
+      "translation": "возврат денег",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEASICK",
+      "level": "B1",
+      "translation": "страдающий морской болезнью",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIGHT",
+      "level": "B1",
+      "translation": "вид",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUNBURN",
+      "level": "B1",
+      "translation": "солнечный ожог",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUNSCREEN",
+      "level": "B1",
+      "translation": "солнцезащитное средство",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOLL",
+      "level": "B1",
+      "translation": "плата за проезд",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRAVELER",
+      "level": "B1",
+      "translation": "путешественник",
+      "isTransliterated": false
+    },
+    {
+      "word": "UPGRADE",
+      "level": "B1",
+      "translation": "повышение класса",
+      "isTransliterated": false
+    },
+    {
+      "word": "WILDLIFE",
+      "level": "B1",
+      "translation": "дикая природа",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEASIDE",
+      "level": "B1",
+      "translation": "морское побережье",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOARD",
+      "level": "B1",
+      "translation": "садиться на транспорт",
+      "isTransliterated": false
+    },
+    {
+      "word": "EMBARK",
+      "level": "B2",
+      "translation": "садиться на судно",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISEMBARK",
+      "level": "B2",
+      "translation": "сходить с судна",
+      "isTransliterated": false
+    },
+    {
+      "word": "EVACUATE",
+      "level": "B2",
+      "translation": "вывозить в безопасное место",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOSPITALITY",
+      "level": "B2",
+      "translation": "гостеприимство",
+      "isTransliterated": false
+    },
+    {
+      "word": "INBOUND",
+      "level": "B2",
+      "translation": "въездной",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTBOUND",
+      "level": "B2",
+      "translation": "выездной",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERSOLD",
+      "level": "B2",
+      "translation": "проданный сверх мест",
+      "isTransliterated": false
+    },
+    {
+      "word": "REBOOK",
+      "level": "B2",
+      "translation": "перебронировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "STRANDED",
+      "level": "B2",
+      "translation": "застрявший",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAYFINDING",
+      "level": "B2",
+      "translation": "ориентирование",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERSTAY",
+      "level": "B2",
+      "translation": "превышать срок пребывания",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEAFRONT",
+      "level": "B2",
+      "translation": "набережная",
+      "isTransliterated": false
+    },
+    {
+      "word": "HINTERLAND",
+      "level": "B2",
+      "translation": "внутренняя область",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERTAKE",
+      "level": "B2",
+      "translation": "предпринимать",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAYPOINT",
+      "level": "B2",
+      "translation": "путевая точка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CROSSING",
+      "level": "B1",
+      "translation": "переход",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERPASS",
+      "level": "B1",
+      "translation": "путепровод",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERPASS",
+      "level": "B1",
+      "translation": "подземный переход",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOOKOUT",
+      "level": "B1",
+      "translation": "смотровая площадка",
+      "isTransliterated": false
+    },
+    {
+      "word": "RAILWAY",
+      "level": "B1",
+      "translation": "железная дорога",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEATBELT",
+      "level": "B1",
+      "translation": "ремень безопасности",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOARDWALK",
+      "level": "B1",
+      "translation": "настил",
+      "isTransliterated": false
+    },
+    {
+      "word": "WALKWAY",
+      "level": "B1",
+      "translation": "проход",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOWNSHIP",
+      "level": "B2",
+      "translation": "посёлок",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACKWATER",
+      "level": "C1",
+      "translation": "захолустье",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERTOURISM",
+      "level": "C2",
+      "translation": "чрезмерный наплыв гостей",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAYFARER",
+      "level": "C2",
+      "translation": "странник",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISCONNECTION",
+      "level": "C2",
+      "translation": "пропущенная пересадка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CABOTAGE",
+      "level": "C2",
+      "translation": "внутренняя перевозка иностранным перевозчиком",
+      "isTransliterated": false
+    },
+    {
+      "word": "STOPPAGE",
+      "level": "C2",
+      "translation": "остановка движения",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEADWAY",
+      "level": "C2",
+      "translation": "интервал движения",
+      "isTransliterated": false
+    },
+    {
+      "word": "INTERLINING",
+      "level": "C2",
+      "translation": "перевозка несколькими компаниями",
+      "isTransliterated": false
+    },
+    {
+      "word": "BERTH",
+      "level": "C2",
+      "translation": "спальное место",
+      "isTransliterated": false
+    },
+    {
+      "word": "AIRWORTHY",
+      "level": "C1",
+      "translation": "годный к полёту",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEAWORTHY",
+      "level": "C1",
+      "translation": "годный к плаванию",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOMEWARD",
+      "level": "C1",
+      "translation": "направленный домой",
+      "isTransliterated": false
+    },
+    {
+      "word": "INLAND",
+      "level": "C1",
+      "translation": "внутренний",
+      "isTransliterated": false
+    },
+    {
+      "word": "UPRIVER",
+      "level": "C1",
+      "translation": "вверх по реке",
+      "isTransliterated": false
+    },
+    {
+      "word": "DOWNRIVER",
+      "level": "C1",
+      "translation": "вниз по реке",
+      "isTransliterated": false
+    },
+    {
+      "word": "LANDSIDE",
+      "level": "C1",
+      "translation": "до контроля",
+      "isTransliterated": false
+    },
+    {
+      "word": "AIRSIDE",
+      "level": "C1",
+      "translation": "после контроля",
+      "isTransliterated": false
+    },
+    {
+      "word": "HARDSTAND",
+      "level": "C1",
+      "translation": "удалённая стоянка",
+      "isTransliterated": false
+    },
+    {
+      "word": "APRON",
+      "level": "C1",
+      "translation": "перрон",
+      "isTransliterated": false
+    },
+    {
+      "word": "GANGWAY",
+      "level": "C1",
+      "translation": "трап",
+      "isTransliterated": false
+    },
+    {
+      "word": "FOOTBRIDGE",
+      "level": "C1",
+      "translation": "пешеходный мост",
+      "isTransliterated": false
+    },
+    {
+      "word": "BORDERLAND",
+      "level": "C1",
+      "translation": "приграничье",
+      "isTransliterated": false
+    },
+    {
+      "word": "LANDFALL",
+      "level": "C1",
+      "translation": "прибытие к берегу",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEPLANING",
+      "level": "C2",
+      "translation": "высадка из самолёта",
+      "isTransliterated": false
+    },
+    {
+      "word": "SKIPLAGGING",
+      "level": "C2",
+      "translation": "скрытый сегмент маршрута",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERFLIGHT",
+      "level": "C2",
+      "translation": "пролёт над территорией",
+      "isTransliterated": false
+    },
+    {
+      "word": "CODESHARE",
+      "level": "C2",
+      "translation": "совместная эксплуатация рейса",
+      "isTransliterated": false
+    },
+    {
+      "word": "AIRLIFT",
+      "level": "C2",
+      "translation": "воздушная перевозка",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAYLEAVE",
+      "level": "C2",
+      "translation": "право прохода",
+      "isTransliterated": false
+    },
+    {
+      "word": "FLAGSTOP",
+      "level": "C2",
+      "translation": "остановка по требованию",
+      "isTransliterated": false
+    }
+  ]
+}
