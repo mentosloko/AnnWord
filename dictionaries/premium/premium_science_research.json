@@ -1,1 +1,1375 @@
-{"title":"Science & Research English","source":"topic","theme":"science","words":[{"word":"ATOM","level":"A2","translation":"атом"},{"word":"CELL","level":"A2","translation":"клетка"},{"word":"DATA","level":"A2","translation":"данные"},{"word":"DOSE","level":"B1","translation":"доза"},{"word":"GENE","level":"B1","translation":"ген"},{"word":"MASS","level":"A2","translation":"масса"},{"word":"MATH","level":"A1","translation":"математика"},{"word":"MOLE","level":"B2","translation":"моль"},{"word":"TEST","level":"A1","translation":"тест"},{"word":"ACID","level":"B1","translation":"кислота"},{"word":"BASE","level":"B1","translation":"основание"},{"word":"BEAM","level":"B1","translation":"луч"},{"word":"BIOME","level":"B2","translation":"биом"},{"word":"BRAIN","level":"A2","translation":"мозг"},{"word":"CYCLE","level":"A2","translation":"цикл"},{"word":"DENSITY","level":"B2","translation":"плотность"},{"word":"ENERGY","level":"A2","translation":"энергия"},{"word":"ENZYME","level":"B2","translation":"фермент"},{"word":"FIELD","level":"A2","translation":"поле"},{"word":"FORCE","level":"A2","translation":"сила"},{"word":"FUNGI","level":"B2","translation":"грибы"},{"word":"GRAVITY","level":"B1","translation":"гравитация"},{"word":"IMPACT","level":"B1","translation":"воздействие"},{"word":"LASER","level":"B2","translation":"лазер"},{"word":"LAYER","level":"A2","translation":"слой"},{"word":"LIGHT","level":"A1","translation":"свет"},{"word":"LOGIC","level":"B1","translation":"логика"},{"word":"MAGNET","level":"B2","translation":"магнит"},{"word":"METHOD","level":"A2","translation":"метод"},{"word":"MODEL","level":"A2","translation":"модель"},{"word":"MOTION","level":"A2","translation":"движение"},{"word":"NATURE","level":"A2","translation":"природа"},{"word":"ORBIT","level":"B1","translation":"орбита"},{"word":"OXYGEN","level":"A2","translation":"кислород"},{"word":"PHASE","level":"B1","translation":"фаза"},{"word":"PHOTON","level":"B2","translation":"фотон"},{"word":"PLANET","level":"A2","translation":"планета"},{"word":"PLASMA","level":"B2","translation":"плазма"},{"word":"PROBE","level":"B1","translation":"зонд"},{"word":"PROTEIN","level":"B1","translation":"белок"},{"word":"QUANTA","level":"C1","translation":"кванты"},{"word":"RANDOM","level":"B1","translation":"случайный"},{"word":"REACT","level":"B1","translation":"реагировать"},{"word":"SAMPLE","level":"A2","translation":"образец"},{"word":"SCALAR","level":"C1","translation":"скаляр"},{"word":"SERIES","level":"B1","translation":"ряд"},{"word":"SIGNAL","level":"B1","translation":"сигнал"},{"word":"SODIUM","level":"B1","translation":"натрий"},{"word":"SOLAR","level":"A2","translation":"солнечный"},{"word":"SOLID","level":"A2","translation":"твёрдое вещество"},{"word":"SPECIES","level":"B1","translation":"вид"},{"word":"SPHERE","level":"B1","translation":"сфера"},{"word":"SYSTEM","level":"A2","translation":"система"},{"word":"THEORY","level":"B1","translation":"теория"},{"word":"VECTOR","level":"B2","translation":"вектор"},{"word":"VIRUS","level":"B1","translation":"вирус"},{"word":"VOLUME","level":"B1","translation":"объём"},{"word":"WEIGHT","level":"A2","translation":"вес"},{"word":"XENON","level":"C1","translation":"ксенон"},{"word":"ZYGOTE","level":"C1","translation":"зигота"},{"word":"ANALYSIS","level":"B1","translation":"анализ"},{"word":"AQUATIC","level":"B1","translation":"водный"},{"word":"BACTERIA","level":"B1","translation":"бактерии"},{"word":"BIOLOGY","level":"A2","translation":"биология"},{"word":"CATALYST","level":"B2","translation":"катализатор"},{"word":"CHEMICAL","level":"A2","translation":"химический"},{"word":"CLIMATE","level":"A2","translation":"климат"},{"word":"COMPOUND","level":"B1","translation":"соединение"},{"word":"CONTROL","level":"A2","translation":"контроль"},{"word":"CRYSTAL","level":"B2","translation":"кристалл"},{"word":"ECOLOGY","level":"B1","translation":"экология"},{"word":"ELECTRON","level":"B2","translation":"электрон"},{"word":"ELEMENT","level":"A2","translation":"элемент"},{"word":"EQUATION","level":"B1","translation":"уравнение"},{"word":"EVIDENCE","level":"B1","translation":"доказательство"},{"word":"EXPERIMENT","level":"A2","translation":"эксперимент"},{"word":"FREQUENCY","level":"B2","translation":"частота"},{"word":"GENETICS","level":"B2","translation":"генетика"},{"word":"HYPOTHESIS","level":"B2","translation":"гипотеза"},{"word":"ISOTOPE","level":"B2","translation":"изотоп"},{"word":"LABORATORY","level":"A2","translation":"лаборатория"},{"word":"MOLECULE","level":"B2","translation":"молекула"},{"word":"NEUTRON","level":"B2","translation":"нейтрон"},{"word":"NUCLEUS","level":"B2","translation":"ядро"},{"word":"OBSERVATION","level":"B1","translation":"наблюдение"},{"word":"ORGANISM","level":"B1","translation":"организм"},{"word":"PARTICLE","level":"B2","translation":"частица"},{"word":"PHYSICS","level":"A2","translation":"физика"},{"word":"PROCEDURE","level":"B1","translation":"процедура"},{"word":"RESEARCH","level":"A2","translation":"исследование"},{"word":"RESULT","level":"A2","translation":"результат"},{"word":"SCIENTIST","level":"A2","translation":"учёный"},{"word":"SEQUENCE","level":"B2","translation":"последовательность"},{"word":"SOLUTION","level":"B1","translation":"раствор / решение"},{"word":"STATISTICS","level":"B1","translation":"статистика"},{"word":"STRUCTURE","level":"B1","translation":"структура"},{"word":"VARIABLE","level":"B1","translation":"переменная"},{"word":"WAVELENGTH","level":"C1","translation":"длина волны"},{"word":"ACCELERATION","level":"B2","translation":"ускорение"},{"word":"BIODIVERSITY","level":"C1","translation":"биоразнообразие"},{"word":"CALCULATION","level":"B1","translation":"расчёт"},{"word":"CHROMOSOME","level":"B2","translation":"хромосома"},{"word":"CONCLUSION","level":"B1","translation":"вывод"},{"word":"CONSERVATION","level":"B2","translation":"сохранение"},{"word":"CORRELATION","level":"B2","translation":"корреляция"},{"word":"ELECTRICITY","level":"A2","translation":"электричество"},{"word":"EVOLUTION","level":"B2","translation":"эволюция"},{"word":"GRAVITATION","level":"C1","translation":"гравитация"},{"word":"INSTRUMENT","level":"B1","translation":"прибор"},{"word":"MICROSCOPE","level":"B1","translation":"микроскоп"},{"word":"PHOTOSYNTHESIS","level":"C1","translation":"фотосинтез"},{"word":"QUANTUM","level":"B2","translation":"квантовый"},{"word":"RADIATION","level":"B2","translation":"излучение"},{"word":"REPLICATION","level":"B2","translation":"репликация"},{"word":"TEMPERATURE","level":"A2","translation":"температура"},{"word":"THERMODYNAMICS","level":"C1","translation":"термодинамика"},{"word":"VALIDITY","level":"B2","translation":"валидность"},{"word":"VARIATION","level":"B2","translation":"изменчивость"},{"word":"VELOCITY","level":"B2","translation":"скорость"},{"word":"VISCOSITY","level":"C1","translation":"вязкость"},{"word":"VOLCANOLOGY","level":"C1","translation":"вулканология"},{"word":"ALGAE","level":"B1","translation":"водоросли"},{"word":"IONIC","level":"B2","translation":"ионный"},{"word":"PROTON","level":"B2","translation":"протон"}]}
+{
+  "title": "Science & Research English",
+  "source": "topic",
+  "theme": "science",
+  "words": [
+    {
+      "word": "ATOM",
+      "level": "A2",
+      "translation": "атом",
+      "isTransliterated": true
+    },
+    {
+      "word": "CELL",
+      "level": "A2",
+      "translation": "клетка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DATA",
+      "level": "A2",
+      "translation": "данные",
+      "isTransliterated": false
+    },
+    {
+      "word": "DOSE",
+      "level": "B1",
+      "translation": "доза",
+      "isTransliterated": false
+    },
+    {
+      "word": "GENE",
+      "level": "B1",
+      "translation": "ген",
+      "isTransliterated": true
+    },
+    {
+      "word": "MASS",
+      "level": "A2",
+      "translation": "масса",
+      "isTransliterated": true
+    },
+    {
+      "word": "MATH",
+      "level": "A1",
+      "translation": "математика",
+      "isTransliterated": false
+    },
+    {
+      "word": "MOLE",
+      "level": "B2",
+      "translation": "моль",
+      "isTransliterated": true
+    },
+    {
+      "word": "TEST",
+      "level": "A1",
+      "translation": "тест",
+      "isTransliterated": true
+    },
+    {
+      "word": "ACID",
+      "level": "B1",
+      "translation": "кислота",
+      "isTransliterated": false
+    },
+    {
+      "word": "BASE",
+      "level": "B1",
+      "translation": "основание",
+      "isTransliterated": false
+    },
+    {
+      "word": "BEAM",
+      "level": "B1",
+      "translation": "луч",
+      "isTransliterated": false
+    },
+    {
+      "word": "BIOME",
+      "level": "B2",
+      "translation": "биом",
+      "isTransliterated": true
+    },
+    {
+      "word": "BRAIN",
+      "level": "A2",
+      "translation": "мозг",
+      "isTransliterated": false
+    },
+    {
+      "word": "CYCLE",
+      "level": "A2",
+      "translation": "цикл",
+      "isTransliterated": false
+    },
+    {
+      "word": "DENSITY",
+      "level": "B2",
+      "translation": "плотность",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENERGY",
+      "level": "A2",
+      "translation": "энергия",
+      "isTransliterated": true
+    },
+    {
+      "word": "ENZYME",
+      "level": "B2",
+      "translation": "фермент",
+      "isTransliterated": false
+    },
+    {
+      "word": "FIELD",
+      "level": "A2",
+      "translation": "поле",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORCE",
+      "level": "A2",
+      "translation": "сила",
+      "isTransliterated": false
+    },
+    {
+      "word": "FUNGI",
+      "level": "B2",
+      "translation": "грибы",
+      "isTransliterated": false
+    },
+    {
+      "word": "GRAVITY",
+      "level": "B1",
+      "translation": "гравитация",
+      "isTransliterated": true
+    },
+    {
+      "word": "IMPACT",
+      "level": "B1",
+      "translation": "воздействие",
+      "isTransliterated": false
+    },
+    {
+      "word": "LASER",
+      "level": "B2",
+      "translation": "лазер",
+      "isTransliterated": true
+    },
+    {
+      "word": "LAYER",
+      "level": "A2",
+      "translation": "слой",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIGHT",
+      "level": "A1",
+      "translation": "свет",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOGIC",
+      "level": "B1",
+      "translation": "логика",
+      "isTransliterated": true
+    },
+    {
+      "word": "MAGNET",
+      "level": "B2",
+      "translation": "магнит",
+      "isTransliterated": true
+    },
+    {
+      "word": "METHOD",
+      "level": "A2",
+      "translation": "метод",
+      "isTransliterated": true
+    },
+    {
+      "word": "MODEL",
+      "level": "A2",
+      "translation": "модель",
+      "isTransliterated": true
+    },
+    {
+      "word": "MOTION",
+      "level": "A2",
+      "translation": "движение",
+      "isTransliterated": false
+    },
+    {
+      "word": "NATURE",
+      "level": "A2",
+      "translation": "природа",
+      "isTransliterated": false
+    },
+    {
+      "word": "ORBIT",
+      "level": "B1",
+      "translation": "орбита",
+      "isTransliterated": true
+    },
+    {
+      "word": "OXYGEN",
+      "level": "A2",
+      "translation": "кислород",
+      "isTransliterated": false
+    },
+    {
+      "word": "PHASE",
+      "level": "B1",
+      "translation": "фаза",
+      "isTransliterated": false
+    },
+    {
+      "word": "PHOTON",
+      "level": "B2",
+      "translation": "фотон",
+      "isTransliterated": true
+    },
+    {
+      "word": "PLANET",
+      "level": "A2",
+      "translation": "планета",
+      "isTransliterated": true
+    },
+    {
+      "word": "PLASMA",
+      "level": "B2",
+      "translation": "плазма",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROBE",
+      "level": "B1",
+      "translation": "зонд",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROTEIN",
+      "level": "B1",
+      "translation": "белок",
+      "isTransliterated": false
+    },
+    {
+      "word": "QUANTA",
+      "level": "C1",
+      "translation": "кванты",
+      "isTransliterated": true
+    },
+    {
+      "word": "RANDOM",
+      "level": "B1",
+      "translation": "случайный",
+      "isTransliterated": false
+    },
+    {
+      "word": "REACT",
+      "level": "B1",
+      "translation": "реагировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SAMPLE",
+      "level": "A2",
+      "translation": "образец",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCALAR",
+      "level": "C1",
+      "translation": "скаляр",
+      "isTransliterated": true
+    },
+    {
+      "word": "SERIES",
+      "level": "B1",
+      "translation": "ряд",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIGNAL",
+      "level": "B1",
+      "translation": "сигнал",
+      "isTransliterated": true
+    },
+    {
+      "word": "SODIUM",
+      "level": "B1",
+      "translation": "натрий",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOLAR",
+      "level": "A2",
+      "translation": "солнечный",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOLID",
+      "level": "A2",
+      "translation": "твёрдое вещество",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPECIES",
+      "level": "B1",
+      "translation": "вид",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPHERE",
+      "level": "B1",
+      "translation": "сфера",
+      "isTransliterated": true
+    },
+    {
+      "word": "SYSTEM",
+      "level": "A2",
+      "translation": "система",
+      "isTransliterated": true
+    },
+    {
+      "word": "THEORY",
+      "level": "B1",
+      "translation": "теория",
+      "isTransliterated": true
+    },
+    {
+      "word": "VECTOR",
+      "level": "B2",
+      "translation": "вектор",
+      "isTransliterated": true
+    },
+    {
+      "word": "VIRUS",
+      "level": "B1",
+      "translation": "вирус",
+      "isTransliterated": true
+    },
+    {
+      "word": "VOLUME",
+      "level": "B1",
+      "translation": "объём",
+      "isTransliterated": false
+    },
+    {
+      "word": "WEIGHT",
+      "level": "A2",
+      "translation": "вес",
+      "isTransliterated": false
+    },
+    {
+      "word": "XENON",
+      "level": "C1",
+      "translation": "ксенон",
+      "isTransliterated": true
+    },
+    {
+      "word": "ZYGOTE",
+      "level": "C1",
+      "translation": "зигота",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANALYSIS",
+      "level": "B1",
+      "translation": "анализ",
+      "isTransliterated": true
+    },
+    {
+      "word": "AQUATIC",
+      "level": "B1",
+      "translation": "водный",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACTERIA",
+      "level": "B1",
+      "translation": "бактерии",
+      "isTransliterated": true
+    },
+    {
+      "word": "BIOLOGY",
+      "level": "A2",
+      "translation": "биология",
+      "isTransliterated": true
+    },
+    {
+      "word": "CATALYST",
+      "level": "B2",
+      "translation": "катализатор",
+      "isTransliterated": true
+    },
+    {
+      "word": "CHEMICAL",
+      "level": "A2",
+      "translation": "химический",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLIMATE",
+      "level": "A2",
+      "translation": "климат",
+      "isTransliterated": true
+    },
+    {
+      "word": "COMPOUND",
+      "level": "B1",
+      "translation": "соединение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONTROL",
+      "level": "A2",
+      "translation": "контроль",
+      "isTransliterated": true
+    },
+    {
+      "word": "CRYSTAL",
+      "level": "B2",
+      "translation": "кристалл",
+      "isTransliterated": true
+    },
+    {
+      "word": "ECOLOGY",
+      "level": "B1",
+      "translation": "экология",
+      "isTransliterated": true
+    },
+    {
+      "word": "ELECTRON",
+      "level": "B2",
+      "translation": "электрон",
+      "isTransliterated": true
+    },
+    {
+      "word": "ELEMENT",
+      "level": "A2",
+      "translation": "элемент",
+      "isTransliterated": true
+    },
+    {
+      "word": "EQUATION",
+      "level": "B1",
+      "translation": "уравнение",
+      "isTransliterated": false
+    },
+    {
+      "word": "EVIDENCE",
+      "level": "B1",
+      "translation": "доказательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXPERIMENT",
+      "level": "A2",
+      "translation": "эксперимент",
+      "isTransliterated": true
+    },
+    {
+      "word": "FREQUENCY",
+      "level": "B2",
+      "translation": "частота",
+      "isTransliterated": false
+    },
+    {
+      "word": "GENETICS",
+      "level": "B2",
+      "translation": "генетика",
+      "isTransliterated": true
+    },
+    {
+      "word": "HYPOTHESIS",
+      "level": "B2",
+      "translation": "гипотеза",
+      "isTransliterated": false
+    },
+    {
+      "word": "ISOTOPE",
+      "level": "B2",
+      "translation": "изотоп",
+      "isTransliterated": true
+    },
+    {
+      "word": "LABORATORY",
+      "level": "A2",
+      "translation": "лаборатория",
+      "isTransliterated": true
+    },
+    {
+      "word": "MOLECULE",
+      "level": "B2",
+      "translation": "молекула",
+      "isTransliterated": true
+    },
+    {
+      "word": "NEUTRON",
+      "level": "B2",
+      "translation": "нейтрон",
+      "isTransliterated": true
+    },
+    {
+      "word": "NUCLEUS",
+      "level": "B2",
+      "translation": "ядро",
+      "isTransliterated": false
+    },
+    {
+      "word": "OBSERVATION",
+      "level": "B1",
+      "translation": "наблюдение",
+      "isTransliterated": false
+    },
+    {
+      "word": "ORGANISM",
+      "level": "B1",
+      "translation": "организм",
+      "isTransliterated": true
+    },
+    {
+      "word": "PARTICLE",
+      "level": "B2",
+      "translation": "частица",
+      "isTransliterated": false
+    },
+    {
+      "word": "PHYSICS",
+      "level": "A2",
+      "translation": "физика",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROCEDURE",
+      "level": "B1",
+      "translation": "процедура",
+      "isTransliterated": true
+    },
+    {
+      "word": "RESEARCH",
+      "level": "A2",
+      "translation": "исследование",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESULT",
+      "level": "A2",
+      "translation": "результат",
+      "isTransliterated": true
+    },
+    {
+      "word": "SCIENTIST",
+      "level": "A2",
+      "translation": "учёный",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEQUENCE",
+      "level": "B2",
+      "translation": "последовательность",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOLUTION",
+      "level": "B1",
+      "translation": "раствор / решение",
+      "isTransliterated": false
+    },
+    {
+      "word": "STATISTICS",
+      "level": "B1",
+      "translation": "статистика",
+      "isTransliterated": true
+    },
+    {
+      "word": "STRUCTURE",
+      "level": "B1",
+      "translation": "структура",
+      "isTransliterated": true
+    },
+    {
+      "word": "VARIABLE",
+      "level": "B1",
+      "translation": "переменная",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAVELENGTH",
+      "level": "C1",
+      "translation": "длина волны",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCELERATION",
+      "level": "B2",
+      "translation": "ускорение",
+      "isTransliterated": false
+    },
+    {
+      "word": "BIODIVERSITY",
+      "level": "C1",
+      "translation": "биоразнообразие",
+      "isTransliterated": false
+    },
+    {
+      "word": "CALCULATION",
+      "level": "B1",
+      "translation": "расчёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHROMOSOME",
+      "level": "B2",
+      "translation": "хромосома",
+      "isTransliterated": true
+    },
+    {
+      "word": "CONCLUSION",
+      "level": "B1",
+      "translation": "вывод",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONSERVATION",
+      "level": "B2",
+      "translation": "сохранение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CORRELATION",
+      "level": "B2",
+      "translation": "корреляция",
+      "isTransliterated": false
+    },
+    {
+      "word": "ELECTRICITY",
+      "level": "A2",
+      "translation": "электричество",
+      "isTransliterated": true
+    },
+    {
+      "word": "EVOLUTION",
+      "level": "B2",
+      "translation": "эволюция",
+      "isTransliterated": false
+    },
+    {
+      "word": "GRAVITATION",
+      "level": "C1",
+      "translation": "гравитация",
+      "isTransliterated": true
+    },
+    {
+      "word": "INSTRUMENT",
+      "level": "B1",
+      "translation": "прибор",
+      "isTransliterated": false
+    },
+    {
+      "word": "MICROSCOPE",
+      "level": "B1",
+      "translation": "микроскоп",
+      "isTransliterated": true
+    },
+    {
+      "word": "PHOTOSYNTHESIS",
+      "level": "C1",
+      "translation": "фотосинтез",
+      "isTransliterated": true
+    },
+    {
+      "word": "QUANTUM",
+      "level": "B2",
+      "translation": "квантовый",
+      "isTransliterated": true
+    },
+    {
+      "word": "RADIATION",
+      "level": "B2",
+      "translation": "излучение",
+      "isTransliterated": false
+    },
+    {
+      "word": "REPLICATION",
+      "level": "B2",
+      "translation": "репликация",
+      "isTransliterated": true
+    },
+    {
+      "word": "TEMPERATURE",
+      "level": "A2",
+      "translation": "температура",
+      "isTransliterated": true
+    },
+    {
+      "word": "THERMODYNAMICS",
+      "level": "C1",
+      "translation": "термодинамика",
+      "isTransliterated": true
+    },
+    {
+      "word": "VALIDITY",
+      "level": "B2",
+      "translation": "валидность",
+      "isTransliterated": false
+    },
+    {
+      "word": "VARIATION",
+      "level": "B2",
+      "translation": "изменчивость",
+      "isTransliterated": false
+    },
+    {
+      "word": "VELOCITY",
+      "level": "B2",
+      "translation": "скорость",
+      "isTransliterated": false
+    },
+    {
+      "word": "VISCOSITY",
+      "level": "C1",
+      "translation": "вязкость",
+      "isTransliterated": false
+    },
+    {
+      "word": "VOLCANOLOGY",
+      "level": "C1",
+      "translation": "вулканология",
+      "isTransliterated": true
+    },
+    {
+      "word": "ALGAE",
+      "level": "B1",
+      "translation": "водоросли",
+      "isTransliterated": false
+    },
+    {
+      "word": "IONIC",
+      "level": "B2",
+      "translation": "ионный",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROTON",
+      "level": "B2",
+      "translation": "протон",
+      "isTransliterated": true
+    },
+    {
+      "word": "AIR",
+      "level": "A1",
+      "translation": "воздух",
+      "isTransliterated": false
+    },
+    {
+      "word": "EARTH",
+      "level": "A1",
+      "translation": "земля",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIFE",
+      "level": "A1",
+      "translation": "жизнь",
+      "isTransliterated": false
+    },
+    {
+      "word": "WATER",
+      "level": "A1",
+      "translation": "вода",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEAT",
+      "level": "A1",
+      "translation": "тепло",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORK",
+      "level": "A1",
+      "translation": "работа",
+      "isTransliterated": false
+    },
+    {
+      "word": "ANIMAL",
+      "level": "A2",
+      "translation": "животное",
+      "isTransliterated": false
+    },
+    {
+      "word": "BIRD",
+      "level": "A2",
+      "translation": "птица",
+      "isTransliterated": false
+    },
+    {
+      "word": "BODY",
+      "level": "A2",
+      "translation": "тело",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHARGE",
+      "level": "A2",
+      "translation": "заряд",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHECK",
+      "level": "A2",
+      "translation": "проверять",
+      "isTransliterated": false
+    },
+    {
+      "word": "FIND",
+      "level": "A2",
+      "translation": "находить",
+      "isTransliterated": false
+    },
+    {
+      "word": "GLASS",
+      "level": "A2",
+      "translation": "стекло",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIQUID",
+      "level": "A2",
+      "translation": "жидкость",
+      "isTransliterated": false
+    },
+    {
+      "word": "MEASURE",
+      "level": "A2",
+      "translation": "измерять",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLANT",
+      "level": "A2",
+      "translation": "растение",
+      "isTransliterated": false
+    },
+    {
+      "word": "POWER",
+      "level": "A2",
+      "translation": "мощность",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOUND",
+      "level": "A2",
+      "translation": "звук",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPACE",
+      "level": "A2",
+      "translation": "пространство",
+      "isTransliterated": false
+    },
+    {
+      "word": "STAR",
+      "level": "A2",
+      "translation": "звезда",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAVE",
+      "level": "A2",
+      "translation": "волна",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHANGE",
+      "level": "A2",
+      "translation": "изменение",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHAPE",
+      "level": "A2",
+      "translation": "форма",
+      "isTransliterated": false
+    },
+    {
+      "word": "ABSORB",
+      "level": "B1",
+      "translation": "поглощать",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCURACY",
+      "level": "B1",
+      "translation": "точность",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADAPT",
+      "level": "B1",
+      "translation": "приспосабливаться",
+      "isTransliterated": false
+    },
+    {
+      "word": "BEAKER",
+      "level": "B1",
+      "translation": "лабораторный стакан",
+      "isTransliterated": false
+    },
+    {
+      "word": "BIAS",
+      "level": "B1",
+      "translation": "смещение",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREED",
+      "level": "B1",
+      "translation": "разводить",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHEMIST",
+      "level": "B1",
+      "translation": "химик",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLUSTER",
+      "level": "B1",
+      "translation": "скопление",
+      "isTransliterated": false
+    },
+    {
+      "word": "DECAY",
+      "level": "B1",
+      "translation": "распад",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEVICE",
+      "level": "B1",
+      "translation": "устройство",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISCOVERY",
+      "level": "B1",
+      "translation": "открытие",
+      "isTransliterated": false
+    },
+    {
+      "word": "ERROR",
+      "level": "B1",
+      "translation": "ошибка",
+      "isTransliterated": false
+    },
+    {
+      "word": "FLOW",
+      "level": "B1",
+      "translation": "поток",
+      "isTransliterated": false
+    },
+    {
+      "word": "GROWTH",
+      "level": "B1",
+      "translation": "рост",
+      "isTransliterated": false
+    },
+    {
+      "word": "MIXTURE",
+      "level": "B1",
+      "translation": "смесь",
+      "isTransliterated": false
+    },
+    {
+      "word": "ORGAN",
+      "level": "B1",
+      "translation": "орган",
+      "isTransliterated": false
+    },
+    {
+      "word": "PATTERN",
+      "level": "B1",
+      "translation": "закономерность",
+      "isTransliterated": false
+    },
+    {
+      "word": "REVIEW",
+      "level": "B1",
+      "translation": "обзор",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOLVENT",
+      "level": "B1",
+      "translation": "растворитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "SURVEY",
+      "level": "B1",
+      "translation": "обследование",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRAIT",
+      "level": "B1",
+      "translation": "признак",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRIAL",
+      "level": "B1",
+      "translation": "испытание",
+      "isTransliterated": false
+    },
+    {
+      "word": "WEIGH",
+      "level": "B1",
+      "translation": "взвешивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "YIELD",
+      "level": "B1",
+      "translation": "выход",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACKGROUND",
+      "level": "B2",
+      "translation": "исходные сведения",
+      "isTransliterated": false
+    },
+    {
+      "word": "BEHAVIOR",
+      "level": "B2",
+      "translation": "поведение",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREAKTHROUGH",
+      "level": "B2",
+      "translation": "прорыв",
+      "isTransliterated": false
+    },
+    {
+      "word": "CALIBRATE",
+      "level": "B2",
+      "translation": "настраивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "CAUSAL",
+      "level": "B2",
+      "translation": "причинный",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLASSIFY",
+      "level": "B2",
+      "translation": "разделять по группам",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISSOLVE",
+      "level": "B2",
+      "translation": "растворяться",
+      "isTransliterated": false
+    },
+    {
+      "word": "EQUILIBRIUM",
+      "level": "B2",
+      "translation": "равновесие",
+      "isTransliterated": false
+    },
+    {
+      "word": "FRAMEWORK",
+      "level": "B2",
+      "translation": "основа",
+      "isTransliterated": false
+    },
+    {
+      "word": "ISOLATE",
+      "level": "B2",
+      "translation": "выделять",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIKELIHOOD",
+      "level": "B2",
+      "translation": "вероятность",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTCOME",
+      "level": "B2",
+      "translation": "исход",
+      "isTransliterated": false
+    },
+    {
+      "word": "PREDICT",
+      "level": "B2",
+      "translation": "предсказывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "REFINE",
+      "level": "B2",
+      "translation": "уточнять",
+      "isTransliterated": false
+    },
+    {
+      "word": "REPRODUCE",
+      "level": "B2",
+      "translation": "воспроизводить",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRACE",
+      "level": "B2",
+      "translation": "след",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNCERTAINTY",
+      "level": "B2",
+      "translation": "неопределённость",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERLYING",
+      "level": "B2",
+      "translation": "лежащий в основе",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORKFLOW",
+      "level": "B2",
+      "translation": "порядок работы",
+      "isTransliterated": false
+    },
+    {
+      "word": "THROUGHPUT",
+      "level": "C1",
+      "translation": "пропускная способность",
+      "isTransliterated": false
+    },
+    {
+      "word": "REPRODUCIBILITY",
+      "level": "C1",
+      "translation": "воспроизводимость",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROBUSTNESS",
+      "level": "C1",
+      "translation": "устойчивость",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISCLASSIFICATION",
+      "level": "C1",
+      "translation": "ошибка отнесения",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERREPORTING",
+      "level": "C1",
+      "translation": "недоучёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERFITTING",
+      "level": "C1",
+      "translation": "переобучение",
+      "isTransliterated": false
+    },
+    {
+      "word": "GOODNESS",
+      "level": "C1",
+      "translation": "качество соответствия",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLINDING",
+      "level": "C1",
+      "translation": "ослепление",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENDPOINT",
+      "level": "C1",
+      "translation": "конечная точка",
+      "isTransliterated": false
+    },
+    {
+      "word": "READOUT",
+      "level": "C1",
+      "translation": "считывание",
+      "isTransliterated": false
+    },
+    {
+      "word": "DROPOUT",
+      "level": "C1",
+      "translation": "выбывание",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTLIER",
+      "level": "C1",
+      "translation": "выброс",
+      "isTransliterated": false
+    },
+    {
+      "word": "BASELINE",
+      "level": "C1",
+      "translation": "исходный уровень",
+      "isTransliterated": false
+    },
+    {
+      "word": "THRESHOLD",
+      "level": "C1",
+      "translation": "порог",
+      "isTransliterated": false
+    },
+    {
+      "word": "ASSAY",
+      "level": "C1",
+      "translation": "исследование",
+      "isTransliterated": false
+    },
+    {
+      "word": "BENCHTOP",
+      "level": "C1",
+      "translation": "настольный",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORKUP",
+      "level": "C1",
+      "translation": "подготовка образца",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONFOUNDING",
+      "level": "C2",
+      "translation": "смешение влияний",
+      "isTransliterated": false
+    },
+    {
+      "word": "ASCERTAINMENT",
+      "level": "C2",
+      "translation": "установление",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOOTSTRAPPING",
+      "level": "C2",
+      "translation": "повторная выборка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONSILIENCE",
+      "level": "C2",
+      "translation": "согласованность доказательств",
+      "isTransliterated": false
+    },
+    {
+      "word": "FALSIFIABILITY",
+      "level": "C2",
+      "translation": "опровержимость",
+      "isTransliterated": false
+    },
+    {
+      "word": "HETEROSCEDASTICITY",
+      "level": "C2",
+      "translation": "непостоянство разброса",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOMOSCEDASTICITY",
+      "level": "C2",
+      "translation": "постоянство разброса",
+      "isTransliterated": false
+    },
+    {
+      "word": "PSEUDOREPLICATION",
+      "level": "C2",
+      "translation": "ложное повторение",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERPOWERED",
+      "level": "C2",
+      "translation": "недостаточно мощный",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERCLAIMING",
+      "level": "C2",
+      "translation": "чрезмерное утверждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "SKY",
+      "level": "A1",
+      "translation": "небо",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEA",
+      "level": "A1",
+      "translation": "море",
+      "isTransliterated": false
+    },
+    {
+      "word": "TREE",
+      "level": "A1",
+      "translation": "дерево",
+      "isTransliterated": false
+    },
+    {
+      "word": "FIRE",
+      "level": "A1",
+      "translation": "огонь",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROCK",
+      "level": "A1",
+      "translation": "камень",
+      "isTransliterated": false
+    },
+    {
+      "word": "RAIN",
+      "level": "A1",
+      "translation": "дождь",
+      "isTransliterated": false
+    },
+    {
+      "word": "HETEROGENEITY",
+      "level": "C2",
+      "translation": "неоднородность",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENDOGENEITY",
+      "level": "C2",
+      "translation": "внутренняя обусловленность",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXOGENEITY",
+      "level": "C2",
+      "translation": "внешняя обусловленность",
+      "isTransliterated": false
+    },
+    {
+      "word": "COUNTERFACTUAL",
+      "level": "C2",
+      "translation": "воображаемый исход",
+      "isTransliterated": false
+    },
+    {
+      "word": "POSTSTRATIFICATION",
+      "level": "C2",
+      "translation": "последующее разбиение",
+      "isTransliterated": false
+    }
+  ]
+}
