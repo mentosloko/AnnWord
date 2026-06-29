@@ -1,1 +1,1411 @@
-{"title":"Food & Hospitality English","source":"topic","theme":"food_hospitality","words":[{"word":"BAKE","level":"A1","translation":"запекать"},{"word":"BEAN","level":"A1","translation":"боб"},{"word":"BEEF","level":"A1","translation":"говядина"},{"word":"BEER","level":"A2","translation":"пиво"},{"word":"BILL","level":"A1","translation":"счёт"},{"word":"BOWL","level":"A1","translation":"миска"},{"word":"CAFE","level":"A1","translation":"кафе"},{"word":"CAKE","level":"A1","translation":"торт"},{"word":"CHEF","level":"A1","translation":"шеф-повар"},{"word":"CHOP","level":"A2","translation":"рубить"},{"word":"COOK","level":"A1","translation":"готовить"},{"word":"CORN","level":"A1","translation":"кукуруза"},{"word":"DISH","level":"A1","translation":"блюдо"},{"word":"FISH","level":"A1","translation":"рыба"},{"word":"FORK","level":"A1","translation":"вилка"},{"word":"GRILL","level":"A2","translation":"гриль"},{"word":"HERB","level":"A2","translation":"трава / зелень"},{"word":"JUICE","level":"A1","translation":"сок"},{"word":"KNIFE","level":"A1","translation":"нож"},{"word":"LATTE","level":"A2","translation":"латте"},{"word":"LEMON","level":"A1","translation":"лимон"},{"word":"MEAL","level":"A1","translation":"приём пищи"},{"word":"MENU","level":"A1","translation":"меню"},{"word":"MILK","level":"A1","translation":"молоко"},{"word":"OVEN","level":"A1","translation":"духовка"},{"word":"PLATE","level":"A1","translation":"тарелка"},{"word":"RICE","level":"A1","translation":"рис"},{"word":"ROAST","level":"A2","translation":"жаркое / запекать"},{"word":"SALAD","level":"A1","translation":"салат"},{"word":"SAUCE","level":"A1","translation":"соус"},{"word":"SERVE","level":"A1","translation":"подавать"},{"word":"SOUP","level":"A1","translation":"суп"},{"word":"SPICE","level":"A2","translation":"специя"},{"word":"SPOON","level":"A1","translation":"ложка"},{"word":"STEAK","level":"A2","translation":"стейк"},{"word":"SUGAR","level":"A1","translation":"сахар"},{"word":"SUSHI","level":"A2","translation":"суши"},{"word":"TABLE","level":"A1","translation":"стол"},{"word":"TASTE","level":"A1","translation":"вкус"},{"word":"TOAST","level":"A1","translation":"тост"},{"word":"WATER","level":"A1","translation":"вода"},{"word":"YEAST","level":"B1","translation":"дрожжи"},{"word":"BAKERY","level":"A2","translation":"пекарня"},{"word":"BANANA","level":"A1","translation":"банан"},{"word":"BARISTA","level":"A2","translation":"бариста"},{"word":"BASKET","level":"A2","translation":"корзина"},{"word":"BISCUIT","level":"A2","translation":"печенье"},{"word":"BOTTLE","level":"A1","translation":"бутылка"},{"word":"BRUNCH","level":"A2","translation":"бранч"},{"word":"BUFFET","level":"A2","translation":"шведский стол"},{"word":"BURGER","level":"A1","translation":"бургер"},{"word":"BUTTER","level":"A1","translation":"масло"},{"word":"CARROT","level":"A1","translation":"морковь"},{"word":"CEREAL","level":"A1","translation":"хлопья"},{"word":"CHEESE","level":"A1","translation":"сыр"},{"word":"CHERRY","level":"A1","translation":"вишня"},{"word":"CHICKEN","level":"A1","translation":"курица"},{"word":"COFFEE","level":"A1","translation":"кофе"},{"word":"COOKIE","level":"A1","translation":"печенье"},{"word":"DINING","level":"A2","translation":"питание / обеденный"},{"word":"DINNER","level":"A1","translation":"ужин"},{"word":"DESSERT","level":"A2","translation":"десерт"},{"word":"GARLIC","level":"A2","translation":"чеснок"},{"word":"GUESTS","level":"A1","translation":"гости"},{"word":"HONEY","level":"A1","translation":"мёд"},{"word":"KETTLE","level":"A2","translation":"чайник"},{"word":"KITCHEN","level":"A1","translation":"кухня"},{"word":"NAPKIN","level":"A2","translation":"салфетка"},{"word":"NOODLE","level":"A2","translation":"лапша"},{"word":"ONION","level":"A1","translation":"лук"},{"word":"ORANGE","level":"A1","translation":"апельсин"},{"word":"PASTRY","level":"A2","translation":"выпечка"},{"word":"PEPPER","level":"A1","translation":"перец"},{"word":"PICKLE","level":"A2","translation":"маринад / соленье"},{"word":"PIZZA","level":"A1","translation":"пицца"},{"word":"POTATO","level":"A1","translation":"картофель"},{"word":"RECIPE","level":"A2","translation":"рецепт"},{"word":"SERVER","level":"A2","translation":"официант"},{"word":"SNACK","level":"A1","translation":"перекус"},{"word":"SWEET","level":"A1","translation":"сладкий"},{"word":"TOMATO","level":"A1","translation":"помидор"},{"word":"WAITER","level":"A1","translation":"официант"},{"word":"WAFFLE","level":"A2","translation":"вафля"},{"word":"YOGURT","level":"A1","translation":"йогурт"},{"word":"APPETIZER","level":"A2","translation":"закуска"},{"word":"BEVERAGE","level":"A2","translation":"напиток"},{"word":"BOOKING","level":"A2","translation":"бронирование"},{"word":"BREAKFAST","level":"A1","translation":"завтрак"},{"word":"CATERING","level":"B1","translation":"кейтеринг"},{"word":"COURSE","level":"A2","translation":"блюдо / курс"},{"word":"CUISINE","level":"B1","translation":"кухня"},{"word":"DELIVERY","level":"A2","translation":"доставка"},{"word":"DRESSING","level":"A2","translation":"заправка"},{"word":"GRATUITY","level":"B1","translation":"чаевые"},{"word":"HOSPITALITY","level":"B1","translation":"гостеприимство"},{"word":"INGREDIENT","level":"A2","translation":"ингредиент"},{"word":"MARINADE","level":"B1","translation":"маринад"},{"word":"NUTRITION","level":"B1","translation":"питание"},{"word":"PANCAKE","level":"A2","translation":"панкейк"},{"word":"PORTION","level":"A2","translation":"порция"},{"word":"RESERVATION","level":"A2","translation":"бронь"},{"word":"RESTAURANT","level":"A1","translation":"ресторан"},{"word":"SAUSAGE","level":"A2","translation":"колбаса"},{"word":"SEASONING","level":"B1","translation":"приправа"},{"word":"TAKEAWAY","level":"A2","translation":"еда навынос"},{"word":"VEGETABLE","level":"A1","translation":"овощ"},{"word":"VEGETARIAN","level":"A2","translation":"вегетарианский"},{"word":"WAITRESS","level":"A1","translation":"официантка"},{"word":"ALLERGEN","level":"B1","translation":"аллерген"},{"word":"CASHIER","level":"A2","translation":"кассир"},{"word":"CROISSANT","level":"A2","translation":"круассан"},{"word":"FERMENTED","level":"B2","translation":"ферментированный"},{"word":"GLUTENFREE","level":"B1","translation":"безглютеновый"},{"word":"HOUSEMADE","level":"B1","translation":"приготовленный в заведении"},{"word":"OVERCOOKED","level":"B1","translation":"переваренный / пережаренный"},{"word":"PASTEURIZED","level":"B2","translation":"пастеризованный"},{"word":"REFRESHMENT","level":"B1","translation":"лёгкое угощение"},{"word":"UNDERCOOKED","level":"B1","translation":"недоготовленный"},{"word":"SOMMELIER","level":"B2","translation":"сомелье"},{"word":"CUTLERY","level":"A2","translation":"столовые приборы"}]}
+{
+  "title": "Food & Hospitality English",
+  "source": "topic",
+  "theme": "food_hospitality",
+  "words": [
+    {
+      "word": "BAKE",
+      "level": "A1",
+      "translation": "запекать",
+      "isTransliterated": false
+    },
+    {
+      "word": "BEAN",
+      "level": "A1",
+      "translation": "боб",
+      "isTransliterated": false
+    },
+    {
+      "word": "BEEF",
+      "level": "A1",
+      "translation": "говядина",
+      "isTransliterated": false
+    },
+    {
+      "word": "BEER",
+      "level": "A2",
+      "translation": "пиво",
+      "isTransliterated": false
+    },
+    {
+      "word": "BILL",
+      "level": "A1",
+      "translation": "счёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOWL",
+      "level": "A1",
+      "translation": "миска",
+      "isTransliterated": false
+    },
+    {
+      "word": "CAFE",
+      "level": "A1",
+      "translation": "кафе",
+      "isTransliterated": true
+    },
+    {
+      "word": "CAKE",
+      "level": "A1",
+      "translation": "торт",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHEF",
+      "level": "A1",
+      "translation": "шеф-повар",
+      "isTransliterated": true
+    },
+    {
+      "word": "CHOP",
+      "level": "A2",
+      "translation": "рубить",
+      "isTransliterated": false
+    },
+    {
+      "word": "COOK",
+      "level": "A1",
+      "translation": "готовить",
+      "isTransliterated": false
+    },
+    {
+      "word": "CORN",
+      "level": "A1",
+      "translation": "кукуруза",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISH",
+      "level": "A1",
+      "translation": "блюдо",
+      "isTransliterated": false
+    },
+    {
+      "word": "FISH",
+      "level": "A1",
+      "translation": "рыба",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORK",
+      "level": "A1",
+      "translation": "вилка",
+      "isTransliterated": false
+    },
+    {
+      "word": "GRILL",
+      "level": "A2",
+      "translation": "гриль",
+      "isTransliterated": true
+    },
+    {
+      "word": "HERB",
+      "level": "A2",
+      "translation": "трава / зелень",
+      "isTransliterated": false
+    },
+    {
+      "word": "JUICE",
+      "level": "A1",
+      "translation": "сок",
+      "isTransliterated": false
+    },
+    {
+      "word": "KNIFE",
+      "level": "A1",
+      "translation": "нож",
+      "isTransliterated": false
+    },
+    {
+      "word": "LATTE",
+      "level": "A2",
+      "translation": "латте",
+      "isTransliterated": true
+    },
+    {
+      "word": "LEMON",
+      "level": "A1",
+      "translation": "лимон",
+      "isTransliterated": true
+    },
+    {
+      "word": "MEAL",
+      "level": "A1",
+      "translation": "приём пищи",
+      "isTransliterated": false
+    },
+    {
+      "word": "MENU",
+      "level": "A1",
+      "translation": "меню",
+      "isTransliterated": true
+    },
+    {
+      "word": "MILK",
+      "level": "A1",
+      "translation": "молоко",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVEN",
+      "level": "A1",
+      "translation": "духовка",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLATE",
+      "level": "A1",
+      "translation": "тарелка",
+      "isTransliterated": false
+    },
+    {
+      "word": "RICE",
+      "level": "A1",
+      "translation": "рис",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROAST",
+      "level": "A2",
+      "translation": "жаркое / запекать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SALAD",
+      "level": "A1",
+      "translation": "салат",
+      "isTransliterated": true
+    },
+    {
+      "word": "SAUCE",
+      "level": "A1",
+      "translation": "соус",
+      "isTransliterated": false
+    },
+    {
+      "word": "SERVE",
+      "level": "A1",
+      "translation": "подавать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOUP",
+      "level": "A1",
+      "translation": "суп",
+      "isTransliterated": true
+    },
+    {
+      "word": "SPICE",
+      "level": "A2",
+      "translation": "специя",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPOON",
+      "level": "A1",
+      "translation": "ложка",
+      "isTransliterated": false
+    },
+    {
+      "word": "STEAK",
+      "level": "A2",
+      "translation": "стейк",
+      "isTransliterated": true
+    },
+    {
+      "word": "SUGAR",
+      "level": "A1",
+      "translation": "сахар",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUSHI",
+      "level": "A2",
+      "translation": "суши",
+      "isTransliterated": true
+    },
+    {
+      "word": "TABLE",
+      "level": "A1",
+      "translation": "стол",
+      "isTransliterated": false
+    },
+    {
+      "word": "TASTE",
+      "level": "A1",
+      "translation": "вкус",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOAST",
+      "level": "A1",
+      "translation": "тост",
+      "isTransliterated": true
+    },
+    {
+      "word": "WATER",
+      "level": "A1",
+      "translation": "вода",
+      "isTransliterated": false
+    },
+    {
+      "word": "YEAST",
+      "level": "B1",
+      "translation": "дрожжи",
+      "isTransliterated": false
+    },
+    {
+      "word": "BAKERY",
+      "level": "A2",
+      "translation": "пекарня",
+      "isTransliterated": false
+    },
+    {
+      "word": "BANANA",
+      "level": "A1",
+      "translation": "банан",
+      "isTransliterated": true
+    },
+    {
+      "word": "BARISTA",
+      "level": "A2",
+      "translation": "бариста",
+      "isTransliterated": true
+    },
+    {
+      "word": "BASKET",
+      "level": "A2",
+      "translation": "корзина",
+      "isTransliterated": false
+    },
+    {
+      "word": "BISCUIT",
+      "level": "A2",
+      "translation": "печенье",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOTTLE",
+      "level": "A1",
+      "translation": "бутылка",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRUNCH",
+      "level": "A2",
+      "translation": "бранч",
+      "isTransliterated": true
+    },
+    {
+      "word": "BUFFET",
+      "level": "A2",
+      "translation": "шведский стол",
+      "isTransliterated": false
+    },
+    {
+      "word": "BURGER",
+      "level": "A1",
+      "translation": "бургер",
+      "isTransliterated": true
+    },
+    {
+      "word": "BUTTER",
+      "level": "A1",
+      "translation": "масло",
+      "isTransliterated": false
+    },
+    {
+      "word": "CARROT",
+      "level": "A1",
+      "translation": "морковь",
+      "isTransliterated": false
+    },
+    {
+      "word": "CEREAL",
+      "level": "A1",
+      "translation": "хлопья",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHEESE",
+      "level": "A1",
+      "translation": "сыр",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHERRY",
+      "level": "A1",
+      "translation": "вишня",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHICKEN",
+      "level": "A1",
+      "translation": "курица",
+      "isTransliterated": false
+    },
+    {
+      "word": "COFFEE",
+      "level": "A1",
+      "translation": "кофе",
+      "isTransliterated": true
+    },
+    {
+      "word": "COOKIE",
+      "level": "A1",
+      "translation": "печенье",
+      "isTransliterated": false
+    },
+    {
+      "word": "DINING",
+      "level": "A2",
+      "translation": "питание / обеденный",
+      "isTransliterated": false
+    },
+    {
+      "word": "DINNER",
+      "level": "A1",
+      "translation": "ужин",
+      "isTransliterated": false
+    },
+    {
+      "word": "DESSERT",
+      "level": "A2",
+      "translation": "десерт",
+      "isTransliterated": true
+    },
+    {
+      "word": "GARLIC",
+      "level": "A2",
+      "translation": "чеснок",
+      "isTransliterated": false
+    },
+    {
+      "word": "GUESTS",
+      "level": "A1",
+      "translation": "гости",
+      "isTransliterated": false
+    },
+    {
+      "word": "HONEY",
+      "level": "A1",
+      "translation": "мёд",
+      "isTransliterated": false
+    },
+    {
+      "word": "KETTLE",
+      "level": "A2",
+      "translation": "чайник",
+      "isTransliterated": false
+    },
+    {
+      "word": "KITCHEN",
+      "level": "A1",
+      "translation": "кухня",
+      "isTransliterated": false
+    },
+    {
+      "word": "NAPKIN",
+      "level": "A2",
+      "translation": "салфетка",
+      "isTransliterated": false
+    },
+    {
+      "word": "NOODLE",
+      "level": "A2",
+      "translation": "лапша",
+      "isTransliterated": false
+    },
+    {
+      "word": "ONION",
+      "level": "A1",
+      "translation": "лук",
+      "isTransliterated": false
+    },
+    {
+      "word": "ORANGE",
+      "level": "A1",
+      "translation": "апельсин",
+      "isTransliterated": false
+    },
+    {
+      "word": "PASTRY",
+      "level": "A2",
+      "translation": "выпечка",
+      "isTransliterated": false
+    },
+    {
+      "word": "PEPPER",
+      "level": "A1",
+      "translation": "перец",
+      "isTransliterated": false
+    },
+    {
+      "word": "PICKLE",
+      "level": "A2",
+      "translation": "маринад / соленье",
+      "isTransliterated": false
+    },
+    {
+      "word": "PIZZA",
+      "level": "A1",
+      "translation": "пицца",
+      "isTransliterated": true
+    },
+    {
+      "word": "POTATO",
+      "level": "A1",
+      "translation": "картофель",
+      "isTransliterated": false
+    },
+    {
+      "word": "RECIPE",
+      "level": "A2",
+      "translation": "рецепт",
+      "isTransliterated": false
+    },
+    {
+      "word": "SERVER",
+      "level": "A2",
+      "translation": "официант",
+      "isTransliterated": false
+    },
+    {
+      "word": "SNACK",
+      "level": "A1",
+      "translation": "перекус",
+      "isTransliterated": false
+    },
+    {
+      "word": "SWEET",
+      "level": "A1",
+      "translation": "сладкий",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOMATO",
+      "level": "A1",
+      "translation": "помидор",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAITER",
+      "level": "A1",
+      "translation": "официант",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAFFLE",
+      "level": "A2",
+      "translation": "вафля",
+      "isTransliterated": false
+    },
+    {
+      "word": "YOGURT",
+      "level": "A1",
+      "translation": "йогурт",
+      "isTransliterated": true
+    },
+    {
+      "word": "APPETIZER",
+      "level": "A2",
+      "translation": "закуска",
+      "isTransliterated": false
+    },
+    {
+      "word": "BEVERAGE",
+      "level": "A2",
+      "translation": "напиток",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOOKING",
+      "level": "A2",
+      "translation": "бронирование",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREAKFAST",
+      "level": "A1",
+      "translation": "завтрак",
+      "isTransliterated": false
+    },
+    {
+      "word": "CATERING",
+      "level": "B1",
+      "translation": "кейтеринг",
+      "isTransliterated": true
+    },
+    {
+      "word": "COURSE",
+      "level": "A2",
+      "translation": "блюдо / курс",
+      "isTransliterated": true
+    },
+    {
+      "word": "CUISINE",
+      "level": "B1",
+      "translation": "кухня",
+      "isTransliterated": false
+    },
+    {
+      "word": "DELIVERY",
+      "level": "A2",
+      "translation": "доставка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DRESSING",
+      "level": "A2",
+      "translation": "заправка",
+      "isTransliterated": false
+    },
+    {
+      "word": "GRATUITY",
+      "level": "B1",
+      "translation": "чаевые",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOSPITALITY",
+      "level": "B1",
+      "translation": "гостеприимство",
+      "isTransliterated": false
+    },
+    {
+      "word": "INGREDIENT",
+      "level": "A2",
+      "translation": "ингредиент",
+      "isTransliterated": true
+    },
+    {
+      "word": "MARINADE",
+      "level": "B1",
+      "translation": "маринад",
+      "isTransliterated": true
+    },
+    {
+      "word": "NUTRITION",
+      "level": "B1",
+      "translation": "питание",
+      "isTransliterated": false
+    },
+    {
+      "word": "PANCAKE",
+      "level": "A2",
+      "translation": "панкейк",
+      "isTransliterated": false
+    },
+    {
+      "word": "PORTION",
+      "level": "A2",
+      "translation": "порция",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESERVATION",
+      "level": "A2",
+      "translation": "бронь",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESTAURANT",
+      "level": "A1",
+      "translation": "ресторан",
+      "isTransliterated": true
+    },
+    {
+      "word": "SAUSAGE",
+      "level": "A2",
+      "translation": "колбаса",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEASONING",
+      "level": "B1",
+      "translation": "приправа",
+      "isTransliterated": false
+    },
+    {
+      "word": "TAKEAWAY",
+      "level": "A2",
+      "translation": "еда навынос",
+      "isTransliterated": false
+    },
+    {
+      "word": "VEGETABLE",
+      "level": "A1",
+      "translation": "овощ",
+      "isTransliterated": false
+    },
+    {
+      "word": "VEGETARIAN",
+      "level": "A2",
+      "translation": "вегетарианский",
+      "isTransliterated": true
+    },
+    {
+      "word": "WAITRESS",
+      "level": "A1",
+      "translation": "официантка",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALLERGEN",
+      "level": "B1",
+      "translation": "аллерген",
+      "isTransliterated": true
+    },
+    {
+      "word": "CASHIER",
+      "level": "A2",
+      "translation": "кассир",
+      "isTransliterated": true
+    },
+    {
+      "word": "CROISSANT",
+      "level": "A2",
+      "translation": "круассан",
+      "isTransliterated": true
+    },
+    {
+      "word": "FERMENTED",
+      "level": "B2",
+      "translation": "ферментированный",
+      "isTransliterated": false
+    },
+    {
+      "word": "GLUTENFREE",
+      "level": "B1",
+      "translation": "безглютеновый",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOUSEMADE",
+      "level": "B1",
+      "translation": "приготовленный в заведении",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERCOOKED",
+      "level": "B1",
+      "translation": "переваренный / пережаренный",
+      "isTransliterated": false
+    },
+    {
+      "word": "PASTEURIZED",
+      "level": "B2",
+      "translation": "пастеризованный",
+      "isTransliterated": false
+    },
+    {
+      "word": "REFRESHMENT",
+      "level": "B1",
+      "translation": "лёгкое угощение",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERCOOKED",
+      "level": "B1",
+      "translation": "недоготовленный",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOMMELIER",
+      "level": "B2",
+      "translation": "сомелье",
+      "isTransliterated": true
+    },
+    {
+      "word": "CUTLERY",
+      "level": "A2",
+      "translation": "столовые приборы",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPLE",
+      "level": "A1",
+      "translation": "яблоко",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREAD",
+      "level": "A1",
+      "translation": "хлеб",
+      "isTransliterated": false
+    },
+    {
+      "word": "EGG",
+      "level": "A1",
+      "translation": "яйцо",
+      "isTransliterated": false
+    },
+    {
+      "word": "FRUIT",
+      "level": "A1",
+      "translation": "фрукт",
+      "isTransliterated": false
+    },
+    {
+      "word": "GLASS",
+      "level": "A1",
+      "translation": "стакан",
+      "isTransliterated": false
+    },
+    {
+      "word": "GRAPE",
+      "level": "A1",
+      "translation": "виноград",
+      "isTransliterated": false
+    },
+    {
+      "word": "MEAT",
+      "level": "A1",
+      "translation": "мясо",
+      "isTransliterated": false
+    },
+    {
+      "word": "OIL",
+      "level": "A1",
+      "translation": "масло",
+      "isTransliterated": false
+    },
+    {
+      "word": "SALT",
+      "level": "A1",
+      "translation": "соль",
+      "isTransliterated": false
+    },
+    {
+      "word": "TEA",
+      "level": "A1",
+      "translation": "чай",
+      "isTransliterated": false
+    },
+    {
+      "word": "CUP",
+      "level": "A1",
+      "translation": "чашка",
+      "isTransliterated": false
+    },
+    {
+      "word": "PORK",
+      "level": "A1",
+      "translation": "свинина",
+      "isTransliterated": false
+    },
+    {
+      "word": "LAMB",
+      "level": "A1",
+      "translation": "ягнёнок",
+      "isTransliterated": false
+    },
+    {
+      "word": "PEAR",
+      "level": "A1",
+      "translation": "груша",
+      "isTransliterated": false
+    },
+    {
+      "word": "NUT",
+      "level": "A1",
+      "translation": "орех",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOIL",
+      "level": "A2",
+      "translation": "варить",
+      "isTransliterated": false
+    },
+    {
+      "word": "CABBAGE",
+      "level": "A2",
+      "translation": "капуста",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHILI",
+      "level": "A2",
+      "translation": "острый перец",
+      "isTransliterated": false
+    },
+    {
+      "word": "CREAM",
+      "level": "A2",
+      "translation": "сливки",
+      "isTransliterated": false
+    },
+    {
+      "word": "CURRY",
+      "level": "A2",
+      "translation": "пряное блюдо",
+      "isTransliterated": false
+    },
+    {
+      "word": "DUCK",
+      "level": "A2",
+      "translation": "утка",
+      "isTransliterated": false
+    },
+    {
+      "word": "FLOUR",
+      "level": "A2",
+      "translation": "мука",
+      "isTransliterated": false
+    },
+    {
+      "word": "FRY",
+      "level": "A2",
+      "translation": "жарить",
+      "isTransliterated": false
+    },
+    {
+      "word": "GINGER",
+      "level": "A2",
+      "translation": "имбирь",
+      "isTransliterated": false
+    },
+    {
+      "word": "MUSHROOM",
+      "level": "A2",
+      "translation": "гриб",
+      "isTransliterated": false
+    },
+    {
+      "word": "POUR",
+      "level": "A2",
+      "translation": "наливать",
+      "isTransliterated": false
+    },
+    {
+      "word": "RAW",
+      "level": "A2",
+      "translation": "сырой",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEAFOOD",
+      "level": "A2",
+      "translation": "морепродукт",
+      "isTransliterated": false
+    },
+    {
+      "word": "SLICE",
+      "level": "A2",
+      "translation": "ломтик",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOUR",
+      "level": "A2",
+      "translation": "кислый",
+      "isTransliterated": false
+    },
+    {
+      "word": "STEW",
+      "level": "A2",
+      "translation": "тушить",
+      "isTransliterated": false
+    },
+    {
+      "word": "STRAWBERRY",
+      "level": "A2",
+      "translation": "клубника",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALMOND",
+      "level": "B1",
+      "translation": "миндаль",
+      "isTransliterated": false
+    },
+    {
+      "word": "APRON",
+      "level": "B1",
+      "translation": "фартук",
+      "isTransliterated": false
+    },
+    {
+      "word": "BATTER",
+      "level": "B1",
+      "translation": "жидкое тесто",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLEND",
+      "level": "B1",
+      "translation": "смешивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREW",
+      "level": "B1",
+      "translation": "заваривать",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRINE",
+      "level": "B1",
+      "translation": "рассол",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHIVE",
+      "level": "B1",
+      "translation": "лук-резанец",
+      "isTransliterated": false
+    },
+    {
+      "word": "FREEZER",
+      "level": "B1",
+      "translation": "морозильник",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOST",
+      "level": "B1",
+      "translation": "принимающий",
+      "isTransliterated": false
+    },
+    {
+      "word": "LADLE",
+      "level": "B1",
+      "translation": "половник",
+      "isTransliterated": false
+    },
+    {
+      "word": "MARINATE",
+      "level": "B1",
+      "translation": "замачивать в пряной смеси",
+      "isTransliterated": false
+    },
+    {
+      "word": "PEEL",
+      "level": "B1",
+      "translation": "очищать",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLATTER",
+      "level": "B1",
+      "translation": "большое блюдо",
+      "isTransliterated": false
+    },
+    {
+      "word": "POACH",
+      "level": "B1",
+      "translation": "варить без кипения",
+      "isTransliterated": false
+    },
+    {
+      "word": "REHEAT",
+      "level": "B1",
+      "translation": "разогревать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIMMER",
+      "level": "B1",
+      "translation": "томить",
+      "isTransliterated": false
+    },
+    {
+      "word": "SKILLET",
+      "level": "B1",
+      "translation": "сковорода",
+      "isTransliterated": false
+    },
+    {
+      "word": "THAW",
+      "level": "B1",
+      "translation": "размораживать",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRAY",
+      "level": "B1",
+      "translation": "поднос",
+      "isTransliterated": false
+    },
+    {
+      "word": "CRUMB",
+      "level": "B1",
+      "translation": "крошка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CRUST",
+      "level": "B1",
+      "translation": "корочка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DIP",
+      "level": "B1",
+      "translation": "соус для макания",
+      "isTransliterated": false
+    },
+    {
+      "word": "DRIZZLE",
+      "level": "B1",
+      "translation": "слегка поливать",
+      "isTransliterated": false
+    },
+    {
+      "word": "FILLING",
+      "level": "B1",
+      "translation": "начинка",
+      "isTransliterated": false
+    },
+    {
+      "word": "GARNISH",
+      "level": "B2",
+      "translation": "украшать блюдо",
+      "isTransliterated": false
+    },
+    {
+      "word": "KNEAD",
+      "level": "B2",
+      "translation": "месить",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRAISE",
+      "level": "B2",
+      "translation": "тушить",
+      "isTransliterated": false
+    },
+    {
+      "word": "CARCASS",
+      "level": "B2",
+      "translation": "тушка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CURDLE",
+      "level": "B2",
+      "translation": "сворачиваться",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEGLAZE",
+      "level": "B2",
+      "translation": "растворять прижарки",
+      "isTransliterated": false
+    },
+    {
+      "word": "FERMENT",
+      "level": "B2",
+      "translation": "бродить",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORAGE",
+      "level": "B2",
+      "translation": "собирать съедобное",
+      "isTransliterated": false
+    },
+    {
+      "word": "INFUSE",
+      "level": "B2",
+      "translation": "настаивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "REDUCTION",
+      "level": "B2",
+      "translation": "уваривание",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOURDOUGH",
+      "level": "B2",
+      "translation": "закваска",
+      "isTransliterated": false
+    },
+    {
+      "word": "TEMPER",
+      "level": "B2",
+      "translation": "темперировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "TENDERIZE",
+      "level": "B2",
+      "translation": "размягчать",
+      "isTransliterated": false
+    },
+    {
+      "word": "AFTERTASTE",
+      "level": "B2",
+      "translation": "послевкусие",
+      "isTransliterated": false
+    },
+    {
+      "word": "MOUTHFEEL",
+      "level": "B2",
+      "translation": "ощущение во рту",
+      "isTransliterated": false
+    },
+    {
+      "word": "DONENESS",
+      "level": "B2",
+      "translation": "степень готовности",
+      "isTransliterated": false
+    },
+    {
+      "word": "FLAVOR",
+      "level": "B2",
+      "translation": "вкус",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPOILAGE",
+      "level": "B2",
+      "translation": "порча",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHORTCRUST",
+      "level": "C1",
+      "translation": "песочное тесто",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROOFING",
+      "level": "C1",
+      "translation": "расстойка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLARIFY",
+      "level": "C1",
+      "translation": "осветлять",
+      "isTransliterated": false
+    },
+    {
+      "word": "RENDER",
+      "level": "C1",
+      "translation": "вытапливать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEAR",
+      "level": "B2",
+      "translation": "обжаривать до корочки",
+      "isTransliterated": false
+    },
+    {
+      "word": "BROWN",
+      "level": "B1",
+      "translation": "подрумянивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCALD",
+      "level": "B2",
+      "translation": "ошпаривать",
+      "isTransliterated": false
+    },
+    {
+      "word": "STRAIN",
+      "level": "B1",
+      "translation": "процеживать",
+      "isTransliterated": false
+    },
+    {
+      "word": "WHISK",
+      "level": "B1",
+      "translation": "взбивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "ZEST",
+      "level": "B1",
+      "translation": "цедра",
+      "isTransliterated": false
+    },
+    {
+      "word": "PIT",
+      "level": "B1",
+      "translation": "косточка",
+      "isTransliterated": false
+    },
+    {
+      "word": "STEM",
+      "level": "B1",
+      "translation": "стебель",
+      "isTransliterated": false
+    },
+    {
+      "word": "RIND",
+      "level": "B1",
+      "translation": "кожура",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHELL",
+      "level": "B1",
+      "translation": "скорлупа",
+      "isTransliterated": false
+    },
+    {
+      "word": "GELATINIZATION",
+      "level": "C2",
+      "translation": "набухание крахмала",
+      "isTransliterated": false
+    },
+    {
+      "word": "DENATURATION",
+      "level": "C2",
+      "translation": "изменение белка",
+      "isTransliterated": false
+    },
+    {
+      "word": "EMULSIFICATION",
+      "level": "C2",
+      "translation": "смешивание несмешиваемого",
+      "isTransliterated": false
+    },
+    {
+      "word": "RETROGRADATION",
+      "level": "C2",
+      "translation": "обратное черствение",
+      "isTransliterated": false
+    },
+    {
+      "word": "AUTOLYSIS",
+      "level": "C2",
+      "translation": "саморасщепление",
+      "isTransliterated": false
+    },
+    {
+      "word": "CARAMELIZATION",
+      "level": "C2",
+      "translation": "потемнение сахара",
+      "isTransliterated": false
+    },
+    {
+      "word": "GELIFICATION",
+      "level": "C2",
+      "translation": "загущение",
+      "isTransliterated": false
+    },
+    {
+      "word": "PASTEURIZATION",
+      "level": "C2",
+      "translation": "обеззараживание нагревом",
+      "isTransliterated": false
+    },
+    {
+      "word": "FERMENTATION",
+      "level": "C2",
+      "translation": "брожение",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOMOGENIZATION",
+      "level": "C2",
+      "translation": "выравнивание смеси",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUTCHERY",
+      "level": "C1",
+      "translation": "разделка мяса",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREADING",
+      "level": "C1",
+      "translation": "панировка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CURING",
+      "level": "C1",
+      "translation": "засолка",
+      "isTransliterated": false
+    },
+    {
+      "word": "SMOKING",
+      "level": "C1",
+      "translation": "копчение",
+      "isTransliterated": false
+    },
+    {
+      "word": "PICKLING",
+      "level": "C1",
+      "translation": "засолка",
+      "isTransliterated": false
+    },
+    {
+      "word": "STEEPING",
+      "level": "C1",
+      "translation": "настаивание",
+      "isTransliterated": false
+    },
+    {
+      "word": "THICKENING",
+      "level": "C1",
+      "translation": "загущение",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCORING",
+      "level": "C1",
+      "translation": "надрезание",
+      "isTransliterated": false
+    },
+    {
+      "word": "FOLDING",
+      "level": "C1",
+      "translation": "вмешивание",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLATING",
+      "level": "C1",
+      "translation": "оформление подачи",
+      "isTransliterated": false
+    },
+    {
+      "word": "PORTIONING",
+      "level": "C1",
+      "translation": "деление на порции",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERPROOFING",
+      "level": "C2",
+      "translation": "чрезмерная расстойка",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERPROOFING",
+      "level": "C2",
+      "translation": "недостаточная расстойка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CARRYOVER",
+      "level": "C2",
+      "translation": "остаточный нагрев",
+      "isTransliterated": false
+    },
+    {
+      "word": "MOTHERDOUGH",
+      "level": "C2",
+      "translation": "материнская закваска",
+      "isTransliterated": false
+    },
+    {
+      "word": "MOUTHCOATING",
+      "level": "C2",
+      "translation": "обволакивание",
+      "isTransliterated": false
+    }
+  ]
+}
