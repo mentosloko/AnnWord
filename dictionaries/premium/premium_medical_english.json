@@ -1,1 +1,5245 @@
-{"title":"Medical English","source":"topic","theme":"medicine","words":[{"word":"ACNE","level":"A2","translation":"акне"},{"word":"ACHE","level":"A2","translation":"боль"},{"word":"ACHING","level":"A2","translation":"ноющий"},{"word":"ADULT","level":"A1","translation":"взрослый"},{"word":"ALARM","level":"A2","translation":"тревога"},{"word":"ALERT","level":"B1","translation":"настороженный"},{"word":"ALLERGY","level":"A2","translation":"аллергия"},{"word":"ASTHMA","level":"A2","translation":"астма"},{"word":"BABY","level":"A1","translation":"младенец"},{"word":"BELLY","level":"A2","translation":"живот"},{"word":"BLOOD","level":"A1","translation":"кровь"},{"word":"BODY","level":"A1","translation":"тело"},{"word":"BOWEL","level":"B1","translation":"кишечник"},{"word":"BRAIN","level":"A2","translation":"мозг"},{"word":"BREAST","level":"A2","translation":"грудь"},{"word":"BRONCHI","level":"B2","translation":"бронхи"},{"word":"CANCER","level":"A2","translation":"рак"},{"word":"CHEST","level":"A1","translation":"грудная клетка"},{"word":"CLINIC","level":"A2","translation":"клиника"},{"word":"COUGH","level":"A2","translation":"кашель"},{"word":"DENTAL","level":"A2","translation":"стоматологический"},{"word":"DERMAL","level":"B2","translation":"кожный"},{"word":"DOCTOR","level":"A1","translation":"врач"},{"word":"DRUG","level":"A2","translation":"лекарство"},{"word":"EDEMA","level":"B2","translation":"отёк"},{"word":"FEVER","level":"A1","translation":"лихорадка"},{"word":"GLAND","level":"B2","translation":"железа"},{"word":"HEART","level":"A1","translation":"сердце"},{"word":"JOINT","level":"A2","translation":"сустав"},{"word":"LIVER","level":"A2","translation":"печень"},{"word":"LUNGS","level":"A1","translation":"лёгкие"},{"word":"MEDIC","level":"B1","translation":"медик"},{"word":"MUCOSA","level":"C1","translation":"слизистая"},{"word":"NAUSEA","level":"B1","translation":"тошнота"},{"word":"NERVE","level":"A2","translation":"нерв"},{"word":"NURSE","level":"A1","translation":"медсестра"},{"word":"ORGAN","level":"A2","translation":"орган"},{"word":"PAIN","level":"A1","translation":"боль"},{"word":"PULSE","level":"A2","translation":"пульс"},{"word":"RASH","level":"A2","translation":"сыпь"},{"word":"SCALP","level":"B1","translation":"кожа головы"},{"word":"SERUM","level":"B2","translation":"сыворотка"},{"word":"SHIVER","level":"B1","translation":"озноб"},{"word":"SICK","level":"A1","translation":"больной"},{"word":"SKIN","level":"A1","translation":"кожа"},{"word":"SPINE","level":"B1","translation":"позвоночник"},{"word":"SPLEEN","level":"B2","translation":"селезёнка"},{"word":"SUTURE","level":"B2","translation":"шов"},{"word":"THROAT","level":"A2","translation":"горло"},{"word":"TISSUE","level":"B1","translation":"ткань"},{"word":"ULCER","level":"B1","translation":"язва"},{"word":"WOUND","level":"A2","translation":"рана"},{"word":"ABDOMEN","level":"B1","translation":"живот"},{"word":"ABSCESS","level":"B2","translation":"абсцесс"},{"word":"ADHESION","level":"C1","translation":"спайка"},{"word":"ADVERSE","level":"B2","translation":"неблагоприятный"},{"word":"AIRFLOW","level":"B1","translation":"поток воздуха"},{"word":"AIRWAY","level":"B1","translation":"дыхательные пути"},{"word":"ALLERGEN","level":"B2","translation":"аллерген"},{"word":"ANEMIA","level":"B1","translation":"анемия"},{"word":"ANTIBODY","level":"B2","translation":"антитело"},{"word":"ANTIGEN","level":"B2","translation":"антиген"},{"word":"ANXIETY","level":"B1","translation":"тревожность"},{"word":"APPETITE","level":"A2","translation":"аппетит"},{"word":"ARTERY","level":"B1","translation":"артерия"},{"word":"ATOPIC","level":"B2","translation":"атопический"},{"word":"BIOPSY","level":"B2","translation":"биопсия"},{"word":"BLADDER","level":"B1","translation":"мочевой пузырь"},{"word":"BLEEDING","level":"B1","translation":"кровотечение"},{"word":"BLISTER","level":"B1","translation":"пузырь"},{"word":"BREATH","level":"A2","translation":"дыхание"},{"word":"BRONCHUS","level":"C1","translation":"бронх"},{"word":"BURNING","level":"B1","translation":"жжение"},{"word":"CALCIUM","level":"B2","translation":"кальций"},{"word":"CARDIAC","level":"B2","translation":"сердечный"},{"word":"CELLULAR","level":"C1","translation":"клеточный"},{"word":"CHRONIC","level":"B1","translation":"хронический"},{"word":"COLITIS","level":"B2","translation":"колит"},{"word":"CONTACT","level":"A2","translation":"контактный"},{"word":"CORNEA","level":"B2","translation":"роговица"},{"word":"CORTEX","level":"C1","translation":"кора"},{"word":"CRAMP","level":"B1","translation":"спазм"},{"word":"CYTOKINE","level":"C1","translation":"цитокин"},{"word":"DIARRHEA","level":"B1","translation":"диарея"},{"word":"DIETARY","level":"B1","translation":"диетический"},{"word":"DIZZINESS","level":"B1","translation":"головокружение"},{"word":"DOSAGE","level":"B1","translation":"дозировка"},{"word":"ECZEMA","level":"B1","translation":"экзема"},{"word":"EMESIS","level":"C1","translation":"рвота"},{"word":"ENZYME","level":"B2","translation":"фермент"},{"word":"FATIGUE","level":"B1","translation":"усталость"},{"word":"FIBROSIS","level":"C1","translation":"фиброз"},{"word":"FISSURE","level":"B2","translation":"трещина"},{"word":"GASTRIC","level":"B2","translation":"желудочный"},{"word":"GENETIC","level":"B2","translation":"генетический"},{"word":"GLUCOSE","level":"B1","translation":"глюкоза"},{"word":"HEALING","level":"A2","translation":"заживление"},{"word":"HORMONE","level":"B1","translation":"гормон"},{"word":"HOSPITAL","level":"A2","translation":"больница"},{"word":"IMMUNE","level":"B2","translation":"иммунный"},{"word":"INFECTION","level":"B1","translation":"инфекция"},{"word":"INFLAMED","level":"B2","translation":"воспалённый"},{"word":"INFANT","level":"A2","translation":"младенец"},{"word":"INHALER","level":"B1","translation":"ингалятор"},{"word":"INJURY","level":"A2","translation":"травма"},{"word":"INSULIN","level":"B1","translation":"инсулин"},{"word":"ITCHING","level":"A2","translation":"зуд"},{"word":"JAUNDICE","level":"B2","translation":"желтуха"},{"word":"KIDNEY","level":"A2","translation":"почка"},{"word":"LESION","level":"B2","translation":"очаг поражения"},{"word":"LYMPH","level":"B2","translation":"лимфа"},{"word":"MALIGNANT","level":"C1","translation":"злокачественный"},{"word":"MELANOMA","level":"C1","translation":"меланома"},{"word":"MIGRAINE","level":"B1","translation":"мигрень"},{"word":"MUSCLE","level":"A2","translation":"мышца"},{"word":"NEURON","level":"B2","translation":"нейрон"},{"word":"NODULE","level":"B2","translation":"узелок"},{"word":"PATIENT","level":"A1","translation":"пациент"},{"word":"PHARYNX","level":"C1","translation":"глотка"},{"word":"PHYSICIAN","level":"B1","translation":"врач"},{"word":"PLAQUE","level":"B2","translation":"бляшка"},{"word":"PLASMA","level":"B2","translation":"плазма"},{"word":"PROTEIN","level":"B1","translation":"белок"},{"word":"PRURITUS","level":"C1","translation":"зуд"},{"word":"PSORIASIS","level":"C1","translation":"псориаз"},{"word":"RECEPTOR","level":"C1","translation":"рецептор"},{"word":"RECTUM","level":"B2","translation":"прямая кишка"},{"word":"REFLUX","level":"B1","translation":"рефлюкс"},{"word":"RENAL","level":"B2","translation":"почечный"},{"word":"RESPIRATORY","level":"B1","translation":"дыхательный"},{"word":"SALIVA","level":"B1","translation":"слюна"},{"word":"SEIZURE","level":"B2","translation":"судорожный приступ"},{"word":"SEPTIC","level":"B2","translation":"септический"},{"word":"STEROID","level":"B2","translation":"стероид"},{"word":"STOOL","level":"B1","translation":"стул"},{"word":"STROKE","level":"B1","translation":"инсульт"},{"word":"SURGERY","level":"B1","translation":"операция"},{"word":"SWELLING","level":"A2","translation":"отёк"},{"word":"SYMPTOM","level":"B1","translation":"симптом"},{"word":"THERAPY","level":"B1","translation":"терапия"},{"word":"THORAX","level":"B2","translation":"грудная клетка"},{"word":"THYROID","level":"B2","translation":"щитовидная железа"},{"word":"TOPICAL","level":"B2","translation":"местный"},{"word":"TRAUMA","level":"B1","translation":"травма"},{"word":"TUMOR","level":"B2","translation":"опухоль"},{"word":"URINE","level":"A2","translation":"моча"},{"word":"UTERUS","level":"B2","translation":"матка"},{"word":"VACCINE","level":"B1","translation":"вакцина"},{"word":"VENOUS","level":"B2","translation":"венозный"},{"word":"VIRAL","level":"A2","translation":"вирусный"},{"word":"WHEEZE","level":"B1","translation":"свистящее дыхание"},{"word":"ACUTE","level":"A2","translation":"острый"},{"word":"ANALGESIC","level":"B2","translation":"обезболивающее"},{"word":"ANATOMY","level":"B1","translation":"анатомия"},{"word":"ANTIVIRAL","level":"B2","translation":"противовирусный"},{"word":"BACTERIAL","level":"B1","translation":"бактериальный"},{"word":"BRONCHIAL","level":"B2","translation":"бронхиальный"},{"word":"CATHETER","level":"B2","translation":"катетер"},{"word":"CLINICAL","level":"B1","translation":"клинический"},{"word":"COAGULATION","level":"C1","translation":"свёртывание крови"},{"word":"COMORBIDITY","level":"C1","translation":"сопутствующее заболевание"},{"word":"CONDITION","level":"A2","translation":"состояние"},{"word":"CONGENITAL","level":"C1","translation":"врождённый"},{"word":"CONSTIPATION","level":"B1","translation":"запор"},{"word":"CONTAGIOUS","level":"B2","translation":"заразный"},{"word":"DIAGNOSIS","level":"B1","translation":"диагноз"},{"word":"DIAGNOSTIC","level":"B2","translation":"диагностический"},{"word":"DISCHARGE","level":"B1","translation":"выделение / выписка"},{"word":"DISEASE","level":"A2","translation":"заболевание"},{"word":"DYSPNEA","level":"C1","translation":"одышка"},{"word":"EMERGENCY","level":"A2","translation":"неотложная помощь"},{"word":"EPIDEMIC","level":"B2","translation":"эпидемия"},{"word":"EPITHELIUM","level":"C1","translation":"эпителий"},{"word":"FRACTURE","level":"B1","translation":"перелом"},{"word":"GASTRITIS","level":"B2","translation":"гастрит"},{"word":"HEMATOLOGY","level":"C1","translation":"гематология"},{"word":"HYPERTENSION","level":"B2","translation":"гипертония"},{"word":"IMMUNITY","level":"B2","translation":"иммунитет"},{"word":"INCISION","level":"B2","translation":"разрез"},{"word":"INJECTION","level":"A2","translation":"инъекция"},{"word":"INTESTINE","level":"B1","translation":"кишка"},{"word":"LABORATORY","level":"B1","translation":"лаборатория"},{"word":"MEDICATION","level":"A2","translation":"лекарство"},{"word":"METABOLISM","level":"B2","translation":"обмен веществ"},{"word":"MICROBE","level":"B2","translation":"микроб"},{"word":"MORTALITY","level":"C1","translation":"смертность"},{"word":"NEUROLOGY","level":"B2","translation":"неврология"},{"word":"NUTRITION","level":"B1","translation":"питание"},{"word":"OBESITY","level":"B1","translation":"ожирение"},{"word":"OUTBREAK","level":"B2","translation":"вспышка"},{"word":"PATHOGEN","level":"B2","translation":"патоген"},{"word":"PATHOLOGY","level":"B2","translation":"патология"},{"word":"PEDIATRIC","level":"B2","translation":"педиатрический"},{"word":"PNEUMONIA","level":"B2","translation":"пневмония"},{"word":"PRESCRIBE","level":"B1","translation":"назначать"},{"word":"PREVENTION","level":"B1","translation":"профилактика"},{"word":"PROGNOSIS","level":"B2","translation":"прогноз"},{"word":"PROCEDURE","level":"B1","translation":"процедура"},{"word":"RECOVERY","level":"A2","translation":"выздоровление"},{"word":"REFERRAL","level":"B2","translation":"направление"},{"word":"REMISSION","level":"B2","translation":"ремиссия"},{"word":"SCREENING","level":"B2","translation":"скрининг"},{"word":"SEDATION","level":"B2","translation":"седация"},{"word":"SENSITIVITY","level":"B2","translation":"чувствительность"},{"word":"SYNDROME","level":"B2","translation":"синдром"},{"word":"TOXICITY","level":"B2","translation":"токсичность"},{"word":"TRANSPLANT","level":"C1","translation":"трансплантация"},{"word":"TREATMENT","level":"A2","translation":"лечение"},{"word":"TRIGGER","level":"B1","translation":"триггер"},{"word":"VASCULAR","level":"B2","translation":"сосудистый"},{"word":"VOMITING","level":"A2","translation":"рвота"},{"word":"ADRENALINE","level":"B2","translation":"адреналин"},{"word":"ANGIOEDEMA","level":"C1","translation":"ангиоотёк"},{"word":"ANAPHYLAXIS","level":"C1","translation":"анафилаксия"},{"word":"AUTOIMMUNE","level":"C1","translation":"аутоиммунный"},{"word":"BASOPHIL","level":"C1","translation":"базофил"},{"word":"BIOMARKER","level":"C1","translation":"биомаркер"},{"word":"BRONCHITIS","level":"B1","translation":"бронхит"},{"word":"DERMATITIS","level":"B2","translation":"дерматит"},{"word":"DESENSITIZE","level":"C1","translation":"десенсибилизировать"},{"word":"EOSINOPHIL","level":"C1","translation":"эозинофил"},{"word":"EXACERBATION","level":"C1","translation":"обострение"},{"word":"GASTROENTERIC","level":"C1","translation":"желудочно-кишечный"},{"word":"HISTAMINE","level":"B2","translation":"гистамин"},{"word":"HYPERPLASIA","level":"C1","translation":"гиперплазия"},{"word":"IMMUNOLOGY","level":"C1","translation":"иммунология"},{"word":"INFLAMMATION","level":"B2","translation":"воспаление"},{"word":"LEUKOCYTE","level":"B2","translation":"лейкоцит"},{"word":"MASTOCYTE","level":"C1","translation":"тучная клетка"},{"word":"MONOCYTE","level":"B2","translation":"моноцит"},{"word":"NEUTROPHIL","level":"B2","translation":"нейтрофил"},{"word":"PEDIATRICS","level":"B2","translation":"педиатрия"},{"word":"PROBIOTIC","level":"B2","translation":"пробиотик"},{"word":"URTICARIA","level":"C1","translation":"крапивница"},{"word":"VASCULITIS","level":"C1","translation":"васкулит"},{"word":"ADHESIVE","level":"B2","translation":"адгезивный"},{"word":"ANTIBIOTIC","level":"B1","translation":"антибиотик"},{"word":"ANTIFUNGAL","level":"B2","translation":"противогрибковый"},{"word":"ANTIHISTAMINE","level":"B2","translation":"антигистаминный препарат"},{"word":"ANTISEPTIC","level":"B1","translation":"антисептик"},{"word":"ATROPHY","level":"C1","translation":"атрофия"},{"word":"AUTOIMMUNITY","level":"C1","translation":"аутоиммунитет"},{"word":"BACTERIUM","level":"B2","translation":"бактерия"},{"word":"CARCINOMA","level":"C1","translation":"карцинома"},{"word":"CIRCULATION","level":"B2","translation":"кровообращение"},{"word":"COLONOSCOPY","level":"C1","translation":"колоноскопия"},{"word":"CORTISOL","level":"B2","translation":"кортизол"},{"word":"CYTOLOGY","level":"C1","translation":"цитология"},{"word":"DEHYDRATION","level":"B1","translation":"обезвоживание"},{"word":"DERMATOLOGY","level":"B2","translation":"дерматология"},{"word":"ENDOSCOPY","level":"B2","translation":"эндоскопия"},{"word":"EPIDERMIS","level":"C1","translation":"эпидермис"},{"word":"GASTROLOGY","level":"C1","translation":"гастроэнтерология"},{"word":"HEMOGLOBIN","level":"B2","translation":"гемоглобин"},{"word":"IMMUNOGLOBULIN","level":"C1","translation":"иммуноглобулин"},{"word":"INCUBATION","level":"B2","translation":"инкубация"},{"word":"INTUBATION","level":"C1","translation":"интубация"},{"word":"LARYNGITIS","level":"B2","translation":"ларингит"},{"word":"LYMPHOCYTE","level":"B2","translation":"лимфоцит"},{"word":"MENINGITIS","level":"B2","translation":"менингит"},{"word":"MYOCARDIUM","level":"C1","translation":"миокард"},{"word":"NEBULIZER","level":"B2","translation":"небулайзер"},{"word":"NEOPLASM","level":"C1","translation":"новообразование"},{"word":"PANCREAS","level":"B2","translation":"поджелудочная железа"},{"word":"PHARMACOLOGY","level":"C1","translation":"фармакология"},{"word":"PHYSIOLOGY","level":"B2","translation":"физиология"},{"word":"PULMONARY","level":"B2","translation":"лёгочный"},{"word":"RADIOLOGY","level":"B2","translation":"радиология"},{"word":"RHINITIS","level":"B2","translation":"ринит"},{"word":"SINUSITIS","level":"B2","translation":"синусит"},{"word":"SPIROMETRY","level":"C1","translation":"спирометрия"},{"word":"THROMBOSIS","level":"B2","translation":"тромбоз"},{"word":"TONSILLITIS","level":"B2","translation":"тонзиллит"},{"word":"TOXICOLOGY","level":"C1","translation":"токсикология"},{"word":"VIROLOGY","level":"C1","translation":"вирусология"}]}
+{
+  "title": "Medical English",
+  "source": "topic",
+  "theme": "medicine",
+  "words": [
+    {
+      "word": "ACNE",
+      "level": "A2",
+      "translation": "акне",
+      "isTransliterated": true
+    },
+    {
+      "word": "ACHE",
+      "level": "A2",
+      "translation": "боль",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACHING",
+      "level": "A2",
+      "translation": "ноющий",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADULT",
+      "level": "A1",
+      "translation": "взрослый",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALARM",
+      "level": "A2",
+      "translation": "тревога",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALERT",
+      "level": "B1",
+      "translation": "настороженный",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALLERGY",
+      "level": "A2",
+      "translation": "аллергия",
+      "isTransliterated": true
+    },
+    {
+      "word": "ASTHMA",
+      "level": "A2",
+      "translation": "астма",
+      "isTransliterated": true
+    },
+    {
+      "word": "BABY",
+      "level": "A1",
+      "translation": "младенец",
+      "isTransliterated": false
+    },
+    {
+      "word": "BELLY",
+      "level": "A2",
+      "translation": "живот",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLOOD",
+      "level": "A1",
+      "translation": "кровь",
+      "isTransliterated": false
+    },
+    {
+      "word": "BODY",
+      "level": "A1",
+      "translation": "тело",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOWEL",
+      "level": "B1",
+      "translation": "кишечник",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRAIN",
+      "level": "A2",
+      "translation": "мозг",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREAST",
+      "level": "A2",
+      "translation": "грудь",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRONCHI",
+      "level": "B2",
+      "translation": "бронхи",
+      "isTransliterated": true
+    },
+    {
+      "word": "CANCER",
+      "level": "A2",
+      "translation": "рак",
+      "isTransliterated": true
+    },
+    {
+      "word": "CHEST",
+      "level": "A1",
+      "translation": "грудная клетка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLINIC",
+      "level": "A2",
+      "translation": "клиника",
+      "isTransliterated": true
+    },
+    {
+      "word": "COUGH",
+      "level": "A2",
+      "translation": "кашель",
+      "isTransliterated": false
+    },
+    {
+      "word": "DENTAL",
+      "level": "A2",
+      "translation": "стоматологический",
+      "isTransliterated": true
+    },
+    {
+      "word": "DERMAL",
+      "level": "B2",
+      "translation": "кожный",
+      "isTransliterated": true
+    },
+    {
+      "word": "DOCTOR",
+      "level": "A1",
+      "translation": "врач",
+      "isTransliterated": false
+    },
+    {
+      "word": "DRUG",
+      "level": "A2",
+      "translation": "лекарство",
+      "isTransliterated": false
+    },
+    {
+      "word": "EDEMA",
+      "level": "B2",
+      "translation": "отёк",
+      "isTransliterated": true
+    },
+    {
+      "word": "FEVER",
+      "level": "A1",
+      "translation": "лихорадка",
+      "isTransliterated": false
+    },
+    {
+      "word": "GLAND",
+      "level": "B2",
+      "translation": "железа",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEART",
+      "level": "A1",
+      "translation": "сердце",
+      "isTransliterated": false
+    },
+    {
+      "word": "JOINT",
+      "level": "A2",
+      "translation": "сустав",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIVER",
+      "level": "A2",
+      "translation": "печень",
+      "isTransliterated": false
+    },
+    {
+      "word": "LUNGS",
+      "level": "A1",
+      "translation": "лёгкие",
+      "isTransliterated": false
+    },
+    {
+      "word": "MEDIC",
+      "level": "B1",
+      "translation": "медик",
+      "isTransliterated": true
+    },
+    {
+      "word": "MUCOSA",
+      "level": "C1",
+      "translation": "слизистая",
+      "isTransliterated": true
+    },
+    {
+      "word": "NAUSEA",
+      "level": "B1",
+      "translation": "тошнота",
+      "isTransliterated": false
+    },
+    {
+      "word": "NERVE",
+      "level": "A2",
+      "translation": "нерв",
+      "isTransliterated": false
+    },
+    {
+      "word": "NURSE",
+      "level": "A1",
+      "translation": "медсестра",
+      "isTransliterated": false
+    },
+    {
+      "word": "ORGAN",
+      "level": "A2",
+      "translation": "орган",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAIN",
+      "level": "A1",
+      "translation": "боль",
+      "isTransliterated": false
+    },
+    {
+      "word": "PULSE",
+      "level": "A2",
+      "translation": "пульс",
+      "isTransliterated": false
+    },
+    {
+      "word": "RASH",
+      "level": "A2",
+      "translation": "сыпь",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCALP",
+      "level": "B1",
+      "translation": "кожа головы",
+      "isTransliterated": false
+    },
+    {
+      "word": "SERUM",
+      "level": "B2",
+      "translation": "сыворотка",
+      "isTransliterated": true
+    },
+    {
+      "word": "SHIVER",
+      "level": "B1",
+      "translation": "озноб",
+      "isTransliterated": false
+    },
+    {
+      "word": "SICK",
+      "level": "A1",
+      "translation": "больной",
+      "isTransliterated": false
+    },
+    {
+      "word": "SKIN",
+      "level": "A1",
+      "translation": "кожа",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPINE",
+      "level": "B1",
+      "translation": "позвоночник",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPLEEN",
+      "level": "B2",
+      "translation": "селезёнка",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUTURE",
+      "level": "B2",
+      "translation": "шов",
+      "isTransliterated": true
+    },
+    {
+      "word": "THROAT",
+      "level": "A2",
+      "translation": "горло",
+      "isTransliterated": false
+    },
+    {
+      "word": "TISSUE",
+      "level": "B1",
+      "translation": "ткань",
+      "isTransliterated": false
+    },
+    {
+      "word": "ULCER",
+      "level": "B1",
+      "translation": "язва",
+      "isTransliterated": false
+    },
+    {
+      "word": "WOUND",
+      "level": "A2",
+      "translation": "рана",
+      "isTransliterated": false
+    },
+    {
+      "word": "ABDOMEN",
+      "level": "B1",
+      "translation": "живот",
+      "isTransliterated": false
+    },
+    {
+      "word": "ABSCESS",
+      "level": "B2",
+      "translation": "абсцесс",
+      "isTransliterated": true
+    },
+    {
+      "word": "ADHESION",
+      "level": "C1",
+      "translation": "спайка",
+      "isTransliterated": true
+    },
+    {
+      "word": "ADVERSE",
+      "level": "B2",
+      "translation": "неблагоприятный",
+      "isTransliterated": false
+    },
+    {
+      "word": "AIRFLOW",
+      "level": "B1",
+      "translation": "поток воздуха",
+      "isTransliterated": false
+    },
+    {
+      "word": "AIRWAY",
+      "level": "B1",
+      "translation": "дыхательные пути",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALLERGEN",
+      "level": "B2",
+      "translation": "аллерген",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANEMIA",
+      "level": "B1",
+      "translation": "анемия",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANTIBODY",
+      "level": "B2",
+      "translation": "антитело",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANTIGEN",
+      "level": "B2",
+      "translation": "антиген",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANXIETY",
+      "level": "B1",
+      "translation": "тревожность",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPETITE",
+      "level": "A2",
+      "translation": "аппетит",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARTERY",
+      "level": "B1",
+      "translation": "артерия",
+      "isTransliterated": false
+    },
+    {
+      "word": "ATOPIC",
+      "level": "B2",
+      "translation": "атопический",
+      "isTransliterated": true
+    },
+    {
+      "word": "BIOPSY",
+      "level": "B2",
+      "translation": "биопсия",
+      "isTransliterated": true
+    },
+    {
+      "word": "BLADDER",
+      "level": "B1",
+      "translation": "мочевой пузырь",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLEEDING",
+      "level": "B1",
+      "translation": "кровотечение",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLISTER",
+      "level": "B1",
+      "translation": "пузырь",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREATH",
+      "level": "A2",
+      "translation": "дыхание",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRONCHUS",
+      "level": "C1",
+      "translation": "бронх",
+      "isTransliterated": false
+    },
+    {
+      "word": "BURNING",
+      "level": "B1",
+      "translation": "жжение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CALCIUM",
+      "level": "B2",
+      "translation": "кальций",
+      "isTransliterated": true
+    },
+    {
+      "word": "CARDIAC",
+      "level": "B2",
+      "translation": "сердечный",
+      "isTransliterated": true
+    },
+    {
+      "word": "CELLULAR",
+      "level": "C1",
+      "translation": "клеточный",
+      "isTransliterated": true
+    },
+    {
+      "word": "CHRONIC",
+      "level": "B1",
+      "translation": "хронический",
+      "isTransliterated": false
+    },
+    {
+      "word": "COLITIS",
+      "level": "B2",
+      "translation": "колит",
+      "isTransliterated": true
+    },
+    {
+      "word": "CONTACT",
+      "level": "A2",
+      "translation": "контактный",
+      "isTransliterated": false
+    },
+    {
+      "word": "CORNEA",
+      "level": "B2",
+      "translation": "роговица",
+      "isTransliterated": true
+    },
+    {
+      "word": "CORTEX",
+      "level": "C1",
+      "translation": "кора",
+      "isTransliterated": true
+    },
+    {
+      "word": "CRAMP",
+      "level": "B1",
+      "translation": "спазм",
+      "isTransliterated": false
+    },
+    {
+      "word": "CYTOKINE",
+      "level": "C1",
+      "translation": "цитокин",
+      "isTransliterated": true
+    },
+    {
+      "word": "DIARRHEA",
+      "level": "B1",
+      "translation": "диарея",
+      "isTransliterated": false
+    },
+    {
+      "word": "DIETARY",
+      "level": "B1",
+      "translation": "диетический",
+      "isTransliterated": false
+    },
+    {
+      "word": "DIZZINESS",
+      "level": "B1",
+      "translation": "головокружение",
+      "isTransliterated": false
+    },
+    {
+      "word": "DOSAGE",
+      "level": "B1",
+      "translation": "дозировка",
+      "isTransliterated": false
+    },
+    {
+      "word": "ECZEMA",
+      "level": "B1",
+      "translation": "экзема",
+      "isTransliterated": false
+    },
+    {
+      "word": "EMESIS",
+      "level": "C1",
+      "translation": "рвота",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENZYME",
+      "level": "B2",
+      "translation": "фермент",
+      "isTransliterated": true
+    },
+    {
+      "word": "FATIGUE",
+      "level": "B1",
+      "translation": "усталость",
+      "isTransliterated": false
+    },
+    {
+      "word": "FIBROSIS",
+      "level": "C1",
+      "translation": "фиброз",
+      "isTransliterated": true
+    },
+    {
+      "word": "FISSURE",
+      "level": "B2",
+      "translation": "трещина",
+      "isTransliterated": true
+    },
+    {
+      "word": "GASTRIC",
+      "level": "B2",
+      "translation": "желудочный",
+      "isTransliterated": true
+    },
+    {
+      "word": "GENETIC",
+      "level": "B2",
+      "translation": "генетический",
+      "isTransliterated": true
+    },
+    {
+      "word": "GLUCOSE",
+      "level": "B1",
+      "translation": "глюкоза",
+      "isTransliterated": true
+    },
+    {
+      "word": "HEALING",
+      "level": "A2",
+      "translation": "заживление",
+      "isTransliterated": false
+    },
+    {
+      "word": "HORMONE",
+      "level": "B1",
+      "translation": "гормон",
+      "isTransliterated": true
+    },
+    {
+      "word": "HOSPITAL",
+      "level": "A2",
+      "translation": "больница",
+      "isTransliterated": false
+    },
+    {
+      "word": "IMMUNE",
+      "level": "B2",
+      "translation": "иммунный",
+      "isTransliterated": true
+    },
+    {
+      "word": "INFECTION",
+      "level": "B1",
+      "translation": "инфекция",
+      "isTransliterated": true
+    },
+    {
+      "word": "INFLAMED",
+      "level": "B2",
+      "translation": "воспалённый",
+      "isTransliterated": true
+    },
+    {
+      "word": "INFANT",
+      "level": "A2",
+      "translation": "младенец",
+      "isTransliterated": false
+    },
+    {
+      "word": "INHALER",
+      "level": "B1",
+      "translation": "ингалятор",
+      "isTransliterated": true
+    },
+    {
+      "word": "INJURY",
+      "level": "A2",
+      "translation": "травма",
+      "isTransliterated": false
+    },
+    {
+      "word": "INSULIN",
+      "level": "B1",
+      "translation": "инсулин",
+      "isTransliterated": true
+    },
+    {
+      "word": "ITCHING",
+      "level": "A2",
+      "translation": "зуд",
+      "isTransliterated": false
+    },
+    {
+      "word": "JAUNDICE",
+      "level": "B2",
+      "translation": "желтуха",
+      "isTransliterated": true
+    },
+    {
+      "word": "KIDNEY",
+      "level": "A2",
+      "translation": "почка",
+      "isTransliterated": false
+    },
+    {
+      "word": "LESION",
+      "level": "B2",
+      "translation": "очаг поражения",
+      "isTransliterated": true
+    },
+    {
+      "word": "LYMPH",
+      "level": "B2",
+      "translation": "лимфа",
+      "isTransliterated": true
+    },
+    {
+      "word": "MALIGNANT",
+      "level": "C1",
+      "translation": "злокачественный",
+      "isTransliterated": true
+    },
+    {
+      "word": "MELANOMA",
+      "level": "C1",
+      "translation": "меланома",
+      "isTransliterated": true
+    },
+    {
+      "word": "MIGRAINE",
+      "level": "B1",
+      "translation": "мигрень",
+      "isTransliterated": true
+    },
+    {
+      "word": "MUSCLE",
+      "level": "A2",
+      "translation": "мышца",
+      "isTransliterated": false
+    },
+    {
+      "word": "NEURON",
+      "level": "B2",
+      "translation": "нейрон",
+      "isTransliterated": true
+    },
+    {
+      "word": "NODULE",
+      "level": "B2",
+      "translation": "узелок",
+      "isTransliterated": true
+    },
+    {
+      "word": "PATIENT",
+      "level": "A1",
+      "translation": "пациент",
+      "isTransliterated": false
+    },
+    {
+      "word": "PHARYNX",
+      "level": "C1",
+      "translation": "глотка",
+      "isTransliterated": true
+    },
+    {
+      "word": "PHYSICIAN",
+      "level": "B1",
+      "translation": "врач",
+      "isTransliterated": true
+    },
+    {
+      "word": "PLAQUE",
+      "level": "B2",
+      "translation": "бляшка",
+      "isTransliterated": true
+    },
+    {
+      "word": "PLASMA",
+      "level": "B2",
+      "translation": "плазма",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROTEIN",
+      "level": "B1",
+      "translation": "белок",
+      "isTransliterated": true
+    },
+    {
+      "word": "PRURITUS",
+      "level": "C1",
+      "translation": "зуд",
+      "isTransliterated": true
+    },
+    {
+      "word": "PSORIASIS",
+      "level": "C1",
+      "translation": "псориаз",
+      "isTransliterated": true
+    },
+    {
+      "word": "RECEPTOR",
+      "level": "C1",
+      "translation": "рецептор",
+      "isTransliterated": true
+    },
+    {
+      "word": "RECTUM",
+      "level": "B2",
+      "translation": "прямая кишка",
+      "isTransliterated": false
+    },
+    {
+      "word": "REFLUX",
+      "level": "B1",
+      "translation": "рефлюкс",
+      "isTransliterated": true
+    },
+    {
+      "word": "RENAL",
+      "level": "B2",
+      "translation": "почечный",
+      "isTransliterated": true
+    },
+    {
+      "word": "RESPIRATORY",
+      "level": "B1",
+      "translation": "дыхательный",
+      "isTransliterated": true
+    },
+    {
+      "word": "SALIVA",
+      "level": "B1",
+      "translation": "слюна",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEIZURE",
+      "level": "B2",
+      "translation": "судорожный приступ",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEPTIC",
+      "level": "B2",
+      "translation": "септический",
+      "isTransliterated": true
+    },
+    {
+      "word": "STEROID",
+      "level": "B2",
+      "translation": "стероид",
+      "isTransliterated": true
+    },
+    {
+      "word": "STOOL",
+      "level": "B1",
+      "translation": "стул",
+      "isTransliterated": false
+    },
+    {
+      "word": "STROKE",
+      "level": "B1",
+      "translation": "инсульт",
+      "isTransliterated": false
+    },
+    {
+      "word": "SURGERY",
+      "level": "B1",
+      "translation": "операция",
+      "isTransliterated": false
+    },
+    {
+      "word": "SWELLING",
+      "level": "A2",
+      "translation": "отёк",
+      "isTransliterated": false
+    },
+    {
+      "word": "SYMPTOM",
+      "level": "B1",
+      "translation": "симптом",
+      "isTransliterated": true
+    },
+    {
+      "word": "THERAPY",
+      "level": "B1",
+      "translation": "терапия",
+      "isTransliterated": true
+    },
+    {
+      "word": "THORAX",
+      "level": "B2",
+      "translation": "грудная клетка",
+      "isTransliterated": true
+    },
+    {
+      "word": "THYROID",
+      "level": "B2",
+      "translation": "щитовидная железа",
+      "isTransliterated": true
+    },
+    {
+      "word": "TOPICAL",
+      "level": "B2",
+      "translation": "местный",
+      "isTransliterated": true
+    },
+    {
+      "word": "TRAUMA",
+      "level": "B1",
+      "translation": "травма",
+      "isTransliterated": true
+    },
+    {
+      "word": "TUMOR",
+      "level": "B2",
+      "translation": "опухоль",
+      "isTransliterated": true
+    },
+    {
+      "word": "URINE",
+      "level": "A2",
+      "translation": "моча",
+      "isTransliterated": false
+    },
+    {
+      "word": "UTERUS",
+      "level": "B2",
+      "translation": "матка",
+      "isTransliterated": false
+    },
+    {
+      "word": "VACCINE",
+      "level": "B1",
+      "translation": "вакцина",
+      "isTransliterated": true
+    },
+    {
+      "word": "VENOUS",
+      "level": "B2",
+      "translation": "венозный",
+      "isTransliterated": true
+    },
+    {
+      "word": "VIRAL",
+      "level": "A2",
+      "translation": "вирусный",
+      "isTransliterated": true
+    },
+    {
+      "word": "WHEEZE",
+      "level": "B1",
+      "translation": "свистящее дыхание",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACUTE",
+      "level": "A2",
+      "translation": "острый",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANALGESIC",
+      "level": "B2",
+      "translation": "обезболивающее",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANATOMY",
+      "level": "B1",
+      "translation": "анатомия",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANTIVIRAL",
+      "level": "B2",
+      "translation": "противовирусный",
+      "isTransliterated": true
+    },
+    {
+      "word": "BACTERIAL",
+      "level": "B1",
+      "translation": "бактериальный",
+      "isTransliterated": true
+    },
+    {
+      "word": "BRONCHIAL",
+      "level": "B2",
+      "translation": "бронхиальный",
+      "isTransliterated": true
+    },
+    {
+      "word": "CATHETER",
+      "level": "B2",
+      "translation": "катетер",
+      "isTransliterated": true
+    },
+    {
+      "word": "CLINICAL",
+      "level": "B1",
+      "translation": "клинический",
+      "isTransliterated": true
+    },
+    {
+      "word": "COAGULATION",
+      "level": "C1",
+      "translation": "свёртывание крови",
+      "isTransliterated": true
+    },
+    {
+      "word": "COMORBIDITY",
+      "level": "C1",
+      "translation": "сопутствующее заболевание",
+      "isTransliterated": true
+    },
+    {
+      "word": "CONDITION",
+      "level": "A2",
+      "translation": "состояние",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONGENITAL",
+      "level": "C1",
+      "translation": "врождённый",
+      "isTransliterated": true
+    },
+    {
+      "word": "CONSTIPATION",
+      "level": "B1",
+      "translation": "запор",
+      "isTransliterated": true
+    },
+    {
+      "word": "CONTAGIOUS",
+      "level": "B2",
+      "translation": "заразный",
+      "isTransliterated": true
+    },
+    {
+      "word": "DIAGNOSIS",
+      "level": "B1",
+      "translation": "диагноз",
+      "isTransliterated": true
+    },
+    {
+      "word": "DIAGNOSTIC",
+      "level": "B2",
+      "translation": "диагностический",
+      "isTransliterated": true
+    },
+    {
+      "word": "DISCHARGE",
+      "level": "B1",
+      "translation": "выделение / выписка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISEASE",
+      "level": "A2",
+      "translation": "заболевание",
+      "isTransliterated": false
+    },
+    {
+      "word": "DYSPNEA",
+      "level": "C1",
+      "translation": "одышка",
+      "isTransliterated": false
+    },
+    {
+      "word": "EMERGENCY",
+      "level": "A2",
+      "translation": "неотложная помощь",
+      "isTransliterated": false
+    },
+    {
+      "word": "EPIDEMIC",
+      "level": "B2",
+      "translation": "эпидемия",
+      "isTransliterated": true
+    },
+    {
+      "word": "EPITHELIUM",
+      "level": "C1",
+      "translation": "эпителий",
+      "isTransliterated": true
+    },
+    {
+      "word": "FRACTURE",
+      "level": "B1",
+      "translation": "перелом",
+      "isTransliterated": true
+    },
+    {
+      "word": "GASTRITIS",
+      "level": "B2",
+      "translation": "гастрит",
+      "isTransliterated": true
+    },
+    {
+      "word": "HEMATOLOGY",
+      "level": "C1",
+      "translation": "гематология",
+      "isTransliterated": true
+    },
+    {
+      "word": "HYPERTENSION",
+      "level": "B2",
+      "translation": "гипертония",
+      "isTransliterated": true
+    },
+    {
+      "word": "IMMUNITY",
+      "level": "B2",
+      "translation": "иммунитет",
+      "isTransliterated": true
+    },
+    {
+      "word": "INCISION",
+      "level": "B2",
+      "translation": "разрез",
+      "isTransliterated": true
+    },
+    {
+      "word": "INJECTION",
+      "level": "A2",
+      "translation": "инъекция",
+      "isTransliterated": true
+    },
+    {
+      "word": "INTESTINE",
+      "level": "B1",
+      "translation": "кишка",
+      "isTransliterated": false
+    },
+    {
+      "word": "LABORATORY",
+      "level": "B1",
+      "translation": "лаборатория",
+      "isTransliterated": true
+    },
+    {
+      "word": "MEDICATION",
+      "level": "A2",
+      "translation": "лекарство",
+      "isTransliterated": true
+    },
+    {
+      "word": "METABOLISM",
+      "level": "B2",
+      "translation": "обмен веществ",
+      "isTransliterated": true
+    },
+    {
+      "word": "MICROBE",
+      "level": "B2",
+      "translation": "микроб",
+      "isTransliterated": true
+    },
+    {
+      "word": "MORTALITY",
+      "level": "C1",
+      "translation": "смертность",
+      "isTransliterated": true
+    },
+    {
+      "word": "NEUROLOGY",
+      "level": "B2",
+      "translation": "неврология",
+      "isTransliterated": true
+    },
+    {
+      "word": "NUTRITION",
+      "level": "B1",
+      "translation": "питание",
+      "isTransliterated": true
+    },
+    {
+      "word": "OBESITY",
+      "level": "B1",
+      "translation": "ожирение",
+      "isTransliterated": true
+    },
+    {
+      "word": "OUTBREAK",
+      "level": "B2",
+      "translation": "вспышка",
+      "isTransliterated": true
+    },
+    {
+      "word": "PATHOGEN",
+      "level": "B2",
+      "translation": "патоген",
+      "isTransliterated": true
+    },
+    {
+      "word": "PATHOLOGY",
+      "level": "B2",
+      "translation": "патология",
+      "isTransliterated": true
+    },
+    {
+      "word": "PEDIATRIC",
+      "level": "B2",
+      "translation": "педиатрический",
+      "isTransliterated": true
+    },
+    {
+      "word": "PNEUMONIA",
+      "level": "B2",
+      "translation": "пневмония",
+      "isTransliterated": true
+    },
+    {
+      "word": "PRESCRIBE",
+      "level": "B1",
+      "translation": "назначать",
+      "isTransliterated": false
+    },
+    {
+      "word": "PREVENTION",
+      "level": "B1",
+      "translation": "профилактика",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROGNOSIS",
+      "level": "B2",
+      "translation": "прогноз",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROCEDURE",
+      "level": "B1",
+      "translation": "процедура",
+      "isTransliterated": true
+    },
+    {
+      "word": "RECOVERY",
+      "level": "A2",
+      "translation": "выздоровление",
+      "isTransliterated": false
+    },
+    {
+      "word": "REFERRAL",
+      "level": "B2",
+      "translation": "направление",
+      "isTransliterated": true
+    },
+    {
+      "word": "REMISSION",
+      "level": "B2",
+      "translation": "ремиссия",
+      "isTransliterated": true
+    },
+    {
+      "word": "SCREENING",
+      "level": "B2",
+      "translation": "скрининг",
+      "isTransliterated": true
+    },
+    {
+      "word": "SEDATION",
+      "level": "B2",
+      "translation": "седация",
+      "isTransliterated": true
+    },
+    {
+      "word": "SENSITIVITY",
+      "level": "B2",
+      "translation": "чувствительность",
+      "isTransliterated": true
+    },
+    {
+      "word": "SYNDROME",
+      "level": "B2",
+      "translation": "синдром",
+      "isTransliterated": true
+    },
+    {
+      "word": "TOXICITY",
+      "level": "B2",
+      "translation": "токсичность",
+      "isTransliterated": true
+    },
+    {
+      "word": "TRANSPLANT",
+      "level": "C1",
+      "translation": "трансплантация",
+      "isTransliterated": true
+    },
+    {
+      "word": "TREATMENT",
+      "level": "A2",
+      "translation": "лечение",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRIGGER",
+      "level": "B1",
+      "translation": "триггер",
+      "isTransliterated": false
+    },
+    {
+      "word": "VASCULAR",
+      "level": "B2",
+      "translation": "сосудистый",
+      "isTransliterated": true
+    },
+    {
+      "word": "VOMITING",
+      "level": "A2",
+      "translation": "рвота",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADRENALINE",
+      "level": "B2",
+      "translation": "адреналин",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANGIOEDEMA",
+      "level": "C1",
+      "translation": "ангиоотёк",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANAPHYLAXIS",
+      "level": "C1",
+      "translation": "анафилаксия",
+      "isTransliterated": true
+    },
+    {
+      "word": "AUTOIMMUNE",
+      "level": "C1",
+      "translation": "аутоиммунный",
+      "isTransliterated": true
+    },
+    {
+      "word": "BASOPHIL",
+      "level": "C1",
+      "translation": "базофил",
+      "isTransliterated": true
+    },
+    {
+      "word": "BIOMARKER",
+      "level": "C1",
+      "translation": "биомаркер",
+      "isTransliterated": true
+    },
+    {
+      "word": "BRONCHITIS",
+      "level": "B1",
+      "translation": "бронхит",
+      "isTransliterated": true
+    },
+    {
+      "word": "DERMATITIS",
+      "level": "B2",
+      "translation": "дерматит",
+      "isTransliterated": true
+    },
+    {
+      "word": "DESENSITIZE",
+      "level": "C1",
+      "translation": "десенсибилизировать",
+      "isTransliterated": true
+    },
+    {
+      "word": "EOSINOPHIL",
+      "level": "C1",
+      "translation": "эозинофил",
+      "isTransliterated": true
+    },
+    {
+      "word": "EXACERBATION",
+      "level": "C1",
+      "translation": "обострение",
+      "isTransliterated": true
+    },
+    {
+      "word": "GASTROENTERIC",
+      "level": "C1",
+      "translation": "желудочно-кишечный",
+      "isTransliterated": true
+    },
+    {
+      "word": "HISTAMINE",
+      "level": "B2",
+      "translation": "гистамин",
+      "isTransliterated": true
+    },
+    {
+      "word": "HYPERPLASIA",
+      "level": "C1",
+      "translation": "гиперплазия",
+      "isTransliterated": true
+    },
+    {
+      "word": "IMMUNOLOGY",
+      "level": "C1",
+      "translation": "иммунология",
+      "isTransliterated": true
+    },
+    {
+      "word": "INFLAMMATION",
+      "level": "B2",
+      "translation": "воспаление",
+      "isTransliterated": true
+    },
+    {
+      "word": "LEUKOCYTE",
+      "level": "B2",
+      "translation": "лейкоцит",
+      "isTransliterated": true
+    },
+    {
+      "word": "MASTOCYTE",
+      "level": "C1",
+      "translation": "тучная клетка",
+      "isTransliterated": true
+    },
+    {
+      "word": "MONOCYTE",
+      "level": "B2",
+      "translation": "моноцит",
+      "isTransliterated": true
+    },
+    {
+      "word": "NEUTROPHIL",
+      "level": "B2",
+      "translation": "нейтрофил",
+      "isTransliterated": true
+    },
+    {
+      "word": "PEDIATRICS",
+      "level": "B2",
+      "translation": "педиатрия",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROBIOTIC",
+      "level": "B2",
+      "translation": "пробиотик",
+      "isTransliterated": true
+    },
+    {
+      "word": "URTICARIA",
+      "level": "C1",
+      "translation": "крапивница",
+      "isTransliterated": true
+    },
+    {
+      "word": "VASCULITIS",
+      "level": "C1",
+      "translation": "васкулит",
+      "isTransliterated": true
+    },
+    {
+      "word": "ADHESIVE",
+      "level": "B2",
+      "translation": "адгезивный",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANTIBIOTIC",
+      "level": "B1",
+      "translation": "антибиотик",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANTIFUNGAL",
+      "level": "B2",
+      "translation": "противогрибковый",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANTIHISTAMINE",
+      "level": "B2",
+      "translation": "антигистаминный препарат",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANTISEPTIC",
+      "level": "B1",
+      "translation": "антисептик",
+      "isTransliterated": true
+    },
+    {
+      "word": "ATROPHY",
+      "level": "C1",
+      "translation": "атрофия",
+      "isTransliterated": true
+    },
+    {
+      "word": "AUTOIMMUNITY",
+      "level": "C1",
+      "translation": "аутоиммунитет",
+      "isTransliterated": true
+    },
+    {
+      "word": "BACTERIUM",
+      "level": "B2",
+      "translation": "бактерия",
+      "isTransliterated": true
+    },
+    {
+      "word": "CARCINOMA",
+      "level": "C1",
+      "translation": "карцинома",
+      "isTransliterated": true
+    },
+    {
+      "word": "CIRCULATION",
+      "level": "B2",
+      "translation": "кровообращение",
+      "isTransliterated": true
+    },
+    {
+      "word": "COLONOSCOPY",
+      "level": "C1",
+      "translation": "колоноскопия",
+      "isTransliterated": true
+    },
+    {
+      "word": "CORTISOL",
+      "level": "B2",
+      "translation": "кортизол",
+      "isTransliterated": true
+    },
+    {
+      "word": "CYTOLOGY",
+      "level": "C1",
+      "translation": "цитология",
+      "isTransliterated": true
+    },
+    {
+      "word": "DEHYDRATION",
+      "level": "B1",
+      "translation": "обезвоживание",
+      "isTransliterated": true
+    },
+    {
+      "word": "DERMATOLOGY",
+      "level": "B2",
+      "translation": "дерматология",
+      "isTransliterated": true
+    },
+    {
+      "word": "ENDOSCOPY",
+      "level": "B2",
+      "translation": "эндоскопия",
+      "isTransliterated": true
+    },
+    {
+      "word": "EPIDERMIS",
+      "level": "C1",
+      "translation": "эпидермис",
+      "isTransliterated": true
+    },
+    {
+      "word": "GASTROLOGY",
+      "level": "C1",
+      "translation": "гастроэнтерология",
+      "isTransliterated": true
+    },
+    {
+      "word": "HEMOGLOBIN",
+      "level": "B2",
+      "translation": "гемоглобин",
+      "isTransliterated": true
+    },
+    {
+      "word": "IMMUNOGLOBULIN",
+      "level": "C1",
+      "translation": "иммуноглобулин",
+      "isTransliterated": true
+    },
+    {
+      "word": "INCUBATION",
+      "level": "B2",
+      "translation": "инкубация",
+      "isTransliterated": true
+    },
+    {
+      "word": "INTUBATION",
+      "level": "C1",
+      "translation": "интубация",
+      "isTransliterated": true
+    },
+    {
+      "word": "LARYNGITIS",
+      "level": "B2",
+      "translation": "ларингит",
+      "isTransliterated": true
+    },
+    {
+      "word": "LYMPHOCYTE",
+      "level": "B2",
+      "translation": "лимфоцит",
+      "isTransliterated": true
+    },
+    {
+      "word": "MENINGITIS",
+      "level": "B2",
+      "translation": "менингит",
+      "isTransliterated": true
+    },
+    {
+      "word": "MYOCARDIUM",
+      "level": "C1",
+      "translation": "миокард",
+      "isTransliterated": true
+    },
+    {
+      "word": "NEBULIZER",
+      "level": "B2",
+      "translation": "небулайзер",
+      "isTransliterated": true
+    },
+    {
+      "word": "NEOPLASM",
+      "level": "C1",
+      "translation": "новообразование",
+      "isTransliterated": true
+    },
+    {
+      "word": "PANCREAS",
+      "level": "B2",
+      "translation": "поджелудочная железа",
+      "isTransliterated": true
+    },
+    {
+      "word": "PHARMACOLOGY",
+      "level": "C1",
+      "translation": "фармакология",
+      "isTransliterated": true
+    },
+    {
+      "word": "PHYSIOLOGY",
+      "level": "B2",
+      "translation": "физиология",
+      "isTransliterated": true
+    },
+    {
+      "word": "PULMONARY",
+      "level": "B2",
+      "translation": "лёгочный",
+      "isTransliterated": true
+    },
+    {
+      "word": "RADIOLOGY",
+      "level": "B2",
+      "translation": "радиология",
+      "isTransliterated": true
+    },
+    {
+      "word": "RHINITIS",
+      "level": "B2",
+      "translation": "ринит",
+      "isTransliterated": true
+    },
+    {
+      "word": "SINUSITIS",
+      "level": "B2",
+      "translation": "синусит",
+      "isTransliterated": true
+    },
+    {
+      "word": "SPIROMETRY",
+      "level": "C1",
+      "translation": "спирометрия",
+      "isTransliterated": true
+    },
+    {
+      "word": "THROMBOSIS",
+      "level": "B2",
+      "translation": "тромбоз",
+      "isTransliterated": true
+    },
+    {
+      "word": "TONSILLITIS",
+      "level": "B2",
+      "translation": "тонзиллит",
+      "isTransliterated": true
+    },
+    {
+      "word": "TOXICOLOGY",
+      "level": "C1",
+      "translation": "токсикология",
+      "isTransliterated": true
+    },
+    {
+      "word": "VIROLOGY",
+      "level": "C1",
+      "translation": "вирусология",
+      "isTransliterated": true
+    },
+    {
+      "word": "AMBULANCE",
+      "level": "A2",
+      "translation": "скорая помощь",
+      "isTransliterated": false
+    },
+    {
+      "word": "ANKLE",
+      "level": "A2",
+      "translation": "лодыжка",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARM",
+      "level": "A1",
+      "translation": "рука",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACK",
+      "level": "A1",
+      "translation": "спина",
+      "isTransliterated": false
+    },
+    {
+      "word": "BANDAGE",
+      "level": "B1",
+      "translation": "бинт",
+      "isTransliterated": false
+    },
+    {
+      "word": "BED",
+      "level": "A1",
+      "translation": "койка",
+      "isTransliterated": false
+    },
+    {
+      "word": "BONE",
+      "level": "A2",
+      "translation": "кость",
+      "isTransliterated": false
+    },
+    {
+      "word": "CARE",
+      "level": "A1",
+      "translation": "уход",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHILD",
+      "level": "A1",
+      "translation": "ребёнок",
+      "isTransliterated": false
+    },
+    {
+      "word": "EAR",
+      "level": "A1",
+      "translation": "ухо",
+      "isTransliterated": false
+    },
+    {
+      "word": "ELBOW",
+      "level": "A2",
+      "translation": "локоть",
+      "isTransliterated": false
+    },
+    {
+      "word": "EYE",
+      "level": "A1",
+      "translation": "глаз",
+      "isTransliterated": false
+    },
+    {
+      "word": "FACE",
+      "level": "A1",
+      "translation": "лицо",
+      "isTransliterated": false
+    },
+    {
+      "word": "FOOT",
+      "level": "A1",
+      "translation": "стопа",
+      "isTransliterated": false
+    },
+    {
+      "word": "HAND",
+      "level": "A1",
+      "translation": "кисть",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEAD",
+      "level": "A1",
+      "translation": "голова",
+      "isTransliterated": false
+    },
+    {
+      "word": "HELP",
+      "level": "A1",
+      "translation": "помощь",
+      "isTransliterated": false
+    },
+    {
+      "word": "HIP",
+      "level": "A2",
+      "translation": "бедро",
+      "isTransliterated": false
+    },
+    {
+      "word": "KNEE",
+      "level": "A2",
+      "translation": "колено",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEG",
+      "level": "A1",
+      "translation": "нога",
+      "isTransliterated": false
+    },
+    {
+      "word": "MASK",
+      "level": "A2",
+      "translation": "маска",
+      "isTransliterated": true
+    },
+    {
+      "word": "MOUTH",
+      "level": "A1",
+      "translation": "рот",
+      "isTransliterated": false
+    },
+    {
+      "word": "NECK",
+      "level": "A1",
+      "translation": "шея",
+      "isTransliterated": false
+    },
+    {
+      "word": "NOSE",
+      "level": "A1",
+      "translation": "нос",
+      "isTransliterated": false
+    },
+    {
+      "word": "STOMACH",
+      "level": "A2",
+      "translation": "желудок",
+      "isTransliterated": false
+    },
+    {
+      "word": "TEST",
+      "level": "A2",
+      "translation": "анализ",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOOTH",
+      "level": "A1",
+      "translation": "зуб",
+      "isTransliterated": false
+    },
+    {
+      "word": "TONGUE",
+      "level": "A2",
+      "translation": "язык",
+      "isTransliterated": false
+    },
+    {
+      "word": "VEIN",
+      "level": "A2",
+      "translation": "вена",
+      "isTransliterated": false
+    },
+    {
+      "word": "WARD",
+      "level": "A2",
+      "translation": "отделение",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADMISSION",
+      "level": "B1",
+      "translation": "госпитализация",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADMIT",
+      "level": "B1",
+      "translation": "госпитализировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADMINISTER",
+      "level": "B2",
+      "translation": "вводить",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADVISE",
+      "level": "B1",
+      "translation": "советовать",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPOINTMENT",
+      "level": "A2",
+      "translation": "приём",
+      "isTransliterated": false
+    },
+    {
+      "word": "ASSESS",
+      "level": "B2",
+      "translation": "оценивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "ASSESSMENT",
+      "level": "B2",
+      "translation": "оценка состояния",
+      "isTransliterated": false
+    },
+    {
+      "word": "CAREGIVER",
+      "level": "B1",
+      "translation": "ухаживающий",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHART",
+      "level": "B1",
+      "translation": "медицинская карта",
+      "isTransliterated": false
+    },
+    {
+      "word": "COMPLAINT",
+      "level": "B1",
+      "translation": "жалоба",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONFIDENTIALITY",
+      "level": "C1",
+      "translation": "конфиденциальность",
+      "isTransliterated": true
+    },
+    {
+      "word": "CONSENT",
+      "level": "B2",
+      "translation": "согласие",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONSULTANT",
+      "level": "B2",
+      "translation": "консультант",
+      "isTransliterated": true
+    },
+    {
+      "word": "COUNSEL",
+      "level": "B2",
+      "translation": "консультировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEPARTMENT",
+      "level": "A2",
+      "translation": "отделение",
+      "isTransliterated": false
+    },
+    {
+      "word": "DIAGNOSE",
+      "level": "B1",
+      "translation": "диагностировать",
+      "isTransliterated": true
+    },
+    {
+      "word": "EXAMINATION",
+      "level": "B1",
+      "translation": "осмотр",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXAMINE",
+      "level": "A2",
+      "translation": "осматривать",
+      "isTransliterated": false
+    },
+    {
+      "word": "HISTORY",
+      "level": "B1",
+      "translation": "анамнез",
+      "isTransliterated": false
+    },
+    {
+      "word": "INSPECT",
+      "level": "B1",
+      "translation": "осматривать",
+      "isTransliterated": false
+    },
+    {
+      "word": "INSURANCE",
+      "level": "B1",
+      "translation": "страхование",
+      "isTransliterated": false
+    },
+    {
+      "word": "INTERN",
+      "level": "B2",
+      "translation": "интерн",
+      "isTransliterated": true
+    },
+    {
+      "word": "MEASURE",
+      "level": "A2",
+      "translation": "измерять",
+      "isTransliterated": false
+    },
+    {
+      "word": "MIDWIFE",
+      "level": "B2",
+      "translation": "акушерка",
+      "isTransliterated": false
+    },
+    {
+      "word": "MONITOR",
+      "level": "B1",
+      "translation": "наблюдать",
+      "isTransliterated": false
+    },
+    {
+      "word": "PARAMEDIC",
+      "level": "B1",
+      "translation": "фельдшер",
+      "isTransliterated": false
+    },
+    {
+      "word": "PHARMACIST",
+      "level": "B1",
+      "translation": "фармацевт",
+      "isTransliterated": true
+    },
+    {
+      "word": "PHARMACY",
+      "level": "A2",
+      "translation": "аптека",
+      "isTransliterated": false
+    },
+    {
+      "word": "RECEPTIONIST",
+      "level": "B1",
+      "translation": "регистратор",
+      "isTransliterated": false
+    },
+    {
+      "word": "RECORD",
+      "level": "B1",
+      "translation": "запись",
+      "isTransliterated": false
+    },
+    {
+      "word": "REFER",
+      "level": "B1",
+      "translation": "направлять",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESIDENT",
+      "level": "B2",
+      "translation": "ординатор",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPECIALIST",
+      "level": "B1",
+      "translation": "специалист",
+      "isTransliterated": true
+    },
+    {
+      "word": "SURGEON",
+      "level": "B1",
+      "translation": "хирург",
+      "isTransliterated": false
+    },
+    {
+      "word": "THERAPIST",
+      "level": "B1",
+      "translation": "терапевт",
+      "isTransliterated": true
+    },
+    {
+      "word": "TREAT",
+      "level": "A2",
+      "translation": "лечить",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRIAGE",
+      "level": "B2",
+      "translation": "медицинская сортировка",
+      "isTransliterated": false
+    },
+    {
+      "word": "VACCINATE",
+      "level": "B1",
+      "translation": "вакцинировать",
+      "isTransliterated": true
+    },
+    {
+      "word": "AORTA",
+      "level": "B2",
+      "translation": "аорта",
+      "isTransliterated": true
+    },
+    {
+      "word": "CAPILLARY",
+      "level": "B2",
+      "translation": "капилляр",
+      "isTransliterated": true
+    },
+    {
+      "word": "CARTILAGE",
+      "level": "B2",
+      "translation": "хрящ",
+      "isTransliterated": false
+    },
+    {
+      "word": "CERVIX",
+      "level": "B2",
+      "translation": "шейка матки",
+      "isTransliterated": false
+    },
+    {
+      "word": "COLON",
+      "level": "B1",
+      "translation": "толстая кишка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DIAPHRAGM",
+      "level": "B2",
+      "translation": "диафрагма",
+      "isTransliterated": true
+    },
+    {
+      "word": "DUODENUM",
+      "level": "C1",
+      "translation": "двенадцатиперстная кишка",
+      "isTransliterated": false
+    },
+    {
+      "word": "ESOPHAGUS",
+      "level": "B2",
+      "translation": "пищевод",
+      "isTransliterated": false
+    },
+    {
+      "word": "GALLBLADDER",
+      "level": "B2",
+      "translation": "желчный пузырь",
+      "isTransliterated": false
+    },
+    {
+      "word": "LARYNX",
+      "level": "B2",
+      "translation": "гортань",
+      "isTransliterated": false
+    },
+    {
+      "word": "LENS",
+      "level": "B1",
+      "translation": "хрусталик",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIGAMENT",
+      "level": "B2",
+      "translation": "связка",
+      "isTransliterated": false
+    },
+    {
+      "word": "MARROW",
+      "level": "B2",
+      "translation": "костный мозг",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVARY",
+      "level": "B2",
+      "translation": "яичник",
+      "isTransliterated": false
+    },
+    {
+      "word": "PELVIS",
+      "level": "B2",
+      "translation": "таз",
+      "isTransliterated": false
+    },
+    {
+      "word": "PENIS",
+      "level": "B2",
+      "translation": "пенис",
+      "isTransliterated": true
+    },
+    {
+      "word": "PERITONEUM",
+      "level": "C1",
+      "translation": "брюшина",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLEURA",
+      "level": "C1",
+      "translation": "плевра",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROSTATE",
+      "level": "B2",
+      "translation": "простата",
+      "isTransliterated": true
+    },
+    {
+      "word": "RETINA",
+      "level": "B2",
+      "translation": "сетчатка",
+      "isTransliterated": false
+    },
+    {
+      "word": "RIB",
+      "level": "A2",
+      "translation": "ребро",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHOULDER",
+      "level": "A2",
+      "translation": "плечо",
+      "isTransliterated": false
+    },
+    {
+      "word": "SKULL",
+      "level": "B2",
+      "translation": "череп",
+      "isTransliterated": false
+    },
+    {
+      "word": "TENDON",
+      "level": "B2",
+      "translation": "сухожилие",
+      "isTransliterated": false
+    },
+    {
+      "word": "TESTICLE",
+      "level": "B2",
+      "translation": "яичко",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRACHEA",
+      "level": "B2",
+      "translation": "трахея",
+      "isTransliterated": true
+    },
+    {
+      "word": "URETER",
+      "level": "C1",
+      "translation": "мочеточник",
+      "isTransliterated": false
+    },
+    {
+      "word": "URETHRA",
+      "level": "B2",
+      "translation": "уретра",
+      "isTransliterated": true
+    },
+    {
+      "word": "VAGINA",
+      "level": "B2",
+      "translation": "влагалище",
+      "isTransliterated": false
+    },
+    {
+      "word": "VALVE",
+      "level": "B1",
+      "translation": "клапан",
+      "isTransliterated": false
+    },
+    {
+      "word": "VERTEBRA",
+      "level": "C1",
+      "translation": "позвонок",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACKACHE",
+      "level": "A2",
+      "translation": "боль в спине",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRADYCARDIA",
+      "level": "B2",
+      "translation": "брадикардия",
+      "isTransliterated": true
+    },
+    {
+      "word": "BRUISE",
+      "level": "A2",
+      "translation": "синяк",
+      "isTransliterated": false
+    },
+    {
+      "word": "BURN",
+      "level": "A2",
+      "translation": "ожог",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONGESTION",
+      "level": "B1",
+      "translation": "заложенность",
+      "isTransliterated": false
+    },
+    {
+      "word": "CUT",
+      "level": "A2",
+      "translation": "порез",
+      "isTransliterated": false
+    },
+    {
+      "word": "CYANOSIS",
+      "level": "C1",
+      "translation": "цианоз",
+      "isTransliterated": true
+    },
+    {
+      "word": "EPISTAXIS",
+      "level": "C1",
+      "translation": "носовое кровотечение",
+      "isTransliterated": false
+    },
+    {
+      "word": "FAINTING",
+      "level": "B1",
+      "translation": "обморок",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEADACHE",
+      "level": "A2",
+      "translation": "головная боль",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEMATURIA",
+      "level": "C1",
+      "translation": "гематурия",
+      "isTransliterated": true
+    },
+    {
+      "word": "HOARSENESS",
+      "level": "B2",
+      "translation": "охриплость",
+      "isTransliterated": false
+    },
+    {
+      "word": "HYPOTENSION",
+      "level": "B2",
+      "translation": "гипотония",
+      "isTransliterated": true
+    },
+    {
+      "word": "HYPOXIA",
+      "level": "C1",
+      "translation": "гипоксия",
+      "isTransliterated": true
+    },
+    {
+      "word": "INSOMNIA",
+      "level": "B1",
+      "translation": "бессонница",
+      "isTransliterated": false
+    },
+    {
+      "word": "LUMP",
+      "level": "B1",
+      "translation": "уплотнение",
+      "isTransliterated": false
+    },
+    {
+      "word": "MALAISE",
+      "level": "B2",
+      "translation": "недомогание",
+      "isTransliterated": false
+    },
+    {
+      "word": "MASS",
+      "level": "B2",
+      "translation": "объёмное образование",
+      "isTransliterated": false
+    },
+    {
+      "word": "NUMBNESS",
+      "level": "B1",
+      "translation": "онемение",
+      "isTransliterated": false
+    },
+    {
+      "word": "PALPITATION",
+      "level": "B2",
+      "translation": "сердцебиение",
+      "isTransliterated": false
+    },
+    {
+      "word": "PALLOR",
+      "level": "B2",
+      "translation": "бледность",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROTEINURIA",
+      "level": "C1",
+      "translation": "протеинурия",
+      "isTransliterated": true
+    },
+    {
+      "word": "REDNESS",
+      "level": "A2",
+      "translation": "покраснение",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCAR",
+      "level": "B1",
+      "translation": "рубец",
+      "isTransliterated": false
+    },
+    {
+      "word": "SNEEZE",
+      "level": "A2",
+      "translation": "чихание",
+      "isTransliterated": false
+    },
+    {
+      "word": "SORENESS",
+      "level": "B1",
+      "translation": "болезненность",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPUTUM",
+      "level": "B1",
+      "translation": "мокрота",
+      "isTransliterated": false
+    },
+    {
+      "word": "STIFFNESS",
+      "level": "B1",
+      "translation": "скованность",
+      "isTransliterated": false
+    },
+    {
+      "word": "SWEATING",
+      "level": "B1",
+      "translation": "потливость",
+      "isTransliterated": false
+    },
+    {
+      "word": "TACHYCARDIA",
+      "level": "B2",
+      "translation": "тахикардия",
+      "isTransliterated": true
+    },
+    {
+      "word": "TENDERNESS",
+      "level": "B2",
+      "translation": "болезненность при пальпации",
+      "isTransliterated": false
+    },
+    {
+      "word": "TREMOR",
+      "level": "B2",
+      "translation": "тремор",
+      "isTransliterated": true
+    },
+    {
+      "word": "WEAKNESS",
+      "level": "B1",
+      "translation": "слабость",
+      "isTransliterated": false
+    },
+    {
+      "word": "ANEURYSM",
+      "level": "C1",
+      "translation": "аневризма",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANGINA",
+      "level": "B2",
+      "translation": "стенокардия",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPENDICITIS",
+      "level": "B2",
+      "translation": "аппендицит",
+      "isTransliterated": true
+    },
+    {
+      "word": "ARRHYTHMIA",
+      "level": "B2",
+      "translation": "аритмия",
+      "isTransliterated": true
+    },
+    {
+      "word": "ARTHRITIS",
+      "level": "B2",
+      "translation": "артрит",
+      "isTransliterated": true
+    },
+    {
+      "word": "CELLULITIS",
+      "level": "B2",
+      "translation": "флегмона",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHOLECYSTITIS",
+      "level": "C1",
+      "translation": "холецистит",
+      "isTransliterated": true
+    },
+    {
+      "word": "CIRRHOSIS",
+      "level": "C1",
+      "translation": "цирроз",
+      "isTransliterated": true
+    },
+    {
+      "word": "COMA",
+      "level": "B2",
+      "translation": "кома",
+      "isTransliterated": true
+    },
+    {
+      "word": "CYSTITIS",
+      "level": "B2",
+      "translation": "цистит",
+      "isTransliterated": true
+    },
+    {
+      "word": "DELIRIUM",
+      "level": "C1",
+      "translation": "делирий",
+      "isTransliterated": true
+    },
+    {
+      "word": "DEMENTIA",
+      "level": "B2",
+      "translation": "деменция",
+      "isTransliterated": true
+    },
+    {
+      "word": "DEPRESSION",
+      "level": "B1",
+      "translation": "депрессия",
+      "isTransliterated": true
+    },
+    {
+      "word": "DIABETES",
+      "level": "B1",
+      "translation": "диабет",
+      "isTransliterated": true
+    },
+    {
+      "word": "EMBOLISM",
+      "level": "C1",
+      "translation": "эмболия",
+      "isTransliterated": true
+    },
+    {
+      "word": "EPILEPSY",
+      "level": "B2",
+      "translation": "эпилепсия",
+      "isTransliterated": true
+    },
+    {
+      "word": "FAILURE",
+      "level": "B2",
+      "translation": "недостаточность",
+      "isTransliterated": false
+    },
+    {
+      "word": "GOUT",
+      "level": "B2",
+      "translation": "подагра",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEMORRHAGE",
+      "level": "C1",
+      "translation": "кровоизлияние",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEPATITIS",
+      "level": "B2",
+      "translation": "гепатит",
+      "isTransliterated": true
+    },
+    {
+      "word": "INFARCTION",
+      "level": "C1",
+      "translation": "инфаркт",
+      "isTransliterated": true
+    },
+    {
+      "word": "INFLUENZA",
+      "level": "B1",
+      "translation": "грипп",
+      "isTransliterated": false
+    },
+    {
+      "word": "ISCHEMIA",
+      "level": "C1",
+      "translation": "ишемия",
+      "isTransliterated": true
+    },
+    {
+      "word": "NEPHRITIS",
+      "level": "C1",
+      "translation": "нефрит",
+      "isTransliterated": true
+    },
+    {
+      "word": "OSTEOPOROSIS",
+      "level": "C1",
+      "translation": "остеопороз",
+      "isTransliterated": true
+    },
+    {
+      "word": "OTITIS",
+      "level": "B1",
+      "translation": "отит",
+      "isTransliterated": true
+    },
+    {
+      "word": "PANCREATITIS",
+      "level": "C1",
+      "translation": "панкреатит",
+      "isTransliterated": true
+    },
+    {
+      "word": "PAROTITIS",
+      "level": "B2",
+      "translation": "паротит",
+      "isTransliterated": true
+    },
+    {
+      "word": "PYELONEPHRITIS",
+      "level": "C1",
+      "translation": "пиелонефрит",
+      "isTransliterated": true
+    },
+    {
+      "word": "RABIES",
+      "level": "C1",
+      "translation": "бешенство",
+      "isTransliterated": false
+    },
+    {
+      "word": "RUBELLA",
+      "level": "B2",
+      "translation": "краснуха",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEPSIS",
+      "level": "C1",
+      "translation": "сепсис",
+      "isTransliterated": true
+    },
+    {
+      "word": "SHOCK",
+      "level": "B2",
+      "translation": "шок",
+      "isTransliterated": true
+    },
+    {
+      "word": "TETANUS",
+      "level": "B2",
+      "translation": "столбняк",
+      "isTransliterated": false
+    },
+    {
+      "word": "TUBERCULOSIS",
+      "level": "B2",
+      "translation": "туберкулёз",
+      "isTransliterated": true
+    },
+    {
+      "word": "VARICELLA",
+      "level": "B2",
+      "translation": "ветряная оспа",
+      "isTransliterated": false
+    },
+    {
+      "word": "BILIRUBIN",
+      "level": "B2",
+      "translation": "билирубин",
+      "isTransliterated": true
+    },
+    {
+      "word": "CHOLESTEROL",
+      "level": "B1",
+      "translation": "холестерин",
+      "isTransliterated": true
+    },
+    {
+      "word": "CREATININE",
+      "level": "B2",
+      "translation": "креатинин",
+      "isTransliterated": true
+    },
+    {
+      "word": "CULTURE",
+      "level": "B1",
+      "translation": "посев",
+      "isTransliterated": false
+    },
+    {
+      "word": "ELECTROCARDIOGRAM",
+      "level": "C1",
+      "translation": "электрокардиограмма",
+      "isTransliterated": true
+    },
+    {
+      "word": "ELECTROLYTE",
+      "level": "B2",
+      "translation": "электролит",
+      "isTransliterated": true
+    },
+    {
+      "word": "ERYTHROCYTE",
+      "level": "B2",
+      "translation": "эритроцит",
+      "isTransliterated": true
+    },
+    {
+      "word": "GLYCEMIA",
+      "level": "C1",
+      "translation": "гликемия",
+      "isTransliterated": true
+    },
+    {
+      "word": "HEMATOCRIT",
+      "level": "C1",
+      "translation": "гематокрит",
+      "isTransliterated": true
+    },
+    {
+      "word": "IMAGING",
+      "level": "B2",
+      "translation": "визуализация",
+      "isTransliterated": false
+    },
+    {
+      "word": "MICROSCOPE",
+      "level": "B1",
+      "translation": "микроскоп",
+      "isTransliterated": true
+    },
+    {
+      "word": "PLATELET",
+      "level": "B2",
+      "translation": "тромбоцит",
+      "isTransliterated": false
+    },
+    {
+      "word": "POTASSIUM",
+      "level": "B1",
+      "translation": "калий",
+      "isTransliterated": false
+    },
+    {
+      "word": "RADIOGRAPH",
+      "level": "B2",
+      "translation": "рентгенограмма",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESULT",
+      "level": "A2",
+      "translation": "результат",
+      "isTransliterated": true
+    },
+    {
+      "word": "SAMPLE",
+      "level": "B1",
+      "translation": "образец",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCAN",
+      "level": "B1",
+      "translation": "сканирование",
+      "isTransliterated": true
+    },
+    {
+      "word": "SMEAR",
+      "level": "B2",
+      "translation": "мазок",
+      "isTransliterated": false
+    },
+    {
+      "word": "SODIUM",
+      "level": "B1",
+      "translation": "натрий",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPECIMEN",
+      "level": "B2",
+      "translation": "образец",
+      "isTransliterated": false
+    },
+    {
+      "word": "SWAB",
+      "level": "B1",
+      "translation": "мазок",
+      "isTransliterated": false
+    },
+    {
+      "word": "ULTRASOUND",
+      "level": "B1",
+      "translation": "ультразвук",
+      "isTransliterated": false
+    },
+    {
+      "word": "UREA",
+      "level": "B2",
+      "translation": "мочевина",
+      "isTransliterated": false
+    },
+    {
+      "word": "URINALYSIS",
+      "level": "B2",
+      "translation": "анализ мочи",
+      "isTransliterated": false
+    },
+    {
+      "word": "ANESTHESIA",
+      "level": "B2",
+      "translation": "анестезия",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANTICOAGULANT",
+      "level": "B2",
+      "translation": "антикоагулянт",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANTIDOTE",
+      "level": "B2",
+      "translation": "противоядие",
+      "isTransliterated": false
+    },
+    {
+      "word": "ANTIPYRETIC",
+      "level": "B2",
+      "translation": "жаропонижающее",
+      "isTransliterated": false
+    },
+    {
+      "word": "CANNULA",
+      "level": "B2",
+      "translation": "канюля",
+      "isTransliterated": true
+    },
+    {
+      "word": "CAPSULE",
+      "level": "A2",
+      "translation": "капсула",
+      "isTransliterated": true
+    },
+    {
+      "word": "CAST",
+      "level": "B1",
+      "translation": "гипс",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLAMP",
+      "level": "B2",
+      "translation": "зажим",
+      "isTransliterated": false
+    },
+    {
+      "word": "CREAM",
+      "level": "A2",
+      "translation": "крем",
+      "isTransliterated": true
+    },
+    {
+      "word": "CRUTCH",
+      "level": "B1",
+      "translation": "костыль",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEFIBRILLATOR",
+      "level": "C1",
+      "translation": "дефибриллятор",
+      "isTransliterated": true
+    },
+    {
+      "word": "DIALYSIS",
+      "level": "C1",
+      "translation": "диализ",
+      "isTransliterated": true
+    },
+    {
+      "word": "DIURETIC",
+      "level": "B2",
+      "translation": "диуретик",
+      "isTransliterated": true
+    },
+    {
+      "word": "DRAIN",
+      "level": "B1",
+      "translation": "дренаж",
+      "isTransliterated": true
+    },
+    {
+      "word": "DRAINAGE",
+      "level": "B2",
+      "translation": "дренирование",
+      "isTransliterated": true
+    },
+    {
+      "word": "DRESSING",
+      "level": "B1",
+      "translation": "повязка",
+      "isTransliterated": false
+    },
+    {
+      "word": "GRAFT",
+      "level": "C1",
+      "translation": "трансплантат",
+      "isTransliterated": false
+    },
+    {
+      "word": "IMPLANT",
+      "level": "B2",
+      "translation": "имплантат",
+      "isTransliterated": true
+    },
+    {
+      "word": "INFUSION",
+      "level": "B2",
+      "translation": "инфузия",
+      "isTransliterated": true
+    },
+    {
+      "word": "LAXATIVE",
+      "level": "B2",
+      "translation": "слабительное",
+      "isTransliterated": false
+    },
+    {
+      "word": "NEEDLE",
+      "level": "A2",
+      "translation": "игла",
+      "isTransliterated": false
+    },
+    {
+      "word": "OINTMENT",
+      "level": "B1",
+      "translation": "мазь",
+      "isTransliterated": false
+    },
+    {
+      "word": "OXYGEN",
+      "level": "A2",
+      "translation": "кислород",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLACEBO",
+      "level": "B2",
+      "translation": "плацебо",
+      "isTransliterated": true
+    },
+    {
+      "word": "PLASTER",
+      "level": "B1",
+      "translation": "пластырь",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROSTHESIS",
+      "level": "C1",
+      "translation": "протез",
+      "isTransliterated": true
+    },
+    {
+      "word": "RESUSCITATION",
+      "level": "C1",
+      "translation": "реанимация",
+      "isTransliterated": false
+    },
+    {
+      "word": "RETRACTOR",
+      "level": "B2",
+      "translation": "ретрактор",
+      "isTransliterated": true
+    },
+    {
+      "word": "SCALPEL",
+      "level": "B2",
+      "translation": "скальпель",
+      "isTransliterated": true
+    },
+    {
+      "word": "SEDATIVE",
+      "level": "B2",
+      "translation": "седативное средство",
+      "isTransliterated": true
+    },
+    {
+      "word": "STENT",
+      "level": "B2",
+      "translation": "стент",
+      "isTransliterated": true
+    },
+    {
+      "word": "STETHOSCOPE",
+      "level": "B1",
+      "translation": "стетоскоп",
+      "isTransliterated": true
+    },
+    {
+      "word": "SYRINGE",
+      "level": "B1",
+      "translation": "шприц",
+      "isTransliterated": false
+    },
+    {
+      "word": "SYRUP",
+      "level": "A2",
+      "translation": "сироп",
+      "isTransliterated": true
+    },
+    {
+      "word": "TABLET",
+      "level": "A2",
+      "translation": "таблетка",
+      "isTransliterated": true
+    },
+    {
+      "word": "THERMOMETER",
+      "level": "A2",
+      "translation": "термометр",
+      "isTransliterated": true
+    },
+    {
+      "word": "TRANSFUSION",
+      "level": "B2",
+      "translation": "переливание",
+      "isTransliterated": false
+    },
+    {
+      "word": "VACCINATION",
+      "level": "B1",
+      "translation": "вакцинация",
+      "isTransliterated": true
+    },
+    {
+      "word": "VENTILATOR",
+      "level": "B2",
+      "translation": "аппарат искусственной вентиляции",
+      "isTransliterated": true
+    },
+    {
+      "word": "WHEELCHAIR",
+      "level": "B1",
+      "translation": "инвалидная коляска",
+      "isTransliterated": false
+    },
+    {
+      "word": "ABNORMAL",
+      "level": "B1",
+      "translation": "патологический",
+      "isTransliterated": false
+    },
+    {
+      "word": "BENIGN",
+      "level": "B2",
+      "translation": "доброкачественный",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONTAMINATED",
+      "level": "B2",
+      "translation": "загрязнённый",
+      "isTransliterated": false
+    },
+    {
+      "word": "CRITICAL",
+      "level": "B2",
+      "translation": "критический",
+      "isTransliterated": true
+    },
+    {
+      "word": "FATAL",
+      "level": "B2",
+      "translation": "смертельный",
+      "isTransliterated": false
+    },
+    {
+      "word": "GENERAL",
+      "level": "A2",
+      "translation": "общий",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEMODYNAMIC",
+      "level": "C1",
+      "translation": "гемодинамический",
+      "isTransliterated": true
+    },
+    {
+      "word": "INFECTIOUS",
+      "level": "B2",
+      "translation": "инфекционный",
+      "isTransliterated": true
+    },
+    {
+      "word": "INTERMITTENT",
+      "level": "B2",
+      "translation": "перемежающийся",
+      "isTransliterated": false
+    },
+    {
+      "word": "INTRAMUSCULAR",
+      "level": "C1",
+      "translation": "внутримышечный",
+      "isTransliterated": false
+    },
+    {
+      "word": "INTRAVENOUS",
+      "level": "B2",
+      "translation": "внутривенный",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOCAL",
+      "level": "A2",
+      "translation": "местный",
+      "isTransliterated": false
+    },
+    {
+      "word": "MILD",
+      "level": "A2",
+      "translation": "лёгкий",
+      "isTransliterated": false
+    },
+    {
+      "word": "MODERATE",
+      "level": "B1",
+      "translation": "умеренный",
+      "isTransliterated": false
+    },
+    {
+      "word": "NEGATIVE",
+      "level": "A2",
+      "translation": "отрицательный",
+      "isTransliterated": false
+    },
+    {
+      "word": "NORMAL",
+      "level": "A2",
+      "translation": "нормальный",
+      "isTransliterated": true
+    },
+    {
+      "word": "ORAL",
+      "level": "A2",
+      "translation": "пероральный",
+      "isTransliterated": true
+    },
+    {
+      "word": "PERSISTENT",
+      "level": "B2",
+      "translation": "стойкий",
+      "isTransliterated": false
+    },
+    {
+      "word": "POSITIVE",
+      "level": "A2",
+      "translation": "положительный",
+      "isTransliterated": false
+    },
+    {
+      "word": "POSTOPERATIVE",
+      "level": "B2",
+      "translation": "послеоперационный",
+      "isTransliterated": true
+    },
+    {
+      "word": "PREOPERATIVE",
+      "level": "B2",
+      "translation": "предоперационный",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROGRESSIVE",
+      "level": "B2",
+      "translation": "прогрессирующий",
+      "isTransliterated": true
+    },
+    {
+      "word": "RECURRENT",
+      "level": "B2",
+      "translation": "рецидивирующий",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEVERE",
+      "level": "B1",
+      "translation": "тяжёлый",
+      "isTransliterated": false
+    },
+    {
+      "word": "STABLE",
+      "level": "A2",
+      "translation": "стабильный",
+      "isTransliterated": true
+    },
+    {
+      "word": "STERILE",
+      "level": "B1",
+      "translation": "стерильный",
+      "isTransliterated": true
+    },
+    {
+      "word": "SUBCUTANEOUS",
+      "level": "C1",
+      "translation": "подкожный",
+      "isTransliterated": false
+    },
+    {
+      "word": "SYSTEMIC",
+      "level": "B2",
+      "translation": "системный",
+      "isTransliterated": true
+    },
+    {
+      "word": "TERMINAL",
+      "level": "C1",
+      "translation": "терминальный",
+      "isTransliterated": true
+    },
+    {
+      "word": "URGENT",
+      "level": "B1",
+      "translation": "срочный",
+      "isTransliterated": false
+    },
+    {
+      "word": "ANESTHESIOLOGY",
+      "level": "C1",
+      "translation": "анестезиология",
+      "isTransliterated": true
+    },
+    {
+      "word": "CARDIOLOGY",
+      "level": "B2",
+      "translation": "кардиология",
+      "isTransliterated": true
+    },
+    {
+      "word": "ENDOCRINOLOGY",
+      "level": "C1",
+      "translation": "эндокринология",
+      "isTransliterated": true
+    },
+    {
+      "word": "GERIATRIC",
+      "level": "B2",
+      "translation": "гериатрический",
+      "isTransliterated": true
+    },
+    {
+      "word": "GYNECOLOGY",
+      "level": "B2",
+      "translation": "гинекология",
+      "isTransliterated": true
+    },
+    {
+      "word": "NEPHROLOGY",
+      "level": "C1",
+      "translation": "нефрология",
+      "isTransliterated": true
+    },
+    {
+      "word": "OBSTETRIC",
+      "level": "B2",
+      "translation": "акушерский",
+      "isTransliterated": false
+    },
+    {
+      "word": "ONCOLOGY",
+      "level": "B2",
+      "translation": "онкология",
+      "isTransliterated": true
+    },
+    {
+      "word": "OPHTHALMOLOGY",
+      "level": "C1",
+      "translation": "офтальмология",
+      "isTransliterated": true
+    },
+    {
+      "word": "ORTHOPEDIC",
+      "level": "B2",
+      "translation": "ортопедический",
+      "isTransliterated": true
+    },
+    {
+      "word": "PSYCHIATRY",
+      "level": "B2",
+      "translation": "психиатрия",
+      "isTransliterated": true
+    },
+    {
+      "word": "REHABILITATION",
+      "level": "B2",
+      "translation": "реабилитация",
+      "isTransliterated": true
+    },
+    {
+      "word": "TRAUMATOLOGY",
+      "level": "B2",
+      "translation": "травматология",
+      "isTransliterated": true
+    },
+    {
+      "word": "UROLOGY",
+      "level": "B2",
+      "translation": "урология",
+      "isTransliterated": true
+    },
+    {
+      "word": "AGE",
+      "level": "A1",
+      "translation": "возраст",
+      "isTransliterated": false
+    },
+    {
+      "word": "EAT",
+      "level": "A1",
+      "translation": "есть",
+      "isTransliterated": false
+    },
+    {
+      "word": "DRINK",
+      "level": "A1",
+      "translation": "пить",
+      "isTransliterated": false
+    },
+    {
+      "word": "SLEEP",
+      "level": "A1",
+      "translation": "спать",
+      "isTransliterated": false
+    },
+    {
+      "word": "WALK",
+      "level": "A1",
+      "translation": "ходить",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIT",
+      "level": "A1",
+      "translation": "сидеть",
+      "isTransliterated": false
+    },
+    {
+      "word": "STAND",
+      "level": "A1",
+      "translation": "стоять",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIE",
+      "level": "A1",
+      "translation": "лежать",
+      "isTransliterated": false
+    },
+    {
+      "word": "HURT",
+      "level": "A1",
+      "translation": "болеть",
+      "isTransliterated": false
+    },
+    {
+      "word": "TIRED",
+      "level": "A1",
+      "translation": "усталый",
+      "isTransliterated": false
+    },
+    {
+      "word": "WEAK",
+      "level": "A1",
+      "translation": "слабый",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOT",
+      "level": "A1",
+      "translation": "горячий",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEFT",
+      "level": "A1",
+      "translation": "левый",
+      "isTransliterated": false
+    },
+    {
+      "word": "RIGHT",
+      "level": "A1",
+      "translation": "правый",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOW",
+      "level": "A1",
+      "translation": "низкий",
+      "isTransliterated": false
+    },
+    {
+      "word": "HIGH",
+      "level": "A1",
+      "translation": "высокий",
+      "isTransliterated": false
+    },
+    {
+      "word": "FRONT",
+      "level": "A1",
+      "translation": "передний",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOTH",
+      "level": "A1",
+      "translation": "оба",
+      "isTransliterated": false
+    },
+    {
+      "word": "BEFORE",
+      "level": "A1",
+      "translation": "до",
+      "isTransliterated": false
+    },
+    {
+      "word": "AFTER",
+      "level": "A1",
+      "translation": "после",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALIVE",
+      "level": "A1",
+      "translation": "живой",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOAP",
+      "level": "A1",
+      "translation": "мыло",
+      "isTransliterated": false
+    },
+    {
+      "word": "FINGER",
+      "level": "A1",
+      "translation": "палец",
+      "isTransliterated": false
+    },
+    {
+      "word": "REST",
+      "level": "A2",
+      "translation": "отдых",
+      "isTransliterated": false
+    },
+    {
+      "word": "COLD",
+      "level": "A2",
+      "translation": "простуда",
+      "isTransliterated": false
+    },
+    {
+      "word": "WRIST",
+      "level": "A2",
+      "translation": "запястье",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOE",
+      "level": "A2",
+      "translation": "палец ноги",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEEL",
+      "level": "A2",
+      "translation": "пятка",
+      "isTransliterated": false
+    },
+    {
+      "word": "THUMB",
+      "level": "A2",
+      "translation": "большой палец",
+      "isTransliterated": false
+    },
+    {
+      "word": "NAIL",
+      "level": "A2",
+      "translation": "ноготь",
+      "isTransliterated": false
+    },
+    {
+      "word": "HAIR",
+      "level": "A2",
+      "translation": "волосы",
+      "isTransliterated": false
+    },
+    {
+      "word": "FOREHEAD",
+      "level": "A2",
+      "translation": "лоб",
+      "isTransliterated": false
+    },
+    {
+      "word": "JAW",
+      "level": "A2",
+      "translation": "челюсть",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHIN",
+      "level": "A2",
+      "translation": "подбородок",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHEEK",
+      "level": "A2",
+      "translation": "щека",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIP",
+      "level": "A2",
+      "translation": "губа",
+      "isTransliterated": false
+    },
+    {
+      "word": "EYEBROW",
+      "level": "A2",
+      "translation": "бровь",
+      "isTransliterated": false
+    },
+    {
+      "word": "THIGH",
+      "level": "A2",
+      "translation": "бедро",
+      "isTransliterated": false
+    },
+    {
+      "word": "CALF",
+      "level": "A2",
+      "translation": "икра",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAIST",
+      "level": "A2",
+      "translation": "талия",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREATHE",
+      "level": "A2",
+      "translation": "дышать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SWALLOW",
+      "level": "A2",
+      "translation": "глотать",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHEW",
+      "level": "A2",
+      "translation": "жевать",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLEED",
+      "level": "A2",
+      "translation": "кровоточить",
+      "isTransliterated": false
+    },
+    {
+      "word": "VOMIT",
+      "level": "A2",
+      "translation": "рвать",
+      "isTransliterated": false
+    },
+    {
+      "word": "ITCH",
+      "level": "A2",
+      "translation": "зудеть",
+      "isTransliterated": false
+    },
+    {
+      "word": "SWEAT",
+      "level": "A2",
+      "translation": "пот",
+      "isTransliterated": false
+    },
+    {
+      "word": "TEAR",
+      "level": "A2",
+      "translation": "слеза",
+      "isTransliterated": false
+    },
+    {
+      "word": "MILK",
+      "level": "A2",
+      "translation": "молоко",
+      "isTransliterated": false
+    },
+    {
+      "word": "EARACHE",
+      "level": "A2",
+      "translation": "боль в ухе",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOOTHACHE",
+      "level": "A2",
+      "translation": "зубная боль",
+      "isTransliterated": false
+    },
+    {
+      "word": "HICCUP",
+      "level": "A2",
+      "translation": "икота",
+      "isTransliterated": false
+    },
+    {
+      "word": "THIRST",
+      "level": "A2",
+      "translation": "жажда",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPOT",
+      "level": "A2",
+      "translation": "пятно",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUMP",
+      "level": "A2",
+      "translation": "шишка",
+      "isTransliterated": false
+    },
+    {
+      "word": "BITE",
+      "level": "A2",
+      "translation": "укус",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCRATCH",
+      "level": "A2",
+      "translation": "царапина",
+      "isTransliterated": false
+    },
+    {
+      "word": "SWOLLEN",
+      "level": "A2",
+      "translation": "опухший",
+      "isTransliterated": false
+    },
+    {
+      "word": "ITCHY",
+      "level": "A2",
+      "translation": "зудящий",
+      "isTransliterated": false
+    },
+    {
+      "word": "SORE",
+      "level": "A2",
+      "translation": "болезненный",
+      "isTransliterated": false
+    },
+    {
+      "word": "DIZZY",
+      "level": "A2",
+      "translation": "с головокружением",
+      "isTransliterated": false
+    },
+    {
+      "word": "PREGNANT",
+      "level": "A2",
+      "translation": "беременная",
+      "isTransliterated": false
+    },
+    {
+      "word": "BIRTH",
+      "level": "A2",
+      "translation": "рождение",
+      "isTransliterated": false
+    },
+    {
+      "word": "NEWBORN",
+      "level": "A2",
+      "translation": "новорождённый",
+      "isTransliterated": false
+    },
+    {
+      "word": "PERIOD",
+      "level": "A2",
+      "translation": "месячные",
+      "isTransliterated": false
+    },
+    {
+      "word": "PILL",
+      "level": "A2",
+      "translation": "таблетка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DROP",
+      "level": "A2",
+      "translation": "капля",
+      "isTransliterated": false
+    },
+    {
+      "word": "GLOVE",
+      "level": "A2",
+      "translation": "перчатка",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOWEL",
+      "level": "A2",
+      "translation": "полотенце",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLANKET",
+      "level": "A2",
+      "translation": "одеяло",
+      "isTransliterated": false
+    },
+    {
+      "word": "PILLOW",
+      "level": "A2",
+      "translation": "подушка",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHEET",
+      "level": "A2",
+      "translation": "простыня",
+      "isTransliterated": false
+    },
+    {
+      "word": "BELL",
+      "level": "A2",
+      "translation": "звонок",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEAL",
+      "level": "A2",
+      "translation": "заживать",
+      "isTransliterated": false
+    },
+    {
+      "word": "WASH",
+      "level": "A2",
+      "translation": "мыть",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLEAN",
+      "level": "A2",
+      "translation": "очищать",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPLY",
+      "level": "A2",
+      "translation": "наносить",
+      "isTransliterated": false
+    },
+    {
+      "word": "REMOVE",
+      "level": "A2",
+      "translation": "удалять",
+      "isTransliterated": false
+    },
+    {
+      "word": "FEED",
+      "level": "A2",
+      "translation": "кормить",
+      "isTransliterated": false
+    },
+    {
+      "word": "WARNING",
+      "level": "A2",
+      "translation": "предупреждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "EFFECT",
+      "level": "A2",
+      "translation": "действие",
+      "isTransliterated": false
+    },
+    {
+      "word": "SAFE",
+      "level": "A2",
+      "translation": "безопасный",
+      "isTransliterated": false
+    },
+    {
+      "word": "VALUE",
+      "level": "A2",
+      "translation": "значение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLEAR",
+      "level": "A2",
+      "translation": "прозрачный",
+      "isTransliterated": false
+    },
+    {
+      "word": "COLLECT",
+      "level": "A2",
+      "translation": "собирать",
+      "isTransliterated": false
+    },
+    {
+      "word": "STORE",
+      "level": "A2",
+      "translation": "хранить",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEIGHT",
+      "level": "A2",
+      "translation": "рост",
+      "isTransliterated": false
+    },
+    {
+      "word": "WEIGHT",
+      "level": "A2",
+      "translation": "вес",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEVEL",
+      "level": "A2",
+      "translation": "уровень",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIGN",
+      "level": "A2",
+      "translation": "признак",
+      "isTransliterated": false
+    },
+    {
+      "word": "STAY",
+      "level": "A2",
+      "translation": "пребывание",
+      "isTransliterated": false
+    },
+    {
+      "word": "VISIT",
+      "level": "A2",
+      "translation": "посещение",
+      "isTransliterated": false
+    },
+    {
+      "word": "VISITOR",
+      "level": "A2",
+      "translation": "посетитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "RELATIVE",
+      "level": "A2",
+      "translation": "родственник",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAITING",
+      "level": "A2",
+      "translation": "ожидание",
+      "isTransliterated": false
+    },
+    {
+      "word": "RETURN",
+      "level": "A2",
+      "translation": "возвращаться",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARRIVE",
+      "level": "A2",
+      "translation": "прибывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEAVE",
+      "level": "A2",
+      "translation": "уходить",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERNIGHT",
+      "level": "A2",
+      "translation": "на ночь",
+      "isTransliterated": false
+    },
+    {
+      "word": "DAILY",
+      "level": "A2",
+      "translation": "ежедневный",
+      "isTransliterated": false
+    },
+    {
+      "word": "WEEKLY",
+      "level": "A2",
+      "translation": "еженедельный",
+      "isTransliterated": false
+    },
+    {
+      "word": "IMPROVE",
+      "level": "A2",
+      "translation": "улучшаться",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUDDEN",
+      "level": "A2",
+      "translation": "внезапный",
+      "isTransliterated": false
+    },
+    {
+      "word": "SLOW",
+      "level": "A2",
+      "translation": "медленный",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHARP",
+      "level": "A2",
+      "translation": "резкий",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEEP",
+      "level": "A2",
+      "translation": "глубокий",
+      "isTransliterated": false
+    },
+    {
+      "word": "UPPER",
+      "level": "A2",
+      "translation": "верхний",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOWER",
+      "level": "A2",
+      "translation": "нижний",
+      "isTransliterated": false
+    },
+    {
+      "word": "INNER",
+      "level": "A2",
+      "translation": "внутренний",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTER",
+      "level": "A2",
+      "translation": "наружный",
+      "isTransliterated": false
+    },
+    {
+      "word": "MIDDLE",
+      "level": "A2",
+      "translation": "средний",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIDE",
+      "level": "A2",
+      "translation": "сторона",
+      "isTransliterated": false
+    },
+    {
+      "word": "FALL",
+      "level": "A2",
+      "translation": "падение",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEATH",
+      "level": "A2",
+      "translation": "смерть",
+      "isTransliterated": false
+    },
+    {
+      "word": "GUM",
+      "level": "B1",
+      "translation": "десна",
+      "isTransliterated": false
+    },
+    {
+      "word": "EYELID",
+      "level": "B1",
+      "translation": "веко",
+      "isTransliterated": false
+    },
+    {
+      "word": "EYELASH",
+      "level": "B1",
+      "translation": "ресница",
+      "isTransliterated": false
+    },
+    {
+      "word": "GROIN",
+      "level": "B1",
+      "translation": "пах",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUTTOCK",
+      "level": "B1",
+      "translation": "ягодица",
+      "isTransliterated": false
+    },
+    {
+      "word": "WOMB",
+      "level": "B1",
+      "translation": "матка",
+      "isTransliterated": false
+    },
+    {
+      "word": "NIPPLE",
+      "level": "B1",
+      "translation": "сосок",
+      "isTransliterated": false
+    },
+    {
+      "word": "PORE",
+      "level": "B1",
+      "translation": "пора",
+      "isTransliterated": false
+    },
+    {
+      "word": "FRECKLE",
+      "level": "B1",
+      "translation": "веснушка",
+      "isTransliterated": false
+    },
+    {
+      "word": "WRINKLE",
+      "level": "B1",
+      "translation": "морщина",
+      "isTransliterated": false
+    },
+    {
+      "word": "WINDPIPE",
+      "level": "B1",
+      "translation": "дыхательное горло",
+      "isTransliterated": false
+    },
+    {
+      "word": "INHALE",
+      "level": "B1",
+      "translation": "вдыхать",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXHALE",
+      "level": "B1",
+      "translation": "выдыхать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPIT",
+      "level": "B1",
+      "translation": "плевать",
+      "isTransliterated": false
+    },
+    {
+      "word": "URINATE",
+      "level": "B1",
+      "translation": "мочиться",
+      "isTransliterated": false
+    },
+    {
+      "word": "FAINT",
+      "level": "B1",
+      "translation": "терять сознание",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIMP",
+      "level": "B1",
+      "translation": "хромать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SNORE",
+      "level": "B1",
+      "translation": "храпеть",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHOKE",
+      "level": "B1",
+      "translation": "подавиться",
+      "isTransliterated": false
+    },
+    {
+      "word": "DROWN",
+      "level": "B1",
+      "translation": "тонуть",
+      "isTransliterated": false
+    },
+    {
+      "word": "PUS",
+      "level": "B1",
+      "translation": "гной",
+      "isTransliterated": false
+    },
+    {
+      "word": "MUCUS",
+      "level": "B1",
+      "translation": "слизь",
+      "isTransliterated": false
+    },
+    {
+      "word": "PHLEGM",
+      "level": "B1",
+      "translation": "мокрота",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLOATING",
+      "level": "B1",
+      "translation": "вздутие",
+      "isTransliterated": false
+    },
+    {
+      "word": "DROWSINESS",
+      "level": "B1",
+      "translation": "сонливость",
+      "isTransliterated": false
+    },
+    {
+      "word": "TINGLING",
+      "level": "B1",
+      "translation": "покалывание",
+      "isTransliterated": false
+    },
+    {
+      "word": "DRYNESS",
+      "level": "B1",
+      "translation": "сухость",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHILL",
+      "level": "B1",
+      "translation": "озноб",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREATHLESSNESS",
+      "level": "B1",
+      "translation": "одышка",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOARSE",
+      "level": "B1",
+      "translation": "охрипший",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEAKAGE",
+      "level": "B1",
+      "translation": "подтекание",
+      "isTransliterated": false
+    },
+    {
+      "word": "URGENCY",
+      "level": "B1",
+      "translation": "позыв",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEARTBURN",
+      "level": "B1",
+      "translation": "изжога",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPRAIN",
+      "level": "B1",
+      "translation": "растяжение",
+      "isTransliterated": false
+    },
+    {
+      "word": "STRAIN",
+      "level": "B1",
+      "translation": "растяжение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLOT",
+      "level": "B1",
+      "translation": "сгусток",
+      "isTransliterated": false
+    },
+    {
+      "word": "PALE",
+      "level": "B1",
+      "translation": "бледный",
+      "isTransliterated": false
+    },
+    {
+      "word": "NUMB",
+      "level": "B1",
+      "translation": "онемевший",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREATHLESS",
+      "level": "B1",
+      "translation": "задыхающийся",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNCONSCIOUS",
+      "level": "B1",
+      "translation": "без сознания",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONSCIOUS",
+      "level": "B1",
+      "translation": "в сознании",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESTLESS",
+      "level": "B1",
+      "translation": "беспокойный",
+      "isTransliterated": false
+    },
+    {
+      "word": "DROWSY",
+      "level": "B1",
+      "translation": "сонливый",
+      "isTransliterated": false
+    },
+    {
+      "word": "STING",
+      "level": "B1",
+      "translation": "укус",
+      "isTransliterated": false
+    },
+    {
+      "word": "GRAZE",
+      "level": "B1",
+      "translation": "ссадина",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCAB",
+      "level": "B1",
+      "translation": "струп",
+      "isTransliterated": false
+    },
+    {
+      "word": "WART",
+      "level": "B1",
+      "translation": "бородавка",
+      "isTransliterated": false
+    },
+    {
+      "word": "PEELING",
+      "level": "B1",
+      "translation": "шелушение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CRACK",
+      "level": "B1",
+      "translation": "трещина",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRUISED",
+      "level": "B1",
+      "translation": "ушибленный",
+      "isTransliterated": false
+    },
+    {
+      "word": "WOUNDED",
+      "level": "B1",
+      "translation": "раненый",
+      "isTransliterated": false
+    },
+    {
+      "word": "YEAST",
+      "level": "B1",
+      "translation": "дрожжи",
+      "isTransliterated": false
+    },
+    {
+      "word": "PREGNANCY",
+      "level": "B1",
+      "translation": "беременность",
+      "isTransliterated": false
+    },
+    {
+      "word": "DELIVERY",
+      "level": "B1",
+      "translation": "роды",
+      "isTransliterated": false
+    },
+    {
+      "word": "LABOR",
+      "level": "B1",
+      "translation": "роды",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONTRACTION",
+      "level": "B1",
+      "translation": "схватка",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREASTFEEDING",
+      "level": "B1",
+      "translation": "грудное вскармливание",
+      "isTransliterated": false
+    },
+    {
+      "word": "PATCH",
+      "level": "B1",
+      "translation": "пластырь",
+      "isTransliterated": false
+    },
+    {
+      "word": "BEDPAN",
+      "level": "B1",
+      "translation": "судно",
+      "isTransliterated": false
+    },
+    {
+      "word": "URINAL",
+      "level": "B1",
+      "translation": "мочеприёмник",
+      "isTransliterated": false
+    },
+    {
+      "word": "CANE",
+      "level": "B1",
+      "translation": "трость",
+      "isTransliterated": false
+    },
+    {
+      "word": "WALKER",
+      "level": "B1",
+      "translation": "ходунки",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPLINT",
+      "level": "B1",
+      "translation": "шина",
+      "isTransliterated": false
+    },
+    {
+      "word": "SLING",
+      "level": "B1",
+      "translation": "перевязь",
+      "isTransliterated": false
+    },
+    {
+      "word": "STRETCHER",
+      "level": "B1",
+      "translation": "носилки",
+      "isTransliterated": false
+    },
+    {
+      "word": "GAUZE",
+      "level": "B1",
+      "translation": "марля",
+      "isTransliterated": false
+    },
+    {
+      "word": "WIPE",
+      "level": "B1",
+      "translation": "салфетка",
+      "isTransliterated": false
+    },
+    {
+      "word": "STITCH",
+      "level": "B1",
+      "translation": "шов",
+      "isTransliterated": false
+    },
+    {
+      "word": "CURE",
+      "level": "B1",
+      "translation": "излечение",
+      "isTransliterated": false
+    },
+    {
+      "word": "RELIEF",
+      "level": "B1",
+      "translation": "облегчение",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOOTHE",
+      "level": "B1",
+      "translation": "успокаивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "RINSE",
+      "level": "B1",
+      "translation": "промывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "INSERT",
+      "level": "B1",
+      "translation": "вставлять",
+      "isTransliterated": false
+    },
+    {
+      "word": "REPLACE",
+      "level": "B1",
+      "translation": "заменять",
+      "isTransliterated": false
+    },
+    {
+      "word": "CRUSH",
+      "level": "B1",
+      "translation": "измельчать",
+      "isTransliterated": false
+    },
+    {
+      "word": "FAST",
+      "level": "B1",
+      "translation": "голодать",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRESCRIPTION",
+      "level": "B1",
+      "translation": "рецепт",
+      "isTransliterated": false
+    },
+    {
+      "word": "HARM",
+      "level": "B1",
+      "translation": "вред",
+      "isTransliterated": false
+    },
+    {
+      "word": "SAFETY",
+      "level": "B1",
+      "translation": "безопасность",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNSAFE",
+      "level": "B1",
+      "translation": "небезопасный",
+      "isTransliterated": false
+    },
+    {
+      "word": "FINDING",
+      "level": "B1",
+      "translation": "находка",
+      "isTransliterated": false
+    },
+    {
+      "word": "READING",
+      "level": "B1",
+      "translation": "показание",
+      "isTransliterated": false
+    },
+    {
+      "word": "COUNT",
+      "level": "B1",
+      "translation": "подсчёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRACE",
+      "level": "B1",
+      "translation": "след",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLOUDY",
+      "level": "B1",
+      "translation": "мутный",
+      "isTransliterated": false
+    },
+    {
+      "word": "ELEVATED",
+      "level": "B1",
+      "translation": "повышенный",
+      "isTransliterated": false
+    },
+    {
+      "word": "RAISED",
+      "level": "B1",
+      "translation": "повышенный",
+      "isTransliterated": false
+    },
+    {
+      "word": "REDUCED",
+      "level": "B1",
+      "translation": "сниженный",
+      "isTransliterated": false
+    },
+    {
+      "word": "MATCH",
+      "level": "B1",
+      "translation": "совпадение",
+      "isTransliterated": false
+    },
+    {
+      "word": "DRAW",
+      "level": "B1",
+      "translation": "брать кровь",
+      "isTransliterated": false
+    },
+    {
+      "word": "FREEZE",
+      "level": "B1",
+      "translation": "замораживать",
+      "isTransliterated": false
+    },
+    {
+      "word": "FASTING",
+      "level": "B1",
+      "translation": "натощак",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRESSURE",
+      "level": "B1",
+      "translation": "давление",
+      "isTransliterated": false
+    },
+    {
+      "word": "RATE",
+      "level": "B1",
+      "translation": "частота",
+      "isTransliterated": false
+    },
+    {
+      "word": "GAIN",
+      "level": "B1",
+      "translation": "прибавка",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOSS",
+      "level": "B1",
+      "translation": "потеря",
+      "isTransliterated": false
+    },
+    {
+      "word": "INTAKE",
+      "level": "B1",
+      "translation": "поступление",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTPUT",
+      "level": "B1",
+      "translation": "выделение",
+      "isTransliterated": false
+    },
+    {
+      "word": "STUDY",
+      "level": "B1",
+      "translation": "исследование",
+      "isTransliterated": false
+    },
+    {
+      "word": "REVIEW",
+      "level": "B1",
+      "translation": "обзор",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTPATIENT",
+      "level": "B1",
+      "translation": "амбулаторный пациент",
+      "isTransliterated": false
+    },
+    {
+      "word": "INPATIENT",
+      "level": "B1",
+      "translation": "стационарный пациент",
+      "isTransliterated": false
+    },
+    {
+      "word": "GUARDIAN",
+      "level": "B1",
+      "translation": "опекун",
+      "isTransliterated": false
+    },
+    {
+      "word": "ORDERLY",
+      "level": "B1",
+      "translation": "санитар",
+      "isTransliterated": false
+    },
+    {
+      "word": "ATTENDANT",
+      "level": "B1",
+      "translation": "санитар",
+      "isTransliterated": false
+    },
+    {
+      "word": "AIDE",
+      "level": "B1",
+      "translation": "помощник",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCHEDULE",
+      "level": "B1",
+      "translation": "расписание",
+      "isTransliterated": false
+    },
+    {
+      "word": "ABSENCE",
+      "level": "B1",
+      "translation": "отсутствие",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRESENT",
+      "level": "B1",
+      "translation": "имеющийся",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISSING",
+      "level": "B1",
+      "translation": "отсутствующий",
+      "isTransliterated": false
+    },
+    {
+      "word": "FOLLOW",
+      "level": "B1",
+      "translation": "следовать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHIFT",
+      "level": "B1",
+      "translation": "смена",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROUND",
+      "level": "B1",
+      "translation": "обход",
+      "isTransliterated": false
+    },
+    {
+      "word": "MONTHLY",
+      "level": "B1",
+      "translation": "ежемесячный",
+      "isTransliterated": false
+    },
+    {
+      "word": "IMPROVEMENT",
+      "level": "B1",
+      "translation": "улучшение",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORSEN",
+      "level": "B1",
+      "translation": "ухудшаться",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORSENING",
+      "level": "B1",
+      "translation": "ухудшение",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPREAD",
+      "level": "B1",
+      "translation": "распространяться",
+      "isTransliterated": false
+    },
+    {
+      "word": "GRADUAL",
+      "level": "B1",
+      "translation": "постепенный",
+      "isTransliterated": false
+    },
+    {
+      "word": "RAPID",
+      "level": "B1",
+      "translation": "быстрый",
+      "isTransliterated": false
+    },
+    {
+      "word": "DULL",
+      "level": "B1",
+      "translation": "тупой",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONSTANT",
+      "level": "B1",
+      "translation": "постоянный",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHALLOW",
+      "level": "B1",
+      "translation": "поверхностный",
+      "isTransliterated": false
+    },
+    {
+      "word": "POISON",
+      "level": "B1",
+      "translation": "яд",
+      "isTransliterated": false
+    },
+    {
+      "word": "POISONING",
+      "level": "B1",
+      "translation": "отравление",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESCUE",
+      "level": "B1",
+      "translation": "спасать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUPPORT",
+      "level": "B1",
+      "translation": "поддержка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DYING",
+      "level": "B1",
+      "translation": "умирающий",
+      "isTransliterated": false
+    },
+    {
+      "word": "PALATE",
+      "level": "B2",
+      "translation": "нёбо",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLOODSTREAM",
+      "level": "B2",
+      "translation": "кровоток",
+      "isTransliterated": false
+    },
+    {
+      "word": "GULLET",
+      "level": "B2",
+      "translation": "пищевод",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEFECATE",
+      "level": "B2",
+      "translation": "испражняться",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEMEN",
+      "level": "B2",
+      "translation": "семенная жидкость",
+      "isTransliterated": false
+    },
+    {
+      "word": "FAINTNESS",
+      "level": "B2",
+      "translation": "предобморочное состояние",
+      "isTransliterated": false
+    },
+    {
+      "word": "FLUSHING",
+      "level": "B2",
+      "translation": "прилив крови",
+      "isTransliterated": false
+    },
+    {
+      "word": "DROOLING",
+      "level": "B2",
+      "translation": "слюнотечение",
+      "isTransliterated": false
+    },
+    {
+      "word": "INCONTINENCE",
+      "level": "B2",
+      "translation": "недержание",
+      "isTransliterated": false
+    },
+    {
+      "word": "GALLSTONE",
+      "level": "B2",
+      "translation": "желчный камень",
+      "isTransliterated": false
+    },
+    {
+      "word": "BEDSORE",
+      "level": "B2",
+      "translation": "пролежень",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISLOCATION",
+      "level": "B2",
+      "translation": "вывих",
+      "isTransliterated": false
+    },
+    {
+      "word": "RUPTURE",
+      "level": "B2",
+      "translation": "разрыв",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLOTCH",
+      "level": "B2",
+      "translation": "пятно",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOIL",
+      "level": "B2",
+      "translation": "фурункул",
+      "isTransliterated": false
+    },
+    {
+      "word": "OOZING",
+      "level": "B2",
+      "translation": "мокнутие",
+      "isTransliterated": false
+    },
+    {
+      "word": "HIVE",
+      "level": "B2",
+      "translation": "волдырь",
+      "isTransliterated": false
+    },
+    {
+      "word": "THRUSH",
+      "level": "B2",
+      "translation": "молочница",
+      "isTransliterated": false
+    },
+    {
+      "word": "FUNGUS",
+      "level": "B2",
+      "translation": "грибок",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOUSE",
+      "level": "B2",
+      "translation": "вошь",
+      "isTransliterated": false
+    },
+    {
+      "word": "RINGWORM",
+      "level": "B2",
+      "translation": "стригущий лишай",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISCARRIAGE",
+      "level": "B2",
+      "translation": "выкидыш",
+      "isTransliterated": false
+    },
+    {
+      "word": "FETUS",
+      "level": "B2",
+      "translation": "плод",
+      "isTransliterated": false
+    },
+    {
+      "word": "WEANING",
+      "level": "B2",
+      "translation": "отлучение",
+      "isTransliterated": false
+    },
+    {
+      "word": "FERTILITY",
+      "level": "B2",
+      "translation": "способность к зачатию",
+      "isTransliterated": false
+    },
+    {
+      "word": "INFERTILITY",
+      "level": "B2",
+      "translation": "бесплодие",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONCEIVE",
+      "level": "B2",
+      "translation": "зачать",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRACE",
+      "level": "B2",
+      "translation": "фиксатор",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLEANSE",
+      "level": "B2",
+      "translation": "очищать",
+      "isTransliterated": false
+    },
+    {
+      "word": "WEAN",
+      "level": "B2",
+      "translation": "отлучать",
+      "isTransliterated": false
+    },
+    {
+      "word": "DILUTE",
+      "level": "B2",
+      "translation": "разбавлять",
+      "isTransliterated": false
+    },
+    {
+      "word": "REFILL",
+      "level": "B2",
+      "translation": "повторная выдача",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERDOSE",
+      "level": "B2",
+      "translation": "передозировка",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISUSE",
+      "level": "B2",
+      "translation": "неправильное применение",
+      "isTransliterated": false
+    },
+    {
+      "word": "BORDERLINE",
+      "level": "B2",
+      "translation": "пограничный",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISMATCH",
+      "level": "B2",
+      "translation": "несоответствие",
+      "isTransliterated": false
+    },
+    {
+      "word": "STAIN",
+      "level": "B2",
+      "translation": "окраска",
+      "isTransliterated": false
+    },
+    {
+      "word": "THAW",
+      "level": "B2",
+      "translation": "размораживать",
+      "isTransliterated": false
+    },
+    {
+      "word": "EVIDENCE",
+      "level": "B2",
+      "translation": "доказательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "GUIDELINE",
+      "level": "B2",
+      "translation": "рекомендация",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRIAL",
+      "level": "B2",
+      "translation": "испытание",
+      "isTransliterated": false
+    },
+    {
+      "word": "HANDOVER",
+      "level": "B2",
+      "translation": "передача смены",
+      "isTransliterated": false
+    },
+    {
+      "word": "RELAPSE",
+      "level": "B2",
+      "translation": "рецидив",
+      "isTransliterated": false
+    },
+    {
+      "word": "FLARE",
+      "level": "B2",
+      "translation": "обострение",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESOLVE",
+      "level": "B2",
+      "translation": "проходить",
+      "isTransliterated": false
+    },
+    {
+      "word": "RECURRENCE",
+      "level": "B2",
+      "translation": "повторное появление",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONTINUOUS",
+      "level": "B2",
+      "translation": "непрерывный",
+      "isTransliterated": false
+    },
+    {
+      "word": "THROBBING",
+      "level": "B2",
+      "translation": "пульсирующий",
+      "isTransliterated": false
+    },
+    {
+      "word": "CRUSHING",
+      "level": "B2",
+      "translation": "сдавливающий",
+      "isTransliterated": false
+    },
+    {
+      "word": "STABBING",
+      "level": "B2",
+      "translation": "колющий",
+      "isTransliterated": false
+    },
+    {
+      "word": "RADIATING",
+      "level": "B2",
+      "translation": "отдающий",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEATSTROKE",
+      "level": "B2",
+      "translation": "тепловой удар",
+      "isTransliterated": false
+    },
+    {
+      "word": "FROSTBITE",
+      "level": "B2",
+      "translation": "обморожение",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNRESPONSIVE",
+      "level": "B2",
+      "translation": "не реагирующий",
+      "isTransliterated": false
+    },
+    {
+      "word": "STILLBIRTH",
+      "level": "C1",
+      "translation": "мертворождение",
+      "isTransliterated": false
+    },
+    {
+      "word": "WITHHOLD",
+      "level": "C1",
+      "translation": "отменять",
+      "isTransliterated": false
+    },
+    {
+      "word": "TAPER",
+      "level": "C1",
+      "translation": "постепенно снижать",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONTRAINDICATION",
+      "level": "C1",
+      "translation": "противопоказание",
+      "isTransliterated": false
+    },
+    {
+      "word": "SURVIVAL",
+      "level": "C1",
+      "translation": "выживаемость",
+      "isTransliterated": false
+    },
+    {
+      "word": "BIAS",
+      "level": "C1",
+      "translation": "смещение",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESOLUTION",
+      "level": "C1",
+      "translation": "исчезновение",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADHERENCE",
+      "level": "C2",
+      "translation": "приверженность",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOLERABILITY",
+      "level": "C2",
+      "translation": "переносимость",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTCOME",
+      "level": "C2",
+      "translation": "исход",
+      "isTransliterated": false
+    },
+    {
+      "word": "BURDEN",
+      "level": "C2",
+      "translation": "бремя",
+      "isTransliterated": false
+    },
+    {
+      "word": "ONSET",
+      "level": "C2",
+      "translation": "начало",
+      "isTransliterated": false
+    },
+    {
+      "word": "COURSE",
+      "level": "C2",
+      "translation": "течение",
+      "isTransliterated": false
+    },
+    {
+      "word": "PREVALENCE",
+      "level": "C2",
+      "translation": "распространённость",
+      "isTransliterated": false
+    },
+    {
+      "word": "INCIDENCE",
+      "level": "C2",
+      "translation": "частота возникновения",
+      "isTransliterated": false
+    },
+    {
+      "word": "THRESHOLD",
+      "level": "C2",
+      "translation": "порог",
+      "isTransliterated": false
+    },
+    {
+      "word": "BASELINE",
+      "level": "C2",
+      "translation": "исходный уровень",
+      "isTransliterated": false
+    },
+    {
+      "word": "ELIGIBILITY",
+      "level": "C2",
+      "translation": "пригодность",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLINDING",
+      "level": "C2",
+      "translation": "ослепление",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERREPORTING",
+      "level": "C2",
+      "translation": "недоучёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "ATTRITION",
+      "level": "C2",
+      "translation": "выбытие",
+      "isTransliterated": false
+    },
+    {
+      "word": "IMPAIRMENT",
+      "level": "C2",
+      "translation": "нарушение",
+      "isTransliterated": false
+    },
+    {
+      "word": "FRAILTY",
+      "level": "C2",
+      "translation": "старческая слабость",
+      "isTransliterated": false
+    },
+    {
+      "word": "SURVEILLANCE",
+      "level": "C2",
+      "translation": "надзор",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUSCEPTIBILITY",
+      "level": "C2",
+      "translation": "восприимчивость",
+      "isTransliterated": false
+    },
+    {
+      "word": "WITHDRAWAL",
+      "level": "C2",
+      "translation": "отмена",
+      "isTransliterated": false
+    }
+  ]
+}
