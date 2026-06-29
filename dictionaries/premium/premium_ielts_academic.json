@@ -1,1 +1,1405 @@
-{"title":"IELTS / Academic English","source":"topic","theme":"academic","words":[{"word":"ARGUE","level":"B1","translation":"аргументировать"},{"word":"CLAIM","level":"B1","translation":"утверждение"},{"word":"CAUSE","level":"A2","translation":"причина"},{"word":"CHART","level":"A2","translation":"график"},{"word":"CITE","level":"B2","translation":"цитировать"},{"word":"DATA","level":"A2","translation":"данные"},{"word":"DRAFT","level":"B1","translation":"черновик"},{"word":"ERROR","level":"A2","translation":"ошибка"},{"word":"ESSAY","level":"A2","translation":"эссе"},{"word":"FOCUS","level":"A2","translation":"фокус"},{"word":"GRAPH","level":"A2","translation":"график"},{"word":"IDEAS","level":"A1","translation":"идеи"},{"word":"ISSUE","level":"A2","translation":"вопрос / проблема"},{"word":"LOGIC","level":"B1","translation":"логика"},{"word":"METHOD","level":"A2","translation":"метод"},{"word":"MODEL","level":"A2","translation":"модель"},{"word":"NOTES","level":"A1","translation":"заметки"},{"word":"POINT","level":"A1","translation":"пункт"},{"word":"PROOF","level":"B1","translation":"доказательство"},{"word":"QUOTE","level":"B1","translation":"цитата"},{"word":"RANGE","level":"A2","translation":"диапазон"},{"word":"RATIO","level":"B1","translation":"соотношение"},{"word":"REFER","level":"B1","translation":"ссылаться"},{"word":"REVIEW","level":"A2","translation":"обзор"},{"word":"SCALE","level":"A2","translation":"шкала"},{"word":"SCORE","level":"A1","translation":"балл"},{"word":"SOURCE","level":"A2","translation":"источник"},{"word":"STYLE","level":"A2","translation":"стиль"},{"word":"TABLE","level":"A1","translation":"таблица"},{"word":"THEME","level":"A2","translation":"тема"},{"word":"THESIS","level":"B1","translation":"тезис"},{"word":"TOPIC","level":"A1","translation":"тема"},{"word":"TREND","level":"A2","translation":"тенденция"},{"word":"VALID","level":"B2","translation":"обоснованный"},{"word":"VALUE","level":"A2","translation":"значение"},{"word":"VERBAL","level":"B1","translation":"вербальный"},{"word":"WRITER","level":"A2","translation":"автор"},{"word":"ABSTRACT","level":"B2","translation":"аннотация / абстрактный"},{"word":"ACADEMIC","level":"A2","translation":"академический"},{"word":"ACCURACY","level":"B1","translation":"точность"},{"word":"ANALYSIS","level":"B1","translation":"анализ"},{"word":"APPROACH","level":"B1","translation":"подход"},{"word":"ARGUMENT","level":"B1","translation":"аргумент"},{"word":"ASSESS","level":"B1","translation":"оценивать"},{"word":"BIBLIOGRAPHY","level":"C1","translation":"библиография"},{"word":"COHERENCE","level":"B2","translation":"связность"},{"word":"COMPARE","level":"A2","translation":"сравнивать"},{"word":"CONCEPT","level":"A2","translation":"понятие"},{"word":"CONCLUDE","level":"B1","translation":"заключать"},{"word":"CONTEXT","level":"A2","translation":"контекст"},{"word":"CONTRAST","level":"B1","translation":"сопоставлять"},{"word":"CRITERIA","level":"B2","translation":"критерии"},{"word":"DEBATE","level":"B1","translation":"дебаты"},{"word":"DEFINE","level":"A2","translation":"определять"},{"word":"DESCRIBE","level":"A2","translation":"описывать"},{"word":"DIAGRAM","level":"A2","translation":"диаграмма"},{"word":"DISCUSS","level":"A2","translation":"обсуждать"},{"word":"EVALUATE","level":"B2","translation":"оценивать"},{"word":"EVIDENCE","level":"B1","translation":"доказательство"},{"word":"EXAMINE","level":"B1","translation":"изучать"},{"word":"EXAMPLE","level":"A1","translation":"пример"},{"word":"EXPLAIN","level":"A2","translation":"объяснять"},{"word":"FINDING","level":"B1","translation":"результат исследования"},{"word":"FORMAL","level":"A2","translation":"формальный"},{"word":"HYPOTHESIS","level":"B2","translation":"гипотеза"},{"word":"INFERENCE","level":"B2","translation":"вывод"},{"word":"INTERPRET","level":"B2","translation":"интерпретировать"},{"word":"LECTURE","level":"A2","translation":"лекция"},{"word":"LITERATURE","level":"B1","translation":"литература"},{"word":"OVERVIEW","level":"B1","translation":"обзор"},{"word":"PARAPHRASE","level":"B2","translation":"перефразировать"},{"word":"PERCENTAGE","level":"A2","translation":"процент"},{"word":"PERSPECTIVE","level":"B2","translation":"точка зрения"},{"word":"QUESTION","level":"A1","translation":"вопрос"},{"word":"RESEARCH","level":"A2","translation":"исследование"},{"word":"REVISION","level":"B1","translation":"повторение / правка"},{"word":"SECTION","level":"A2","translation":"раздел"},{"word":"SIGNIFICANT","level":"B2","translation":"значимый"},{"word":"STATEMENT","level":"A2","translation":"утверждение"},{"word":"STATISTICS","level":"B1","translation":"статистика"},{"word":"STRUCTURE","level":"B1","translation":"структура"},{"word":"SUMMARIZE","level":"B1","translation":"кратко излагать"},{"word":"SYNTHESIS","level":"C1","translation":"синтез"},{"word":"VARIABLE","level":"B1","translation":"переменная"},{"word":"VOCABULARY","level":"A2","translation":"словарный запас"},{"word":"ACCORDING","level":"B1","translation":"согласно"},{"word":"ANALYTICAL","level":"B2","translation":"аналитический"},{"word":"ASSESSMENT","level":"B1","translation":"оценивание"},{"word":"ASSUMPTION","level":"B2","translation":"допущение"},{"word":"CITATION","level":"B2","translation":"цитирование"},{"word":"CLASSIFY","level":"B1","translation":"классифицировать"},{"word":"CONCLUSION","level":"B1","translation":"вывод"},{"word":"CONSISTENT","level":"B2","translation":"последовательный"},{"word":"CORRELATION","level":"B2","translation":"корреляция"},{"word":"DEFINITION","level":"A2","translation":"определение"},{"word":"DEMONSTRATE","level":"B2","translation":"демонстрировать"},{"word":"DERIVATION","level":"C1","translation":"выведение"},{"word":"DISCUSSION","level":"A2","translation":"обсуждение"},{"word":"DISTRIBUTION","level":"B2","translation":"распределение"},{"word":"EMPIRICAL","level":"B2","translation":"эмпирический"},{"word":"EQUIVALENT","level":"B2","translation":"эквивалентный"},{"word":"EXPERIMENT","level":"A2","translation":"эксперимент"},{"word":"FRAMEWORK","level":"B2","translation":"концептуальная рамка"},{"word":"GENERALIZE","level":"B2","translation":"обобщать"},{"word":"IMPLICATION","level":"B2","translation":"следствие"},{"word":"INTRODUCTION","level":"A2","translation":"введение"},{"word":"JUSTIFICATION","level":"B2","translation":"обоснование"},{"word":"METHODOLOGY","level":"B2","translation":"методология"},{"word":"OBJECTIVE","level":"A2","translation":"цель / объективный"},{"word":"PARAGRAPH","level":"A2","translation":"абзац"},{"word":"PRELIMINARY","level":"B2","translation":"предварительный"},{"word":"QUALITATIVE","level":"B2","translation":"качественный"},{"word":"QUANTITATIVE","level":"B2","translation":"количественный"},{"word":"REFERENCE","level":"B1","translation":"ссылка"},{"word":"RELIABILITY","level":"B2","translation":"надёжность"},{"word":"SIGNIFICANCE","level":"B2","translation":"значимость"},{"word":"THEORETICAL","level":"B2","translation":"теоретический"},{"word":"UNDERLINE","level":"A2","translation":"подчёркивать"},{"word":"VALIDATION","level":"B2","translation":"проверка достоверности"},{"word":"WORKSHEET","level":"A2","translation":"рабочий лист"},{"word":"AIMED","level":"A2","translation":"направленный"},{"word":"AIMS","level":"A1","translation":"цели"},{"word":"BASIS","level":"A2","translation":"основа"},{"word":"BRIEF","level":"B1","translation":"краткий"},{"word":"CITED","level":"B2","translation":"процитированный"},{"word":"DRAFTS","level":"B1","translation":"черновики"},{"word":"EDIT","level":"A2","translation":"редактировать"},{"word":"FIELD","level":"A2","translation":"область"},{"word":"FINAL","level":"A1","translation":"итоговый"},{"word":"GRADE","level":"A1","translation":"оценка"},{"word":"INDEX","level":"B1","translation":"указатель"},{"word":"LEVEL","level":"A1","translation":"уровень"},{"word":"LIMIT","level":"A2","translation":"предел"},{"word":"MARGIN","level":"B1","translation":"поле / запас"},{"word":"PHRASE","level":"A2","translation":"фраза"},{"word":"REPORT","level":"A2","translation":"отчёт"},{"word":"RESULT","level":"A2","translation":"результат"},{"word":"STUDY","level":"A1","translation":"исследование / учёба"},{"word":"SURVEY","level":"A2","translation":"опрос"}]}
+{
+  "title": "IELTS / Academic English",
+  "source": "topic",
+  "theme": "academic",
+  "words": [
+    {
+      "word": "ARGUE",
+      "level": "B1",
+      "translation": "аргументировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLAIM",
+      "level": "B1",
+      "translation": "утверждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CAUSE",
+      "level": "A2",
+      "translation": "причина",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHART",
+      "level": "A2",
+      "translation": "график",
+      "isTransliterated": false
+    },
+    {
+      "word": "CITE",
+      "level": "B2",
+      "translation": "цитировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "DATA",
+      "level": "A2",
+      "translation": "данные",
+      "isTransliterated": false
+    },
+    {
+      "word": "DRAFT",
+      "level": "B1",
+      "translation": "черновик",
+      "isTransliterated": false
+    },
+    {
+      "word": "ERROR",
+      "level": "A2",
+      "translation": "ошибка",
+      "isTransliterated": false
+    },
+    {
+      "word": "ESSAY",
+      "level": "A2",
+      "translation": "эссе",
+      "isTransliterated": false
+    },
+    {
+      "word": "FOCUS",
+      "level": "A2",
+      "translation": "фокус",
+      "isTransliterated": true
+    },
+    {
+      "word": "GRAPH",
+      "level": "A2",
+      "translation": "график",
+      "isTransliterated": true
+    },
+    {
+      "word": "IDEAS",
+      "level": "A1",
+      "translation": "идеи",
+      "isTransliterated": false
+    },
+    {
+      "word": "ISSUE",
+      "level": "A2",
+      "translation": "вопрос / проблема",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOGIC",
+      "level": "B1",
+      "translation": "логика",
+      "isTransliterated": true
+    },
+    {
+      "word": "METHOD",
+      "level": "A2",
+      "translation": "метод",
+      "isTransliterated": true
+    },
+    {
+      "word": "MODEL",
+      "level": "A2",
+      "translation": "модель",
+      "isTransliterated": true
+    },
+    {
+      "word": "NOTES",
+      "level": "A1",
+      "translation": "заметки",
+      "isTransliterated": false
+    },
+    {
+      "word": "POINT",
+      "level": "A1",
+      "translation": "пункт",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROOF",
+      "level": "B1",
+      "translation": "доказательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "QUOTE",
+      "level": "B1",
+      "translation": "цитата",
+      "isTransliterated": false
+    },
+    {
+      "word": "RANGE",
+      "level": "A2",
+      "translation": "диапазон",
+      "isTransliterated": false
+    },
+    {
+      "word": "RATIO",
+      "level": "B1",
+      "translation": "соотношение",
+      "isTransliterated": false
+    },
+    {
+      "word": "REFER",
+      "level": "B1",
+      "translation": "ссылаться",
+      "isTransliterated": false
+    },
+    {
+      "word": "REVIEW",
+      "level": "A2",
+      "translation": "обзор",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCALE",
+      "level": "A2",
+      "translation": "шкала",
+      "isTransliterated": true
+    },
+    {
+      "word": "SCORE",
+      "level": "A1",
+      "translation": "балл",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOURCE",
+      "level": "A2",
+      "translation": "источник",
+      "isTransliterated": false
+    },
+    {
+      "word": "STYLE",
+      "level": "A2",
+      "translation": "стиль",
+      "isTransliterated": true
+    },
+    {
+      "word": "TABLE",
+      "level": "A1",
+      "translation": "таблица",
+      "isTransliterated": false
+    },
+    {
+      "word": "THEME",
+      "level": "A2",
+      "translation": "тема",
+      "isTransliterated": false
+    },
+    {
+      "word": "THESIS",
+      "level": "B1",
+      "translation": "тезис",
+      "isTransliterated": true
+    },
+    {
+      "word": "TOPIC",
+      "level": "A1",
+      "translation": "тема",
+      "isTransliterated": false
+    },
+    {
+      "word": "TREND",
+      "level": "A2",
+      "translation": "тенденция",
+      "isTransliterated": false
+    },
+    {
+      "word": "VALID",
+      "level": "B2",
+      "translation": "обоснованный",
+      "isTransliterated": false
+    },
+    {
+      "word": "VALUE",
+      "level": "A2",
+      "translation": "значение",
+      "isTransliterated": false
+    },
+    {
+      "word": "VERBAL",
+      "level": "B1",
+      "translation": "вербальный",
+      "isTransliterated": true
+    },
+    {
+      "word": "WRITER",
+      "level": "A2",
+      "translation": "автор",
+      "isTransliterated": false
+    },
+    {
+      "word": "ABSTRACT",
+      "level": "B2",
+      "translation": "аннотация / абстрактный",
+      "isTransliterated": true
+    },
+    {
+      "word": "ACADEMIC",
+      "level": "A2",
+      "translation": "академический",
+      "isTransliterated": true
+    },
+    {
+      "word": "ACCURACY",
+      "level": "B1",
+      "translation": "точность",
+      "isTransliterated": false
+    },
+    {
+      "word": "ANALYSIS",
+      "level": "B1",
+      "translation": "анализ",
+      "isTransliterated": true
+    },
+    {
+      "word": "APPROACH",
+      "level": "B1",
+      "translation": "подход",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARGUMENT",
+      "level": "B1",
+      "translation": "аргумент",
+      "isTransliterated": true
+    },
+    {
+      "word": "ASSESS",
+      "level": "B1",
+      "translation": "оценивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "BIBLIOGRAPHY",
+      "level": "C1",
+      "translation": "библиография",
+      "isTransliterated": true
+    },
+    {
+      "word": "COHERENCE",
+      "level": "B2",
+      "translation": "связность",
+      "isTransliterated": false
+    },
+    {
+      "word": "COMPARE",
+      "level": "A2",
+      "translation": "сравнивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONCEPT",
+      "level": "A2",
+      "translation": "понятие",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONCLUDE",
+      "level": "B1",
+      "translation": "заключать",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONTEXT",
+      "level": "A2",
+      "translation": "контекст",
+      "isTransliterated": true
+    },
+    {
+      "word": "CONTRAST",
+      "level": "B1",
+      "translation": "сопоставлять",
+      "isTransliterated": false
+    },
+    {
+      "word": "CRITERIA",
+      "level": "B2",
+      "translation": "критерии",
+      "isTransliterated": true
+    },
+    {
+      "word": "DEBATE",
+      "level": "B1",
+      "translation": "дебаты",
+      "isTransliterated": true
+    },
+    {
+      "word": "DEFINE",
+      "level": "A2",
+      "translation": "определять",
+      "isTransliterated": false
+    },
+    {
+      "word": "DESCRIBE",
+      "level": "A2",
+      "translation": "описывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "DIAGRAM",
+      "level": "A2",
+      "translation": "диаграмма",
+      "isTransliterated": true
+    },
+    {
+      "word": "DISCUSS",
+      "level": "A2",
+      "translation": "обсуждать",
+      "isTransliterated": false
+    },
+    {
+      "word": "EVALUATE",
+      "level": "B2",
+      "translation": "оценивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "EVIDENCE",
+      "level": "B1",
+      "translation": "доказательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXAMINE",
+      "level": "B1",
+      "translation": "изучать",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXAMPLE",
+      "level": "A1",
+      "translation": "пример",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXPLAIN",
+      "level": "A2",
+      "translation": "объяснять",
+      "isTransliterated": false
+    },
+    {
+      "word": "FINDING",
+      "level": "B1",
+      "translation": "результат исследования",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORMAL",
+      "level": "A2",
+      "translation": "формальный",
+      "isTransliterated": true
+    },
+    {
+      "word": "HYPOTHESIS",
+      "level": "B2",
+      "translation": "гипотеза",
+      "isTransliterated": false
+    },
+    {
+      "word": "INFERENCE",
+      "level": "B2",
+      "translation": "вывод",
+      "isTransliterated": false
+    },
+    {
+      "word": "INTERPRET",
+      "level": "B2",
+      "translation": "интерпретировать",
+      "isTransliterated": true
+    },
+    {
+      "word": "LECTURE",
+      "level": "A2",
+      "translation": "лекция",
+      "isTransliterated": false
+    },
+    {
+      "word": "LITERATURE",
+      "level": "B1",
+      "translation": "литература",
+      "isTransliterated": true
+    },
+    {
+      "word": "OVERVIEW",
+      "level": "B1",
+      "translation": "обзор",
+      "isTransliterated": false
+    },
+    {
+      "word": "PARAPHRASE",
+      "level": "B2",
+      "translation": "перефразировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "PERCENTAGE",
+      "level": "A2",
+      "translation": "процент",
+      "isTransliterated": false
+    },
+    {
+      "word": "PERSPECTIVE",
+      "level": "B2",
+      "translation": "точка зрения",
+      "isTransliterated": false
+    },
+    {
+      "word": "QUESTION",
+      "level": "A1",
+      "translation": "вопрос",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESEARCH",
+      "level": "A2",
+      "translation": "исследование",
+      "isTransliterated": false
+    },
+    {
+      "word": "REVISION",
+      "level": "B1",
+      "translation": "повторение / правка",
+      "isTransliterated": false
+    },
+    {
+      "word": "SECTION",
+      "level": "A2",
+      "translation": "раздел",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIGNIFICANT",
+      "level": "B2",
+      "translation": "значимый",
+      "isTransliterated": false
+    },
+    {
+      "word": "STATEMENT",
+      "level": "A2",
+      "translation": "утверждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "STATISTICS",
+      "level": "B1",
+      "translation": "статистика",
+      "isTransliterated": true
+    },
+    {
+      "word": "STRUCTURE",
+      "level": "B1",
+      "translation": "структура",
+      "isTransliterated": true
+    },
+    {
+      "word": "SUMMARIZE",
+      "level": "B1",
+      "translation": "кратко излагать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SYNTHESIS",
+      "level": "C1",
+      "translation": "синтез",
+      "isTransliterated": false
+    },
+    {
+      "word": "VARIABLE",
+      "level": "B1",
+      "translation": "переменная",
+      "isTransliterated": false
+    },
+    {
+      "word": "VOCABULARY",
+      "level": "A2",
+      "translation": "словарный запас",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCORDING",
+      "level": "B1",
+      "translation": "согласно",
+      "isTransliterated": false
+    },
+    {
+      "word": "ANALYTICAL",
+      "level": "B2",
+      "translation": "аналитический",
+      "isTransliterated": false
+    },
+    {
+      "word": "ASSESSMENT",
+      "level": "B1",
+      "translation": "оценивание",
+      "isTransliterated": false
+    },
+    {
+      "word": "ASSUMPTION",
+      "level": "B2",
+      "translation": "допущение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CITATION",
+      "level": "B2",
+      "translation": "цитирование",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLASSIFY",
+      "level": "B1",
+      "translation": "классифицировать",
+      "isTransliterated": true
+    },
+    {
+      "word": "CONCLUSION",
+      "level": "B1",
+      "translation": "вывод",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONSISTENT",
+      "level": "B2",
+      "translation": "последовательный",
+      "isTransliterated": false
+    },
+    {
+      "word": "CORRELATION",
+      "level": "B2",
+      "translation": "корреляция",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEFINITION",
+      "level": "A2",
+      "translation": "определение",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEMONSTRATE",
+      "level": "B2",
+      "translation": "демонстрировать",
+      "isTransliterated": true
+    },
+    {
+      "word": "DERIVATION",
+      "level": "C1",
+      "translation": "выведение",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISCUSSION",
+      "level": "A2",
+      "translation": "обсуждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISTRIBUTION",
+      "level": "B2",
+      "translation": "распределение",
+      "isTransliterated": false
+    },
+    {
+      "word": "EMPIRICAL",
+      "level": "B2",
+      "translation": "эмпирический",
+      "isTransliterated": false
+    },
+    {
+      "word": "EQUIVALENT",
+      "level": "B2",
+      "translation": "эквивалентный",
+      "isTransliterated": true
+    },
+    {
+      "word": "EXPERIMENT",
+      "level": "A2",
+      "translation": "эксперимент",
+      "isTransliterated": true
+    },
+    {
+      "word": "FRAMEWORK",
+      "level": "B2",
+      "translation": "концептуальная рамка",
+      "isTransliterated": false
+    },
+    {
+      "word": "GENERALIZE",
+      "level": "B2",
+      "translation": "обобщать",
+      "isTransliterated": false
+    },
+    {
+      "word": "IMPLICATION",
+      "level": "B2",
+      "translation": "следствие",
+      "isTransliterated": false
+    },
+    {
+      "word": "INTRODUCTION",
+      "level": "A2",
+      "translation": "введение",
+      "isTransliterated": false
+    },
+    {
+      "word": "JUSTIFICATION",
+      "level": "B2",
+      "translation": "обоснование",
+      "isTransliterated": false
+    },
+    {
+      "word": "METHODOLOGY",
+      "level": "B2",
+      "translation": "методология",
+      "isTransliterated": true
+    },
+    {
+      "word": "OBJECTIVE",
+      "level": "A2",
+      "translation": "цель / объективный",
+      "isTransliterated": true
+    },
+    {
+      "word": "PARAGRAPH",
+      "level": "A2",
+      "translation": "абзац",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRELIMINARY",
+      "level": "B2",
+      "translation": "предварительный",
+      "isTransliterated": false
+    },
+    {
+      "word": "QUALITATIVE",
+      "level": "B2",
+      "translation": "качественный",
+      "isTransliterated": false
+    },
+    {
+      "word": "QUANTITATIVE",
+      "level": "B2",
+      "translation": "количественный",
+      "isTransliterated": false
+    },
+    {
+      "word": "REFERENCE",
+      "level": "B1",
+      "translation": "ссылка",
+      "isTransliterated": false
+    },
+    {
+      "word": "RELIABILITY",
+      "level": "B2",
+      "translation": "надёжность",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIGNIFICANCE",
+      "level": "B2",
+      "translation": "значимость",
+      "isTransliterated": false
+    },
+    {
+      "word": "THEORETICAL",
+      "level": "B2",
+      "translation": "теоретический",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERLINE",
+      "level": "A2",
+      "translation": "подчёркивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "VALIDATION",
+      "level": "B2",
+      "translation": "проверка достоверности",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORKSHEET",
+      "level": "A2",
+      "translation": "рабочий лист",
+      "isTransliterated": false
+    },
+    {
+      "word": "AIMED",
+      "level": "A2",
+      "translation": "направленный",
+      "isTransliterated": false
+    },
+    {
+      "word": "AIMS",
+      "level": "A1",
+      "translation": "цели",
+      "isTransliterated": false
+    },
+    {
+      "word": "BASIS",
+      "level": "A2",
+      "translation": "основа",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRIEF",
+      "level": "B1",
+      "translation": "краткий",
+      "isTransliterated": false
+    },
+    {
+      "word": "CITED",
+      "level": "B2",
+      "translation": "процитированный",
+      "isTransliterated": false
+    },
+    {
+      "word": "DRAFTS",
+      "level": "B1",
+      "translation": "черновики",
+      "isTransliterated": false
+    },
+    {
+      "word": "EDIT",
+      "level": "A2",
+      "translation": "редактировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "FIELD",
+      "level": "A2",
+      "translation": "область",
+      "isTransliterated": false
+    },
+    {
+      "word": "FINAL",
+      "level": "A1",
+      "translation": "итоговый",
+      "isTransliterated": false
+    },
+    {
+      "word": "GRADE",
+      "level": "A1",
+      "translation": "оценка",
+      "isTransliterated": false
+    },
+    {
+      "word": "INDEX",
+      "level": "B1",
+      "translation": "указатель",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEVEL",
+      "level": "A1",
+      "translation": "уровень",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIMIT",
+      "level": "A2",
+      "translation": "предел",
+      "isTransliterated": false
+    },
+    {
+      "word": "MARGIN",
+      "level": "B1",
+      "translation": "поле / запас",
+      "isTransliterated": false
+    },
+    {
+      "word": "PHRASE",
+      "level": "A2",
+      "translation": "фраза",
+      "isTransliterated": false
+    },
+    {
+      "word": "REPORT",
+      "level": "A2",
+      "translation": "отчёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESULT",
+      "level": "A2",
+      "translation": "результат",
+      "isTransliterated": true
+    },
+    {
+      "word": "STUDY",
+      "level": "A1",
+      "translation": "исследование / учёба",
+      "isTransliterated": false
+    },
+    {
+      "word": "SURVEY",
+      "level": "A2",
+      "translation": "опрос",
+      "isTransliterated": false
+    },
+    {
+      "word": "ANSWER",
+      "level": "A1",
+      "translation": "ответ",
+      "isTransliterated": false
+    },
+    {
+      "word": "BODY",
+      "level": "A1",
+      "translation": "основная часть",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHECK",
+      "level": "A1",
+      "translation": "проверять",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLEAR",
+      "level": "A1",
+      "translation": "ясный",
+      "isTransliterated": false
+    },
+    {
+      "word": "COPY",
+      "level": "A1",
+      "translation": "копия",
+      "isTransliterated": false
+    },
+    {
+      "word": "DETAIL",
+      "level": "A2",
+      "translation": "подробность",
+      "isTransliterated": false
+    },
+    {
+      "word": "FACT",
+      "level": "A2",
+      "translation": "установленное сведение",
+      "isTransliterated": false
+    },
+    {
+      "word": "HELP",
+      "level": "A2",
+      "translation": "помощь",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIST",
+      "level": "A2",
+      "translation": "список",
+      "isTransliterated": false
+    },
+    {
+      "word": "MAIN",
+      "level": "A2",
+      "translation": "главный",
+      "isTransliterated": false
+    },
+    {
+      "word": "MEANING",
+      "level": "A2",
+      "translation": "значение",
+      "isTransliterated": false
+    },
+    {
+      "word": "REASON",
+      "level": "A2",
+      "translation": "причина",
+      "isTransliterated": false
+    },
+    {
+      "word": "SENTENCE",
+      "level": "A2",
+      "translation": "предложение",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORD",
+      "level": "A2",
+      "translation": "слово",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCURATE",
+      "level": "B1",
+      "translation": "точный",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADDRESS",
+      "level": "B1",
+      "translation": "рассматривать",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACKGROUND",
+      "level": "B1",
+      "translation": "предпосылки",
+      "isTransliterated": false
+    },
+    {
+      "word": "BELIEF",
+      "level": "B1",
+      "translation": "убеждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "BENEFIT",
+      "level": "B1",
+      "translation": "польза",
+      "isTransliterated": false
+    },
+    {
+      "word": "CATEGORY",
+      "level": "B1",
+      "translation": "раздел",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLARIFY",
+      "level": "B1",
+      "translation": "уточнять",
+      "isTransliterated": false
+    },
+    {
+      "word": "COHERENT",
+      "level": "B1",
+      "translation": "связный",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONNECT",
+      "level": "B1",
+      "translation": "связывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONSIST",
+      "level": "B1",
+      "translation": "состоять",
+      "isTransliterated": false
+    },
+    {
+      "word": "COUNTER",
+      "level": "B1",
+      "translation": "возражать",
+      "isTransliterated": false
+    },
+    {
+      "word": "CRITICIZE",
+      "level": "B1",
+      "translation": "разбирать недостатки",
+      "isTransliterated": false
+    },
+    {
+      "word": "EMPHASIS",
+      "level": "B1",
+      "translation": "акцент",
+      "isTransliterated": false
+    },
+    {
+      "word": "FEATURE",
+      "level": "B1",
+      "translation": "особенность",
+      "isTransliterated": false
+    },
+    {
+      "word": "HIGHLIGHT",
+      "level": "B1",
+      "translation": "подчёркивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTLINE",
+      "level": "B1",
+      "translation": "набросок",
+      "isTransliterated": false
+    },
+    {
+      "word": "PATTERN",
+      "level": "B1",
+      "translation": "закономерность",
+      "isTransliterated": false
+    },
+    {
+      "word": "PREDICT",
+      "level": "B1",
+      "translation": "предсказывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "PURPOSE",
+      "level": "B1",
+      "translation": "цель",
+      "isTransliterated": false
+    },
+    {
+      "word": "RELEVANT",
+      "level": "B1",
+      "translation": "уместный",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUPPORT",
+      "level": "B1",
+      "translation": "поддерживать",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRANSITION",
+      "level": "B1",
+      "translation": "переход",
+      "isTransliterated": false
+    },
+    {
+      "word": "WEAKNESS",
+      "level": "B1",
+      "translation": "слабость",
+      "isTransliterated": false
+    },
+    {
+      "word": "AMBIGUOUS",
+      "level": "B2",
+      "translation": "двусмысленный",
+      "isTransliterated": false
+    },
+    {
+      "word": "ANNOTATE",
+      "level": "B2",
+      "translation": "помечать",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPENDIX",
+      "level": "B2",
+      "translation": "приложение",
+      "isTransliterated": false
+    },
+    {
+      "word": "BIAS",
+      "level": "B2",
+      "translation": "предвзятость",
+      "isTransliterated": false
+    },
+    {
+      "word": "COHESION",
+      "level": "B2",
+      "translation": "связность",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONCESSION",
+      "level": "B2",
+      "translation": "уступка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISCOURSE",
+      "level": "B2",
+      "translation": "рассуждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "ELABORATE",
+      "level": "B2",
+      "translation": "развивать мысль",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXCERPT",
+      "level": "B2",
+      "translation": "отрывок",
+      "isTransliterated": false
+    },
+    {
+      "word": "GENERALIZATION",
+      "level": "B2",
+      "translation": "обобщение",
+      "isTransliterated": false
+    },
+    {
+      "word": "INCONSISTENCY",
+      "level": "B2",
+      "translation": "несоответствие",
+      "isTransliterated": false
+    },
+    {
+      "word": "INSIGHT",
+      "level": "B2",
+      "translation": "понимание",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIMITATION",
+      "level": "B2",
+      "translation": "ограничение",
+      "isTransliterated": false
+    },
+    {
+      "word": "NUANCE",
+      "level": "B2",
+      "translation": "оттенок смысла",
+      "isTransliterated": false
+    },
+    {
+      "word": "QUALIFIER",
+      "level": "B2",
+      "translation": "уточнитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "REASONING",
+      "level": "B2",
+      "translation": "обоснование",
+      "isTransliterated": false
+    },
+    {
+      "word": "REFUTE",
+      "level": "B2",
+      "translation": "опровергать",
+      "isTransliterated": false
+    },
+    {
+      "word": "REGISTER",
+      "level": "B2",
+      "translation": "стиль речи",
+      "isTransliterated": false
+    },
+    {
+      "word": "RUBRIC",
+      "level": "B2",
+      "translation": "критерии оценки",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCOPE",
+      "level": "B2",
+      "translation": "охват",
+      "isTransliterated": false
+    },
+    {
+      "word": "STRENGTH",
+      "level": "B2",
+      "translation": "сильная сторона",
+      "isTransliterated": false
+    },
+    {
+      "word": "TENTATIVE",
+      "level": "B2",
+      "translation": "предварительный",
+      "isTransliterated": false
+    },
+    {
+      "word": "THOROUGH",
+      "level": "B2",
+      "translation": "тщательный",
+      "isTransliterated": false
+    },
+    {
+      "word": "AXIOM",
+      "level": "C1",
+      "translation": "самоочевидное положение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONJECTURE",
+      "level": "C1",
+      "translation": "предположение",
+      "isTransliterated": false
+    },
+    {
+      "word": "FALSIFIABLE",
+      "level": "C1",
+      "translation": "проверяемый на опровержение",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEDGING",
+      "level": "C1",
+      "translation": "осторожная формулировка",
+      "isTransliterated": false
+    },
+    {
+      "word": "INTERTEXTUALITY",
+      "level": "C1",
+      "translation": "межтекстовая связь",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISINTERPRET",
+      "level": "C1",
+      "translation": "неверно истолковывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERGENERALIZE",
+      "level": "C1",
+      "translation": "чрезмерно обобщать",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRESUPPOSE",
+      "level": "C1",
+      "translation": "предполагать заранее",
+      "isTransliterated": false
+    },
+    {
+      "word": "QUALIFY",
+      "level": "C1",
+      "translation": "ограничивать утверждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUBSTANTIATE",
+      "level": "C1",
+      "translation": "обосновывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERSTATE",
+      "level": "C1",
+      "translation": "преуменьшать",
+      "isTransliterated": false
+    },
+    {
+      "word": "WARRANT",
+      "level": "C1",
+      "translation": "основание",
+      "isTransliterated": false
+    },
+    {
+      "word": "READABILITY",
+      "level": "B2",
+      "translation": "удобочитаемость",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONCISION",
+      "level": "B2",
+      "translation": "краткость",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORDING",
+      "level": "B2",
+      "translation": "формулировка",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIGNPOST",
+      "level": "B2",
+      "translation": "указатель структуры",
+      "isTransliterated": false
+    },
+    {
+      "word": "COUNTERCLAIM",
+      "level": "B2",
+      "translation": "встречное утверждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "TAKEAWAY",
+      "level": "B2",
+      "translation": "главный вывод",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISREADING",
+      "level": "C1",
+      "translation": "ошибочное прочтение",
+      "isTransliterated": false
+    },
+    {
+      "word": "IMPLICATURE",
+      "level": "C2",
+      "translation": "скрытый смысл",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENTAILMENT",
+      "level": "C2",
+      "translation": "логическое следствие",
+      "isTransliterated": false
+    },
+    {
+      "word": "EPISTEMOLOGY",
+      "level": "C2",
+      "translation": "учение о знании",
+      "isTransliterated": false
+    },
+    {
+      "word": "TELEOLOGY",
+      "level": "C2",
+      "translation": "учение о цели",
+      "isTransliterated": false
+    },
+    {
+      "word": "HERMENEUTICS",
+      "level": "C2",
+      "translation": "толкование",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEURISTIC",
+      "level": "C2",
+      "translation": "приём поиска решения",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEIXIS",
+      "level": "C2",
+      "translation": "указательность",
+      "isTransliterated": false
+    },
+    {
+      "word": "METADISCOURSE",
+      "level": "C2",
+      "translation": "речь о построении текста",
+      "isTransliterated": false
+    },
+    {
+      "word": "COUNTERARGUMENT",
+      "level": "C2",
+      "translation": "возражение",
+      "isTransliterated": false
+    },
+    {
+      "word": "INTERLOCUTOR",
+      "level": "C2",
+      "translation": "собеседник",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERSTATEMENT",
+      "level": "C2",
+      "translation": "преуменьшение",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERSTATEMENT",
+      "level": "C2",
+      "translation": "преувеличение",
+      "isTransliterated": false
+    },
+    {
+      "word": "COREFERENCE",
+      "level": "C2",
+      "translation": "соотнесение",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENTHYMEME",
+      "level": "C2",
+      "translation": "скрытое рассуждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "EQUIVOCATION",
+      "level": "C2",
+      "translation": "двусмысленность",
+      "isTransliterated": false
+    }
+  ]
+}
