@@ -1,1 +1,1345 @@
-{"title":"Business English","source":"topic","theme":"business","words":[{"word":"BANK","level":"A1","translation":"банк"},{"word":"CASH","level":"A1","translation":"наличные"},{"word":"COST","level":"A1","translation":"стоимость"},{"word":"DEAL","level":"A1","translation":"сделка"},{"word":"DEBT","level":"A2","translation":"долг"},{"word":"FIRM","level":"A1","translation":"компания"},{"word":"FUND","level":"A2","translation":"фонд"},{"word":"HIRE","level":"A2","translation":"нанимать"},{"word":"JOBS","level":"A1","translation":"работы / вакансии"},{"word":"LOAN","level":"A2","translation":"заём"},{"word":"MAIL","level":"A1","translation":"почта"},{"word":"MEET","level":"A1","translation":"встречаться"},{"word":"MEMO","level":"B1","translation":"служебная записка"},{"word":"PLAN","level":"A1","translation":"план"},{"word":"RATE","level":"A2","translation":"ставка / тариф"},{"word":"RISK","level":"A2","translation":"риск"},{"word":"SALE","level":"A1","translation":"продажа"},{"word":"SHOP","level":"A1","translation":"магазин"},{"word":"SIGN","level":"A1","translation":"подписывать"},{"word":"TEAM","level":"A1","translation":"команда"},{"word":"TERM","level":"A2","translation":"условие / срок"},{"word":"USER","level":"A1","translation":"пользователь"},{"word":"WAGE","level":"A2","translation":"заработная плата"},{"word":"WORK","level":"A1","translation":"работа"},{"word":"AUDIT","level":"B2","translation":"аудит"},{"word":"BOARD","level":"B1","translation":"совет директоров"},{"word":"BRAND","level":"A2","translation":"бренд"},{"word":"BRIEF","level":"B1","translation":"краткое задание"},{"word":"BUYER","level":"A2","translation":"покупатель"},{"word":"CARGO","level":"B1","translation":"груз"},{"word":"CHIEF","level":"B1","translation":"руководитель"},{"word":"CLAIM","level":"B1","translation":"претензия"},{"word":"CLERK","level":"B1","translation":"служащий"},{"word":"CLIENT","level":"A2","translation":"клиент"},{"word":"CREDIT","level":"B1","translation":"кредит"},{"word":"DEBIT","level":"B2","translation":"дебет"},{"word":"DRAFT","level":"B1","translation":"черновик / проект"},{"word":"EMAIL","level":"A2","translation":"электронная почта"},{"word":"EVENT","level":"A2","translation":"мероприятие"},{"word":"FILES","level":"A2","translation":"файлы"},{"word":"FISCAL","level":"B2","translation":"финансовый / фискальный"},{"word":"FORUM","level":"B1","translation":"форум"},{"word":"GOALS","level":"A2","translation":"цели"},{"word":"GROUP","level":"A1","translation":"группа"},{"word":"HIRING","level":"B1","translation":"найм"},{"word":"IMPORT","level":"B1","translation":"импорт"},{"word":"INCOME","level":"B1","translation":"доход"},{"word":"ISSUE","level":"A2","translation":"вопрос / проблема"},{"word":"LABOR","level":"B1","translation":"труд"},{"word":"LAWYER","level":"B1","translation":"юрист"},{"word":"LEASE","level":"B1","translation":"аренда"},{"word":"LEDGER","level":"B2","translation":"бухгалтерская книга"},{"word":"LEGAL","level":"B1","translation":"юридический"},{"word":"MARKET","level":"A2","translation":"рынок"},{"word":"MERGER","level":"B2","translation":"слияние"},{"word":"MONEY","level":"A1","translation":"деньги"},{"word":"OFFICE","level":"A1","translation":"офис"},{"word":"ORDER","level":"A1","translation":"заказ"},{"word":"OWNER","level":"A2","translation":"владелец"},{"word":"POLICY","level":"B1","translation":"политика / правила"},{"word":"PRICE","level":"A1","translation":"цена"},{"word":"PROFIT","level":"B1","translation":"прибыль"},{"word":"PROXY","level":"B2","translation":"доверенность / представитель"},{"word":"QUOTE","level":"B1","translation":"коммерческое предложение"},{"word":"RETAIL","level":"B1","translation":"розничная торговля"},{"word":"SALES","level":"A2","translation":"продажи"},{"word":"SECTOR","level":"B1","translation":"сектор"},{"word":"SELLER","level":"A2","translation":"продавец"},{"word":"SENIOR","level":"B1","translation":"старший"},{"word":"SERVER","level":"B1","translation":"сервер / обслуживающее лицо"},{"word":"SHARE","level":"A2","translation":"акция / доля"},{"word":"STAFF","level":"A2","translation":"персонал"},{"word":"STORE","level":"A1","translation":"магазин / склад"},{"word":"SUITE","level":"B1","translation":"пакет услуг"},{"word":"SUMMIT","level":"B2","translation":"саммит"},{"word":"SUPPLY","level":"B1","translation":"поставка"},{"word":"TARGET","level":"B1","translation":"цель"},{"word":"TENDER","level":"B2","translation":"тендер"},{"word":"TENURE","level":"B2","translation":"срок владения"},{"word":"TRADE","level":"A2","translation":"торговля"},{"word":"TRADER","level":"B1","translation":"трейдер"},{"word":"UNION","level":"B1","translation":"союз"},{"word":"VALUE","level":"A2","translation":"ценность / стоимость"},{"word":"VENDOR","level":"B1","translation":"поставщик"},{"word":"ACCOUNT","level":"A2","translation":"счёт"},{"word":"ANALYST","level":"B2","translation":"аналитик"},{"word":"ANNUAL","level":"B1","translation":"годовой"},{"word":"APPROVAL","level":"B1","translation":"одобрение"},{"word":"BUDGET","level":"A2","translation":"бюджет"},{"word":"BUSINESS","level":"A2","translation":"бизнес"},{"word":"CAMPAIGN","level":"B1","translation":"кампания"},{"word":"CASHFLOW","level":"B2","translation":"денежный поток"},{"word":"CONTRACT","level":"B1","translation":"договор"},{"word":"CORPORATE","level":"B2","translation":"корпоративный"},{"word":"CUSTOMER","level":"A2","translation":"клиент"},{"word":"DEADLINE","level":"B1","translation":"срок сдачи"},{"word":"DELIVERY","level":"A2","translation":"доставка"},{"word":"DISCOUNT","level":"A2","translation":"скидка"},{"word":"DIVIDEND","level":"B2","translation":"дивиденд"},{"word":"EARNINGS","level":"B2","translation":"прибыль / доходы"},{"word":"EXECUTIVE","level":"B2","translation":"руководитель"},{"word":"EXPENSE","level":"B1","translation":"расход"},{"word":"FORECAST","level":"B2","translation":"прогноз"},{"word":"FRANCHISE","level":"B2","translation":"франшиза"},{"word":"GOVERNANCE","level":"C1","translation":"корпоративное управление"},{"word":"INVENTORY","level":"B2","translation":"запасы / инвентарь"},{"word":"INVOICE","level":"B1","translation":"счёт-фактура"},{"word":"LIABILITY","level":"B2","translation":"обязательство"},{"word":"LOGISTICS","level":"B2","translation":"логистика"},{"word":"MANAGEMENT","level":"B1","translation":"управление"},{"word":"MARKETING","level":"B1","translation":"маркетинг"},{"word":"NEGOTIATE","level":"B2","translation":"вести переговоры"},{"word":"PARTNERSHIP","level":"B2","translation":"партнёрство"},{"word":"PROCUREMENT","level":"C1","translation":"закупки"},{"word":"PRODUCTIVITY","level":"B2","translation":"продуктивность"},{"word":"REVENUE","level":"B2","translation":"выручка"},{"word":"SHAREHOLDER","level":"C1","translation":"акционер"},{"word":"STRATEGY","level":"B2","translation":"стратегия"},{"word":"TURNOVER","level":"B2","translation":"оборот"},{"word":"WORKFLOW","level":"B2","translation":"рабочий процесс"}]}
+{
+  "title": "Business English",
+  "source": "topic",
+  "theme": "business",
+  "words": [
+    {
+      "word": "BANK",
+      "level": "A1",
+      "translation": "банк",
+      "isTransliterated": true
+    },
+    {
+      "word": "CASH",
+      "level": "A1",
+      "translation": "наличные",
+      "isTransliterated": false
+    },
+    {
+      "word": "COST",
+      "level": "A1",
+      "translation": "стоимость",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEAL",
+      "level": "A1",
+      "translation": "сделка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEBT",
+      "level": "A2",
+      "translation": "долг",
+      "isTransliterated": false
+    },
+    {
+      "word": "FIRM",
+      "level": "A1",
+      "translation": "компания",
+      "isTransliterated": false
+    },
+    {
+      "word": "FUND",
+      "level": "A2",
+      "translation": "фонд",
+      "isTransliterated": true
+    },
+    {
+      "word": "HIRE",
+      "level": "A2",
+      "translation": "нанимать",
+      "isTransliterated": false
+    },
+    {
+      "word": "JOBS",
+      "level": "A1",
+      "translation": "работы / вакансии",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOAN",
+      "level": "A2",
+      "translation": "заём",
+      "isTransliterated": false
+    },
+    {
+      "word": "MAIL",
+      "level": "A1",
+      "translation": "почта",
+      "isTransliterated": false
+    },
+    {
+      "word": "MEET",
+      "level": "A1",
+      "translation": "встречаться",
+      "isTransliterated": false
+    },
+    {
+      "word": "MEMO",
+      "level": "B1",
+      "translation": "служебная записка",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLAN",
+      "level": "A1",
+      "translation": "план",
+      "isTransliterated": false
+    },
+    {
+      "word": "RATE",
+      "level": "A2",
+      "translation": "ставка / тариф",
+      "isTransliterated": false
+    },
+    {
+      "word": "RISK",
+      "level": "A2",
+      "translation": "риск",
+      "isTransliterated": true
+    },
+    {
+      "word": "SALE",
+      "level": "A1",
+      "translation": "продажа",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHOP",
+      "level": "A1",
+      "translation": "магазин",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIGN",
+      "level": "A1",
+      "translation": "подписывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "TEAM",
+      "level": "A1",
+      "translation": "команда",
+      "isTransliterated": false
+    },
+    {
+      "word": "TERM",
+      "level": "A2",
+      "translation": "условие / срок",
+      "isTransliterated": false
+    },
+    {
+      "word": "USER",
+      "level": "A1",
+      "translation": "пользователь",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAGE",
+      "level": "A2",
+      "translation": "заработная плата",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORK",
+      "level": "A1",
+      "translation": "работа",
+      "isTransliterated": false
+    },
+    {
+      "word": "AUDIT",
+      "level": "B2",
+      "translation": "аудит",
+      "isTransliterated": true
+    },
+    {
+      "word": "BOARD",
+      "level": "B1",
+      "translation": "совет директоров",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRAND",
+      "level": "A2",
+      "translation": "бренд",
+      "isTransliterated": true
+    },
+    {
+      "word": "BRIEF",
+      "level": "B1",
+      "translation": "краткое задание",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUYER",
+      "level": "A2",
+      "translation": "покупатель",
+      "isTransliterated": false
+    },
+    {
+      "word": "CARGO",
+      "level": "B1",
+      "translation": "груз",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHIEF",
+      "level": "B1",
+      "translation": "руководитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLAIM",
+      "level": "B1",
+      "translation": "претензия",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLERK",
+      "level": "B1",
+      "translation": "служащий",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLIENT",
+      "level": "A2",
+      "translation": "клиент",
+      "isTransliterated": true
+    },
+    {
+      "word": "CREDIT",
+      "level": "B1",
+      "translation": "кредит",
+      "isTransliterated": true
+    },
+    {
+      "word": "DEBIT",
+      "level": "B2",
+      "translation": "дебет",
+      "isTransliterated": true
+    },
+    {
+      "word": "DRAFT",
+      "level": "B1",
+      "translation": "черновик / проект",
+      "isTransliterated": false
+    },
+    {
+      "word": "EMAIL",
+      "level": "A2",
+      "translation": "электронная почта",
+      "isTransliterated": false
+    },
+    {
+      "word": "EVENT",
+      "level": "A2",
+      "translation": "мероприятие",
+      "isTransliterated": false
+    },
+    {
+      "word": "FILES",
+      "level": "A2",
+      "translation": "файлы",
+      "isTransliterated": false
+    },
+    {
+      "word": "FISCAL",
+      "level": "B2",
+      "translation": "финансовый / фискальный",
+      "isTransliterated": true
+    },
+    {
+      "word": "FORUM",
+      "level": "B1",
+      "translation": "форум",
+      "isTransliterated": true
+    },
+    {
+      "word": "GOALS",
+      "level": "A2",
+      "translation": "цели",
+      "isTransliterated": false
+    },
+    {
+      "word": "GROUP",
+      "level": "A1",
+      "translation": "группа",
+      "isTransliterated": false
+    },
+    {
+      "word": "HIRING",
+      "level": "B1",
+      "translation": "найм",
+      "isTransliterated": false
+    },
+    {
+      "word": "IMPORT",
+      "level": "B1",
+      "translation": "импорт",
+      "isTransliterated": true
+    },
+    {
+      "word": "INCOME",
+      "level": "B1",
+      "translation": "доход",
+      "isTransliterated": false
+    },
+    {
+      "word": "ISSUE",
+      "level": "A2",
+      "translation": "вопрос / проблема",
+      "isTransliterated": false
+    },
+    {
+      "word": "LABOR",
+      "level": "B1",
+      "translation": "труд",
+      "isTransliterated": false
+    },
+    {
+      "word": "LAWYER",
+      "level": "B1",
+      "translation": "юрист",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEASE",
+      "level": "B1",
+      "translation": "аренда",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEDGER",
+      "level": "B2",
+      "translation": "бухгалтерская книга",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEGAL",
+      "level": "B1",
+      "translation": "юридический",
+      "isTransliterated": false
+    },
+    {
+      "word": "MARKET",
+      "level": "A2",
+      "translation": "рынок",
+      "isTransliterated": false
+    },
+    {
+      "word": "MERGER",
+      "level": "B2",
+      "translation": "слияние",
+      "isTransliterated": false
+    },
+    {
+      "word": "MONEY",
+      "level": "A1",
+      "translation": "деньги",
+      "isTransliterated": false
+    },
+    {
+      "word": "OFFICE",
+      "level": "A1",
+      "translation": "офис",
+      "isTransliterated": false
+    },
+    {
+      "word": "ORDER",
+      "level": "A1",
+      "translation": "заказ",
+      "isTransliterated": false
+    },
+    {
+      "word": "OWNER",
+      "level": "A2",
+      "translation": "владелец",
+      "isTransliterated": false
+    },
+    {
+      "word": "POLICY",
+      "level": "B1",
+      "translation": "политика / правила",
+      "isTransliterated": true
+    },
+    {
+      "word": "PRICE",
+      "level": "A1",
+      "translation": "цена",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROFIT",
+      "level": "B1",
+      "translation": "прибыль",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROXY",
+      "level": "B2",
+      "translation": "доверенность / представитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "QUOTE",
+      "level": "B1",
+      "translation": "коммерческое предложение",
+      "isTransliterated": false
+    },
+    {
+      "word": "RETAIL",
+      "level": "B1",
+      "translation": "розничная торговля",
+      "isTransliterated": false
+    },
+    {
+      "word": "SALES",
+      "level": "A2",
+      "translation": "продажи",
+      "isTransliterated": false
+    },
+    {
+      "word": "SECTOR",
+      "level": "B1",
+      "translation": "сектор",
+      "isTransliterated": true
+    },
+    {
+      "word": "SELLER",
+      "level": "A2",
+      "translation": "продавец",
+      "isTransliterated": false
+    },
+    {
+      "word": "SENIOR",
+      "level": "B1",
+      "translation": "старший",
+      "isTransliterated": false
+    },
+    {
+      "word": "SERVER",
+      "level": "B1",
+      "translation": "сервер / обслуживающее лицо",
+      "isTransliterated": true
+    },
+    {
+      "word": "SHARE",
+      "level": "A2",
+      "translation": "акция / доля",
+      "isTransliterated": false
+    },
+    {
+      "word": "STAFF",
+      "level": "A2",
+      "translation": "персонал",
+      "isTransliterated": false
+    },
+    {
+      "word": "STORE",
+      "level": "A1",
+      "translation": "магазин / склад",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUITE",
+      "level": "B1",
+      "translation": "пакет услуг",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUMMIT",
+      "level": "B2",
+      "translation": "саммит",
+      "isTransliterated": true
+    },
+    {
+      "word": "SUPPLY",
+      "level": "B1",
+      "translation": "поставка",
+      "isTransliterated": false
+    },
+    {
+      "word": "TARGET",
+      "level": "B1",
+      "translation": "цель",
+      "isTransliterated": false
+    },
+    {
+      "word": "TENDER",
+      "level": "B2",
+      "translation": "тендер",
+      "isTransliterated": true
+    },
+    {
+      "word": "TENURE",
+      "level": "B2",
+      "translation": "срок владения",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRADE",
+      "level": "A2",
+      "translation": "торговля",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRADER",
+      "level": "B1",
+      "translation": "трейдер",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNION",
+      "level": "B1",
+      "translation": "союз",
+      "isTransliterated": false
+    },
+    {
+      "word": "VALUE",
+      "level": "A2",
+      "translation": "ценность / стоимость",
+      "isTransliterated": false
+    },
+    {
+      "word": "VENDOR",
+      "level": "B1",
+      "translation": "поставщик",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCOUNT",
+      "level": "A2",
+      "translation": "счёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "ANALYST",
+      "level": "B2",
+      "translation": "аналитик",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANNUAL",
+      "level": "B1",
+      "translation": "годовой",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPROVAL",
+      "level": "B1",
+      "translation": "одобрение",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUDGET",
+      "level": "A2",
+      "translation": "бюджет",
+      "isTransliterated": true
+    },
+    {
+      "word": "BUSINESS",
+      "level": "A2",
+      "translation": "бизнес",
+      "isTransliterated": false
+    },
+    {
+      "word": "CAMPAIGN",
+      "level": "B1",
+      "translation": "кампания",
+      "isTransliterated": true
+    },
+    {
+      "word": "CASHFLOW",
+      "level": "B2",
+      "translation": "денежный поток",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONTRACT",
+      "level": "B1",
+      "translation": "договор",
+      "isTransliterated": false
+    },
+    {
+      "word": "CORPORATE",
+      "level": "B2",
+      "translation": "корпоративный",
+      "isTransliterated": true
+    },
+    {
+      "word": "CUSTOMER",
+      "level": "A2",
+      "translation": "клиент",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEADLINE",
+      "level": "B1",
+      "translation": "срок сдачи",
+      "isTransliterated": false
+    },
+    {
+      "word": "DELIVERY",
+      "level": "A2",
+      "translation": "доставка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISCOUNT",
+      "level": "A2",
+      "translation": "скидка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DIVIDEND",
+      "level": "B2",
+      "translation": "дивиденд",
+      "isTransliterated": true
+    },
+    {
+      "word": "EARNINGS",
+      "level": "B2",
+      "translation": "прибыль / доходы",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXECUTIVE",
+      "level": "B2",
+      "translation": "руководитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXPENSE",
+      "level": "B1",
+      "translation": "расход",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORECAST",
+      "level": "B2",
+      "translation": "прогноз",
+      "isTransliterated": false
+    },
+    {
+      "word": "FRANCHISE",
+      "level": "B2",
+      "translation": "франшиза",
+      "isTransliterated": true
+    },
+    {
+      "word": "GOVERNANCE",
+      "level": "C1",
+      "translation": "корпоративное управление",
+      "isTransliterated": false
+    },
+    {
+      "word": "INVENTORY",
+      "level": "B2",
+      "translation": "запасы / инвентарь",
+      "isTransliterated": true
+    },
+    {
+      "word": "INVOICE",
+      "level": "B1",
+      "translation": "счёт-фактура",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIABILITY",
+      "level": "B2",
+      "translation": "обязательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOGISTICS",
+      "level": "B2",
+      "translation": "логистика",
+      "isTransliterated": true
+    },
+    {
+      "word": "MANAGEMENT",
+      "level": "B1",
+      "translation": "управление",
+      "isTransliterated": false
+    },
+    {
+      "word": "MARKETING",
+      "level": "B1",
+      "translation": "маркетинг",
+      "isTransliterated": true
+    },
+    {
+      "word": "NEGOTIATE",
+      "level": "B2",
+      "translation": "вести переговоры",
+      "isTransliterated": false
+    },
+    {
+      "word": "PARTNERSHIP",
+      "level": "B2",
+      "translation": "партнёрство",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROCUREMENT",
+      "level": "C1",
+      "translation": "закупки",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRODUCTIVITY",
+      "level": "B2",
+      "translation": "продуктивность",
+      "isTransliterated": false
+    },
+    {
+      "word": "REVENUE",
+      "level": "B2",
+      "translation": "выручка",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHAREHOLDER",
+      "level": "C1",
+      "translation": "акционер",
+      "isTransliterated": false
+    },
+    {
+      "word": "STRATEGY",
+      "level": "B2",
+      "translation": "стратегия",
+      "isTransliterated": true
+    },
+    {
+      "word": "TURNOVER",
+      "level": "B2",
+      "translation": "оборот",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORKFLOW",
+      "level": "B2",
+      "translation": "рабочий процесс",
+      "isTransliterated": false
+    },
+    {
+      "word": "CALL",
+      "level": "A1",
+      "translation": "звонок",
+      "isTransliterated": false
+    },
+    {
+      "word": "TASK",
+      "level": "A1",
+      "translation": "задача",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIST",
+      "level": "A1",
+      "translation": "список",
+      "isTransliterated": false
+    },
+    {
+      "word": "NOTE",
+      "level": "A1",
+      "translation": "заметка",
+      "isTransliterated": false
+    },
+    {
+      "word": "NAME",
+      "level": "A1",
+      "translation": "название",
+      "isTransliterated": false
+    },
+    {
+      "word": "HELP",
+      "level": "A1",
+      "translation": "помощь",
+      "isTransliterated": false
+    },
+    {
+      "word": "OPEN",
+      "level": "A1",
+      "translation": "открывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLOSE",
+      "level": "A1",
+      "translation": "закрывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEND",
+      "level": "A1",
+      "translation": "отправлять",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOSS",
+      "level": "A1",
+      "translation": "начальник",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORKER",
+      "level": "A1",
+      "translation": "работник",
+      "isTransliterated": false
+    },
+    {
+      "word": "AGENDA",
+      "level": "A2",
+      "translation": "повестка",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPOINTMENT",
+      "level": "A2",
+      "translation": "встреча",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPROVE",
+      "level": "A2",
+      "translation": "одобрять",
+      "isTransliterated": false
+    },
+    {
+      "word": "CANCEL",
+      "level": "A2",
+      "translation": "отменять",
+      "isTransliterated": false
+    },
+    {
+      "word": "CAREER",
+      "level": "A2",
+      "translation": "профессиональный путь",
+      "isTransliterated": false
+    },
+    {
+      "word": "REPORT",
+      "level": "A2",
+      "translation": "отчёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "MEETING",
+      "level": "A2",
+      "translation": "встреча",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRODUCT",
+      "level": "A2",
+      "translation": "товар",
+      "isTransliterated": false
+    },
+    {
+      "word": "SERVICE",
+      "level": "A2",
+      "translation": "услуга",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUPPLIER",
+      "level": "A2",
+      "translation": "поставщик",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRAINING",
+      "level": "A2",
+      "translation": "обучение",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEMAND",
+      "level": "A2",
+      "translation": "спрос",
+      "isTransliterated": false
+    },
+    {
+      "word": "OFFER",
+      "level": "A2",
+      "translation": "предложение",
+      "isTransliterated": false
+    },
+    {
+      "word": "GROWTH",
+      "level": "A2",
+      "translation": "рост",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRANCH",
+      "level": "B1",
+      "translation": "филиал",
+      "isTransliterated": false
+    },
+    {
+      "word": "MANAGER",
+      "level": "B1",
+      "translation": "руководитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "EMPLOYEE",
+      "level": "B1",
+      "translation": "сотрудник",
+      "isTransliterated": false
+    },
+    {
+      "word": "EMPLOYER",
+      "level": "B1",
+      "translation": "работодатель",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPLICANT",
+      "level": "B1",
+      "translation": "соискатель",
+      "isTransliterated": false
+    },
+    {
+      "word": "RECRUIT",
+      "level": "B1",
+      "translation": "нанимать",
+      "isTransliterated": false
+    },
+    {
+      "word": "RECRUITER",
+      "level": "B1",
+      "translation": "специалист по найму",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESIGN",
+      "level": "B1",
+      "translation": "увольняться",
+      "isTransliterated": false
+    },
+    {
+      "word": "RETAIN",
+      "level": "B1",
+      "translation": "удерживать",
+      "isTransliterated": false
+    },
+    {
+      "word": "ASSIGN",
+      "level": "B1",
+      "translation": "назначать",
+      "isTransliterated": false
+    },
+    {
+      "word": "BENEFIT",
+      "level": "B1",
+      "translation": "льгота",
+      "isTransliterated": false
+    },
+    {
+      "word": "BIDDER",
+      "level": "B1",
+      "translation": "участник торгов",
+      "isTransliterated": false
+    },
+    {
+      "word": "COMPETE",
+      "level": "B1",
+      "translation": "конкурировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "RIVAL",
+      "level": "B1",
+      "translation": "соперник",
+      "isTransliterated": false
+    },
+    {
+      "word": "FOUNDER",
+      "level": "B1",
+      "translation": "основатель",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEADERSHIP",
+      "level": "B1",
+      "translation": "руководство",
+      "isTransliterated": false
+    },
+    {
+      "word": "FEEDBACK",
+      "level": "B1",
+      "translation": "обратная связь",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAYROLL",
+      "level": "B1",
+      "translation": "ведомость зарплаты",
+      "isTransliterated": false
+    },
+    {
+      "word": "POSITION",
+      "level": "B1",
+      "translation": "должность",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROPOSAL",
+      "level": "B1",
+      "translation": "предложение",
+      "isTransliterated": false
+    },
+    {
+      "word": "WHOLESALE",
+      "level": "B1",
+      "translation": "оптовая торговля",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTSOURCE",
+      "level": "B2",
+      "translation": "передавать подрядчику",
+      "isTransliterated": false
+    },
+    {
+      "word": "DELEGATE",
+      "level": "B2",
+      "translation": "поручать",
+      "isTransliterated": false
+    },
+    {
+      "word": "DOWNSIZE",
+      "level": "B2",
+      "translation": "сокращать штат",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALIGNMENT",
+      "level": "B2",
+      "translation": "согласованность",
+      "isTransliterated": false
+    },
+    {
+      "word": "BENCHMARK",
+      "level": "B2",
+      "translation": "ориентир",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEADLOCK",
+      "level": "B2",
+      "translation": "тупик",
+      "isTransliterated": false
+    },
+    {
+      "word": "DIVERSIFY",
+      "level": "B2",
+      "translation": "расширять направления",
+      "isTransliterated": false
+    },
+    {
+      "word": "INCENTIVE",
+      "level": "B2",
+      "translation": "стимул",
+      "isTransliterated": false
+    },
+    {
+      "word": "MANDATE",
+      "level": "B2",
+      "translation": "поручение",
+      "isTransliterated": false
+    },
+    {
+      "word": "MONOPOLY",
+      "level": "B2",
+      "translation": "единоличный контроль",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTCOME",
+      "level": "B2",
+      "translation": "исход",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROFITABLE",
+      "level": "B2",
+      "translation": "прибыльный",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESTRUCTURE",
+      "level": "B2",
+      "translation": "перестраивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "STAKEHOLDER",
+      "level": "B2",
+      "translation": "заинтересованная сторона",
+      "isTransliterated": false
+    },
+    {
+      "word": "UPSKILL",
+      "level": "B2",
+      "translation": "повышать навыки",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACQUIRE",
+      "level": "B2",
+      "translation": "приобретать",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACQUISITION",
+      "level": "C1",
+      "translation": "приобретение",
+      "isTransliterated": false
+    },
+    {
+      "word": "DIVESTMENT",
+      "level": "C1",
+      "translation": "продажа актива",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERTAKING",
+      "level": "C1",
+      "translation": "обязательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "INSOLVENCY",
+      "level": "C1",
+      "translation": "неплатёжеспособность",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIQUIDATION",
+      "level": "C1",
+      "translation": "закрытие с распродажей",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONSORTIUM",
+      "level": "C1",
+      "translation": "объединение",
+      "isTransliterated": false
+    },
+    {
+      "word": "TURNAROUND",
+      "level": "C1",
+      "translation": "выход из кризиса",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEADCOUNT",
+      "level": "B2",
+      "translation": "численность сотрудников",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROADMAP",
+      "level": "B2",
+      "translation": "план развития",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACKLOG",
+      "level": "B2",
+      "translation": "очередь задач",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORKLOAD",
+      "level": "B1",
+      "translation": "нагрузка",
+      "isTransliterated": false
+    },
+    {
+      "word": "HANDOVER",
+      "level": "B1",
+      "translation": "передача дел",
+      "isTransliterated": false
+    },
+    {
+      "word": "ONBOARD",
+      "level": "B2",
+      "translation": "вводить в должность",
+      "isTransliterated": false
+    },
+    {
+      "word": "MILESTONE",
+      "level": "B1",
+      "translation": "этап",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROLLBACK",
+      "level": "B2",
+      "translation": "откат",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROLLUP",
+      "level": "B2",
+      "translation": "сводка",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUYOUT",
+      "level": "B2",
+      "translation": "выкуп",
+      "isTransliterated": false
+    },
+    {
+      "word": "PITCH",
+      "level": "B1",
+      "translation": "презентация предложения",
+      "isTransliterated": false
+    },
+    {
+      "word": "REWORK",
+      "level": "B1",
+      "translation": "переделка",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISALIGNMENT",
+      "level": "C1",
+      "translation": "несогласованность",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERHEAD",
+      "level": "B2",
+      "translation": "накладные расходы",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHORTLIST",
+      "level": "B2",
+      "translation": "предварительный список",
+      "isTransliterated": false
+    },
+    {
+      "word": "TURNKEY",
+      "level": "C1",
+      "translation": "готовый к использованию",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISINTERMEDIATION",
+      "level": "C2",
+      "translation": "исключение посредника",
+      "isTransliterated": false
+    },
+    {
+      "word": "CANNIBALIZATION",
+      "level": "C2",
+      "translation": "переток спроса внутри ассортимента",
+      "isTransliterated": false
+    },
+    {
+      "word": "GREENWASHING",
+      "level": "C2",
+      "translation": "ложная экологичность",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOOTSTRAPPING",
+      "level": "C2",
+      "translation": "развитие без внешних средств",
+      "isTransliterated": false
+    },
+    {
+      "word": "OFFSHORING",
+      "level": "C2",
+      "translation": "перенос за рубеж",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESHORING",
+      "level": "C2",
+      "translation": "возврат производства",
+      "isTransliterated": false
+    },
+    {
+      "word": "MOAT",
+      "level": "C2",
+      "translation": "устойчивое преимущество",
+      "isTransliterated": false
+    },
+    {
+      "word": "INCUMBENT",
+      "level": "C2",
+      "translation": "устоявшийся участник",
+      "isTransliterated": false
+    },
+    {
+      "word": "ATTRITION",
+      "level": "C2",
+      "translation": "естественная убыль",
+      "isTransliterated": false
+    },
+    {
+      "word": "GATEKEEPER",
+      "level": "C1",
+      "translation": "ответственный за доступ",
+      "isTransliterated": false
+    },
+    {
+      "word": "RISKTAKER",
+      "level": "C1",
+      "translation": "склонный к риску",
+      "isTransliterated": false
+    },
+    {
+      "word": "FIREDRILL",
+      "level": "C1",
+      "translation": "срочная проверка",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENTREPRENEURSHIP",
+      "level": "C2",
+      "translation": "предпринимательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "RIGHTSIZING",
+      "level": "C2",
+      "translation": "оптимизация численности",
+      "isTransliterated": false
+    },
+    {
+      "word": "NEARSHORING",
+      "level": "C2",
+      "translation": "перенос в соседнюю страну",
+      "isTransliterated": false
+    },
+    {
+      "word": "WHITELABELING",
+      "level": "C2",
+      "translation": "выпуск под чужой маркой",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRICESETTING",
+      "level": "C2",
+      "translation": "установление цены",
+      "isTransliterated": false
+    },
+    {
+      "word": "DECOUPLING",
+      "level": "C2",
+      "translation": "разъединение процессов",
+      "isTransliterated": false
+    }
+  ]
+}
