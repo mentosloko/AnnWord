@@ -1,1 +1,1375 @@
-{"title":"Finance & Banking English","source":"topic","theme":"finance","words":[{"word":"BANK","level":"A1","translation":"банк"},{"word":"CASH","level":"A1","translation":"наличные"},{"word":"COIN","level":"A1","translation":"монета"},{"word":"COST","level":"A1","translation":"стоимость"},{"word":"DEBT","level":"A2","translation":"долг"},{"word":"FUND","level":"A2","translation":"фонд"},{"word":"LOAN","level":"A2","translation":"кредит"},{"word":"RATE","level":"A2","translation":"ставка"},{"word":"RISK","level":"A2","translation":"риск"},{"word":"SAVE","level":"A1","translation":"копить"},{"word":"TAXES","level":"A2","translation":"налоги"},{"word":"VALUE","level":"A2","translation":"стоимость"},{"word":"YIELD","level":"B2","translation":"доходность"},{"word":"ASSET","level":"B1","translation":"актив"},{"word":"AUDIT","level":"B2","translation":"аудит"},{"word":"BONDS","level":"B1","translation":"облигации"},{"word":"BUDGET","level":"A2","translation":"бюджет"},{"word":"BUYER","level":"A2","translation":"покупатель"},{"word":"CAPEX","level":"B2","translation":"капитальные расходы"},{"word":"CREDIT","level":"A2","translation":"кредит"},{"word":"DEBIT","level":"B1","translation":"дебет"},{"word":"EQUITY","level":"B2","translation":"собственный капитал"},{"word":"ESCROW","level":"B2","translation":"эскроу"},{"word":"FEES","level":"A2","translation":"комиссии"},{"word":"FISCAL","level":"B2","translation":"фискальный"},{"word":"FUNDS","level":"A2","translation":"средства"},{"word":"HEDGE","level":"B2","translation":"хеджировать"},{"word":"INCOME","level":"A2","translation":"доход"},{"word":"INVOICE","level":"B1","translation":"счёт-фактура"},{"word":"ISSUER","level":"B2","translation":"эмитент"},{"word":"LEDGER","level":"B2","translation":"бухгалтерская книга"},{"word":"LOSSES","level":"B1","translation":"убытки"},{"word":"MARGIN","level":"B2","translation":"маржа"},{"word":"MARKET","level":"A2","translation":"рынок"},{"word":"MONEY","level":"A1","translation":"деньги"},{"word":"OPTION","level":"B2","translation":"опцион"},{"word":"ORDER","level":"A2","translation":"ордер / заказ"},{"word":"PAYEE","level":"B1","translation":"получатель платежа"},{"word":"PAYER","level":"B1","translation":"плательщик"},{"word":"PAYING","level":"A2","translation":"оплата"},{"word":"PAYOFF","level":"B2","translation":"выплата"},{"word":"PAYOUT","level":"B2","translation":"выплата"},{"word":"PRICE","level":"A1","translation":"цена"},{"word":"PROFIT","level":"B1","translation":"прибыль"},{"word":"QUOTE","level":"B1","translation":"котировка"},{"word":"RATES","level":"A2","translation":"ставки"},{"word":"RECORD","level":"A2","translation":"запись"},{"word":"REFUND","level":"A2","translation":"возврат денег"},{"word":"RENTAL","level":"A2","translation":"аренда"},{"word":"RETAIL","level":"B1","translation":"розничный"},{"word":"RETURN","level":"A2","translation":"доходность / возврат"},{"word":"REVENUE","level":"B1","translation":"выручка"},{"word":"SAVING","level":"A2","translation":"накопление"},{"word":"SECTOR","level":"B1","translation":"сектор"},{"word":"SHARE","level":"A2","translation":"акция / доля"},{"word":"SPEND","level":"A1","translation":"тратить"},{"word":"SWAP","level":"B2","translation":"своп"},{"word":"TARIFF","level":"B1","translation":"тариф"},{"word":"TENDER","level":"B2","translation":"тендер"},{"word":"TRADE","level":"A2","translation":"сделка / торговля"},{"word":"TRADER","level":"B1","translation":"трейдер"},{"word":"UNPAID","level":"B1","translation":"неоплаченный"},{"word":"WAGES","level":"A2","translation":"зарплата"},{"word":"WALLET","level":"A2","translation":"кошелёк"},{"word":"WEALTH","level":"B1","translation":"богатство"},{"word":"ACCOUNT","level":"A2","translation":"счёт"},{"word":"ACCRUAL","level":"B2","translation":"начисление"},{"word":"BALANCE","level":"A2","translation":"баланс"},{"word":"BANKING","level":"A2","translation":"банковское дело"},{"word":"BORROWER","level":"B1","translation":"заёмщик"},{"word":"BROKERAGE","level":"B2","translation":"брокерское обслуживание"},{"word":"CAPITAL","level":"B1","translation":"капитал"},{"word":"COLLATERAL","level":"B2","translation":"залог"},{"word":"COMMISSION","level":"B1","translation":"комиссия"},{"word":"COMMODITY","level":"B2","translation":"товарный актив"},{"word":"CURRENCY","level":"A2","translation":"валюта"},{"word":"DEPOSIT","level":"A2","translation":"депозит"},{"word":"DIVIDEND","level":"B2","translation":"дивиденд"},{"word":"EARNINGS","level":"B2","translation":"прибыль"},{"word":"EXPENSE","level":"B1","translation":"расход"},{"word":"FINANCE","level":"A2","translation":"финансы"},{"word":"FORECAST","level":"B2","translation":"прогноз"},{"word":"INSURANCE","level":"B1","translation":"страхование"},{"word":"INTEREST","level":"A2","translation":"процент"},{"word":"INVESTOR","level":"B1","translation":"инвестор"},{"word":"LEVERAGE","level":"B2","translation":"кредитное плечо"},{"word":"LIABILITY","level":"B2","translation":"обязательство"},{"word":"LIQUIDITY","level":"C1","translation":"ликвидность"},{"word":"MORTGAGE","level":"B1","translation":"ипотека"},{"word":"OVERDRAFT","level":"B2","translation":"овердрафт"},{"word":"PAYMENT","level":"A2","translation":"платёж"},{"word":"PORTFOLIO","level":"B2","translation":"портфель"},{"word":"PRINCIPAL","level":"B2","translation":"основная сумма долга"},{"word":"PURCHASE","level":"A2","translation":"покупка"},{"word":"RECEIPT","level":"A2","translation":"квитанция"},{"word":"SECURITY","level":"B2","translation":"ценная бумага"},{"word":"SOLVENCY","level":"C1","translation":"платёжеспособность"},{"word":"STATEMENT","level":"A2","translation":"выписка"},{"word":"TAXATION","level":"B2","translation":"налогообложение"},{"word":"TRANSACTION","level":"B1","translation":"транзакция"},{"word":"TRANSFER","level":"A2","translation":"перевод"},{"word":"TREASURY","level":"B2","translation":"казначейство"},{"word":"VALUATION","level":"B2","translation":"оценка стоимости"},{"word":"VOLATILITY","level":"C1","translation":"волатильность"},{"word":"WITHDRAWAL","level":"A2","translation":"снятие средств"},{"word":"APPRAISAL","level":"B2","translation":"оценка"},{"word":"ARBITRAGE","level":"C1","translation":"арбитраж"},{"word":"BANKRUPTCY","level":"B2","translation":"банкротство"},{"word":"BOOKKEEPING","level":"B2","translation":"бухгалтерский учёт"},{"word":"CASHFLOW","level":"B2","translation":"денежный поток"},{"word":"CREDITWORTHY","level":"C1","translation":"кредитоспособный"},{"word":"DEPRECIATION","level":"B2","translation":"амортизация"},{"word":"DIVERSIFICATION","level":"C1","translation":"диверсификация"},{"word":"EXCHANGE","level":"A2","translation":"обмен"},{"word":"INFLATION","level":"B1","translation":"инфляция"},{"word":"INSTALLMENT","level":"B1","translation":"платёж по рассрочке"},{"word":"INVESTMENT","level":"B1","translation":"инвестиция"},{"word":"LENDER","level":"B1","translation":"кредитор"},{"word":"MATURITY","level":"B2","translation":"срок погашения"},{"word":"MICROLOAN","level":"B1","translation":"микрозайм"}]}
+{
+  "title": "Finance & Banking English",
+  "source": "topic",
+  "theme": "finance",
+  "words": [
+    {
+      "word": "BANK",
+      "level": "A1",
+      "translation": "банк",
+      "isTransliterated": true
+    },
+    {
+      "word": "CASH",
+      "level": "A1",
+      "translation": "наличные",
+      "isTransliterated": false
+    },
+    {
+      "word": "COIN",
+      "level": "A1",
+      "translation": "монета",
+      "isTransliterated": false
+    },
+    {
+      "word": "COST",
+      "level": "A1",
+      "translation": "стоимость",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEBT",
+      "level": "A2",
+      "translation": "долг",
+      "isTransliterated": false
+    },
+    {
+      "word": "FUND",
+      "level": "A2",
+      "translation": "фонд",
+      "isTransliterated": true
+    },
+    {
+      "word": "LOAN",
+      "level": "A2",
+      "translation": "кредит",
+      "isTransliterated": false
+    },
+    {
+      "word": "RATE",
+      "level": "A2",
+      "translation": "ставка",
+      "isTransliterated": false
+    },
+    {
+      "word": "RISK",
+      "level": "A2",
+      "translation": "риск",
+      "isTransliterated": true
+    },
+    {
+      "word": "SAVE",
+      "level": "A1",
+      "translation": "копить",
+      "isTransliterated": false
+    },
+    {
+      "word": "TAXES",
+      "level": "A2",
+      "translation": "налоги",
+      "isTransliterated": false
+    },
+    {
+      "word": "VALUE",
+      "level": "A2",
+      "translation": "стоимость",
+      "isTransliterated": false
+    },
+    {
+      "word": "YIELD",
+      "level": "B2",
+      "translation": "доходность",
+      "isTransliterated": false
+    },
+    {
+      "word": "ASSET",
+      "level": "B1",
+      "translation": "актив",
+      "isTransliterated": false
+    },
+    {
+      "word": "AUDIT",
+      "level": "B2",
+      "translation": "аудит",
+      "isTransliterated": true
+    },
+    {
+      "word": "BONDS",
+      "level": "B1",
+      "translation": "облигации",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUDGET",
+      "level": "A2",
+      "translation": "бюджет",
+      "isTransliterated": true
+    },
+    {
+      "word": "BUYER",
+      "level": "A2",
+      "translation": "покупатель",
+      "isTransliterated": false
+    },
+    {
+      "word": "CAPEX",
+      "level": "B2",
+      "translation": "капитальные расходы",
+      "isTransliterated": false
+    },
+    {
+      "word": "CREDIT",
+      "level": "A2",
+      "translation": "кредит",
+      "isTransliterated": true
+    },
+    {
+      "word": "DEBIT",
+      "level": "B1",
+      "translation": "дебет",
+      "isTransliterated": true
+    },
+    {
+      "word": "EQUITY",
+      "level": "B2",
+      "translation": "собственный капитал",
+      "isTransliterated": false
+    },
+    {
+      "word": "ESCROW",
+      "level": "B2",
+      "translation": "эскроу",
+      "isTransliterated": true
+    },
+    {
+      "word": "FEES",
+      "level": "A2",
+      "translation": "комиссии",
+      "isTransliterated": false
+    },
+    {
+      "word": "FISCAL",
+      "level": "B2",
+      "translation": "фискальный",
+      "isTransliterated": true
+    },
+    {
+      "word": "FUNDS",
+      "level": "A2",
+      "translation": "средства",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEDGE",
+      "level": "B2",
+      "translation": "хеджировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "INCOME",
+      "level": "A2",
+      "translation": "доход",
+      "isTransliterated": false
+    },
+    {
+      "word": "INVOICE",
+      "level": "B1",
+      "translation": "счёт-фактура",
+      "isTransliterated": false
+    },
+    {
+      "word": "ISSUER",
+      "level": "B2",
+      "translation": "эмитент",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEDGER",
+      "level": "B2",
+      "translation": "бухгалтерская книга",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOSSES",
+      "level": "B1",
+      "translation": "убытки",
+      "isTransliterated": false
+    },
+    {
+      "word": "MARGIN",
+      "level": "B2",
+      "translation": "маржа",
+      "isTransliterated": false
+    },
+    {
+      "word": "MARKET",
+      "level": "A2",
+      "translation": "рынок",
+      "isTransliterated": false
+    },
+    {
+      "word": "MONEY",
+      "level": "A1",
+      "translation": "деньги",
+      "isTransliterated": false
+    },
+    {
+      "word": "OPTION",
+      "level": "B2",
+      "translation": "опцион",
+      "isTransliterated": true
+    },
+    {
+      "word": "ORDER",
+      "level": "A2",
+      "translation": "ордер / заказ",
+      "isTransliterated": true
+    },
+    {
+      "word": "PAYEE",
+      "level": "B1",
+      "translation": "получатель платежа",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAYER",
+      "level": "B1",
+      "translation": "плательщик",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAYING",
+      "level": "A2",
+      "translation": "оплата",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAYOFF",
+      "level": "B2",
+      "translation": "выплата",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAYOUT",
+      "level": "B2",
+      "translation": "выплата",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRICE",
+      "level": "A1",
+      "translation": "цена",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROFIT",
+      "level": "B1",
+      "translation": "прибыль",
+      "isTransliterated": false
+    },
+    {
+      "word": "QUOTE",
+      "level": "B1",
+      "translation": "котировка",
+      "isTransliterated": false
+    },
+    {
+      "word": "RATES",
+      "level": "A2",
+      "translation": "ставки",
+      "isTransliterated": false
+    },
+    {
+      "word": "RECORD",
+      "level": "A2",
+      "translation": "запись",
+      "isTransliterated": false
+    },
+    {
+      "word": "REFUND",
+      "level": "A2",
+      "translation": "возврат денег",
+      "isTransliterated": false
+    },
+    {
+      "word": "RENTAL",
+      "level": "A2",
+      "translation": "аренда",
+      "isTransliterated": false
+    },
+    {
+      "word": "RETAIL",
+      "level": "B1",
+      "translation": "розничный",
+      "isTransliterated": false
+    },
+    {
+      "word": "RETURN",
+      "level": "A2",
+      "translation": "доходность / возврат",
+      "isTransliterated": false
+    },
+    {
+      "word": "REVENUE",
+      "level": "B1",
+      "translation": "выручка",
+      "isTransliterated": false
+    },
+    {
+      "word": "SAVING",
+      "level": "A2",
+      "translation": "накопление",
+      "isTransliterated": false
+    },
+    {
+      "word": "SECTOR",
+      "level": "B1",
+      "translation": "сектор",
+      "isTransliterated": true
+    },
+    {
+      "word": "SHARE",
+      "level": "A2",
+      "translation": "акция / доля",
+      "isTransliterated": false
+    },
+    {
+      "word": "SPEND",
+      "level": "A1",
+      "translation": "тратить",
+      "isTransliterated": false
+    },
+    {
+      "word": "SWAP",
+      "level": "B2",
+      "translation": "своп",
+      "isTransliterated": false
+    },
+    {
+      "word": "TARIFF",
+      "level": "B1",
+      "translation": "тариф",
+      "isTransliterated": true
+    },
+    {
+      "word": "TENDER",
+      "level": "B2",
+      "translation": "тендер",
+      "isTransliterated": true
+    },
+    {
+      "word": "TRADE",
+      "level": "A2",
+      "translation": "сделка / торговля",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRADER",
+      "level": "B1",
+      "translation": "трейдер",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNPAID",
+      "level": "B1",
+      "translation": "неоплаченный",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAGES",
+      "level": "A2",
+      "translation": "зарплата",
+      "isTransliterated": false
+    },
+    {
+      "word": "WALLET",
+      "level": "A2",
+      "translation": "кошелёк",
+      "isTransliterated": false
+    },
+    {
+      "word": "WEALTH",
+      "level": "B1",
+      "translation": "богатство",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCOUNT",
+      "level": "A2",
+      "translation": "счёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCRUAL",
+      "level": "B2",
+      "translation": "начисление",
+      "isTransliterated": false
+    },
+    {
+      "word": "BALANCE",
+      "level": "A2",
+      "translation": "баланс",
+      "isTransliterated": true
+    },
+    {
+      "word": "BANKING",
+      "level": "A2",
+      "translation": "банковское дело",
+      "isTransliterated": false
+    },
+    {
+      "word": "BORROWER",
+      "level": "B1",
+      "translation": "заёмщик",
+      "isTransliterated": false
+    },
+    {
+      "word": "BROKERAGE",
+      "level": "B2",
+      "translation": "брокерское обслуживание",
+      "isTransliterated": true
+    },
+    {
+      "word": "CAPITAL",
+      "level": "B1",
+      "translation": "капитал",
+      "isTransliterated": true
+    },
+    {
+      "word": "COLLATERAL",
+      "level": "B2",
+      "translation": "залог",
+      "isTransliterated": false
+    },
+    {
+      "word": "COMMISSION",
+      "level": "B1",
+      "translation": "комиссия",
+      "isTransliterated": true
+    },
+    {
+      "word": "COMMODITY",
+      "level": "B2",
+      "translation": "товарный актив",
+      "isTransliterated": false
+    },
+    {
+      "word": "CURRENCY",
+      "level": "A2",
+      "translation": "валюта",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEPOSIT",
+      "level": "A2",
+      "translation": "депозит",
+      "isTransliterated": true
+    },
+    {
+      "word": "DIVIDEND",
+      "level": "B2",
+      "translation": "дивиденд",
+      "isTransliterated": true
+    },
+    {
+      "word": "EARNINGS",
+      "level": "B2",
+      "translation": "прибыль",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXPENSE",
+      "level": "B1",
+      "translation": "расход",
+      "isTransliterated": false
+    },
+    {
+      "word": "FINANCE",
+      "level": "A2",
+      "translation": "финансы",
+      "isTransliterated": true
+    },
+    {
+      "word": "FORECAST",
+      "level": "B2",
+      "translation": "прогноз",
+      "isTransliterated": false
+    },
+    {
+      "word": "INSURANCE",
+      "level": "B1",
+      "translation": "страхование",
+      "isTransliterated": false
+    },
+    {
+      "word": "INTEREST",
+      "level": "A2",
+      "translation": "процент",
+      "isTransliterated": false
+    },
+    {
+      "word": "INVESTOR",
+      "level": "B1",
+      "translation": "инвестор",
+      "isTransliterated": true
+    },
+    {
+      "word": "LEVERAGE",
+      "level": "B2",
+      "translation": "кредитное плечо",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIABILITY",
+      "level": "B2",
+      "translation": "обязательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIQUIDITY",
+      "level": "C1",
+      "translation": "ликвидность",
+      "isTransliterated": false
+    },
+    {
+      "word": "MORTGAGE",
+      "level": "B1",
+      "translation": "ипотека",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERDRAFT",
+      "level": "B2",
+      "translation": "овердрафт",
+      "isTransliterated": true
+    },
+    {
+      "word": "PAYMENT",
+      "level": "A2",
+      "translation": "платёж",
+      "isTransliterated": false
+    },
+    {
+      "word": "PORTFOLIO",
+      "level": "B2",
+      "translation": "портфель",
+      "isTransliterated": true
+    },
+    {
+      "word": "PRINCIPAL",
+      "level": "B2",
+      "translation": "основная сумма долга",
+      "isTransliterated": false
+    },
+    {
+      "word": "PURCHASE",
+      "level": "A2",
+      "translation": "покупка",
+      "isTransliterated": false
+    },
+    {
+      "word": "RECEIPT",
+      "level": "A2",
+      "translation": "квитанция",
+      "isTransliterated": false
+    },
+    {
+      "word": "SECURITY",
+      "level": "B2",
+      "translation": "ценная бумага",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOLVENCY",
+      "level": "C1",
+      "translation": "платёжеспособность",
+      "isTransliterated": false
+    },
+    {
+      "word": "STATEMENT",
+      "level": "A2",
+      "translation": "выписка",
+      "isTransliterated": false
+    },
+    {
+      "word": "TAXATION",
+      "level": "B2",
+      "translation": "налогообложение",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRANSACTION",
+      "level": "B1",
+      "translation": "транзакция",
+      "isTransliterated": true
+    },
+    {
+      "word": "TRANSFER",
+      "level": "A2",
+      "translation": "перевод",
+      "isTransliterated": false
+    },
+    {
+      "word": "TREASURY",
+      "level": "B2",
+      "translation": "казначейство",
+      "isTransliterated": false
+    },
+    {
+      "word": "VALUATION",
+      "level": "B2",
+      "translation": "оценка стоимости",
+      "isTransliterated": false
+    },
+    {
+      "word": "VOLATILITY",
+      "level": "C1",
+      "translation": "волатильность",
+      "isTransliterated": true
+    },
+    {
+      "word": "WITHDRAWAL",
+      "level": "A2",
+      "translation": "снятие средств",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPRAISAL",
+      "level": "B2",
+      "translation": "оценка",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARBITRAGE",
+      "level": "C1",
+      "translation": "арбитраж",
+      "isTransliterated": true
+    },
+    {
+      "word": "BANKRUPTCY",
+      "level": "B2",
+      "translation": "банкротство",
+      "isTransliterated": false
+    },
+    {
+      "word": "BOOKKEEPING",
+      "level": "B2",
+      "translation": "бухгалтерский учёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "CASHFLOW",
+      "level": "B2",
+      "translation": "денежный поток",
+      "isTransliterated": false
+    },
+    {
+      "word": "CREDITWORTHY",
+      "level": "C1",
+      "translation": "кредитоспособный",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEPRECIATION",
+      "level": "B2",
+      "translation": "амортизация",
+      "isTransliterated": false
+    },
+    {
+      "word": "DIVERSIFICATION",
+      "level": "C1",
+      "translation": "диверсификация",
+      "isTransliterated": true
+    },
+    {
+      "word": "EXCHANGE",
+      "level": "A2",
+      "translation": "обмен",
+      "isTransliterated": false
+    },
+    {
+      "word": "INFLATION",
+      "level": "B1",
+      "translation": "инфляция",
+      "isTransliterated": false
+    },
+    {
+      "word": "INSTALLMENT",
+      "level": "B1",
+      "translation": "платёж по рассрочке",
+      "isTransliterated": false
+    },
+    {
+      "word": "INVESTMENT",
+      "level": "B1",
+      "translation": "инвестиция",
+      "isTransliterated": false
+    },
+    {
+      "word": "LENDER",
+      "level": "B1",
+      "translation": "кредитор",
+      "isTransliterated": false
+    },
+    {
+      "word": "MATURITY",
+      "level": "B2",
+      "translation": "срок погашения",
+      "isTransliterated": false
+    },
+    {
+      "word": "MICROLOAN",
+      "level": "B1",
+      "translation": "микрозайм",
+      "isTransliterated": false
+    },
+    {
+      "word": "BILL",
+      "level": "A1",
+      "translation": "счёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "CARD",
+      "level": "A1",
+      "translation": "карта",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAY",
+      "level": "A1",
+      "translation": "платить",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUY",
+      "level": "A1",
+      "translation": "покупать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SELL",
+      "level": "A1",
+      "translation": "продавать",
+      "isTransliterated": false
+    },
+    {
+      "word": "EARN",
+      "level": "A1",
+      "translation": "зарабатывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORK",
+      "level": "A1",
+      "translation": "работа",
+      "isTransliterated": false
+    },
+    {
+      "word": "JOB",
+      "level": "A1",
+      "translation": "работа",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHOP",
+      "level": "A1",
+      "translation": "магазин",
+      "isTransliterated": false
+    },
+    {
+      "word": "RENT",
+      "level": "A2",
+      "translation": "аренда",
+      "isTransliterated": false
+    },
+    {
+      "word": "BORROW",
+      "level": "A2",
+      "translation": "занимать",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEND",
+      "level": "A2",
+      "translation": "давать в долг",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHARGE",
+      "level": "A2",
+      "translation": "плата",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHEQUE",
+      "level": "A2",
+      "translation": "платёжный документ",
+      "isTransliterated": false
+    },
+    {
+      "word": "DUE",
+      "level": "A2",
+      "translation": "подлежащий оплате",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAID",
+      "level": "A2",
+      "translation": "оплаченный",
+      "isTransliterated": false
+    },
+    {
+      "word": "OWING",
+      "level": "A2",
+      "translation": "задолженный",
+      "isTransliterated": false
+    },
+    {
+      "word": "BARGAIN",
+      "level": "A2",
+      "translation": "выгодная покупка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHANGE",
+      "level": "A2",
+      "translation": "сдача",
+      "isTransliterated": false
+    },
+    {
+      "word": "EARNER",
+      "level": "B1",
+      "translation": "получатель дохода",
+      "isTransliterated": false
+    },
+    {
+      "word": "GROWTH",
+      "level": "B1",
+      "translation": "рост",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHORTAGE",
+      "level": "B1",
+      "translation": "нехватка",
+      "isTransliterated": false
+    },
+    {
+      "word": "SURPLUS",
+      "level": "B1",
+      "translation": "излишек",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHORTFALL",
+      "level": "B1",
+      "translation": "недостача",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALLOWANCE",
+      "level": "B1",
+      "translation": "пособие",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAYROLL",
+      "level": "B1",
+      "translation": "платёжная ведомость",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRANCH",
+      "level": "B1",
+      "translation": "отделение",
+      "isTransliterated": false
+    },
+    {
+      "word": "TILL",
+      "level": "B1",
+      "translation": "касса",
+      "isTransliterated": false
+    },
+    {
+      "word": "TELLER",
+      "level": "B1",
+      "translation": "кассир",
+      "isTransliterated": false
+    },
+    {
+      "word": "REWARD",
+      "level": "B1",
+      "translation": "вознаграждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "PENALTY",
+      "level": "B1",
+      "translation": "штраф",
+      "isTransliterated": false
+    },
+    {
+      "word": "REBATE",
+      "level": "B1",
+      "translation": "скидка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEDUCT",
+      "level": "B1",
+      "translation": "вычитать",
+      "isTransliterated": false
+    },
+    {
+      "word": "TAXPAYER",
+      "level": "B1",
+      "translation": "налогоплательщик",
+      "isTransliterated": false
+    },
+    {
+      "word": "TAXABLE",
+      "level": "B1",
+      "translation": "облагаемый налогом",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXEMPT",
+      "level": "B1",
+      "translation": "освобождённый",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEFAULT",
+      "level": "B1",
+      "translation": "невыполнение платежа",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARREAR",
+      "level": "B1",
+      "translation": "просрочка",
+      "isTransliterated": false
+    },
+    {
+      "word": "STAKE",
+      "level": "B1",
+      "translation": "доля",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOLDING",
+      "level": "B1",
+      "translation": "владение",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESERVE",
+      "level": "B1",
+      "translation": "запас",
+      "isTransliterated": false
+    },
+    {
+      "word": "SETTLEMENT",
+      "level": "B1",
+      "translation": "расчёт",
+      "isTransliterated": false
+    },
+    {
+      "word": "REMITTANCE",
+      "level": "B1",
+      "translation": "денежный перевод",
+      "isTransliterated": false
+    },
+    {
+      "word": "STIPEND",
+      "level": "B1",
+      "translation": "денежное пособие",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUBSIDY",
+      "level": "B1",
+      "translation": "денежная поддержка",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIQUID",
+      "level": "B1",
+      "translation": "легко обращаемый в деньги",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAYABLE",
+      "level": "B1",
+      "translation": "подлежащий оплате",
+      "isTransliterated": false
+    },
+    {
+      "word": "RECEIVABLE",
+      "level": "B1",
+      "translation": "подлежащий получению",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEFICIT",
+      "level": "B2",
+      "translation": "нехватка",
+      "isTransliterated": false
+    },
+    {
+      "word": "AUCTION",
+      "level": "B2",
+      "translation": "торги",
+      "isTransliterated": false
+    },
+    {
+      "word": "BIDDER",
+      "level": "B2",
+      "translation": "участник торгов",
+      "isTransliterated": false
+    },
+    {
+      "word": "BROKER",
+      "level": "B2",
+      "translation": "посредник",
+      "isTransliterated": false
+    },
+    {
+      "word": "CUSTODIAN",
+      "level": "B2",
+      "translation": "хранитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "DOWNTURN",
+      "level": "B2",
+      "translation": "спад",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORECLOSURE",
+      "level": "B2",
+      "translation": "изъятие залога",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORBEARANCE",
+      "level": "C1",
+      "translation": "отсрочка взыскания",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENCUMBRANCE",
+      "level": "C1",
+      "translation": "обременение",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERWRITER",
+      "level": "C1",
+      "translation": "поручитель размещения",
+      "isTransliterated": false
+    },
+    {
+      "word": "ORIGINATION",
+      "level": "C1",
+      "translation": "оформление займа",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAYDOWN",
+      "level": "C1",
+      "translation": "частичное погашение",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISPRICING",
+      "level": "C1",
+      "translation": "ошибка в цене",
+      "isTransliterated": false
+    },
+    {
+      "word": "HAIRCUT",
+      "level": "C1",
+      "translation": "снижение оценки залога",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLAIMANT",
+      "level": "B2",
+      "translation": "заявитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "GUARANTOR",
+      "level": "B2",
+      "translation": "поручитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENDORSE",
+      "level": "B2",
+      "translation": "подтверждать",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIENHOLDER",
+      "level": "C1",
+      "translation": "держатель залога",
+      "isTransliterated": false
+    },
+    {
+      "word": "ESCALATE",
+      "level": "B2",
+      "translation": "возрастать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SQUEEZE",
+      "level": "B2",
+      "translation": "сжатие",
+      "isTransliterated": false
+    },
+    {
+      "word": "RUNOFF",
+      "level": "C1",
+      "translation": "постепенное сокращение",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLEDGE",
+      "level": "B2",
+      "translation": "залог",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEIZURE",
+      "level": "B2",
+      "translation": "изъятие",
+      "isTransliterated": false
+    },
+    {
+      "word": "THRIFT",
+      "level": "B2",
+      "translation": "бережливость",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTLAY",
+      "level": "B2",
+      "translation": "затраты",
+      "isTransliterated": false
+    },
+    {
+      "word": "TAKEOVER",
+      "level": "B2",
+      "translation": "поглощение",
+      "isTransliterated": false
+    },
+    {
+      "word": "WRITEBACK",
+      "level": "C1",
+      "translation": "восстановление списания",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUYBACK",
+      "level": "B2",
+      "translation": "обратный выкуп",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERSIGHT",
+      "level": "B2",
+      "translation": "надзор",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACKER",
+      "level": "B1",
+      "translation": "спонсор",
+      "isTransliterated": false
+    },
+    {
+      "word": "CASHIER",
+      "level": "B1",
+      "translation": "кассир",
+      "isTransliterated": false
+    },
+    {
+      "word": "BASKET",
+      "level": "B1",
+      "translation": "корзина",
+      "isTransliterated": false
+    },
+    {
+      "word": "DRAWDOWN",
+      "level": "C1",
+      "translation": "выборка средств",
+      "isTransliterated": false
+    },
+    {
+      "word": "UPTICK",
+      "level": "B2",
+      "translation": "рост",
+      "isTransliterated": false
+    },
+    {
+      "word": "DOWNSIDE",
+      "level": "B2",
+      "translation": "снижение",
+      "isTransliterated": false
+    },
+    {
+      "word": "UPSIDE",
+      "level": "B2",
+      "translation": "рост",
+      "isTransliterated": false
+    },
+    {
+      "word": "WINDFALL",
+      "level": "B2",
+      "translation": "неожиданная прибыль",
+      "isTransliterated": false
+    },
+    {
+      "word": "THRESHOLD",
+      "level": "C1",
+      "translation": "порог",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTPERFORM",
+      "level": "C1",
+      "translation": "превзойти",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERPERFORM",
+      "level": "C1",
+      "translation": "отставать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUSTAIN",
+      "level": "B2",
+      "translation": "поддерживать",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOARD",
+      "level": "B2",
+      "translation": "накапливать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SQUEEZED",
+      "level": "B2",
+      "translation": "сжатый",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERPAYMENT",
+      "level": "B2",
+      "translation": "недоплата",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERPAYMENT",
+      "level": "B2",
+      "translation": "переплата",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUBROGATION",
+      "level": "C2",
+      "translation": "переход права требования",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORFEITURE",
+      "level": "C2",
+      "translation": "утрата права",
+      "isTransliterated": false
+    },
+    {
+      "word": "REHYPOTHECATION",
+      "level": "C2",
+      "translation": "повторное использование залога",
+      "isTransliterated": false
+    },
+    {
+      "word": "WATERFALL",
+      "level": "C2",
+      "translation": "очерёдность выплат",
+      "isTransliterated": false
+    },
+    {
+      "word": "COVENANT",
+      "level": "C2",
+      "translation": "условие договора",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERCOLLATERALIZATION",
+      "level": "C2",
+      "translation": "избыточное обеспечение",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERCOLLATERALIZATION",
+      "level": "C2",
+      "translation": "недостаточное обеспечение",
+      "isTransliterated": false
+    },
+    {
+      "word": "MEZZANINE",
+      "level": "C2",
+      "translation": "промежуточное финансирование",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUBORDINATION",
+      "level": "C2",
+      "translation": "понижение очередности",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLAWBACK",
+      "level": "C2",
+      "translation": "возврат ранее выплаченного",
+      "isTransliterated": false
+    },
+    {
+      "word": "RINGFENCING",
+      "level": "C2",
+      "translation": "обособление активов",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERLEVERAGING",
+      "level": "C2",
+      "translation": "чрезмерная долговая нагрузка",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERWRITING",
+      "level": "C2",
+      "translation": "принятие риска",
+      "isTransliterated": false
+    },
+    {
+      "word": "GATING",
+      "level": "C2",
+      "translation": "ограничение вывода средств",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIDEPOCKET",
+      "level": "C2",
+      "translation": "отдельный карман фонда",
+      "isTransliterated": false
+    }
+  ]
+}
