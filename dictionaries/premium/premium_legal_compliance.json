@@ -1,1 +1,1459 @@
-{"title":"Legal & Compliance English","source":"topic","theme":"legal","words":[{"word":"ACTS","level":"A2","translation":"законы / акты"},{"word":"BAIL","level":"B2","translation":"залог"},{"word":"CASE","level":"A2","translation":"дело"},{"word":"CODE","level":"A2","translation":"кодекс"},{"word":"COURT","level":"A2","translation":"суд"},{"word":"CLAIM","level":"B1","translation":"иск / требование"},{"word":"CLAUSE","level":"B2","translation":"пункт договора"},{"word":"CRIME","level":"A2","translation":"преступление"},{"word":"DEED","level":"B2","translation":"документ / акт"},{"word":"DUTY","level":"B1","translation":"обязанность"},{"word":"FINE","level":"A2","translation":"штраф"},{"word":"FRAUD","level":"B2","translation":"мошенничество"},{"word":"GUILT","level":"B1","translation":"вина"},{"word":"JUDGE","level":"A2","translation":"судья"},{"word":"JURY","level":"B1","translation":"присяжные"},{"word":"LEGAL","level":"A2","translation":"юридический"},{"word":"LIEN","level":"C1","translation":"право удержания"},{"word":"OATH","level":"B2","translation":"клятва"},{"word":"PENAL","level":"B2","translation":"уголовный"},{"word":"PROOF","level":"B1","translation":"доказательство"},{"word":"PROXY","level":"B2","translation":"доверенность"},{"word":"RIGHT","level":"A2","translation":"право"},{"word":"RULE","level":"A1","translation":"правило"},{"word":"TRIAL","level":"B1","translation":"судебное разбирательство"},{"word":"TRUST","level":"B2","translation":"траст"},{"word":"VALID","level":"B1","translation":"действительный"},{"word":"VOID","level":"B2","translation":"недействительный"},{"word":"WAIVE","level":"B2","translation":"отказываться от права"},{"word":"WILL","level":"B1","translation":"завещание"},{"word":"WRIT","level":"C1","translation":"судебный приказ"},{"word":"ACTION","level":"B1","translation":"иск / действие"},{"word":"ADVICE","level":"A2","translation":"совет"},{"word":"APPEAL","level":"B2","translation":"апелляция"},{"word":"ARREST","level":"A2","translation":"арест"},{"word":"ASSENT","level":"B2","translation":"согласие"},{"word":"BREACH","level":"B2","translation":"нарушение"},{"word":"CHARGE","level":"B1","translation":"обвинение"},{"word":"CONSENT","level":"B1","translation":"согласие"},{"word":"CONVICT","level":"B2","translation":"осуждать"},{"word":"COUNSEL","level":"B2","translation":"адвокат / советник"},{"word":"CUSTOM","level":"B1","translation":"обычай"},{"word":"DAMAGES","level":"B2","translation":"убытки"},{"word":"DEFEND","level":"B1","translation":"защищать"},{"word":"DISPUTE","level":"B1","translation":"спор"},{"word":"EVIDENCE","level":"B1","translation":"доказательство"},{"word":"FELONY","level":"C1","translation":"тяжкое преступление"},{"word":"HEARING","level":"B1","translation":"слушание"},{"word":"INJURY","level":"B1","translation":"ущерб / травма"},{"word":"JUSTICE","level":"A2","translation":"правосудие"},{"word":"LICENSE","level":"B1","translation":"лицензия"},{"word":"LIABLE","level":"B2","translation":"ответственный по закону"},{"word":"MANDATE","level":"B2","translation":"мандат"},{"word":"MOTION","level":"B2","translation":"ходатайство"},{"word":"NOTARY","level":"B2","translation":"нотариус"},{"word":"OFFENCE","level":"B1","translation":"правонарушение"},{"word":"PARTIES","level":"B1","translation":"стороны"},{"word":"PATENT","level":"B2","translation":"патент"},{"word":"POLICY","level":"B1","translation":"политика / правила"},{"word":"PRIVACY","level":"B1","translation":"конфиденциальность"},{"word":"REMEDY","level":"B2","translation":"средство правовой защиты"},{"word":"STATUTE","level":"B2","translation":"закон"},{"word":"SUMMONS","level":"B2","translation":"повестка"},{"word":"TREATY","level":"B2","translation":"договор между государствами"},{"word":"VERDICT","level":"B2","translation":"вердикт"},{"word":"WARRANT","level":"B2","translation":"ордер"},{"word":"AGREEMENT","level":"B1","translation":"соглашение"},{"word":"ARBITRATE","level":"C1","translation":"проводить арбитраж"},{"word":"AUTHORITY","level":"B1","translation":"полномочие / орган"},{"word":"CERTIFICATE","level":"B1","translation":"сертификат"},{"word":"COMPLIANCE","level":"B2","translation":"соблюдение требований"},{"word":"CONFIDENTIAL","level":"B2","translation":"конфиденциальный"},{"word":"CONTRACT","level":"B1","translation":"договор"},{"word":"COPYRIGHT","level":"B2","translation":"авторское право"},{"word":"COVENANT","level":"C1","translation":"обязательство по договору"},{"word":"DEFENDANT","level":"B1","translation":"ответчик"},{"word":"DEPOSITION","level":"C1","translation":"показания под присягой"},{"word":"DISCLOSURE","level":"B2","translation":"раскрытие информации"},{"word":"ENFORCEMENT","level":"B2","translation":"принудительное исполнение"},{"word":"ENTITLEMENT","level":"B2","translation":"право на получение"},{"word":"EXEMPTION","level":"B2","translation":"освобождение от обязанности"},{"word":"GUARANTEE","level":"B1","translation":"гарантия"},{"word":"INDEMNITY","level":"C1","translation":"возмещение убытков"},{"word":"INHERITANCE","level":"B2","translation":"наследство"},{"word":"INJUNCTION","level":"C1","translation":"судебный запрет"},{"word":"INSOLVENCY","level":"B2","translation":"неплатёжеспособность"},{"word":"JURISDICTION","level":"B2","translation":"юрисдикция"},{"word":"LEGISLATION","level":"B2","translation":"законодательство"},{"word":"LITIGATION","level":"B2","translation":"судебный процесс"},{"word":"MISCONDUCT","level":"B2","translation":"неправомерное поведение"},{"word":"NEGLIGENCE","level":"B2","translation":"небрежность"},{"word":"OBLIGATION","level":"B1","translation":"обязательство"},{"word":"OWNERSHIP","level":"B1","translation":"право собственности"},{"word":"PLAINTIFF","level":"B2","translation":"истец"},{"word":"PRECEDENT","level":"B2","translation":"прецедент"},{"word":"REGULATION","level":"B1","translation":"регулирование"},{"word":"SETTLEMENT","level":"B1","translation":"урегулирование"},{"word":"SIGNATURE","level":"A2","translation":"подпись"},{"word":"SUBPOENA","level":"C1","translation":"судебная повестка"},{"word":"TESTIMONY","level":"B2","translation":"свидетельские показания"},{"word":"TRADEMARK","level":"B2","translation":"товарный знак"},{"word":"VIOLATION","level":"B1","translation":"нарушение"},{"word":"WITNESS","level":"A2","translation":"свидетель"},{"word":"ACCUSATION","level":"B2","translation":"обвинение"},{"word":"ADMISSIBLE","level":"C1","translation":"допустимый в суде"},{"word":"AMENDMENT","level":"B2","translation":"поправка"},{"word":"ARBITRATION","level":"C1","translation":"арбитраж"},{"word":"BANKRUPTCY","level":"B2","translation":"банкротство"},{"word":"CONSTITUTION","level":"B2","translation":"конституция"},{"word":"DEFAMATION","level":"C1","translation":"клевета"},{"word":"DUEPROCESS","level":"C1","translation":"надлежащая правовая процедура"},{"word":"FIDUCIARY","level":"C1","translation":"фидуциарный"},{"word":"HABEASCORPUS","level":"C1","translation":"хабеас корпус"},{"word":"IMMUNITY","level":"B2","translation":"иммунитет"},{"word":"LIABILITY","level":"B2","translation":"ответственность"},{"word":"MISDEMEANOR","level":"C1","translation":"мисдиминор"},{"word":"PROSECUTOR","level":"B2","translation":"прокурор"},{"word":"RESTITUTION","level":"C1","translation":"реституция"},{"word":"SANCTION","level":"B2","translation":"санкция"},{"word":"TERMINATION","level":"B1","translation":"расторжение"},{"word":"UNDERTAKING","level":"B2","translation":"обязательство"},{"word":"ALIBI","level":"B2","translation":"алиби"},{"word":"AMEND","level":"B2","translation":"вносить поправку"},{"word":"ARSON","level":"B2","translation":"поджог"},{"word":"BENCH","level":"B2","translation":"судейская коллегия"},{"word":"BRIBE","level":"B2","translation":"взятка"},{"word":"CIVIL","level":"A2","translation":"гражданский"},{"word":"FILED","level":"B1","translation":"поданный в суд"},{"word":"FINES","level":"A2","translation":"штрафы"},{"word":"GUILTY","level":"B1","translation":"виновный"},{"word":"LAWYER","level":"A2","translation":"юрист"},{"word":"LEASE","level":"B1","translation":"договор аренды"},{"word":"PLEA","level":"B2","translation":"заявление подсудимого"}]}
+{
+  "title": "Legal & Compliance English",
+  "source": "topic",
+  "theme": "legal",
+  "words": [
+    {
+      "word": "ACTS",
+      "level": "A2",
+      "translation": "законы / акты",
+      "isTransliterated": false
+    },
+    {
+      "word": "BAIL",
+      "level": "B2",
+      "translation": "залог",
+      "isTransliterated": false
+    },
+    {
+      "word": "CASE",
+      "level": "A2",
+      "translation": "дело",
+      "isTransliterated": false
+    },
+    {
+      "word": "CODE",
+      "level": "A2",
+      "translation": "кодекс",
+      "isTransliterated": true
+    },
+    {
+      "word": "COURT",
+      "level": "A2",
+      "translation": "суд",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLAIM",
+      "level": "B1",
+      "translation": "иск / требование",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLAUSE",
+      "level": "B2",
+      "translation": "пункт договора",
+      "isTransliterated": false
+    },
+    {
+      "word": "CRIME",
+      "level": "A2",
+      "translation": "преступление",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEED",
+      "level": "B2",
+      "translation": "документ / акт",
+      "isTransliterated": false
+    },
+    {
+      "word": "DUTY",
+      "level": "B1",
+      "translation": "обязанность",
+      "isTransliterated": false
+    },
+    {
+      "word": "FINE",
+      "level": "A2",
+      "translation": "штраф",
+      "isTransliterated": false
+    },
+    {
+      "word": "FRAUD",
+      "level": "B2",
+      "translation": "мошенничество",
+      "isTransliterated": false
+    },
+    {
+      "word": "GUILT",
+      "level": "B1",
+      "translation": "вина",
+      "isTransliterated": false
+    },
+    {
+      "word": "JUDGE",
+      "level": "A2",
+      "translation": "судья",
+      "isTransliterated": false
+    },
+    {
+      "word": "JURY",
+      "level": "B1",
+      "translation": "присяжные",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEGAL",
+      "level": "A2",
+      "translation": "юридический",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIEN",
+      "level": "C1",
+      "translation": "право удержания",
+      "isTransliterated": false
+    },
+    {
+      "word": "OATH",
+      "level": "B2",
+      "translation": "клятва",
+      "isTransliterated": false
+    },
+    {
+      "word": "PENAL",
+      "level": "B2",
+      "translation": "уголовный",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROOF",
+      "level": "B1",
+      "translation": "доказательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROXY",
+      "level": "B2",
+      "translation": "доверенность",
+      "isTransliterated": false
+    },
+    {
+      "word": "RIGHT",
+      "level": "A2",
+      "translation": "право",
+      "isTransliterated": false
+    },
+    {
+      "word": "RULE",
+      "level": "A1",
+      "translation": "правило",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRIAL",
+      "level": "B1",
+      "translation": "судебное разбирательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRUST",
+      "level": "B2",
+      "translation": "траст",
+      "isTransliterated": true
+    },
+    {
+      "word": "VALID",
+      "level": "B1",
+      "translation": "действительный",
+      "isTransliterated": false
+    },
+    {
+      "word": "VOID",
+      "level": "B2",
+      "translation": "недействительный",
+      "isTransliterated": false
+    },
+    {
+      "word": "WAIVE",
+      "level": "B2",
+      "translation": "отказываться от права",
+      "isTransliterated": false
+    },
+    {
+      "word": "WILL",
+      "level": "B1",
+      "translation": "завещание",
+      "isTransliterated": false
+    },
+    {
+      "word": "WRIT",
+      "level": "C1",
+      "translation": "судебный приказ",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACTION",
+      "level": "B1",
+      "translation": "иск / действие",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADVICE",
+      "level": "A2",
+      "translation": "совет",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPEAL",
+      "level": "B2",
+      "translation": "апелляция",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARREST",
+      "level": "A2",
+      "translation": "арест",
+      "isTransliterated": true
+    },
+    {
+      "word": "ASSENT",
+      "level": "B2",
+      "translation": "согласие",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREACH",
+      "level": "B2",
+      "translation": "нарушение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHARGE",
+      "level": "B1",
+      "translation": "обвинение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONSENT",
+      "level": "B1",
+      "translation": "согласие",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONVICT",
+      "level": "B2",
+      "translation": "осуждать",
+      "isTransliterated": false
+    },
+    {
+      "word": "COUNSEL",
+      "level": "B2",
+      "translation": "адвокат / советник",
+      "isTransliterated": false
+    },
+    {
+      "word": "CUSTOM",
+      "level": "B1",
+      "translation": "обычай",
+      "isTransliterated": false
+    },
+    {
+      "word": "DAMAGES",
+      "level": "B2",
+      "translation": "убытки",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEFEND",
+      "level": "B1",
+      "translation": "защищать",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISPUTE",
+      "level": "B1",
+      "translation": "спор",
+      "isTransliterated": false
+    },
+    {
+      "word": "EVIDENCE",
+      "level": "B1",
+      "translation": "доказательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "FELONY",
+      "level": "C1",
+      "translation": "тяжкое преступление",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEARING",
+      "level": "B1",
+      "translation": "слушание",
+      "isTransliterated": false
+    },
+    {
+      "word": "INJURY",
+      "level": "B1",
+      "translation": "ущерб / травма",
+      "isTransliterated": false
+    },
+    {
+      "word": "JUSTICE",
+      "level": "A2",
+      "translation": "правосудие",
+      "isTransliterated": false
+    },
+    {
+      "word": "LICENSE",
+      "level": "B1",
+      "translation": "лицензия",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIABLE",
+      "level": "B2",
+      "translation": "ответственный по закону",
+      "isTransliterated": false
+    },
+    {
+      "word": "MANDATE",
+      "level": "B2",
+      "translation": "мандат",
+      "isTransliterated": true
+    },
+    {
+      "word": "MOTION",
+      "level": "B2",
+      "translation": "ходатайство",
+      "isTransliterated": false
+    },
+    {
+      "word": "NOTARY",
+      "level": "B2",
+      "translation": "нотариус",
+      "isTransliterated": true
+    },
+    {
+      "word": "OFFENCE",
+      "level": "B1",
+      "translation": "правонарушение",
+      "isTransliterated": false
+    },
+    {
+      "word": "PARTIES",
+      "level": "B1",
+      "translation": "стороны",
+      "isTransliterated": false
+    },
+    {
+      "word": "PATENT",
+      "level": "B2",
+      "translation": "патент",
+      "isTransliterated": true
+    },
+    {
+      "word": "POLICY",
+      "level": "B1",
+      "translation": "политика / правила",
+      "isTransliterated": true
+    },
+    {
+      "word": "PRIVACY",
+      "level": "B1",
+      "translation": "конфиденциальность",
+      "isTransliterated": false
+    },
+    {
+      "word": "REMEDY",
+      "level": "B2",
+      "translation": "средство правовой защиты",
+      "isTransliterated": false
+    },
+    {
+      "word": "STATUTE",
+      "level": "B2",
+      "translation": "закон",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUMMONS",
+      "level": "B2",
+      "translation": "повестка",
+      "isTransliterated": false
+    },
+    {
+      "word": "TREATY",
+      "level": "B2",
+      "translation": "договор между государствами",
+      "isTransliterated": false
+    },
+    {
+      "word": "VERDICT",
+      "level": "B2",
+      "translation": "вердикт",
+      "isTransliterated": true
+    },
+    {
+      "word": "WARRANT",
+      "level": "B2",
+      "translation": "ордер",
+      "isTransliterated": false
+    },
+    {
+      "word": "AGREEMENT",
+      "level": "B1",
+      "translation": "соглашение",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARBITRATE",
+      "level": "C1",
+      "translation": "проводить арбитраж",
+      "isTransliterated": true
+    },
+    {
+      "word": "AUTHORITY",
+      "level": "B1",
+      "translation": "полномочие / орган",
+      "isTransliterated": false
+    },
+    {
+      "word": "CERTIFICATE",
+      "level": "B1",
+      "translation": "сертификат",
+      "isTransliterated": true
+    },
+    {
+      "word": "COMPLIANCE",
+      "level": "B2",
+      "translation": "соблюдение требований",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONFIDENTIAL",
+      "level": "B2",
+      "translation": "конфиденциальный",
+      "isTransliterated": true
+    },
+    {
+      "word": "CONTRACT",
+      "level": "B1",
+      "translation": "договор",
+      "isTransliterated": false
+    },
+    {
+      "word": "COPYRIGHT",
+      "level": "B2",
+      "translation": "авторское право",
+      "isTransliterated": false
+    },
+    {
+      "word": "COVENANT",
+      "level": "C1",
+      "translation": "обязательство по договору",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEFENDANT",
+      "level": "B1",
+      "translation": "ответчик",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEPOSITION",
+      "level": "C1",
+      "translation": "показания под присягой",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISCLOSURE",
+      "level": "B2",
+      "translation": "раскрытие информации",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENFORCEMENT",
+      "level": "B2",
+      "translation": "принудительное исполнение",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENTITLEMENT",
+      "level": "B2",
+      "translation": "право на получение",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXEMPTION",
+      "level": "B2",
+      "translation": "освобождение от обязанности",
+      "isTransliterated": false
+    },
+    {
+      "word": "GUARANTEE",
+      "level": "B1",
+      "translation": "гарантия",
+      "isTransliterated": true
+    },
+    {
+      "word": "INDEMNITY",
+      "level": "C1",
+      "translation": "возмещение убытков",
+      "isTransliterated": false
+    },
+    {
+      "word": "INHERITANCE",
+      "level": "B2",
+      "translation": "наследство",
+      "isTransliterated": false
+    },
+    {
+      "word": "INJUNCTION",
+      "level": "C1",
+      "translation": "судебный запрет",
+      "isTransliterated": false
+    },
+    {
+      "word": "INSOLVENCY",
+      "level": "B2",
+      "translation": "неплатёжеспособность",
+      "isTransliterated": false
+    },
+    {
+      "word": "JURISDICTION",
+      "level": "B2",
+      "translation": "юрисдикция",
+      "isTransliterated": true
+    },
+    {
+      "word": "LEGISLATION",
+      "level": "B2",
+      "translation": "законодательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "LITIGATION",
+      "level": "B2",
+      "translation": "судебный процесс",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISCONDUCT",
+      "level": "B2",
+      "translation": "неправомерное поведение",
+      "isTransliterated": false
+    },
+    {
+      "word": "NEGLIGENCE",
+      "level": "B2",
+      "translation": "небрежность",
+      "isTransliterated": false
+    },
+    {
+      "word": "OBLIGATION",
+      "level": "B1",
+      "translation": "обязательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "OWNERSHIP",
+      "level": "B1",
+      "translation": "право собственности",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLAINTIFF",
+      "level": "B2",
+      "translation": "истец",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRECEDENT",
+      "level": "B2",
+      "translation": "прецедент",
+      "isTransliterated": true
+    },
+    {
+      "word": "REGULATION",
+      "level": "B1",
+      "translation": "регулирование",
+      "isTransliterated": false
+    },
+    {
+      "word": "SETTLEMENT",
+      "level": "B1",
+      "translation": "урегулирование",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIGNATURE",
+      "level": "A2",
+      "translation": "подпись",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUBPOENA",
+      "level": "C1",
+      "translation": "судебная повестка",
+      "isTransliterated": false
+    },
+    {
+      "word": "TESTIMONY",
+      "level": "B2",
+      "translation": "свидетельские показания",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRADEMARK",
+      "level": "B2",
+      "translation": "товарный знак",
+      "isTransliterated": false
+    },
+    {
+      "word": "VIOLATION",
+      "level": "B1",
+      "translation": "нарушение",
+      "isTransliterated": false
+    },
+    {
+      "word": "WITNESS",
+      "level": "A2",
+      "translation": "свидетель",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCUSATION",
+      "level": "B2",
+      "translation": "обвинение",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADMISSIBLE",
+      "level": "C1",
+      "translation": "допустимый в суде",
+      "isTransliterated": false
+    },
+    {
+      "word": "AMENDMENT",
+      "level": "B2",
+      "translation": "поправка",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARBITRATION",
+      "level": "C1",
+      "translation": "арбитраж",
+      "isTransliterated": true
+    },
+    {
+      "word": "BANKRUPTCY",
+      "level": "B2",
+      "translation": "банкротство",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONSTITUTION",
+      "level": "B2",
+      "translation": "конституция",
+      "isTransliterated": true
+    },
+    {
+      "word": "DEFAMATION",
+      "level": "C1",
+      "translation": "клевета",
+      "isTransliterated": false
+    },
+    {
+      "word": "DUEPROCESS",
+      "level": "C1",
+      "translation": "надлежащая правовая процедура",
+      "isTransliterated": false
+    },
+    {
+      "word": "FIDUCIARY",
+      "level": "C1",
+      "translation": "фидуциарный",
+      "isTransliterated": true
+    },
+    {
+      "word": "HABEASCORPUS",
+      "level": "C1",
+      "translation": "хабеас корпус",
+      "isTransliterated": true
+    },
+    {
+      "word": "IMMUNITY",
+      "level": "B2",
+      "translation": "иммунитет",
+      "isTransliterated": true
+    },
+    {
+      "word": "LIABILITY",
+      "level": "B2",
+      "translation": "ответственность",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISDEMEANOR",
+      "level": "C1",
+      "translation": "мисдиминор",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROSECUTOR",
+      "level": "B2",
+      "translation": "прокурор",
+      "isTransliterated": true
+    },
+    {
+      "word": "RESTITUTION",
+      "level": "C1",
+      "translation": "реституция",
+      "isTransliterated": true
+    },
+    {
+      "word": "SANCTION",
+      "level": "B2",
+      "translation": "санкция",
+      "isTransliterated": true
+    },
+    {
+      "word": "TERMINATION",
+      "level": "B1",
+      "translation": "расторжение",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNDERTAKING",
+      "level": "B2",
+      "translation": "обязательство",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALIBI",
+      "level": "B2",
+      "translation": "алиби",
+      "isTransliterated": true
+    },
+    {
+      "word": "AMEND",
+      "level": "B2",
+      "translation": "вносить поправку",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARSON",
+      "level": "B2",
+      "translation": "поджог",
+      "isTransliterated": false
+    },
+    {
+      "word": "BENCH",
+      "level": "B2",
+      "translation": "судейская коллегия",
+      "isTransliterated": false
+    },
+    {
+      "word": "BRIBE",
+      "level": "B2",
+      "translation": "взятка",
+      "isTransliterated": false
+    },
+    {
+      "word": "CIVIL",
+      "level": "A2",
+      "translation": "гражданский",
+      "isTransliterated": false
+    },
+    {
+      "word": "FILED",
+      "level": "B1",
+      "translation": "поданный в суд",
+      "isTransliterated": false
+    },
+    {
+      "word": "FINES",
+      "level": "A2",
+      "translation": "штрафы",
+      "isTransliterated": false
+    },
+    {
+      "word": "GUILTY",
+      "level": "B1",
+      "translation": "виновный",
+      "isTransliterated": false
+    },
+    {
+      "word": "LAWYER",
+      "level": "A2",
+      "translation": "юрист",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEASE",
+      "level": "B1",
+      "translation": "договор аренды",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLEA",
+      "level": "B2",
+      "translation": "заявление подсудимого",
+      "isTransliterated": false
+    },
+    {
+      "word": "LAW",
+      "level": "A1",
+      "translation": "закон",
+      "isTransliterated": false
+    },
+    {
+      "word": "BAN",
+      "level": "A2",
+      "translation": "запрет",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLAME",
+      "level": "A2",
+      "translation": "вина",
+      "isTransliterated": false
+    },
+    {
+      "word": "COPY",
+      "level": "A2",
+      "translation": "копия",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEBT",
+      "level": "A2",
+      "translation": "долг",
+      "isTransliterated": false
+    },
+    {
+      "word": "FEE",
+      "level": "A2",
+      "translation": "плата",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEIR",
+      "level": "A2",
+      "translation": "наследник",
+      "isTransliterated": false
+    },
+    {
+      "word": "JAIL",
+      "level": "A2",
+      "translation": "тюрьма",
+      "isTransliterated": false
+    },
+    {
+      "word": "LAND",
+      "level": "A2",
+      "translation": "земля",
+      "isTransliterated": false
+    },
+    {
+      "word": "OWNER",
+      "level": "A2",
+      "translation": "владелец",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAPER",
+      "level": "A2",
+      "translation": "документ",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRISON",
+      "level": "A2",
+      "translation": "тюрьма",
+      "isTransliterated": false
+    },
+    {
+      "word": "PUNISH",
+      "level": "A2",
+      "translation": "наказывать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SWEAR",
+      "level": "A2",
+      "translation": "клясться",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCUSE",
+      "level": "B1",
+      "translation": "обвинять",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALLEGE",
+      "level": "B1",
+      "translation": "утверждать",
+      "isTransliterated": false
+    },
+    {
+      "word": "BINDING",
+      "level": "B1",
+      "translation": "обязательный",
+      "isTransliterated": false
+    },
+    {
+      "word": "BYLAW",
+      "level": "B1",
+      "translation": "местное правило",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLEARANCE",
+      "level": "B1",
+      "translation": "разрешение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CUSTODY",
+      "level": "B1",
+      "translation": "опека",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENFORCE",
+      "level": "B1",
+      "translation": "обеспечивать исполнение",
+      "isTransliterated": false
+    },
+    {
+      "word": "FILING",
+      "level": "B1",
+      "translation": "подача документа",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORGERY",
+      "level": "B1",
+      "translation": "подделка",
+      "isTransliterated": false
+    },
+    {
+      "word": "LAWFUL",
+      "level": "B1",
+      "translation": "законный",
+      "isTransliterated": false
+    },
+    {
+      "word": "LAWSUIT",
+      "level": "B1",
+      "translation": "судебный иск",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISLEAD",
+      "level": "B1",
+      "translation": "вводить в заблуждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "OFFENDER",
+      "level": "B1",
+      "translation": "правонарушитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "PERJURY",
+      "level": "B1",
+      "translation": "лжесвидетельство",
+      "isTransliterated": false
+    },
+    {
+      "word": "PETITION",
+      "level": "B1",
+      "translation": "ходатайство",
+      "isTransliterated": false
+    },
+    {
+      "word": "RULING",
+      "level": "B1",
+      "translation": "решение суда",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEIZURE",
+      "level": "B1",
+      "translation": "изъятие",
+      "isTransliterated": false
+    },
+    {
+      "word": "SENTENCE",
+      "level": "B1",
+      "translation": "приговор",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIGNATORY",
+      "level": "B1",
+      "translation": "подписант",
+      "isTransliterated": false
+    },
+    {
+      "word": "THEFT",
+      "level": "B1",
+      "translation": "кража",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRESPASS",
+      "level": "B1",
+      "translation": "незаконное проникновение",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNLAWFUL",
+      "level": "B1",
+      "translation": "незаконный",
+      "isTransliterated": false
+    },
+    {
+      "word": "VICTIM",
+      "level": "B1",
+      "translation": "потерпевший",
+      "isTransliterated": false
+    },
+    {
+      "word": "WHISTLEBLOWER",
+      "level": "B2",
+      "translation": "разоблачитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACQUITTAL",
+      "level": "B2",
+      "translation": "оправдание",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADJOURN",
+      "level": "B2",
+      "translation": "откладывать заседание",
+      "isTransliterated": false
+    },
+    {
+      "word": "ADJUDICATE",
+      "level": "B2",
+      "translation": "выносить решение",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALLEGATION",
+      "level": "B2",
+      "translation": "утверждение о нарушении",
+      "isTransliterated": false
+    },
+    {
+      "word": "APPELLANT",
+      "level": "B2",
+      "translation": "подающий жалобу",
+      "isTransliterated": false
+    },
+    {
+      "word": "ARRAIGNMENT",
+      "level": "B2",
+      "translation": "предъявление обвинения",
+      "isTransliterated": false
+    },
+    {
+      "word": "BEQUEST",
+      "level": "B2",
+      "translation": "завещательный дар",
+      "isTransliterated": false
+    },
+    {
+      "word": "BURDEN",
+      "level": "B2",
+      "translation": "бремя",
+      "isTransliterated": false
+    },
+    {
+      "word": "CODICIL",
+      "level": "B2",
+      "translation": "дополнение к завещанию",
+      "isTransliterated": false
+    },
+    {
+      "word": "COERCION",
+      "level": "B2",
+      "translation": "принуждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONTEMPT",
+      "level": "B2",
+      "translation": "неуважение к суду",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONVEYANCE",
+      "level": "B2",
+      "translation": "передача права",
+      "isTransliterated": false
+    },
+    {
+      "word": "CULPABLE",
+      "level": "B2",
+      "translation": "виновный",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEFAULT",
+      "level": "B2",
+      "translation": "неявка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISMISSAL",
+      "level": "B2",
+      "translation": "отклонение",
+      "isTransliterated": false
+    },
+    {
+      "word": "DOCKET",
+      "level": "B2",
+      "translation": "список дел",
+      "isTransliterated": false
+    },
+    {
+      "word": "DURESS",
+      "level": "B2",
+      "translation": "принуждение",
+      "isTransliterated": false
+    },
+    {
+      "word": "ESTATE",
+      "level": "B2",
+      "translation": "имущество",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORFEITURE",
+      "level": "B2",
+      "translation": "утрата права",
+      "isTransliterated": false
+    },
+    {
+      "word": "HEARSAY",
+      "level": "B2",
+      "translation": "свидетельство с чужих слов",
+      "isTransliterated": false
+    },
+    {
+      "word": "INFRINGEMENT",
+      "level": "B2",
+      "translation": "нарушение права",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEGACY",
+      "level": "B2",
+      "translation": "наследие",
+      "isTransliterated": false
+    },
+    {
+      "word": "MAINTENANCE",
+      "level": "B2",
+      "translation": "содержание",
+      "isTransliterated": false
+    },
+    {
+      "word": "PERPETRATOR",
+      "level": "B2",
+      "translation": "нарушитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROBATE",
+      "level": "B2",
+      "translation": "утверждение завещания",
+      "isTransliterated": false
+    },
+    {
+      "word": "RECUSAL",
+      "level": "B2",
+      "translation": "самоотвод",
+      "isTransliterated": false
+    },
+    {
+      "word": "REDRESS",
+      "level": "B2",
+      "translation": "возмещение",
+      "isTransliterated": false
+    },
+    {
+      "word": "REPEAL",
+      "level": "B2",
+      "translation": "отмена закона",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESCIND",
+      "level": "B2",
+      "translation": "расторгать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SURETY",
+      "level": "B2",
+      "translation": "поручитель",
+      "isTransliterated": false
+    },
+    {
+      "word": "TORT",
+      "level": "B2",
+      "translation": "гражданское правонарушение",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNENFORCEABLE",
+      "level": "C1",
+      "translation": "неисполнимый",
+      "isTransliterated": false
+    },
+    {
+      "word": "ESTOPPEL",
+      "level": "C1",
+      "translation": "запрет возражения",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORESEEABILITY",
+      "level": "C1",
+      "translation": "предвидимость",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEVERABILITY",
+      "level": "C1",
+      "translation": "делимость положений",
+      "isTransliterated": false
+    },
+    {
+      "word": "JUSTICIABLE",
+      "level": "C1",
+      "translation": "подлежащий судебному рассмотрению",
+      "isTransliterated": false
+    },
+    {
+      "word": "NONDISCLOSURE",
+      "level": "C1",
+      "translation": "неразглашение",
+      "isTransliterated": false
+    },
+    {
+      "word": "SAFEGUARD",
+      "level": "B2",
+      "translation": "мера защиты",
+      "isTransliterated": false
+    },
+    {
+      "word": "OVERSIGHT",
+      "level": "B2",
+      "translation": "надзор",
+      "isTransliterated": false
+    },
+    {
+      "word": "WATCHDOG",
+      "level": "B2",
+      "translation": "надзорный орган",
+      "isTransliterated": false
+    },
+    {
+      "word": "REDLINE",
+      "level": "B2",
+      "translation": "править документ",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUNSET",
+      "level": "C1",
+      "translation": "срок прекращения действия",
+      "isTransliterated": false
+    },
+    {
+      "word": "CARVEOUT",
+      "level": "C1",
+      "translation": "исключение",
+      "isTransliterated": false
+    },
+    {
+      "word": "INDEMNIFY",
+      "level": "C1",
+      "translation": "возмещать ущерб",
+      "isTransliterated": false
+    },
+    {
+      "word": "ULTRAVIRES",
+      "level": "C2",
+      "translation": "превышение полномочий",
+      "isTransliterated": false
+    },
+    {
+      "word": "JUSTICIABILITY",
+      "level": "C2",
+      "translation": "подведомственность суду",
+      "isTransliterated": false
+    },
+    {
+      "word": "RIPENESS",
+      "level": "C2",
+      "translation": "готовность спора к рассмотрению",
+      "isTransliterated": false
+    },
+    {
+      "word": "MOOTNESS",
+      "level": "C2",
+      "translation": "утрата предмета спора",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEVERANCE",
+      "level": "C2",
+      "translation": "выделение требования",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNCONSCIONABILITY",
+      "level": "C2",
+      "translation": "крайняя несправедливость условия",
+      "isTransliterated": false
+    },
+    {
+      "word": "NONDELEGABLE",
+      "level": "C2",
+      "translation": "непередаваемый",
+      "isTransliterated": false
+    },
+    {
+      "word": "DISGORGEMENT",
+      "level": "C2",
+      "translation": "изъятие незаконной выгоды",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORBEARANCE",
+      "level": "C2",
+      "translation": "воздержание от действия",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRIVITY",
+      "level": "C2",
+      "translation": "правовая связь сторон",
+      "isTransliterated": false
+    },
+    {
+      "word": "NAME",
+      "level": "A1",
+      "translation": "имя",
+      "isTransliterated": false
+    },
+    {
+      "word": "PERSON",
+      "level": "A1",
+      "translation": "лицо",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLACE",
+      "level": "A1",
+      "translation": "место",
+      "isTransliterated": false
+    },
+    {
+      "word": "OWN",
+      "level": "A1",
+      "translation": "владеть",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAY",
+      "level": "A1",
+      "translation": "платить",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHOW",
+      "level": "A1",
+      "translation": "предъявлять",
+      "isTransliterated": false
+    },
+    {
+      "word": "KEEP",
+      "level": "A1",
+      "translation": "хранить",
+      "isTransliterated": false
+    },
+    {
+      "word": "ASK",
+      "level": "A1",
+      "translation": "запрашивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "TELL",
+      "level": "A1",
+      "translation": "сообщать",
+      "isTransliterated": false
+    },
+    {
+      "word": "GIVE",
+      "level": "A1",
+      "translation": "давать",
+      "isTransliterated": false
+    },
+    {
+      "word": "TAKE",
+      "level": "A1",
+      "translation": "брать",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOLD",
+      "level": "A1",
+      "translation": "удерживать",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRUE",
+      "level": "A1",
+      "translation": "правдивый",
+      "isTransliterated": false
+    },
+    {
+      "word": "LACHES",
+      "level": "C2",
+      "translation": "пропуск срока",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORUMSHOPPING",
+      "level": "C2",
+      "translation": "выбор выгодного суда",
+      "isTransliterated": false
+    },
+    {
+      "word": "BLUEPENCILING",
+      "level": "C2",
+      "translation": "частичная правка условия",
+      "isTransliterated": false
+    },
+    {
+      "word": "NONJOINDER",
+      "level": "C2",
+      "translation": "непривлечение стороны",
+      "isTransliterated": false
+    },
+    {
+      "word": "MISJOINDER",
+      "level": "C2",
+      "translation": "неправильное объединение сторон",
+      "isTransliterated": false
+    }
+  ]
+}
