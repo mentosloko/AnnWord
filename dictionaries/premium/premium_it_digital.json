@@ -1,1 +1,1369 @@
-{"title":"IT & Digital English","source":"topic","theme":"it","words":[{"word":"CODE","level":"A2","translation":"код"},{"word":"DATA","level":"A2","translation":"данные"},{"word":"FILE","level":"A1","translation":"файл"},{"word":"USER","level":"A1","translation":"пользователь"},{"word":"LOGIN","level":"A2","translation":"логин"},{"word":"EMAIL","level":"A2","translation":"электронная почта"},{"word":"CLOUD","level":"A2","translation":"облако"},{"word":"CACHE","level":"B1","translation":"кэш"},{"word":"DEBUG","level":"B1","translation":"отлаживать"},{"word":"PATCH","level":"B1","translation":"исправление"},{"word":"STACK","level":"B2","translation":"стек"},{"word":"QUERY","level":"B2","translation":"запрос"},{"word":"ROUTE","level":"B1","translation":"маршрут"},{"word":"TOKEN","level":"B2","translation":"токен"},{"word":"SCRIPT","level":"B1","translation":"скрипт"},{"word":"SERVER","level":"A2","translation":"сервер"},{"word":"CLIENT","level":"A2","translation":"клиент"},{"word":"DOMAIN","level":"B1","translation":"домен"},{"word":"INPUT","level":"A2","translation":"ввод"},{"word":"OUTPUT","level":"A2","translation":"вывод"},{"word":"STRING","level":"B1","translation":"строка"},{"word":"NUMBER","level":"A2","translation":"число"},{"word":"OBJECT","level":"B1","translation":"объект"},{"word":"MODULE","level":"B1","translation":"модуль"},{"word":"BRANCH","level":"B1","translation":"ветка"},{"word":"COMMIT","level":"B1","translation":"коммит"},{"word":"MERGE","level":"B1","translation":"слияние"},{"word":"BUILD","level":"A2","translation":"сборка"},{"word":"DEPLOY","level":"B1","translation":"деплой"},{"word":"DEVICE","level":"A2","translation":"устройство"},{"word":"SCREEN","level":"A2","translation":"экран"},{"word":"BUTTON","level":"A1","translation":"кнопка"},{"word":"LAYOUT","level":"B1","translation":"макет"},{"word":"BANNER","level":"A2","translation":"баннер"},{"word":"HEADER","level":"A2","translation":"заголовок"},{"word":"FOOTER","level":"A2","translation":"подвал страницы"},{"word":"WIDGET","level":"B1","translation":"виджет"},{"word":"SEARCH","level":"A2","translation":"поиск"},{"word":"FILTER","level":"A2","translation":"фильтр"},{"word":"UPLOAD","level":"A2","translation":"загрузка"},{"word":"EXPORT","level":"B1","translation":"экспорт"},{"word":"IMPORT","level":"B1","translation":"импорт"},{"word":"BACKUP","level":"B1","translation":"резервная копия"},{"word":"ACCESS","level":"A2","translation":"доступ"},{"word":"SECURE","level":"B1","translation":"защищённый"},{"word":"COOKIE","level":"B1","translation":"cookie-файл"},{"word":"BINARY","level":"B2","translation":"двоичный"},{"word":"BUFFER","level":"B2","translation":"буфер"},{"word":"SYNTAX","level":"B2","translation":"синтаксис"},{"word":"RUNTIME","level":"B2","translation":"среда выполнения"},{"word":"VECTOR","level":"B2","translation":"вектор"},{"word":"PROMPT","level":"B1","translation":"промпт"},{"word":"MODEL","level":"A2","translation":"модель"},{"word":"PLUGIN","level":"B1","translation":"плагин"},{"word":"LOGGER","level":"B1","translation":"логгер"},{"word":"CONFIG","level":"B1","translation":"конфигурация"},{"word":"EDITOR","level":"A2","translation":"редактор"},{"word":"CURSOR","level":"A2","translation":"курсор"},{"word":"FOLDER","level":"A2","translation":"папка"},{"word":"FORMAT","level":"A2","translation":"формат"},{"word":"NETWORK","level":"A2","translation":"сеть"},{"word":"PACKET","level":"B2","translation":"пакет данных"},{"word":"RENDER","level":"B1","translation":"рендерить"},{"word":"STREAM","level":"B2","translation":"поток"},{"word":"THREAD","level":"B2","translation":"поток выполнения"},{"word":"TICKET","level":"B1","translation":"тикет"},{"word":"VERSION","level":"A2","translation":"версия"},{"word":"WINDOW","level":"A1","translation":"окно"},{"word":"ACCOUNT","level":"A2","translation":"аккаунт"},{"word":"ALGORITHM","level":"B2","translation":"алгоритм"},{"word":"ANIMATION","level":"B1","translation":"анимация"},{"word":"APPLICATION","level":"A2","translation":"приложение"},{"word":"AUTHENTICATE","level":"B2","translation":"аутентифицировать"},{"word":"AUTOMATION","level":"B2","translation":"автоматизация"},{"word":"BANDWIDTH","level":"B2","translation":"пропускная способность"},{"word":"DATABASE","level":"B1","translation":"база данных"},{"word":"DASHBOARD","level":"B1","translation":"панель управления"},{"word":"DEPENDENCY","level":"B2","translation":"зависимость"},{"word":"ENCRYPTION","level":"B2","translation":"шифрование"},{"word":"ENDPOINT","level":"B2","translation":"эндпоинт"},{"word":"FIREWALL","level":"B2","translation":"файрвол"},{"word":"FRAMEWORK","level":"B2","translation":"фреймворк"},{"word":"FRONTEND","level":"B1","translation":"фронтенд"},{"word":"BACKEND","level":"B1","translation":"бэкенд"},{"word":"HARDWARE","level":"B1","translation":"аппаратное обеспечение"},{"word":"INTERFACE","level":"B1","translation":"интерфейс"},{"word":"JAVASCRIPT","level":"B1","translation":"JavaScript"},{"word":"KEYBOARD","level":"A2","translation":"клавиатура"},{"word":"MIDDLEWARE","level":"C1","translation":"промежуточное ПО"},{"word":"MIGRATION","level":"B2","translation":"миграция"},{"word":"MONITORING","level":"B2","translation":"мониторинг"},{"word":"NAVIGATION","level":"A2","translation":"навигация"},{"word":"PASSWORD","level":"A2","translation":"пароль"},{"word":"PIPELINE","level":"B2","translation":"пайплайн"},{"word":"PLATFORM","level":"A2","translation":"платформа"},{"word":"PROTOCOL","level":"B2","translation":"протокол"},{"word":"REPOSITORY","level":"B2","translation":"репозиторий"},{"word":"RESPONSIVE","level":"B2","translation":"адаптивный"},{"word":"SECURITY","level":"B1","translation":"безопасность"},{"word":"SOFTWARE","level":"A2","translation":"программное обеспечение"},{"word":"TEMPLATE","level":"B1","translation":"шаблон"},{"word":"TERMINAL","level":"B1","translation":"терминал"},{"word":"TYPESCRIPT","level":"B2","translation":"TypeScript"},{"word":"USERNAME","level":"A2","translation":"имя пользователя"},{"word":"VALIDATION","level":"B1","translation":"валидация"},{"word":"VARIABLE","level":"B1","translation":"переменная"},{"word":"WORKFLOW","level":"B2","translation":"рабочий процесс"},{"word":"COMPONENT","level":"B1","translation":"компонент"},{"word":"CONTAINER","level":"B2","translation":"контейнер"},{"word":"DEPLOYMENT","level":"B2","translation":"развёртывание"},{"word":"DOCUMENTATION","level":"B1","translation":"документация"},{"word":"INTEGRATION","level":"B2","translation":"интеграция"},{"word":"OPTIMIZATION","level":"B2","translation":"оптимизация"},{"word":"PERFORMANCE","level":"B2","translation":"производительность"},{"word":"PERMISSION","level":"B1","translation":"разрешение"},{"word":"SCALABILITY","level":"C1","translation":"масштабируемость"},{"word":"SUBSCRIPTION","level":"B1","translation":"подписка"},{"word":"SYNCHRONIZE","level":"B2","translation":"синхронизировать"},{"word":"TRANSACTION","level":"B2","translation":"транзакция"},{"word":"ARCHITECTURE","level":"C1","translation":"архитектура"}]}
+{
+  "title": "IT & Digital English",
+  "source": "topic",
+  "theme": "it",
+  "words": [
+    {
+      "word": "CODE",
+      "level": "A2",
+      "translation": "код",
+      "isTransliterated": true
+    },
+    {
+      "word": "DATA",
+      "level": "A2",
+      "translation": "данные",
+      "isTransliterated": false
+    },
+    {
+      "word": "FILE",
+      "level": "A1",
+      "translation": "файл",
+      "isTransliterated": false
+    },
+    {
+      "word": "USER",
+      "level": "A1",
+      "translation": "пользователь",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOGIN",
+      "level": "A2",
+      "translation": "логин",
+      "isTransliterated": true
+    },
+    {
+      "word": "EMAIL",
+      "level": "A2",
+      "translation": "электронная почта",
+      "isTransliterated": false
+    },
+    {
+      "word": "CLOUD",
+      "level": "A2",
+      "translation": "облако",
+      "isTransliterated": false
+    },
+    {
+      "word": "CACHE",
+      "level": "B1",
+      "translation": "кэш",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEBUG",
+      "level": "B1",
+      "translation": "отлаживать",
+      "isTransliterated": false
+    },
+    {
+      "word": "PATCH",
+      "level": "B1",
+      "translation": "исправление",
+      "isTransliterated": false
+    },
+    {
+      "word": "STACK",
+      "level": "B2",
+      "translation": "стек",
+      "isTransliterated": true
+    },
+    {
+      "word": "QUERY",
+      "level": "B2",
+      "translation": "запрос",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROUTE",
+      "level": "B1",
+      "translation": "маршрут",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOKEN",
+      "level": "B2",
+      "translation": "токен",
+      "isTransliterated": true
+    },
+    {
+      "word": "SCRIPT",
+      "level": "B1",
+      "translation": "скрипт",
+      "isTransliterated": true
+    },
+    {
+      "word": "SERVER",
+      "level": "A2",
+      "translation": "сервер",
+      "isTransliterated": true
+    },
+    {
+      "word": "CLIENT",
+      "level": "A2",
+      "translation": "клиент",
+      "isTransliterated": true
+    },
+    {
+      "word": "DOMAIN",
+      "level": "B1",
+      "translation": "домен",
+      "isTransliterated": true
+    },
+    {
+      "word": "INPUT",
+      "level": "A2",
+      "translation": "ввод",
+      "isTransliterated": false
+    },
+    {
+      "word": "OUTPUT",
+      "level": "A2",
+      "translation": "вывод",
+      "isTransliterated": false
+    },
+    {
+      "word": "STRING",
+      "level": "B1",
+      "translation": "строка",
+      "isTransliterated": false
+    },
+    {
+      "word": "NUMBER",
+      "level": "A2",
+      "translation": "число",
+      "isTransliterated": false
+    },
+    {
+      "word": "OBJECT",
+      "level": "B1",
+      "translation": "объект",
+      "isTransliterated": true
+    },
+    {
+      "word": "MODULE",
+      "level": "B1",
+      "translation": "модуль",
+      "isTransliterated": true
+    },
+    {
+      "word": "BRANCH",
+      "level": "B1",
+      "translation": "ветка",
+      "isTransliterated": false
+    },
+    {
+      "word": "COMMIT",
+      "level": "B1",
+      "translation": "коммит",
+      "isTransliterated": true
+    },
+    {
+      "word": "MERGE",
+      "level": "B1",
+      "translation": "слияние",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUILD",
+      "level": "A2",
+      "translation": "сборка",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEPLOY",
+      "level": "B1",
+      "translation": "деплой",
+      "isTransliterated": true
+    },
+    {
+      "word": "DEVICE",
+      "level": "A2",
+      "translation": "устройство",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCREEN",
+      "level": "A2",
+      "translation": "экран",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUTTON",
+      "level": "A1",
+      "translation": "кнопка",
+      "isTransliterated": false
+    },
+    {
+      "word": "LAYOUT",
+      "level": "B1",
+      "translation": "макет",
+      "isTransliterated": false
+    },
+    {
+      "word": "BANNER",
+      "level": "A2",
+      "translation": "баннер",
+      "isTransliterated": true
+    },
+    {
+      "word": "HEADER",
+      "level": "A2",
+      "translation": "заголовок",
+      "isTransliterated": false
+    },
+    {
+      "word": "FOOTER",
+      "level": "A2",
+      "translation": "подвал страницы",
+      "isTransliterated": false
+    },
+    {
+      "word": "WIDGET",
+      "level": "B1",
+      "translation": "виджет",
+      "isTransliterated": false
+    },
+    {
+      "word": "SEARCH",
+      "level": "A2",
+      "translation": "поиск",
+      "isTransliterated": false
+    },
+    {
+      "word": "FILTER",
+      "level": "A2",
+      "translation": "фильтр",
+      "isTransliterated": true
+    },
+    {
+      "word": "UPLOAD",
+      "level": "A2",
+      "translation": "загрузка",
+      "isTransliterated": false
+    },
+    {
+      "word": "EXPORT",
+      "level": "B1",
+      "translation": "экспорт",
+      "isTransliterated": true
+    },
+    {
+      "word": "IMPORT",
+      "level": "B1",
+      "translation": "импорт",
+      "isTransliterated": true
+    },
+    {
+      "word": "BACKUP",
+      "level": "B1",
+      "translation": "резервная копия",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCESS",
+      "level": "A2",
+      "translation": "доступ",
+      "isTransliterated": false
+    },
+    {
+      "word": "SECURE",
+      "level": "B1",
+      "translation": "защищённый",
+      "isTransliterated": false
+    },
+    {
+      "word": "COOKIE",
+      "level": "B1",
+      "translation": "cookie-файл",
+      "isTransliterated": false
+    },
+    {
+      "word": "BINARY",
+      "level": "B2",
+      "translation": "двоичный",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUFFER",
+      "level": "B2",
+      "translation": "буфер",
+      "isTransliterated": true
+    },
+    {
+      "word": "SYNTAX",
+      "level": "B2",
+      "translation": "синтаксис",
+      "isTransliterated": true
+    },
+    {
+      "word": "RUNTIME",
+      "level": "B2",
+      "translation": "среда выполнения",
+      "isTransliterated": false
+    },
+    {
+      "word": "VECTOR",
+      "level": "B2",
+      "translation": "вектор",
+      "isTransliterated": true
+    },
+    {
+      "word": "PROMPT",
+      "level": "B1",
+      "translation": "промпт",
+      "isTransliterated": true
+    },
+    {
+      "word": "MODEL",
+      "level": "A2",
+      "translation": "модель",
+      "isTransliterated": true
+    },
+    {
+      "word": "PLUGIN",
+      "level": "B1",
+      "translation": "плагин",
+      "isTransliterated": true
+    },
+    {
+      "word": "LOGGER",
+      "level": "B1",
+      "translation": "логгер",
+      "isTransliterated": true
+    },
+    {
+      "word": "CONFIG",
+      "level": "B1",
+      "translation": "конфигурация",
+      "isTransliterated": true
+    },
+    {
+      "word": "EDITOR",
+      "level": "A2",
+      "translation": "редактор",
+      "isTransliterated": true
+    },
+    {
+      "word": "CURSOR",
+      "level": "A2",
+      "translation": "курсор",
+      "isTransliterated": true
+    },
+    {
+      "word": "FOLDER",
+      "level": "A2",
+      "translation": "папка",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORMAT",
+      "level": "A2",
+      "translation": "формат",
+      "isTransliterated": true
+    },
+    {
+      "word": "NETWORK",
+      "level": "A2",
+      "translation": "сеть",
+      "isTransliterated": false
+    },
+    {
+      "word": "PACKET",
+      "level": "B2",
+      "translation": "пакет данных",
+      "isTransliterated": true
+    },
+    {
+      "word": "RENDER",
+      "level": "B1",
+      "translation": "рендерить",
+      "isTransliterated": true
+    },
+    {
+      "word": "STREAM",
+      "level": "B2",
+      "translation": "поток",
+      "isTransliterated": false
+    },
+    {
+      "word": "THREAD",
+      "level": "B2",
+      "translation": "поток выполнения",
+      "isTransliterated": false
+    },
+    {
+      "word": "TICKET",
+      "level": "B1",
+      "translation": "тикет",
+      "isTransliterated": false
+    },
+    {
+      "word": "VERSION",
+      "level": "A2",
+      "translation": "версия",
+      "isTransliterated": true
+    },
+    {
+      "word": "WINDOW",
+      "level": "A1",
+      "translation": "окно",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCOUNT",
+      "level": "A2",
+      "translation": "аккаунт",
+      "isTransliterated": false
+    },
+    {
+      "word": "ALGORITHM",
+      "level": "B2",
+      "translation": "алгоритм",
+      "isTransliterated": true
+    },
+    {
+      "word": "ANIMATION",
+      "level": "B1",
+      "translation": "анимация",
+      "isTransliterated": true
+    },
+    {
+      "word": "APPLICATION",
+      "level": "A2",
+      "translation": "приложение",
+      "isTransliterated": false
+    },
+    {
+      "word": "AUTHENTICATE",
+      "level": "B2",
+      "translation": "аутентифицировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "AUTOMATION",
+      "level": "B2",
+      "translation": "автоматизация",
+      "isTransliterated": false
+    },
+    {
+      "word": "BANDWIDTH",
+      "level": "B2",
+      "translation": "пропускная способность",
+      "isTransliterated": false
+    },
+    {
+      "word": "DATABASE",
+      "level": "B1",
+      "translation": "база данных",
+      "isTransliterated": false
+    },
+    {
+      "word": "DASHBOARD",
+      "level": "B1",
+      "translation": "панель управления",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEPENDENCY",
+      "level": "B2",
+      "translation": "зависимость",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENCRYPTION",
+      "level": "B2",
+      "translation": "шифрование",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENDPOINT",
+      "level": "B2",
+      "translation": "эндпоинт",
+      "isTransliterated": true
+    },
+    {
+      "word": "FIREWALL",
+      "level": "B2",
+      "translation": "файрвол",
+      "isTransliterated": false
+    },
+    {
+      "word": "FRAMEWORK",
+      "level": "B2",
+      "translation": "фреймворк",
+      "isTransliterated": false
+    },
+    {
+      "word": "FRONTEND",
+      "level": "B1",
+      "translation": "фронтенд",
+      "isTransliterated": true
+    },
+    {
+      "word": "BACKEND",
+      "level": "B1",
+      "translation": "бэкенд",
+      "isTransliterated": true
+    },
+    {
+      "word": "HARDWARE",
+      "level": "B1",
+      "translation": "аппаратное обеспечение",
+      "isTransliterated": false
+    },
+    {
+      "word": "INTERFACE",
+      "level": "B1",
+      "translation": "интерфейс",
+      "isTransliterated": true
+    },
+    {
+      "word": "JAVASCRIPT",
+      "level": "B1",
+      "translation": "JavaScript",
+      "isTransliterated": false
+    },
+    {
+      "word": "KEYBOARD",
+      "level": "A2",
+      "translation": "клавиатура",
+      "isTransliterated": false
+    },
+    {
+      "word": "MIDDLEWARE",
+      "level": "C1",
+      "translation": "промежуточное ПО",
+      "isTransliterated": false
+    },
+    {
+      "word": "MIGRATION",
+      "level": "B2",
+      "translation": "миграция",
+      "isTransliterated": true
+    },
+    {
+      "word": "MONITORING",
+      "level": "B2",
+      "translation": "мониторинг",
+      "isTransliterated": true
+    },
+    {
+      "word": "NAVIGATION",
+      "level": "A2",
+      "translation": "навигация",
+      "isTransliterated": true
+    },
+    {
+      "word": "PASSWORD",
+      "level": "A2",
+      "translation": "пароль",
+      "isTransliterated": false
+    },
+    {
+      "word": "PIPELINE",
+      "level": "B2",
+      "translation": "пайплайн",
+      "isTransliterated": false
+    },
+    {
+      "word": "PLATFORM",
+      "level": "A2",
+      "translation": "платформа",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROTOCOL",
+      "level": "B2",
+      "translation": "протокол",
+      "isTransliterated": true
+    },
+    {
+      "word": "REPOSITORY",
+      "level": "B2",
+      "translation": "репозиторий",
+      "isTransliterated": true
+    },
+    {
+      "word": "RESPONSIVE",
+      "level": "B2",
+      "translation": "адаптивный",
+      "isTransliterated": false
+    },
+    {
+      "word": "SECURITY",
+      "level": "B1",
+      "translation": "безопасность",
+      "isTransliterated": false
+    },
+    {
+      "word": "SOFTWARE",
+      "level": "A2",
+      "translation": "программное обеспечение",
+      "isTransliterated": false
+    },
+    {
+      "word": "TEMPLATE",
+      "level": "B1",
+      "translation": "шаблон",
+      "isTransliterated": false
+    },
+    {
+      "word": "TERMINAL",
+      "level": "B1",
+      "translation": "терминал",
+      "isTransliterated": true
+    },
+    {
+      "word": "TYPESCRIPT",
+      "level": "B2",
+      "translation": "TypeScript",
+      "isTransliterated": false
+    },
+    {
+      "word": "USERNAME",
+      "level": "A2",
+      "translation": "имя пользователя",
+      "isTransliterated": false
+    },
+    {
+      "word": "VALIDATION",
+      "level": "B1",
+      "translation": "валидация",
+      "isTransliterated": true
+    },
+    {
+      "word": "VARIABLE",
+      "level": "B1",
+      "translation": "переменная",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORKFLOW",
+      "level": "B2",
+      "translation": "рабочий процесс",
+      "isTransliterated": false
+    },
+    {
+      "word": "COMPONENT",
+      "level": "B1",
+      "translation": "компонент",
+      "isTransliterated": true
+    },
+    {
+      "word": "CONTAINER",
+      "level": "B2",
+      "translation": "контейнер",
+      "isTransliterated": true
+    },
+    {
+      "word": "DEPLOYMENT",
+      "level": "B2",
+      "translation": "развёртывание",
+      "isTransliterated": false
+    },
+    {
+      "word": "DOCUMENTATION",
+      "level": "B1",
+      "translation": "документация",
+      "isTransliterated": true
+    },
+    {
+      "word": "INTEGRATION",
+      "level": "B2",
+      "translation": "интеграция",
+      "isTransliterated": true
+    },
+    {
+      "word": "OPTIMIZATION",
+      "level": "B2",
+      "translation": "оптимизация",
+      "isTransliterated": true
+    },
+    {
+      "word": "PERFORMANCE",
+      "level": "B2",
+      "translation": "производительность",
+      "isTransliterated": false
+    },
+    {
+      "word": "PERMISSION",
+      "level": "B1",
+      "translation": "разрешение",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCALABILITY",
+      "level": "C1",
+      "translation": "масштабируемость",
+      "isTransliterated": false
+    },
+    {
+      "word": "SUBSCRIPTION",
+      "level": "B1",
+      "translation": "подписка",
+      "isTransliterated": false
+    },
+    {
+      "word": "SYNCHRONIZE",
+      "level": "B2",
+      "translation": "синхронизировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRANSACTION",
+      "level": "B2",
+      "translation": "транзакция",
+      "isTransliterated": true
+    },
+    {
+      "word": "ARCHITECTURE",
+      "level": "C1",
+      "translation": "архитектура",
+      "isTransliterated": true
+    },
+    {
+      "word": "CLICK",
+      "level": "A1",
+      "translation": "щелчок",
+      "isTransliterated": false
+    },
+    {
+      "word": "LINK",
+      "level": "A1",
+      "translation": "ссылка",
+      "isTransliterated": false
+    },
+    {
+      "word": "MOUSE",
+      "level": "A1",
+      "translation": "мышь",
+      "isTransliterated": false
+    },
+    {
+      "word": "PAGE",
+      "level": "A1",
+      "translation": "страница",
+      "isTransliterated": false
+    },
+    {
+      "word": "PHONE",
+      "level": "A1",
+      "translation": "телефон",
+      "isTransliterated": false
+    },
+    {
+      "word": "SAVE",
+      "level": "A1",
+      "translation": "сохранять",
+      "isTransliterated": false
+    },
+    {
+      "word": "DELETE",
+      "level": "A2",
+      "translation": "удалять",
+      "isTransliterated": false
+    },
+    {
+      "word": "DRAG",
+      "level": "A2",
+      "translation": "перетаскивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "DROP",
+      "level": "A2",
+      "translation": "перетащить",
+      "isTransliterated": false
+    },
+    {
+      "word": "ERROR",
+      "level": "A2",
+      "translation": "ошибка",
+      "isTransliterated": false
+    },
+    {
+      "word": "FIELD",
+      "level": "A2",
+      "translation": "поле",
+      "isTransliterated": false
+    },
+    {
+      "word": "FORM",
+      "level": "A2",
+      "translation": "форма",
+      "isTransliterated": false
+    },
+    {
+      "word": "ICON",
+      "level": "A2",
+      "translation": "значок",
+      "isTransliterated": false
+    },
+    {
+      "word": "IMAGE",
+      "level": "A2",
+      "translation": "изображение",
+      "isTransliterated": false
+    },
+    {
+      "word": "INSTALL",
+      "level": "A2",
+      "translation": "устанавливать",
+      "isTransliterated": false
+    },
+    {
+      "word": "MESSAGE",
+      "level": "A2",
+      "translation": "сообщение",
+      "isTransliterated": false
+    },
+    {
+      "word": "PRINT",
+      "level": "A2",
+      "translation": "печать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SCROLL",
+      "level": "A2",
+      "translation": "прокручивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHARE",
+      "level": "A2",
+      "translation": "делиться",
+      "isTransliterated": false
+    },
+    {
+      "word": "START",
+      "level": "A2",
+      "translation": "запускать",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOOL",
+      "level": "A2",
+      "translation": "инструмент",
+      "isTransliterated": false
+    },
+    {
+      "word": "UPDATE",
+      "level": "A2",
+      "translation": "обновлять",
+      "isTransliterated": false
+    },
+    {
+      "word": "CONNECT",
+      "level": "B1",
+      "translation": "подключать",
+      "isTransliterated": false
+    },
+    {
+      "word": "CRASH",
+      "level": "B1",
+      "translation": "сбой",
+      "isTransliterated": false
+    },
+    {
+      "word": "FAILURE",
+      "level": "B1",
+      "translation": "отказ",
+      "isTransliterated": false
+    },
+    {
+      "word": "FEATURE",
+      "level": "B1",
+      "translation": "возможность",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOSTING",
+      "level": "B1",
+      "translation": "размещение",
+      "isTransliterated": false
+    },
+    {
+      "word": "KEYWORD",
+      "level": "B1",
+      "translation": "ключевое слово",
+      "isTransliterated": false
+    },
+    {
+      "word": "LIBRARY",
+      "level": "B1",
+      "translation": "библиотека",
+      "isTransliterated": false
+    },
+    {
+      "word": "LICENSE",
+      "level": "B1",
+      "translation": "разрешение",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOOP",
+      "level": "B1",
+      "translation": "цикл",
+      "isTransliterated": false
+    },
+    {
+      "word": "METHOD",
+      "level": "B1",
+      "translation": "способ",
+      "isTransliterated": false
+    },
+    {
+      "word": "PREVIEW",
+      "level": "B1",
+      "translation": "предпросмотр",
+      "isTransliterated": false
+    },
+    {
+      "word": "QUEUE",
+      "level": "B1",
+      "translation": "очередь",
+      "isTransliterated": false
+    },
+    {
+      "word": "REQUEST",
+      "level": "B1",
+      "translation": "запрос",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESET",
+      "level": "B1",
+      "translation": "сброс",
+      "isTransliterated": false
+    },
+    {
+      "word": "RESPONSE",
+      "level": "B1",
+      "translation": "ответ",
+      "isTransliterated": false
+    },
+    {
+      "word": "SETTING",
+      "level": "B1",
+      "translation": "настройка",
+      "isTransliterated": false
+    },
+    {
+      "word": "STORAGE",
+      "level": "B1",
+      "translation": "хранилище",
+      "isTransliterated": false
+    },
+    {
+      "word": "DOWNLOAD",
+      "level": "B1",
+      "translation": "скачивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "RETRY",
+      "level": "B1",
+      "translation": "повторить",
+      "isTransliterated": false
+    },
+    {
+      "word": "FAILOVER",
+      "level": "B2",
+      "translation": "переключение при отказе",
+      "isTransliterated": false
+    },
+    {
+      "word": "ACCESSIBILITY",
+      "level": "B2",
+      "translation": "доступность",
+      "isTransliterated": false
+    },
+    {
+      "word": "AUTHORIZATION",
+      "level": "B2",
+      "translation": "разрешение доступа",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREAKPOINT",
+      "level": "B2",
+      "translation": "точка останова",
+      "isTransliterated": false
+    },
+    {
+      "word": "BUNDLER",
+      "level": "B2",
+      "translation": "сборщик",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHECKSUM",
+      "level": "B2",
+      "translation": "контрольная сумма",
+      "isTransliterated": false
+    },
+    {
+      "word": "CIPHER",
+      "level": "B2",
+      "translation": "шифр",
+      "isTransliterated": false
+    },
+    {
+      "word": "CRAWLER",
+      "level": "B2",
+      "translation": "поисковый обходчик",
+      "isTransliterated": false
+    },
+    {
+      "word": "DATASET",
+      "level": "B2",
+      "translation": "набор данных",
+      "isTransliterated": false
+    },
+    {
+      "word": "DECODER",
+      "level": "B2",
+      "translation": "расшифровщик",
+      "isTransliterated": false
+    },
+    {
+      "word": "ENCODER",
+      "level": "B2",
+      "translation": "кодировщик",
+      "isTransliterated": false
+    },
+    {
+      "word": "ITERATION",
+      "level": "B2",
+      "translation": "повтор",
+      "isTransliterated": false
+    },
+    {
+      "word": "LATENCY",
+      "level": "B2",
+      "translation": "задержка",
+      "isTransliterated": false
+    },
+    {
+      "word": "ORCHESTRATION",
+      "level": "B2",
+      "translation": "согласованное управление",
+      "isTransliterated": false
+    },
+    {
+      "word": "SERIALIZATION",
+      "level": "B2",
+      "translation": "преобразование в строку",
+      "isTransliterated": false
+    },
+    {
+      "word": "THROTTLE",
+      "level": "B2",
+      "translation": "ограничивать",
+      "isTransliterated": false
+    },
+    {
+      "word": "WEBHOOK",
+      "level": "B2",
+      "translation": "обратный вызов",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROLLBACK",
+      "level": "B2",
+      "translation": "откат",
+      "isTransliterated": false
+    },
+    {
+      "word": "SANDBOX",
+      "level": "B2",
+      "translation": "изолированная среда",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHELL",
+      "level": "B2",
+      "translation": "оболочка",
+      "isTransliterated": false
+    },
+    {
+      "word": "WORKSPACE",
+      "level": "B2",
+      "translation": "рабочая область",
+      "isTransliterated": false
+    },
+    {
+      "word": "QUEUING",
+      "level": "B2",
+      "translation": "постановка в очередь",
+      "isTransliterated": false
+    },
+    {
+      "word": "HANDLER",
+      "level": "B2",
+      "translation": "обработчик",
+      "isTransliterated": false
+    },
+    {
+      "word": "OBFUSCATION",
+      "level": "C1",
+      "translation": "запутывание кода",
+      "isTransliterated": false
+    },
+    {
+      "word": "OBSERVABILITY",
+      "level": "C1",
+      "translation": "наблюдаемость",
+      "isTransliterated": false
+    },
+    {
+      "word": "IDEMPOTENCY",
+      "level": "C1",
+      "translation": "повторяемость без изменения",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACKPRESSURE",
+      "level": "C1",
+      "translation": "обратное давление",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEBOUNCE",
+      "level": "C1",
+      "translation": "задерживать повторный вызов",
+      "isTransliterated": false
+    },
+    {
+      "word": "HYDRATION",
+      "level": "C1",
+      "translation": "оживление страницы",
+      "isTransliterated": false
+    },
+    {
+      "word": "SHARDING",
+      "level": "C1",
+      "translation": "разделение данных",
+      "isTransliterated": false
+    },
+    {
+      "word": "TREE",
+      "level": "B1",
+      "translation": "дерево",
+      "isTransliterated": false
+    },
+    {
+      "word": "LEAF",
+      "level": "B1",
+      "translation": "лист",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROOT",
+      "level": "B1",
+      "translation": "корень",
+      "isTransliterated": false
+    },
+    {
+      "word": "PATH",
+      "level": "B1",
+      "translation": "путь",
+      "isTransliterated": false
+    },
+    {
+      "word": "TRACE",
+      "level": "B1",
+      "translation": "след",
+      "isTransliterated": false
+    },
+    {
+      "word": "LOCK",
+      "level": "B1",
+      "translation": "блокировка",
+      "isTransliterated": false
+    },
+    {
+      "word": "UNLOCK",
+      "level": "B1",
+      "translation": "разблокировать",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIGNATURE",
+      "level": "B2",
+      "translation": "подпись",
+      "isTransliterated": false
+    },
+    {
+      "word": "HANDSHAKE",
+      "level": "B2",
+      "translation": "согласование соединения",
+      "isTransliterated": false
+    },
+    {
+      "word": "THREAT",
+      "level": "B2",
+      "translation": "угроза",
+      "isTransliterated": false
+    },
+    {
+      "word": "BREACH",
+      "level": "B2",
+      "translation": "нарушение защиты",
+      "isTransliterated": false
+    },
+    {
+      "word": "HARDENING",
+      "level": "C1",
+      "translation": "усиление защиты",
+      "isTransliterated": false
+    },
+    {
+      "word": "ESCALATION",
+      "level": "C1",
+      "translation": "повышение прав",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACKPROPAGATION",
+      "level": "C2",
+      "translation": "обратное распространение",
+      "isTransliterated": false
+    },
+    {
+      "word": "CHECKPOINTING",
+      "level": "C2",
+      "translation": "сохранение состояния",
+      "isTransliterated": false
+    },
+    {
+      "word": "SNAPSHOTTING",
+      "level": "C2",
+      "translation": "создание снимка",
+      "isTransliterated": false
+    },
+    {
+      "word": "MULTITENANCY",
+      "level": "C2",
+      "translation": "многопользовательское размещение",
+      "isTransliterated": false
+    },
+    {
+      "word": "POISONING",
+      "level": "C2",
+      "translation": "отравление данных",
+      "isTransliterated": false
+    },
+    {
+      "word": "SIDELOADING",
+      "level": "C2",
+      "translation": "установка в обход магазина",
+      "isTransliterated": false
+    },
+    {
+      "word": "SANDBOXING",
+      "level": "C2",
+      "translation": "изоляция выполнения",
+      "isTransliterated": false
+    },
+    {
+      "word": "TOKENIZATION",
+      "level": "C2",
+      "translation": "разбиение на единицы",
+      "isTransliterated": false
+    },
+    {
+      "word": "PROVISIONING",
+      "level": "C2",
+      "translation": "подготовка ресурсов",
+      "isTransliterated": false
+    },
+    {
+      "word": "ROLLOUT",
+      "level": "C2",
+      "translation": "поэтапный выпуск",
+      "isTransliterated": false
+    },
+    {
+      "word": "FAILBACK",
+      "level": "C2",
+      "translation": "возврат после отказа",
+      "isTransliterated": false
+    },
+    {
+      "word": "KEY",
+      "level": "A1",
+      "translation": "клавиша",
+      "isTransliterated": false
+    },
+    {
+      "word": "TAB",
+      "level": "A1",
+      "translation": "вкладка",
+      "isTransliterated": false
+    },
+    {
+      "word": "HELP",
+      "level": "A1",
+      "translation": "помощь",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACK",
+      "level": "A1",
+      "translation": "назад",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOME",
+      "level": "A1",
+      "translation": "главная",
+      "isTransliterated": false
+    },
+    {
+      "word": "HOTFIX",
+      "level": "C1",
+      "translation": "срочное исправление",
+      "isTransliterated": false
+    },
+    {
+      "word": "DEADLOCK",
+      "level": "C1",
+      "translation": "взаимная блокировка",
+      "isTransliterated": false
+    },
+    {
+      "word": "HANG",
+      "level": "C1",
+      "translation": "зависание",
+      "isTransliterated": false
+    },
+    {
+      "word": "MEMOIZATION",
+      "level": "C2",
+      "translation": "запоминание результата",
+      "isTransliterated": false
+    },
+    {
+      "word": "REENTRANCY",
+      "level": "C2",
+      "translation": "повторный вход",
+      "isTransliterated": false
+    },
+    {
+      "word": "BACKOFF",
+      "level": "C2",
+      "translation": "откладывание повтора",
+      "isTransliterated": false
+    },
+    {
+      "word": "STARVATION",
+      "level": "C2",
+      "translation": "нехватка доступа",
+      "isTransliterated": false
+    }
+  ]
+}
