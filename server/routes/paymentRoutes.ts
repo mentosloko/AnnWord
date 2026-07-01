@@ -16,11 +16,14 @@ const plans: Record<string, Plan> = {
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
-const appUrl = (): string => (process.env.PRODAMUS_APP_URL || runtimeConfig.appUrl || "https://annword.ru").replace(/\/+$/, "");
-const apiUrl = (): string => (runtimeConfig.apiUrl || process.env.API_URL || appUrl()).replace(/\/+$/, "");
+const env = (name: string): string => (process.env[name] || "").trim();
+const withoutSlash = (value: string): string => value.replace(/\/+$/, "");
+const appUrl = (): string => withoutSlash(env("PRODAMUS_APP_URL") || runtimeConfig.appUrl || "https://annword.ru");
+const apiUrl = (): string => withoutSlash(env("PRODAMUS_NOTIFICATION_APP_URL") || env("PRODAMUS_PUBLIC_APP_URL") || runtimeConfig.apiUrl || env("API_URL") || env("YC_API_PUBLIC_URL") || "https://api.annword.ru");
 const appReturnUrl = (payment: "success" | "fail", orderId: string): string => `${appUrl()}/?payment=${payment}&order_id=${encodeURIComponent(orderId)}`;
+const prodamusDemoMode = (): string => env("PRODAMUS_DEMO_MODE") || "0";
 const payformUrl = (): string => {
-  const raw = (process.env.PRODAMUS_PAYFORM_HOST || "manto-school.payform.ru").trim();
+  const raw = (env("PRODAMUS_PAYFORM_HOST") || "manto-school.payform.ru").trim();
   return (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).replace(/\/+$/, "");
 };
 
@@ -73,7 +76,7 @@ paymentRouter.post("/create", requireAuth, async (req: AuthenticatedRequest, res
       urlNotification: `${callbackOrigin}/api/payments/prodamus/notify`,
       sys: process.env.PRODAMUS_SYS_CODE || "annword",
       currency: "rub",
-      demo_mode: process.env.PRODAMUS_DEMO_MODE || "1",
+      demo_mode: prodamusDemoMode(),
       type: "json",
       callbackType: "json",
       payments_limit: "1",
