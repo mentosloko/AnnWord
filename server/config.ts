@@ -65,11 +65,15 @@ export function readDatabaseUrl(): string | undefined {
   return `postgresql://${encodedUser}:${encodedPassword}@${host}:${port}/${database}?sslmode=require`;
 }
 
+const defaultAppUrl = (env: RuntimeEnv): string => env === "production" ? "https://annword.ru" : "http://localhost:3000";
+const defaultApiUrl = (env: RuntimeEnv): string | undefined => env === "production" ? "https://api.annword.ru" : undefined;
+const runtimeEnv = readRuntimeEnv();
+
 export const runtimeConfig = {
-  env: readRuntimeEnv(),
+  env: runtimeEnv,
   port: readPort(),
-  appUrl: readOptionalEnv("APP_URL") || "http://localhost:3000",
-  apiUrl: readOptionalEnv("API_URL") || readOptionalEnv("YC_API_PUBLIC_URL"),
+  appUrl: readOptionalEnv("APP_URL") || defaultAppUrl(runtimeEnv),
+  apiUrl: readOptionalEnv("API_URL") || readOptionalEnv("YC_API_PUBLIC_URL") || defaultApiUrl(runtimeEnv),
   databaseUrl: readDatabaseUrl(),
   yandexClientId: readOptionalEnv("YANDEX_CLIENT_ID"),
   yandexClientSecret: readOptionalEnv("YANDEX_CLIENT_SECRET"),
