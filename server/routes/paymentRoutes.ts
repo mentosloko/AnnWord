@@ -22,7 +22,7 @@ const text = (value: unknown): string => String(value || "").trim();
 const withoutSlash = (value: string): string => value.replace(/\/+$/, "");
 const appUrl = (): string => withoutSlash(readPublicUrlEnv("PRODAMUS_APP_URL") || runtimeConfig.appUrl || "https://annword.ru");
 const apiUrl = (): string => withoutSlash(readPublicUrlEnv("PRODAMUS_NOTIFICATION_APP_URL") || readPublicUrlEnv("PRODAMUS_PUBLIC_APP_URL") || runtimeConfig.apiUrl || readPublicUrlEnv("API_URL") || readPublicUrlEnv("YC_API_PUBLIC_URL") || "https://api.annword.ru");
-const appReturnUrl = (payment: "success" | "pending" | "error", orderId: string, reason?: string): string => {
+const appReturnUrl = (payment: "success" | "pending" | "error" | "fail", orderId: string, reason?: string): string => {
   const url = new URL(appUrl());
   url.searchParams.set("payment", payment);
   url.searchParams.set("order_id", orderId);
@@ -61,7 +61,7 @@ const isDemoCheckout = (rawPayload: unknown): boolean => {
   const demo = checkout.demo_mode ?? rawPayload.demo_mode;
   return demo === "1" || demo === 1 || demo === true;
 };
-const redirectToApp = (res: { redirect: (status: number, url: string) => void }, payment: "success" | "pending" | "error", orderId: string, reason?: string): void => {
+const redirectToApp = (res: { redirect: (status: number, url: string) => void }, payment: "success" | "pending" | "error" | "fail", orderId: string, reason?: string): void => {
   res.redirect(302, appReturnUrl(payment, orderId, reason));
 };
 
@@ -90,7 +90,7 @@ paymentRouter.post("/create", requireAuth, async (req: AuthenticatedRequest, res
       products: [{ name: plan.productName, price: String(plan.amountRub), quantity: "1", sku: plan.code, type: "service", paymentMethod: "1", paymentObject: "4" }],
       paid_content: plan.paidContent,
       urlSuccess: successEndpointUrl(orderId),
-      urlReturn: appReturnUrl("error", orderId, "payment_cancelled"),
+      urlReturn: appReturnUrl("fail", orderId, "payment_cancelled"),
       urlNotification: `${callbackOrigin}/api/payments/prodamus/notify`,
       sys: process.env.PRODAMUS_SYS_CODE || "annword",
       currency: "rub",
@@ -155,7 +155,7 @@ paymentRouter.get("/success", async (req, res) => {
       return;
     }
 
-    redirectToApp(res, "pending", orderId);
+    redirectToApp(res, "success", orderId);
   } catch (error) {
     console.error("Prodamus success redirect failed", error);
     await query(
