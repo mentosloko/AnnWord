@@ -1,12 +1,22 @@
 /// <reference types="vite/client" />
 
 const viteEnv = ((import.meta as any).env || {}) as Record<string, string | undefined>;
-const rawApiUrl = viteEnv.VITE_API_URL || "";
 const BACKEND_TOKEN_STORAGE_KEY = "annword_backend_access_token_v1";
 const BACKEND_COOKIE_SYNC_STORAGE_KEY = "annword_backend_cookie_synced_v1";
 
+const normalizeBaseUrl = (value: string | undefined): string => (value || "").trim().replace(/\/+$/, "");
+
+const runtimeApiFallback = (): string => {
+  if (typeof window === "undefined") return "";
+  const hostname = window.location.hostname.toLowerCase();
+  if (hostname === "annword.ru" || hostname === "www.annword.ru") return "https://api.annword.ru";
+  return "";
+};
+
+const rawApiUrl = normalizeBaseUrl(viteEnv.VITE_API_URL || viteEnv.VITE_YC_API_PUBLIC_URL || runtimeApiFallback());
+
 export const isBackendApiConfigured = Boolean(rawApiUrl);
-export const backendApiBaseUrl = rawApiUrl.replace(/\/+$/, "");
+export const backendApiBaseUrl = rawApiUrl;
 
 export function readBackendAccessToken(): string | null {
   if (typeof window === "undefined") return null;
