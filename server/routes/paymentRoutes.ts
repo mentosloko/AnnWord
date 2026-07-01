@@ -3,7 +3,7 @@ import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { query } from "../db";
-import { runtimeConfig } from "../config";
+import { runtimeConfig, readPublicHostEnv, readPublicUrlEnv } from "../config";
 import { prodamusNotifyRouter } from "./prodamusNotifyRoutes";
 
 export const paymentRouter = Router();
@@ -18,12 +18,12 @@ const plans: Record<string, Plan> = {
 const isObject = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const env = (name: string): string => (process.env[name] || "").trim();
 const withoutSlash = (value: string): string => value.replace(/\/+$/, "");
-const appUrl = (): string => withoutSlash(env("PRODAMUS_APP_URL") || runtimeConfig.appUrl || "https://annword.ru");
-const apiUrl = (): string => withoutSlash(env("PRODAMUS_NOTIFICATION_APP_URL") || env("PRODAMUS_PUBLIC_APP_URL") || runtimeConfig.apiUrl || env("API_URL") || env("YC_API_PUBLIC_URL") || "https://api.annword.ru");
+const appUrl = (): string => withoutSlash(readPublicUrlEnv("PRODAMUS_APP_URL") || runtimeConfig.appUrl || "https://annword.ru");
+const apiUrl = (): string => withoutSlash(readPublicUrlEnv("PRODAMUS_NOTIFICATION_APP_URL") || readPublicUrlEnv("PRODAMUS_PUBLIC_APP_URL") || runtimeConfig.apiUrl || readPublicUrlEnv("API_URL") || readPublicUrlEnv("YC_API_PUBLIC_URL") || "https://api.annword.ru");
 const appReturnUrl = (payment: "success" | "fail", orderId: string): string => `${appUrl()}/?payment=${payment}&order_id=${encodeURIComponent(orderId)}`;
 const prodamusDemoMode = (): string => env("PRODAMUS_DEMO_MODE") || "0";
 const payformUrl = (): string => {
-  const raw = (env("PRODAMUS_PAYFORM_HOST") || "manto-school.payform.ru").trim();
+  const raw = readPublicHostEnv("PRODAMUS_PAYFORM_HOST") || "manto-school.payform.ru";
   return (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).replace(/\/+$/, "");
 };
 
