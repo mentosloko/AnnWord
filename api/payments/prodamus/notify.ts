@@ -38,10 +38,11 @@ const normalizeForSignature = (value: any): any => {
 const signatureBody = (payload: Record<string, any>): string => JSON.stringify(normalizeForSignature(payload)).replace(/\//g, '\\/');
 const sign = (payload: Record<string, any>, key: string): string => createHmac('sha256', key).update(signatureBody(payload)).digest('hex');
 const safe = (left: string, right: string): boolean => { const a = Buffer.from(left); const b = Buffer.from(right); return a.length === b.length && timingSafeEqual(a, b); };
-const incoming = (req: any, body: Record<string, unknown>): string => text(req.headers?.['x-signature'] || req.headers?.['x-prodamus-signature'] || req.headers?.signature || req.headers?.sign || body.signature || body.sign);
+const cleanSignature = (value: unknown): string => text(value).replace(/^sign:\s*/i, '');
+const incoming = (req: any, body: Record<string, unknown>): string => cleanSignature(req.headers?.['x-signature'] || req.headers?.['x-prodamus-signature'] || req.headers?.signature || req.headers?.sign || body.signature || body.sign);
 const trusted = (req: any, body: Record<string, unknown>): boolean => env('PRODAMUS_REQUIRE_WEBHOOK_SIGNATURE', 'true') === 'false' || safe(incoming(req, body), sign(body as Record<string, any>, required('PRODAMUS_SECRET_KEY')));
-const orderId = (body: Record<string, unknown>): string => text(body.order_id || body.order_num || body.order || body.invoice_id || body.invoice_num || body._param_order_id);
-const paymentId = (body: Record<string, unknown>): string => text(body.payment_id || body.transaction_id || body.operation_id || body.id || body.invoice_id || body.payment_num);
+const providerOrderId = (body: Record<string, unknown>): string => text(body.order_num || body._param_order_id || body.order || body.invoice_num || body.invoice_id || body.order_id);
+const providerPaymentId = (body: Record<string, unknown>): string => text(body.payment_id || body.transaction_id || body.operation_id || body.id || body.invoice_id || body.payment_num || body.order_id);
 const isPaid = (body: Record<string, unknown>): boolean => {
   const allowed = env('PRODAMUS_PAID_STATUSES', 'success,paid,completed,complete,confirmed,authorized,approved,done,succeeded').split(',').map(item => item.trim().toLowerCase()).filter(Boolean);
   return [body.payment_status, body.status, body.state, body.operation_status, body.invoice_status, body.payment_state].map(lower).some(value => allowed.includes(value));
@@ -49,8 +50,8 @@ const isPaid = (body: Record<string, unknown>): boolean => {
 
 const writeWebhookLog = async (supabase: SupabaseClient, body: Record<string, unknown>, status: string, signatureValid: boolean | null, paid: boolean | null, error?: unknown): Promise<void> => {
   const { error: insertError } = await supabase.from('prodamus_webhook_events').insert({
-    provider_order_id: orderId(body) || null,
-    provider_payment_id: paymentId(body) || null,
+    provider_order_id: providerOrderId(body) || null,
+    provider_payment_id: providerPaymentId(body) || null,
     status,
     signature_valid: signatureValid,
     is_paid: paid,
@@ -72,19 +73,19 @@ export default async function handler(req: any, res: any) {
       await writeWebhookLog(supabase, body, 'bad_signature', false, paid);
       return res.status(401).send('Bad signature');
     }
-    const id = orderId(body);
+    const id = providerOrderId(body);
     if (!id) {
       await writeWebhookLog(supabase, body, 'missing_order_id', true, paid);
       return res.status(400).send('Missing order_id');
     }
-    const providerPaymentId = paymentId(body) || null;
+    const paymentId = providerPaymentId(body) || null;
     if (paid) {
-      const { error } = await supabase.rpc('activate_paid_premium_payment', { p_provider_order_id: id, p_provider_payment_id: providerPaymentId, p_raw_payload: body });
+      const { error } = await supabase.rpc('activate_paid_premium_payment', { p_provider_order_id: id, p_provider_payment_id: paymentId, p_raw_payload: body });
       if (error) throw error;
       await writeWebhookLog(supabase, body, 'paid', true, true);
       return res.status(200).send('OK');
     }
-    await supabase.from('premium_payments').update({ status: 'ignored', provider_payment_id: providerPaymentId, raw_payload: body }).eq('provider', 'prodamus').eq('provider_order_id', id).neq('status', 'paid');
+    await supabase.from('premium_payments').update({ status: 'ignored', provider_payment_id: paymentId, raw_payload: body }).eq('provider', 'prodamus').eq('provider_order_id', id).neq('status', 'paid');
     await writeWebhookLog(supabase, body, 'ignored', true, false);
     return res.status(200).send('OK');
   } catch (error: unknown) {
