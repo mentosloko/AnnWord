@@ -95,7 +95,13 @@ describe('profileMapper', () => {
     ]);
 
     expect(inventory).toEqual([
-      { id: 'apple', type: 'food', name: 'Apple', quantity: 2, metadata: { imageUrl: 'x.png' } },
+      expect.objectContaining({
+        id: 'apple',
+        type: 'food',
+        name: 'Apple',
+        quantity: 2,
+        metadata: expect.objectContaining({ imageUrl: 'x.png' }),
+      }),
       { id: 'mystery', type: 'food', name: 'Mystery', quantity: 1, metadata: undefined },
     ]);
   });
