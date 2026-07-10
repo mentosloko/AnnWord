@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
-import { applyGameResult, getOrCreateProfile, syncProfileState, updateProfileDictionary, updateWeeklyReportEmail } from "../profileRepository";
+import { applyGameResult, getOrCreateProfile, incrementProfileCoins, syncProfileState, updateProfileDictionary, updateProfilePet, updateProfileStats, updateWeeklyReportEmail } from "../profileRepository";
 import { listDictionaryCollections, saveDictionaryCollection } from "../dictionaryCollectionRepository";
 import { assignedWordsRouter } from "./assignedWordsRoutes";
 
@@ -50,6 +50,33 @@ profileRouter.patch("/dictionary", async (req: AuthenticatedRequest, res) => {
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : "Dictionary update failed" });
+  }
+});
+
+profileRouter.patch("/stats", async (req: AuthenticatedRequest, res) => {
+  try {
+    const profile = await updateProfileStats(req.user!.id, req.body?.stats);
+    res.json({ profile });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "Stats update failed" });
+  }
+});
+
+profileRouter.patch("/pet", async (req: AuthenticatedRequest, res) => {
+  try {
+    const profile = await updateProfilePet(req.user!.id, req.body?.pet);
+    res.json({ profile });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "Pet update failed" });
+  }
+});
+
+profileRouter.post("/coins", async (req: AuthenticatedRequest, res) => {
+  try {
+    const profile = await incrementProfileCoins(req.user!.id, Number(req.body?.amount || 0));
+    res.json({ profile });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "Coins update failed" });
   }
 });
 
