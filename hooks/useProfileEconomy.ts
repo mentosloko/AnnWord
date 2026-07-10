@@ -27,11 +27,13 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     if (!currentUserId) return;
     try {
       const userService = await getUserService();
-      await userService.updateCoins(currentUserId, amount);
+      const updatedProfile = await userService.updateCoins(currentUserId, amount);
+      if (updatedProfile) setUserProfile(updatedProfile);
     } catch (error) {
+      setUserProfile(userProfile);
       console.error('Failed to sync coins to server', error);
     }
-  }, [currentUserId, setUserProfile]);
+  }, [currentUserId, setUserProfile, userProfile]);
 
   const buyItem = useCallback(async (item: ShopItem) => {
     const localPurchase = applyPurchaseLocally(userProfile, item);
@@ -124,7 +126,8 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
       const updatedProfile = await userService.useItem(currentUserId, itemId, localUse.profile, [useEvent]);
       setUserProfile(updatedProfile);
     } catch (error) {
-      console.error('Failed to sync item usage to server; optimistic local state kept', error);
+      setUserProfile(userProfile);
+      console.error('Failed to sync item usage to server', error);
     }
   }, [currentUserId, setUserProfile, userProfile]);
 
@@ -133,11 +136,14 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     if (!currentUserId) return;
     try {
       const userService = await getUserService();
-      await userService.updateUserPet(currentUserId, pet);
+      const updatedProfile = await userService.updateUserPet(currentUserId, pet);
+      if (updatedProfile) setUserProfile(updatedProfile);
     } catch (error) {
+      setUserProfile(userProfile);
       console.error('Failed to update character', error);
+      throw error;
     }
-  }, [currentUserId, setUserProfile]);
+  }, [currentUserId, setUserProfile, userProfile]);
 
   const addXP = useCallback(async (amount: number) => {
     const progress = applyGameRewardToCharacter(userProfile.pet, { xp: amount, coins: 0, mood: 0, label: 'XP adjustment' });
@@ -196,7 +202,9 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
         );
         setUserProfile(updatedProfile);
       } catch (error) {
+        setUserProfile(userProfile);
         console.error('Failed to sync game reward', error);
+        throw error;
       }
     } else {
       for (const event of options.analyticsEvents || []) {
@@ -227,11 +235,14 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
 
     try {
       const userService = await getUserService();
-      await userService.updateUserStats(currentUserId, stats);
+      const updatedProfile = await userService.updateUserStats(currentUserId, stats);
+      if (updatedProfile) setUserProfile(updatedProfile);
     } catch (error) {
+      setUserProfile(userProfile);
       console.error('Failed to update stats', error);
+      throw error;
     }
-  }, [currentUserId, setUserProfile]);
+  }, [currentUserId, setUserProfile, userProfile]);
 
   const updateDictionary = useCallback(async (dictionary: string[]) => {
     if (!currentUserId) {
