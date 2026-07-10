@@ -52,7 +52,23 @@ jobs:
         run: exit 1
 
       - name: Smoke checks
-        run: npm run check:smoke
+        id: smoke_checks
+        run: |
+          set -o pipefail
+          npm run check:smoke 2>&1 | tee smoke-results.log
+        continue-on-error: true
+
+      - name: Upload smoke check log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-results
+          path: smoke-results.log
+          if-no-files-found: ignore
+
+      - name: Fail on smoke check errors
+        if: steps.smoke_checks.outcome == 'failure'
+        run: exit 1
 
       - name: Build
         run: npm exec -- vite build
