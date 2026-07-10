@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { UserProfile } from '../../types';
 import { isKidsMode } from '../../services/modeFlags';
-import { formatPremiumExpiresAt } from '../../services/premiumAccess';
+import { formatPremiumExpiresAt, isPremiumActive } from '../../services/premiumAccess';
 import { profileApiService } from '../../services/profileApiService';
 import { isBackendApiConfigured } from '../../services/backendApiClient';
 import { prodamusPaymentService, readPendingProdamusOrderId, ProdamusPaymentStatusResponse } from '../../services/prodamusPaymentService';
@@ -33,7 +33,7 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
   const [orderId, setOrderId] = useState<string | null>(() => readOrderFromLocation());
   const [confirmedProfile, setConfirmedProfile] = useState<UserProfile | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<ProdamusPaymentStatusResponse | null>(null);
-  const [confirmationState, setConfirmationState] = useState<ConfirmationState>(userProfile.premiumExpiresAt ? 'confirmed' : 'checking');
+  const [confirmationState, setConfirmationState] = useState<ConfirmationState>(isPremiumActive(userProfile) ? 'confirmed' : 'checking');
   const effectiveProfile = confirmedProfile || userProfile;
   const kidsMode = isKidsMode(effectiveProfile, true);
   const ctaLabel = kidsMode ? 'Добавить слова ребёнка' : 'Добавить свои слова';
@@ -41,7 +41,7 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
   const benefits = kidsMode
     ? ['Детские темы: школа, дом, животные, еда', 'Слова для первых классов', 'Тренировка по словам из школы или курса']
     : ['Тематические словари по задачам', 'Слова по уровням A1–C2', 'Тренировка по вашему списку слов'];
-  const confirmed = Boolean(effectiveProfile.premiumExpiresAt);
+  const confirmed = isPremiumActive(effectiveProfile);
   const showNextStep = confirmationState === 'confirmed' || confirmed;
   const statusText = useMemo(() => {
     if (showNextStep) return 'Premium активен';
@@ -50,16 +50,17 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
     return 'Включаем Premium';
   }, [confirmationState, showNextStep]);
 
-  const syncProfileAfterActivation = async (): Promise<void> => {
+  const syncProfileAfterActivation = async (): Promise<boolean> => {
     const profile = await profileApiService.getCurrentProfile();
-    if (profile.premiumExpiresAt) {
+    if (isPremiumActive(profile)) {
       setConfirmedProfile(profile);
       setConfirmationState('confirmed');
       prodamusPaymentService.forgetPendingOrder(orderId);
       window.dispatchEvent(new CustomEvent('annword:profile-updated', { detail: profile }));
-      return;
+      return true;
     }
     setConfirmationState('delayed');
+    return false;
   };
 
   const checkPaymentOnce = async (): Promise<boolean> => {
@@ -72,13 +73,8 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
 
     const status = await prodamusPaymentService.getPaymentStatus(id);
     setPaymentStatus(status);
-    if (status.premiumActive) {
-      await syncProfileAfterActivation();
-      return true;
-    }
-    if (status.paymentStatus === 'paid') {
-      await syncProfileAfterActivation();
-      return confirmed;
+    if (status.premiumActive || status.paymentStatus === 'paid') {
+      return syncProfileAfterActivation();
     }
     if (status.paymentStatus === 'failed' || status.paymentStatus === 'cancelled' || status.paymentStatus === 'refunded') {
       setConfirmationState('failed');
@@ -143,6 +139,7 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
           {orderId && <p className="mt-4 rounded-2xl bg-white/80 px-4 py-3 text-xs font-black text-indigo-700">Заказ: {orderId}</p>}
           {paymentStatus && !showNextStep && <p className="mt-3 rounded-2xl bg-white/80 px-4 py-3 text-xs font-black text-gray-500">Статус платежа: {paymentStatus.paymentStatus}</p>}
           {effectiveProfile.premiumExpiresAt && <p className="mt-4 rounded-2xl bg-white/80 px-4 py-3 text-sm font-black text-green-700">Premium активен до: {formatPremiumExpiresAt(effectiveProfile.premiumExpiresAt)}</p>}
+          {showNextStep && !effectiveProfile.premiumExpiresAt && <p className="mt-4 rounded-2xl bg-white/80 px-4 py-3 text-sm font-black text-green-700">Premium активен без ограничения срока.</p>}
         </div>
         <div className="flex flex-col justify-center">
           {showNextStep ? <>
