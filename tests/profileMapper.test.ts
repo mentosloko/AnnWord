@@ -13,13 +13,49 @@ describe('profileMapper', () => {
       gamesWon: 2,
       wordsGuessed: { APPLE: 1, BAD: 'x' },
       wordsToReview: { BERRY: 2, BROKEN: 'x' },
+      wordPerformance: {
+        APPLE: { word: 'APPLE', attempts: 2, correct: 1, mistakes: 1, lastPracticedAt: '2026-07-10T00:00:00.000Z' },
+        BROKEN: 'x',
+      },
+      wordLearningHistory: {
+        BERRY: {
+          word: 'BERRY',
+          mistakeCount: 1,
+          resolvedCount: 0,
+          currentReviewPriority: 2,
+          events: [{ at: '2026-07-10T00:00:00.000Z', type: 'mistake', reviewPriorityAfter: 2 }],
+        },
+        BROKEN: 'x',
+      },
     })).toEqual({
       gamesPlayed: 3,
       gamesWon: 2,
       wordsGuessed: { APPLE: 1 },
       wordsToReview: { BERRY: 2 },
+      wordPerformance: {
+        APPLE: { word: 'APPLE', attempts: 2, correct: 1, mistakes: 1, lastPracticedAt: '2026-07-10T00:00:00.000Z' },
+      },
+      wordLearningHistory: {
+        BERRY: {
+          word: 'BERRY',
+          firstMistakeAt: undefined,
+          lastMistakeAt: undefined,
+          lastResolvedAt: undefined,
+          mistakeCount: 1,
+          resolvedCount: 0,
+          currentReviewPriority: 2,
+          events: [{ at: '2026-07-10T00:00:00.000Z', type: 'mistake', reviewPriorityAfter: 2 }],
+        },
+      },
     });
-    expect(normalizeStats(null)).toEqual({ gamesPlayed: 0, gamesWon: 0, wordsGuessed: {}, wordsToReview: {} });
+    expect(normalizeStats(null)).toEqual({
+      gamesPlayed: 0,
+      gamesWon: 0,
+      wordsGuessed: {},
+      wordsToReview: {},
+      wordPerformance: {},
+      wordLearningHistory: {},
+    });
   });
 
   it('normalizes character fields and falls back for invalid values', () => {
@@ -75,10 +111,12 @@ describe('profileMapper', () => {
       inventory: [{ id: 'hat', type: 'accessory', name: 'Hat', quantity: 1 }],
     });
 
-    expect(profile.username).toBe('Guest');
+    expect(profile.username).toBe('Гость');
     expect(profile.role).toBe('admin');
     expect(profile.customDictionaryEn).toEqual(['STONE']);
     expect(profile.stats.gamesPlayed).toBe(5);
+    expect(profile.stats.wordPerformance).toEqual({});
+    expect(profile.stats.wordLearningHistory).toEqual({});
     expect(profile.pet.type).toBe('Dragon');
     expect(profile.pet.name).toBe('Щенок');
     expect(profile.coins).toBe(42);
