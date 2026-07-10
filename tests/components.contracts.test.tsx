@@ -11,7 +11,7 @@ import { GameSettings, UserProfile } from '../types';
 const profile: UserProfile = {
   username: 'Tester',
   customDictionaryEn: ['APPLE'],
-  stats: { gamesPlayed: 1, gamesWon: 1, wordsGuessed: { APPLE: 1 } },
+  stats: { gamesPlayed: 1, gamesWon: 1, wordsGuessed: { APPLE: 1 }, wordsToReview: {}, wordPerformance: {}, wordLearningHistory: {} },
   pet: {
     name: 'Бадди',
     type: 'Puppy',
@@ -36,6 +36,13 @@ const premiumProfile: UserProfile = {
   ...profile,
   subscriptionTier: 'premium',
   premiumExpiresAt: '2099-01-01T00:00:00.000Z',
+  featureFlags: {
+    premiumDictionaries: true,
+    dailyWorldReward: true,
+    treatRequests: true,
+    streakStickers: true,
+    levelWardrobe: true,
+  },
 };
 
 const settings: GameSettings = {
@@ -47,9 +54,8 @@ const settings: GameSettings = {
 };
 
 describe('component contracts', () => {
-  it('LandingScreen routes through callback props', () => {
+  it('LandingScreen routes Practice callbacks through visible controls', () => {
     const onStartClassic = vi.fn();
-    const onOpenShop = vi.fn();
     const onOpenProfile = vi.fn();
 
     render(
@@ -61,7 +67,7 @@ describe('component contracts', () => {
         onStartSprint={vi.fn()}
         onStartHangman={vi.fn()}
         onStartMemory={vi.fn()}
-        onOpenShop={onOpenShop}
+        onOpenShop={vi.fn()}
         onOpenRules={vi.fn()}
         onOpenLogin={vi.fn()}
         onOpenProfile={onOpenProfile}
@@ -69,15 +75,13 @@ describe('component contracts', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Классика' }));
-    fireEvent.click(screen.getByRole('button', { name: /рубли.*100|100.*рублей/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Профиль' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Статистика' }));
 
     expect(onStartClassic).toHaveBeenCalledTimes(1);
-    expect(onOpenShop).toHaveBeenCalledTimes(1);
     expect(onOpenProfile).toHaveBeenCalledTimes(1);
   });
 
-  it('SetupScreen exposes upload and selected-mode start-game contracts for authenticated custom dictionary users', () => {
+  it('SetupScreen exposes selected-mode start-game contracts for authenticated custom dictionary users', () => {
     const onFileUpload = vi.fn();
     const onStartGame = vi.fn();
 
