@@ -30,18 +30,18 @@ const initialAllWordsCount = ALL_WORDS_EN.length;
 assert(initialCommonCount > 0, 'COMMON_WORDS_EN must not be empty');
 assert(initialAllWordsCount > 0, 'ALL_WORDS_EN must not be empty');
 
-const customInput = [' apple ', 'APPLE', 'stone', 'fox!', 'data', 'stones'];
+const customInput = [' apple ', 'APPLE', 'berry!', 'data', 'cat', 'zzzzz'];
 const normalizedCustom = normalizeCustomDictionary(customInput);
 
 assert(normalizedCustom.includes('APPLE'), 'custom dictionary normalization must uppercase words');
-assert(normalizedCustom.includes('FOX'), 'custom dictionary normalization must strip non-letters');
+assert(normalizedCustom.includes('BERRY'), 'custom dictionary normalization must strip non-letters');
 assert(normalizedCustom.filter(word => word === 'APPLE').length === 1, 'custom dictionary must be deduplicated');
 assert(JSON.stringify(normalizeDictionaryField(customInput)) === JSON.stringify(normalizedCustom), 'profile dictionary normalization must match dictionary engine normalization');
 
-const uploadedText = [' apple ', 'APPLE', 'stone', 'fox!', 'data', 'stones'].join('\n');
+const uploadedText = customInput.join('\n');
 const uploadResult = parseDictionaryText(uploadedText);
 assert(JSON.stringify(uploadResult.words) === JSON.stringify(normalizedCustom), 'dictionary upload parser must match dictionary engine normalization');
-assert(uploadResult.diagnostics.rawTokenCount === 6, 'dictionary upload diagnostics must preserve raw token count');
+assert(uploadResult.diagnostics.rawTokenCount === customInput.length, 'dictionary upload diagnostics must preserve raw token count');
 assert(uploadResult.diagnostics.importedCount === normalizedCustom.length, 'dictionary upload diagnostics must expose imported word count');
 assert(uploadResult.diagnostics.duplicateCount === 1, 'dictionary upload diagnostics must count duplicates');
 assert(uploadResult.diagnostics.invalidTokenCount === 1, 'dictionary upload diagnostics must count cleaned invalid tokens');
@@ -70,12 +70,14 @@ assert(builtinFiveA1.every(item => item.word.length === 5), 'built-in secret poo
 assert(builtinFiveA1.every(item => item.level === 'A1'), 'built-in secret pool must filter by difficulty');
 
 const customFive = getCustomSecretWordPool(customInput, 5);
-assert(customFive.length > 0, 'custom 5-letter secret pool must not be empty for test input');
+assert(customFive.length > 0, 'custom 5-letter secret pool must not be empty for supported test input');
 assert(customFive.every(item => item.word.length === 5), 'custom secret pool must filter active pool by word length');
+assert(customFive.every(item => ['APPLE', 'BERRY'].includes(item.word)), 'custom secret pool must only include supported translated words');
 
 const validationFive = getValidationPool({ wordLength: 5, customDictionaryEn: customInput });
-assert(validationFive.includes('APPLE'), 'validation pool must include normalized custom words');
-assert(validationFive.includes('STONE'), 'validation pool must include custom words of selected length');
+assert(validationFive.includes('APPLE'), 'validation pool must include supported normalized custom words');
+assert(validationFive.includes('BERRY'), 'validation pool must include supported cleaned custom words of selected length');
+assert(!validationFive.includes('ZZZZZ'), 'validation pool must exclude unsupported custom words');
 assert(!validationFive.includes('DATA'), 'validation pool must filter custom words by selected word length');
 
 const builtPools = buildDictionaryPools({
@@ -86,7 +88,8 @@ const builtPools = buildDictionaryPools({
 });
 assert(builtPools.dictionarySourceUsed === 'custom', 'custom source must be used when custom dictionary is available');
 assert(builtPools.secretWordPool.every(item => item.word.length === 5), 'built pools secret pool must be length-filtered');
-assert(builtPools.validationPool.includes('STONE'), 'built pools validation pool must include custom words');
+assert(builtPools.validationPool.includes('BERRY'), 'built pools validation pool must include supported custom words');
+assert(!builtPools.validationPool.includes('ZZZZZ'), 'built pools validation pool must reject unsupported custom words');
 
 const randomPick = pickRandomSecretWord(customFive, () => 0);
 assert(randomPick?.word === customFive[0]?.word, 'random picker must support deterministic injected random function');
@@ -97,7 +100,8 @@ const preparedCustomGameDictionary = prepareGameDictionary({
 });
 assert(preparedCustomGameDictionary.errorMessage === null, 'game adapter must not return error when custom active pool exists');
 assert(preparedCustomGameDictionary.dictionarySourceUsed === 'custom', 'game adapter must preserve custom dictionary source');
-assert(isValidGuessForGame('stone', preparedCustomGameDictionary), 'game adapter validation must accept custom words');
+assert(isValidGuessForGame('berry', preparedCustomGameDictionary), 'game adapter validation must accept supported custom words');
+assert(!isValidGuessForGame('zzzzz', preparedCustomGameDictionary), 'game adapter validation must reject unsupported custom words');
 assert(!isValidGuessForGame('data', preparedCustomGameDictionary), 'game adapter validation must reject wrong word length');
 assert(pickSecretForGame(preparedCustomGameDictionary, () => 0)?.word === preparedCustomGameDictionary.secretWordPool[0]?.word, 'game adapter must pick deterministic secret when random is injected');
 assert(getHintPoolForGame(preparedCustomGameDictionary).every(word => word.length === 5), 'game adapter hint pool must match active secret pool');
