@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { ALL_WORDS_EN, COMMON_WORDS_EN } from '../dictionaries/mainEnglish';
-import { hasRussianTranslation, isAllowedSecretWord, isAllowedValidationWord, toCustomEnrichedWords } from '../services/dictionaryEngine';
+import { getCustomWordsAvailableInBuiltinDictionary, hasRussianTranslation, isAllowedSecretWord, isAllowedValidationWord, toCustomEnrichedWords } from '../services/dictionaryEngine';
 import { getAllKidsDictionaryWords, getFreeKidsDictionaryEntries, getKidsPremiumDictionaryEntries, getKidsPremiumDictionaryWords } from '../services/kidsDictionaryCatalog';
 import { isKidsMode } from '../services/modeFlags';
 import { getPremiumDictionaryEntries, getPremiumDictionaryWords, hasPremiumDictionaryAccess } from '../services/premiumDictionaryCatalog';
@@ -53,7 +53,7 @@ export const useDictionaryPools = ({ settings, userProfile }: UseDictionaryPools
       ? (hasPremium ? getKidsPremiumDictionaryWords(settings.activePremiumDictionaryId, settings.difficulty) : [])
       : (settings.dictionarySource === 'premium' && hasPremium ? getPremiumDictionaryWords(settings.activePremiumDictionaryId, settings.difficulty) : []);
     const kidsWords = kidsMode ? getAllKidsDictionaryWords() : [];
-    const customWords = userProfile.customDictionaryEn || [];
+    const customWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.customDictionaryEn || []);
     const combinedPool = [
       ...ALL_WORDS_EN,
       ...kidsWords,
