@@ -12,8 +12,8 @@ type Plan = { code: "kids_month" | "kids_year"; productName: string; amountRub: 
 type PaymentStatus = "pending" | "paid" | "failed" | "cancelled" | "refunded" | "ignored";
 
 const plans: Record<string, Plan> = {
-  kids_month: { code: "kids_month", productName: "AnnWord Premium для ребенка — 1 месяц", amountRub: 300, periodDays: 31, paidContent: "AnnWord Premium для ребенка — 1 месяц" },
-  kids_year: { code: "kids_year", productName: "AnnWord Premium для ребенка — 1 год", amountRub: 3000, periodDays: 365, paidContent: "AnnWord Premium для ребенка — 1 год" },
+  kids_month: { code: "kids_month", productName: "AnnWord Premium — 1 месяц", amountRub: 300, periodDays: 31, paidContent: "AnnWord Premium — 1 месяц" },
+  kids_year: { code: "kids_year", productName: "AnnWord Premium — 1 год", amountRub: 3000, periodDays: 365, paidContent: "AnnWord Premium — 1 год" },
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
