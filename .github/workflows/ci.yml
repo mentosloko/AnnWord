@@ -35,7 +35,21 @@ jobs:
         run: npm run lint
 
       - name: Unit tests
-        run: npm run check:unit
+        id: unit_tests
+        run: npm run check:unit -- --reporter=json --outputFile=vitest-results.json
+        continue-on-error: true
+
+      - name: Upload unit test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-results
+          path: vitest-results.json
+          if-no-files-found: ignore
+
+      - name: Fail on unit test errors
+        if: steps.unit_tests.outcome == 'failure'
+        run: exit 1
 
       - name: Smoke checks
         run: npm run check:smoke
