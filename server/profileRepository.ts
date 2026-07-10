@@ -43,19 +43,64 @@ const DEFAULT_STATS: UserStats = {
   wordsGuessed: {},
   wordsToReview: {},
   wordPerformance: {},
+  wordLearningHistory: {},
 };
 
 const cleanWords = (value: unknown): string[] => Array.isArray(value)
   ? Array.from(new Set(value.filter((word): word is string => typeof word === "string").map((word) => word.trim().toUpperCase()).filter(Boolean)))
   : [];
 
+const mergeNumberMaps = (current: Record<string, number> = {}, incoming: Record<string, number> = {}): Record<string, number> => {
+  const next = { ...current };
+  Object.entries(incoming).forEach(([key, value]) => {
+    next[key] = Math.max(Math.round(next[key] || 0), Math.round(value || 0));
+  });
+  return next;
+};
+
+const mergeStatsForSave = (currentRaw: unknown, incomingRaw: unknown): UserStats => {
+  const current = normalizeStats(currentRaw || DEFAULT_STATS);
+  const incoming = normalizeStats(incomingRaw || DEFAULT_STATS);
+  return {
+    ...current,
+    ...incoming,
+    gamesPlayed: Math.max(current.gamesPlayed || 0, incoming.gamesPlayed || 0),
+    gamesWon: Math.max(current.gamesWon || 0, incoming.gamesWon || 0),
+    wordsGuessed: mergeNumberMaps(current.wordsGuessed, incoming.wordsGuessed),
+    wordsToReview: mergeNumberMaps(current.wordsToReview || {}, incoming.wordsToReview || {}),
+    wordPerformance: {
+      ...(current.wordPerformance || {}),
+      ...(incoming.wordPerformance || {}),
+    },
+    wordLearningHistory: {
+      ...(current.wordLearningHistory || {}),
+      ...(incoming.wordLearningHistory || {}),
+    },
+  };
+};
+
+const mergePetForSave = (currentRaw: unknown, incomingRaw: unknown): PetState => {
+  const current = normalizePet(currentRaw || DEFAULT_PET);
+  const incoming = normalizePet(incomingRaw || DEFAULT_PET);
+  return {
+    ...current,
+    ...incoming,
+    xp: Math.max(current.xp || 0, incoming.xp || 0),
+    level: Math.max(current.level || 1, incoming.level || 1),
+    characterOnboarded: current.characterOnboarded === true || incoming.characterOnboarded === true,
+    equippedAccessories: Array.from(new Set([...(current.equippedAccessories || []), ...(incoming.equippedAccessories || [])])),
+    earnedStickerIds: Array.from(new Set([...(current.earnedStickerIds || []), ...(incoming.earnedStickerIds || [])])),
+  };
+};
+
 async function addAssignedWords(userId: string, profile: UserProfile): Promise<UserProfile> {
   const result = await query<{ words: string[] }>(
-    `select coalesce(array_agg(distinct word) filter (where word is not null), '{}') as words
-       from assigned_word_sets s
-       left join lateral unnest(s.words) word on true
-      where s.learner_user_id = $1
-        and s.archived_at is null`,
+    `select coalesce(words, '{}') as words
+       from assigned_word_sets
+      where learner_user_id = $1
+        and archived_at is null
+      order by created_at desc
+      limit 1`,
     [userId],
   );
   const assignedWords = cleanWords(result.rows[0]?.words);
@@ -152,6 +197,54 @@ export async function updateProfileDictionary(userId: string, dictionary: string
   return mapProfile(userId, result.rows[0]);
 }
 
+export async function updateProfileStats(userId: string, stats: UserStats): Promise<UserProfile> {
+  const current = await query<{ stats: unknown }>("select stats from profiles where id = $1", [userId]);
+  if (!current.rows[0]) throw new Error("Profile not found");
+  const mergedStats = mergeStatsForSave(current.rows[0].stats, stats);
+  const result = await query(
+    `update profiles
+        set stats = $2::jsonb,
+            updated_at = now()
+      where id = $1
+      returning ${PROFILE_COLUMNS}`,
+    [userId, JSON.stringify(mergedStats)],
+  );
+
+  if (!result.rows[0]) throw new Error("Profile not found");
+  return mapProfile(userId, result.rows[0]);
+}
+
+export async function updateProfilePet(userId: string, pet: PetState): Promise<UserProfile> {
+  const current = await query<{ pet: unknown }>("select pet from profiles where id = $1", [userId]);
+  if (!current.rows[0]) throw new Error("Profile not found");
+  const mergedPet = mergePetForSave(current.rows[0].pet, pet);
+  const result = await query(
+    `update profiles
+        set pet = $2::jsonb,
+            updated_at = now()
+      where id = $1
+      returning ${PROFILE_COLUMNS}`,
+    [userId, JSON.stringify(normalizePet(mergedPet))],
+  );
+
+  if (!result.rows[0]) throw new Error("Profile not found");
+  return mapProfile(userId, result.rows[0]);
+}
+
+export async function incrementProfileCoins(userId: string, amount: number): Promise<UserProfile> {
+  const result = await query(
+    `update profiles
+        set coins = greatest(0, coins + $2::integer),
+            updated_at = now()
+      where id = $1
+      returning ${PROFILE_COLUMNS}`,
+    [userId, Math.round(amount || 0)],
+  );
+
+  if (!result.rows[0]) throw new Error("Profile not found");
+  return mapProfile(userId, result.rows[0]);
+}
+
 export async function updateWeeklyReportEmail(userId: string, email: string): Promise<UserProfile> {
   const normalized = email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
@@ -175,19 +268,23 @@ export async function updateWeeklyReportEmail(userId: string, email: string): Pr
 }
 
 export async function syncProfileState(userId: string, profile: Pick<UserProfile, "inventory" | "pet" | "coins">): Promise<UserProfile> {
+  const current = await query<{ pet: unknown; coins: number }>("select pet, coins from profiles where id = $1", [userId]);
+  if (!current.rows[0]) throw new Error("Profile not found");
+  const mergedPet = mergePetForSave(current.rows[0].pet, profile.pet);
+  const nextCoins = Math.max(0, Math.max(Math.round(current.rows[0].coins || 0), Math.round(profile.coins || 0)));
   const result = await query(
     `update profiles
         set inventory = $2::jsonb,
             pet = $3::jsonb,
-            coins = greatest(0, $4::integer),
+            coins = $4::integer,
             updated_at = now()
       where id = $1
       returning ${PROFILE_COLUMNS}`,
     [
       userId,
       JSON.stringify(normalizeInventory(profile.inventory)),
-      JSON.stringify(normalizePet(profile.pet)),
-      Math.max(0, Math.round(profile.coins || 0)),
+      JSON.stringify(normalizePet(mergedPet)),
+      nextCoins,
     ],
   );
 
@@ -199,6 +296,10 @@ export async function syncProfileState(userId: string, profile: Pick<UserProfile
 }
 
 export async function applyGameResult(userId: string, stats: UserStats, pet: PetState, coinsDelta: number): Promise<UserProfile> {
+  const current = await query<{ stats: unknown; pet: unknown }>("select stats, pet from profiles where id = $1", [userId]);
+  if (!current.rows[0]) throw new Error("Profile not found");
+  const mergedStats = mergeStatsForSave(current.rows[0].stats, stats);
+  const mergedPet = mergePetForSave(current.rows[0].pet, pet);
   const result = await query(
     `update profiles
         set stats = $2::jsonb,
@@ -207,7 +308,7 @@ export async function applyGameResult(userId: string, stats: UserStats, pet: Pet
             updated_at = now()
       where id = $1
       returning ${PROFILE_COLUMNS}`,
-    [userId, JSON.stringify(normalizeStats(stats)), JSON.stringify(normalizePet(pet)), Math.round(coinsDelta || 0)],
+    [userId, JSON.stringify(normalizeStats(mergedStats)), JSON.stringify(normalizePet(mergedPet)), Math.round(coinsDelta || 0)],
   );
 
   if (!result.rows[0]) {
