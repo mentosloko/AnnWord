@@ -35,10 +35,9 @@ describe('memory game dictionary and pair generation', () => {
     expect(baby?.translation).toBe('ребенок');
   });
 
-  it('falls back to builtin dictionary when custom words have no translations', () => {
+  it('excludes custom words absent from the general dictionary', () => {
     const dictionary = buildMemoryDictionary(['ZZZZZ', 'QQQQQ'], COMMON_WORDS_EN);
 
-    expect(dictionary.length).toBeGreaterThan(6);
-    expect(dictionary.every(entry => Boolean(entry.translation))).toBe(true);
+    expect(dictionary).toEqual([]);
   });
 });
