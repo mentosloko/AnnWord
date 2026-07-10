@@ -22,14 +22,17 @@ for (const navigation of [
   "onStartClassic={() => openSetupFor('game')}",
   "onStartHangman={() => openSetupFor('hangman')}",
   "onOpenPetRoom={() => onRouteChange('pet_room')}",
-  'shop: <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} />',
-  "pet_room: <PetRoom userProfile={userProfile} onUseItem={onUseItem} onBuy={onBuy} onClose={goHome} onOpenShop={() => onRouteChange('shop')} />",
+  "shop: isParentAccount ? <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} onOpenPetRoom={() => onRouteChange('pet_room')} /> : homeScreen",
+  "pet_room: isParentAccount ? <PetRoom userProfile={userProfile} onUseItem={onUseItem} onBuy={onBuy} onUpdatePet={onUpdatePet} onClose={goHome} onOpenShop={() => onRouteChange('shop')} /> : homeScreen",
 ]) {
   assert(screens.includes(navigation), `wiring ${navigation}`);
 }
+assert(screens.includes('const isParentAccount = userProfile.role === \'parent\' || userProfile.accountMode === \'parent\''), 'parent-only Kids route gating');
 assert(landing.includes('onOpenPetRoom') && landing.includes('getPuppyCharacterAssetUrl'), 'landing pet entry');
 assert(profile.includes('onOpenPetRoom'), 'profile pet entry');
 assert(shop.includes('onClose: () => void') && shop.includes('onClick={onClose}'), 'shop close contract');
+assert(shop.includes('onOpenPetRoom') && shop.includes('onClick={onOpenPetRoom}'), 'shop pet room shortcut contract');
 assert((room.includes('onClose:()=>void') || room.includes('onClose: () => void')) && room.includes('onClick={onClose}'), 'pet room close contract');
+assert(room.includes('onUpdatePet') && room.includes('onOpenShop'), 'pet room update/shop contract');
 assert(room.includes('overflow-x-auto'), 'mobile room horizontal scrolling');
 console.log(JSON.stringify({ ok: true, checked: 'appv2-route-flow' }, null, 2));
