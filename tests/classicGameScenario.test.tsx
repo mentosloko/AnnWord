@@ -102,16 +102,16 @@ describe('classic game scenarios', () => {
     expect(result.current.keyStatuses).toEqual({});
   });
 
-  it('blocks game start when selected dictionary has no matching supported word length', () => {
+  it('blocks custom game start when dictionary has no playable 4–6 letter words', () => {
     const { result, onRouteChange } = setupController({
       settings: { ...settings, wordLength: 6, dictionarySource: 'custom' },
-      getSecretWordPool: () => words.filter(word => word.word.length !== 6),
+      getSecretWordPool: () => [{ word: 'SEVENUP', translation: 'семь ап', level: 'A1' }],
     });
 
     act(() => result.current.startNewGame());
 
     expect(onRouteChange).not.toHaveBeenCalled();
-    expect(result.current.setupError).toBe('В вашем словаре нет слов длиной 6.');
+    expect(result.current.setupError).toBe('В вашем словаре нет слов длиной 4–6 букв.');
   });
 
   it('validates short guesses and unknown dictionary words without consuming attempts', async () => {
