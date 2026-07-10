@@ -13,20 +13,37 @@ mentorRouter.use(requireAuth);
 mentorRouter.get("/learners", async (req: AuthenticatedRequest, res) => {
   try {
     const result = await query(
-      `select p.id,
-              coalesce(p.child_display_name, p.username, 'Ученик') as name,
-              l.class_label,
-              p.child_share_code,
-              p.stats,
-              max(s.created_at) as last_assigned_at,
-              coalesce(array_agg(distinct word) filter (where word is not null), '{}') as assigned_words
-         from adult_learner_links l
-         join profiles p on p.id = l.learner_user_id
-         left join assigned_word_sets s on s.adult_user_id = l.adult_user_id and s.learner_user_id = l.learner_user_id and s.archived_at is null
-         left join lateral unnest(s.words) word on true
-        where l.adult_user_id = $1
-        group by p.id, p.username, p.child_display_name, p.child_share_code, p.stats, l.class_label
-        order by name`,
+      `with linked_learners as (
+         select p.id,
+                coalesce(p.child_display_name, p.username, 'Ученик') as name,
+                l.class_label,
+                p.child_share_code,
+                p.stats,
+                max(s.created_at) as last_assigned_at,
+                coalesce((array_agg(s.words order by s.created_at desc) filter (where s.words is not null))[1], '{}') as assigned_words
+           from adult_learner_links l
+           join profiles p on p.id = l.learner_user_id
+           left join assigned_word_sets s on s.adult_user_id = l.adult_user_id and s.learner_user_id = l.learner_user_id and s.archived_at is null
+          where l.adult_user_id = $1
+          group by p.id, p.username, p.child_display_name, p.child_share_code, p.stats, l.class_label
+       ), self_child as (
+         select p.id,
+                coalesce(p.child_display_name, p.username, 'Ребёнок') as name,
+                null::text as class_label,
+                p.child_share_code,
+                p.stats,
+                null::timestamptz as last_assigned_at,
+                coalesce((select s.words from assigned_word_sets s where s.learner_user_id = p.id and s.archived_at is null order by s.created_at desc limit 1), '{}') as assigned_words
+           from profiles p
+          where p.id = $1
+            and p.account_mode = 'parent'
+            and p.child_display_name is not null
+       )
+       select * from linked_learners
+       union all
+       select * from self_child
+        where not exists (select 1 from linked_learners where linked_learners.id = self_child.id)
+       order by name`,
       [req.user!.id],
     );
     res.json({ learners: result.rows, backendReady: true });
@@ -38,14 +55,14 @@ mentorRouter.get("/learners", async (req: AuthenticatedRequest, res) => {
 mentorRouter.post("/connect", async (req: AuthenticatedRequest, res) => {
   try {
     const code = text(req.body?.code).toUpperCase();
-    if (!code) { res.status(400).json({ error: "Code is required" }); return; }
+    if (!code) { res.status(400).json({ error: "Введите код ребёнка." }); return; }
     const found = await query<{ id: string }>("select id from profiles where upper(child_share_code) = $1 limit 1", [code]);
     const learnerId = found.rows[0]?.id;
-    if (!learnerId) { res.status(404).json({ error: "Learner not found" }); return; }
+    if (!learnerId) { res.status(404).json({ error: "Ученик с таким кодом не найден." }); return; }
     await query("insert into adult_learner_links (adult_user_id, learner_user_id, relation_role) values ($1, $2, 'teacher') on conflict (adult_user_id, learner_user_id) do update set relation_role = 'teacher'", [req.user!.id, learnerId]);
     res.json({ ok: true });
   } catch (error) {
-    res.status(400).json({ error: error instanceof Error ? error.message : "Learner connect failed" });
+    res.status(400).json({ error: error instanceof Error ? error.message : "Не удалось подключить ученика." });
   }
 });
 
@@ -53,15 +70,16 @@ mentorRouter.post("/assign", async (req: AuthenticatedRequest, res) => {
   try {
     const learnerId = text(req.body?.learnerId);
     const collectionId = text(req.body?.collectionId);
-    if (!learnerId || !collectionId) { res.status(400).json({ error: "Learner and collection are required" }); return; }
+    if (!learnerId || !collectionId) { res.status(400).json({ error: "Выберите ученика и словарь." }); return; }
     const link = await query("select 1 from adult_learner_links where adult_user_id = $1 and learner_user_id = $2 limit 1", [req.user!.id, learnerId]);
-    if (!link.rows.length) { res.status(403).json({ error: "Learner is not connected" }); return; }
+    if (!link.rows.length) { res.status(403).json({ error: "Ученик не подключён к вашему кабинету." }); return; }
     const profile = await query<{ dictionary_collections: unknown }>("select dictionary_collections from profiles where id = $1", [req.user!.id]);
     const collections = Array.isArray(profile.rows[0]?.dictionary_collections) ? profile.rows[0].dictionary_collections as any[] : [];
     const collection = collections.find(item => String(item?.id || "") === collectionId);
-    if (!collection) { res.status(404).json({ error: "Collection not found" }); return; }
+    if (!collection) { res.status(404).json({ error: "Словарь не найден." }); return; }
     const words = wordsOf(collection.words);
-    if (!words.length) { res.status(400).json({ error: "Collection is empty" }); return; }
+    if (!words.length) { res.status(400).json({ error: "В словаре нет слов для назначения." }); return; }
+    await query("update assigned_word_sets set archived_at = now() where learner_user_id = $1 and archived_at is null", [learnerId]);
     await query(
       `insert into assigned_word_sets (adult_user_id, learner_user_id, title, class_label, theme, source, words)
        values ($1, $2, $3, $4, $5, $6, $7::text[])`,
@@ -69,6 +87,6 @@ mentorRouter.post("/assign", async (req: AuthenticatedRequest, res) => {
     );
     res.json({ ok: true });
   } catch (error) {
-    res.status(400).json({ error: error instanceof Error ? error.message : "Dictionary assign failed" });
+    res.status(400).json({ error: error instanceof Error ? error.message : "Не удалось назначить словарь." });
   }
 });
