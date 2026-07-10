@@ -12,6 +12,18 @@ export const profileApiService = {
     return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/dictionary", { method: "PATCH", body: { words } }));
   },
 
+  async updateStats(stats: UserStats): Promise<UserProfile> {
+    return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/stats", { method: "PATCH", body: { stats } }));
+  },
+
+  async updatePet(pet: PetState): Promise<UserProfile> {
+    return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/pet", { method: "PATCH", body: { pet } }));
+  },
+
+  async incrementCoins(amount: number): Promise<UserProfile> {
+    return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/coins", { method: "POST", body: { amount } }));
+  },
+
   async updateWeeklyReportEmail(email: string): Promise<UserProfile> {
     return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/weekly-report-email", { method: "PATCH", body: { email } }));
   },
