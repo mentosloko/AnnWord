@@ -3,8 +3,8 @@ import { buildSprintDictionary } from '../components/SprintGame';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 
 describe('SprintGame dictionary', () => {
-  it('keeps builtin dictionary when custom dictionary is empty', () => {
-    expect(buildSprintDictionary([], COMMON_WORDS_EN)).toBe(COMMON_WORDS_EN);
+  it('keeps builtin dictionary values when custom dictionary is empty', () => {
+    expect(buildSprintDictionary([], COMMON_WORDS_EN)).toEqual(COMMON_WORDS_EN);
   });
 
   it('reuses builtin translations for custom words when available', () => {
@@ -18,15 +18,9 @@ describe('SprintGame dictionary', () => {
     ]);
   });
 
-  it('falls back to the custom word as translation when no builtin translation exists', () => {
+  it('excludes custom words absent from the general dictionary', () => {
     const dictionary = buildSprintDictionary(['CUSTOMWORD'], COMMON_WORDS_EN);
 
-    expect(dictionary).toEqual([
-      expect.objectContaining({
-        word: 'CUSTOMWORD',
-        translation: 'CUSTOMWORD',
-        level: 'Custom',
-      }),
-    ]);
+    expect(dictionary).toEqual([]);
   });
 });
