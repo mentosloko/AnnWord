@@ -32,6 +32,12 @@ const profile: UserProfile = {
   ],
 };
 
+const premiumProfile: UserProfile = {
+  ...profile,
+  subscriptionTier: 'premium',
+  premiumExpiresAt: '2099-01-01T00:00:00.000Z',
+};
+
 const settings: GameSettings = {
   username: 'Tester',
   difficulty: 'ALL',
@@ -83,8 +89,11 @@ describe('component contracts', () => {
         setupError={'Ошибка словаря'}
         isUploadingDictionary={false}
         isAuthenticated
+        userProfile={premiumProfile}
         onSettingsChange={vi.fn()}
         onFileUpload={onFileUpload}
+        onOpenDictionaryStudio={vi.fn()}
+        onOpenPremium={vi.fn()}
         onStartGame={onStartGame}
         onBack={vi.fn()}
         onLogin={vi.fn()}
@@ -94,11 +103,9 @@ describe('component contracts', () => {
     expect(screen.getByText('Ошибка словаря')).toBeInTheDocument();
     expect(screen.getByText('Память')).toBeInTheDocument();
 
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(input, { target: { files: [new File(['APPLE'], 'dict.txt', { type: 'text/plain' })] } });
     fireEvent.click(screen.getByRole('button', { name: 'Начать: Память' }));
 
-    expect(onFileUpload).toHaveBeenCalledTimes(1);
+    expect(onFileUpload).not.toHaveBeenCalled();
     expect(onStartGame).toHaveBeenCalledTimes(1);
   });
 
@@ -114,15 +121,18 @@ describe('component contracts', () => {
         setupError={null}
         isUploadingDictionary={false}
         isAuthenticated={false}
+        userProfile={profile}
         onSettingsChange={onSettingsChange}
         onFileUpload={vi.fn()}
+        onOpenDictionaryStudio={vi.fn()}
+        onOpenPremium={vi.fn()}
         onStartGame={vi.fn()}
         onBack={vi.fn()}
         onLogin={onLogin}
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Мой словарь/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Свои слова/i }));
     expect(onLogin).toHaveBeenCalledTimes(1);
     expect(onSettingsChange).not.toHaveBeenCalled();
   });
