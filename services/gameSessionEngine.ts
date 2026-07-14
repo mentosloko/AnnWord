@@ -36,8 +36,14 @@ export const buildPlayableGameDictionary = (
   return playable;
 };
 
-export const pickNextSessionWord = <T extends { word: string }>(mode: GameSessionMode, pool: T[]): T | null =>
-  getUnusedSessionWord(mode, pool);
+const preferNonTransliterated = <T extends { word: string; isTransliterated?: boolean }>(pool: T[], random: () => number = Math.random): T[] => {
+  const natural = pool.filter(entry => entry.isTransliterated !== true);
+  if (!natural.length) return pool;
+  return random() < 0.97 ? natural : pool;
+};
+
+export const pickNextSessionWord = <T extends { word: string; isTransliterated?: boolean }>(mode: GameSessionMode, pool: T[]): T | null =>
+  getUnusedSessionWord(mode, preferNonTransliterated(pool));
 
 /**
  * Records unresolved difficulty for Sprint, Anagrams and Translation Choice only.
@@ -62,9 +68,10 @@ export const updateReviewPriorities = (
 /**
  * In adaptive modes, words with unresolved mistakes appear more often.
  * A mastered word is removed from review and immediately stops receiving this extra probability.
- * Consecutive repeats are avoided when possible.
+ * Consecutive repeats are avoided when possible. Transliterated entries remain available,
+ * but enter the normal selection pool only in about 3% of selections when natural entries exist.
  */
-export const pickAdaptiveSessionWord = <T extends { word: string }>(
+export const pickAdaptiveSessionWord = <T extends { word: string; isTransliterated?: boolean }>(
   mode: AdaptiveGameSessionMode,
   pool: T[],
   wordsToReview: Record<string, number> = {},
@@ -73,9 +80,10 @@ export const pickAdaptiveSessionWord = <T extends { word: string }>(
 ): T | null => {
   if (pool.length === 0) return null;
   const previous = previousWord ? normalizeWord(previousWord) : null;
-  const availablePool = previous && pool.length > 1
+  const withoutPrevious = previous && pool.length > 1
     ? pool.filter(entry => normalizeWord(entry.word) !== previous)
     : pool;
+  const availablePool = preferNonTransliterated(withoutPrevious, random);
   const weightedReviewPool = availablePool.flatMap(entry => {
     const misses = Math.max(0, Math.round(wordsToReview[normalizeWord(entry.word)] || 0));
     return Array.from({ length: Math.min(4, misses) }, () => entry);
