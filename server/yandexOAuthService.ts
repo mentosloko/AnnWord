@@ -4,6 +4,7 @@ import { newUserId } from "./auth";
 import { runtimeConfig } from "./config";
 import { transaction } from "./db";
 import { createProfileForUser } from "./profileRepository";
+import { assertRussianRegistrationEmail } from "./emailPolicy";
 
 const base = (value: string): string => value.replace(/\/+$/, "");
 const read = (value: unknown): string => typeof value === "string" ? value.trim() : "";
@@ -98,6 +99,7 @@ async function upsertUser(profile: YandexProfile): Promise<BackendUser> {
       return toUser(existing.rows[0], name);
     }
 
+    assertRussianRegistrationEmail(email);
     const id = newUserId();
     const created = await client.query<UserRow>("insert into app_users (id, email, password_hash, full_name, provider, yandex_id, email_confirmed_at) values ($1, $2, $3, $4, 'yandex', $5, now()) returning id, email, full_name, password_reset_required", [id, email, yandexPasswordHash, name, yandexId]);
     await createProfileForUser(client, id, name);
