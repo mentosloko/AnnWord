@@ -26,9 +26,9 @@ env:
 
 jobs:
   build-and-deploy:
-    name: Build and deploy Yandex Cloud production
+    name: Yandex Production
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - name: Checkout
@@ -80,7 +80,9 @@ jobs:
       - name: Build frontend
         env:
           VITE_API_URL: ${{ secrets.YC_API_PUBLIC_URL }}
-        run: npm run build
+        run: |
+          npm run build
+          printf '{"sha":"%s","builtAt":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > dist/release.json
 
       - name: Install Yandex Cloud CLI
         run: |
@@ -163,7 +165,8 @@ jobs:
             --environment S3_ASSETS_BUCKET="$S3_ASSETS_BUCKET" \
             --environment APP_URL="$APP_URL" \
             --environment API_URL="$API_URL" \
-            --environment YC_API_PUBLIC_URL="$YC_API_PUBLIC_URL"
+            --environment YC_API_PUBLIC_URL="$YC_API_PUBLIC_URL" \
+            --environment RELEASE_SHA="$GITHUB_SHA"
 
       - name: Install AWS CLI for Object Storage upload
         run: python -m pip install --user --upgrade awscli
@@ -177,7 +180,42 @@ jobs:
         run: |
           python -m awscli --endpoint-url "$S3_ENDPOINT" s3 sync dist "s3://${S3_FRONTEND_BUCKET}" --delete --exclude ".well-known/acme-challenge/*"
 
+      - name: Verify live Yandex production
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+        run: |
+          set -euo pipefail
+          APP_BASE="${APP_URL%/}"
+          API_BASE="${YC_API_PUBLIC_URL%/}"
+
+          for attempt in $(seq 1 30); do
+            RELEASE_BODY="$(curl -fsS "${APP_BASE}/release.json?sha=${GITHUB_SHA}" || true)"
+            HEALTH_BODY="$(curl -fsS "${API_BASE}/api/health" || true)"
+            if printf '%s' "$RELEASE_BODY" | grep -Fq "$GITHUB_SHA" && printf '%s' "$HEALTH_BODY" | grep -Eqi 'ok|healthy'; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "Production did not expose release $GITHUB_SHA or a healthy API in time."
+              echo "release.json: $RELEASE_BODY"
+              echo "health: $HEALTH_BODY"
+              exit 1
+            fi
+            sleep 10
+          done
+
+          TEST_EMAIL="deploy-probe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@gmail.com"
+          HTTP_CODE="$(curl -sS -o /tmp/foreign-email-response.json -w '%{http_code}' \
+            -X POST "${API_BASE}/api/auth/email/account" \
+            -H 'Content-Type: application/json' \
+            --data "{\"email\":\"${TEST_EMAIL}\",\"credential\":\"DeployProbe123!\",\"name\":\"Deploy Probe\"}")"
+          cat /tmp/foreign-email-response.json
+          test "$HTTP_CODE" = "400"
+          grep -Fq 'russian_email_domain_required' /tmp/foreign-email-response.json
+
       - name: Deployment summary
         run: |
+          echo "Production commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo "Backend image: $BACKEND_IMAGE" >> "$GITHUB_STEP_SUMMARY"
           echo "Frontend bucket: ${{ secrets.S3_FRONTEND_BUCKET }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Live API foreign-email rejection: verified" >> "$GITHUB_STEP_SUMMARY"
