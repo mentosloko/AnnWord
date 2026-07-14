@@ -1,7 +1,7 @@
 import { supabase } from '../supabase';
 import { BackendApiError, backendApiRequest, isBackendApiConfigured } from './backendApiClient';
 
-export type ProdamusPlanCode = 'kids_month' | 'kids_year';
+export type ProdamusPlanCode = 'kids_month' | 'kids_year' | 'practice_month' | 'practice_year';
 export type ProdamusPaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded' | 'ignored' | 'not_found';
 
 export interface ProdamusPlanOption {
@@ -9,12 +9,17 @@ export interface ProdamusPlanOption {
   title: string;
   amountRub: number;
   periodDays: number;
+  mode: 'kids' | 'practice';
 }
 
 export const PRODAMUS_PLAN_OPTIONS: ProdamusPlanOption[] = [
-  { code: 'kids_month', title: 'AnnWord Premium — 1 месяц', amountRub: 300, periodDays: 31 },
-  { code: 'kids_year', title: 'AnnWord Premium — 1 год', amountRub: 3000, periodDays: 365 },
+  { code: 'kids_month', title: 'Kids Premium — 1 месяц', amountRub: 300, periodDays: 31, mode: 'kids' },
+  { code: 'kids_year', title: 'Kids Premium — 1 год', amountRub: 3000, periodDays: 365, mode: 'kids' },
+  { code: 'practice_month', title: 'AnnWord Premium — 1 месяц', amountRub: 300, periodDays: 31, mode: 'practice' },
+  { code: 'practice_year', title: 'AnnWord Premium — 1 год', amountRub: 3000, periodDays: 365, mode: 'practice' },
 ];
+
+export const getProdamusPlansForMode = (kidsMode: boolean): ProdamusPlanOption[] => PRODAMUS_PLAN_OPTIONS.filter(plan => plan.mode === (kidsMode ? 'kids' : 'practice'));
 
 export interface ProdamusPaymentResponse {
   orderId: string;
@@ -29,6 +34,16 @@ export interface ProdamusPaymentStatusResponse {
   paymentStatus: ProdamusPaymentStatus;
   planCode?: ProdamusPlanCode;
   premiumActive: boolean;
+  premiumExpiresAt?: string | null;
+}
+
+export interface PremiumPaymentHistoryItem {
+  orderId: string;
+  planCode: ProdamusPlanCode;
+  amountRub: number;
+  status: ProdamusPaymentStatus;
+  createdAt: string;
+  paidAt?: string | null;
   premiumExpiresAt?: string | null;
 }
 
@@ -126,6 +141,12 @@ export const prodamusPaymentService = {
       if (error instanceof BackendApiError && error.status === 404) return { status: 'not_found', orderId: normalized, paymentStatus: 'not_found', premiumActive: false };
       throw error instanceof Error ? error : new Error('Не удалось проверить оплату.');
     }
+  },
+
+  listPayments: async (): Promise<PremiumPaymentHistoryItem[]> => {
+    if (!isBackendApiConfigured) return [];
+    const data = await backendApiRequest<{ payments?: PremiumPaymentHistoryItem[] }>('/api/payments/prodamus/history');
+    return Array.isArray(data.payments) ? data.payments : [];
   },
 
   forgetPendingOrder,
