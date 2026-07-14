@@ -1,8 +1,9 @@
 import { supabase } from '../supabase';
-import { CustomDictionaryCollection } from '../types';
+import { CustomDictionaryCollection, UserProfile } from '../types';
 import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
 
 export interface PremiumDictionaryDraft {
+  id?: string;
   title: string;
   words: string[];
   source: CustomDictionaryCollection['source'];
@@ -16,6 +17,7 @@ type DictionaryCollectionsResponse = {
 
 type DictionaryCollectionResponse = {
   collection?: unknown;
+  profile?: UserProfile | null;
 };
 
 const SCHEMA_NOT_READY_CODES = new Set(['PGRST202', '42P01', '42703', '42883']);
@@ -35,7 +37,7 @@ const readString = (data: any, camel: string, snake?: string): string | undefine
 const normalizeSource = (value: unknown, fallback: CustomDictionaryCollection['source'] = 'manual'): CustomDictionaryCollection['source'] => SOURCES.includes(value as CustomDictionaryCollection['source']) ? value as CustomDictionaryCollection['source'] : fallback;
 
 const normalizeCollection = (data: any, draft: PremiumDictionaryDraft, words: string[]): CustomDictionaryCollection => ({
-  id: String(data?.id || crypto.randomUUID()),
+  id: String(data?.id || draft.id || crypto.randomUUID()),
   title: String(data?.title || draft.title || 'Новый словарь'),
   source: normalizeSource(data?.source, draft.source),
   words,
@@ -82,6 +84,7 @@ export const premiumDictionaryService = {
       const data = await backendApiRequest<DictionaryCollectionResponse>('/api/profile/dictionary-collections', {
         method: 'POST',
         body: {
+          id: draft.id || null,
           title: draft.title,
           words,
           source: draft.source,
@@ -89,6 +92,9 @@ export const premiumDictionaryService = {
           theme: draft.theme || null,
         },
       });
+      if (data.profile && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('annword:profile-updated', { detail: data.profile }));
+      }
       return normalizeCollection(data.collection, draft, words);
     }
 

@@ -1,5 +1,6 @@
-import { query } from "./db";
+import { query, transaction } from "./db";
 import type { CustomDictionaryCollection } from "../types";
+import { getProfileById } from "./profileRepository";
 
 const SOURCES = new Set(["manual", "ocr", "class", "topic"]);
 
@@ -34,29 +35,51 @@ export async function listDictionaryCollections(userId: string): Promise<CustomD
   return (Array.isArray(raw) ? raw : []).map(normalizeCollection).filter((item): item is CustomDictionaryCollection => Boolean(item));
 }
 
-export async function saveDictionaryCollection(userId: string, draft: Partial<CustomDictionaryCollection>): Promise<CustomDictionaryCollection> {
+export async function saveDictionaryCollection(userId: string, draft: Partial<CustomDictionaryCollection>) {
   const words = wordsOf(draft.words);
   if (!words.length) throw new Error("Добавьте хотя бы одно английское слово.");
-  const current = await listDictionaryCollections(userId);
   const now = new Date().toISOString();
   const title = readText(draft.title) || "Новый словарь";
   const explicitId = readText(draft.id);
-  const existingIndex = explicitId
-    ? current.findIndex(item => item.id === explicitId)
-    : current.findIndex(item => titleKey(item.title) === titleKey(title) || sameWords(item.words, words));
-  const previous = existingIndex >= 0 ? current[existingIndex] : null;
-  const collection: CustomDictionaryCollection = {
-    id: previous?.id || explicitId || crypto.randomUUID(),
-    title,
-    source: SOURCES.has(draft.source) ? draft.source! : previous?.source || "manual",
-    words,
-    classLabel: readText(draft.classLabel) || previous?.classLabel,
-    theme: readText(draft.theme) || previous?.theme,
-    createdAt: previous?.createdAt || now,
-  };
-  const nextCollections = existingIndex >= 0
-    ? [collection, ...current.filter((_, index) => index !== existingIndex)]
-    : [collection, ...current];
-  await query("update profiles set dictionary_collections = $2::jsonb, updated_at = now() where id = $1", [userId, JSON.stringify(nextCollections)]);
-  return collection;
+
+  const collection = await transaction(async client => {
+    const locked = await client.query<{ role: string | null; account_mode: string | null; dictionary_collections: unknown }>(
+      "select role, account_mode, dictionary_collections from profiles where id = $1 for update",
+      [userId],
+    );
+    const profile = locked.rows[0];
+    if (!profile) throw new Error("Профиль не найден.");
+    const current = (Array.isArray(profile.dictionary_collections) ? profile.dictionary_collections : [])
+      .map(normalizeCollection)
+      .filter((item): item is CustomDictionaryCollection => Boolean(item));
+    const existingIndex = explicitId
+      ? current.findIndex(item => item.id === explicitId)
+      : current.findIndex(item => titleKey(item.title) === titleKey(title) || sameWords(item.words, words));
+    const previous = existingIndex >= 0 ? current[existingIndex] : null;
+    const nextCollection: CustomDictionaryCollection = {
+      id: previous?.id || explicitId || crypto.randomUUID(),
+      title,
+      source: SOURCES.has(draft.source) ? draft.source! : previous?.source || "manual",
+      words,
+      classLabel: readText(draft.classLabel) || previous?.classLabel,
+      theme: readText(draft.theme) || previous?.theme,
+      createdAt: previous?.createdAt || now,
+    };
+    const nextCollections = existingIndex >= 0
+      ? [nextCollection, ...current.filter((_, index) => index !== existingIndex)]
+      : [nextCollection, ...current];
+    const isTeacher = profile.role === "teacher" || profile.account_mode === "teacher";
+    const isAdmin = profile.role === "admin";
+    await client.query(
+      `update profiles
+          set dictionary_collections = $2::jsonb,
+              custom_dictionary_en = case when $3::boolean then custom_dictionary_en else $4::jsonb end,
+              updated_at = now()
+        where id = $1`,
+      [userId, JSON.stringify(nextCollections), isTeacher || isAdmin, JSON.stringify(words)],
+    );
+    return nextCollection;
+  });
+
+  return { collection, profile: await getProfileById(userId) };
 }

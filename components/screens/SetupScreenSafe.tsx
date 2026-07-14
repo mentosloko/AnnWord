@@ -48,6 +48,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   questContext,
   hasActiveClassicGame = false,
   onResumeClassicGame,
+  onOpenDictionaryStudio,
   onOpenPremium,
   onSettingsChange,
   onStartGame,
@@ -119,7 +120,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
       {source === 'custom' && hasPremium && <section className="mt-4 rounded-2xl border-2 border-dashed border-purple-100 bg-purple-50/50 p-4">
         <span className="block font-black text-indigo-950">{customDictionaryWords.length ? 'Слова из вашего списка выбраны' : 'Список слов пока пуст'}</span>
+        <p className="mt-1 text-xs font-bold text-purple-700/80">{customDictionaryWords.length ? `Доступно для игр: ${customDictionaryWords.length}` : 'Добавьте слова, чтобы начать игру по своему списку.'}</p>
         {isUploadingDictionary && <p className="mt-2 text-xs font-bold text-purple-700">Сохраняю слова...</p>}
+        <button type="button" onClick={onOpenDictionaryStudio} className="mt-3 w-full rounded-xl bg-purple-600 px-4 py-3 text-sm font-black text-white transition hover:bg-purple-700">{customDictionaryWords.length ? 'Изменить свои слова' : 'Добавить свои слова'}</button>
       </section>}
 
       {source === 'premium' && hasPremium && <section className="mt-4 rounded-2xl border-2 border-dashed border-amber-100 bg-amber-50/60 p-4">

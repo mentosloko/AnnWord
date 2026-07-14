@@ -31,7 +31,7 @@ export interface ShopRandomRewardOption { itemId: string; weight: number; }
 export interface ShopItem { id: string; name: string; price: number; type: InventoryItemType; minLevel: number; description: string; imageUrl?: string; effect?: { mood?: number; moodCap?: number; }; characterType?: string; randomReward?: { pool: ShopRandomRewardOption[]; }; }
 export interface CellData { letter: string; status: CharStatus; }
 export interface GameSettings { wordLength: WordLength; useCustomDictionary: boolean; dictionarySource: DictionarySource; difficulty: DifficultyLevel; username: string; activePremiumDictionaryId?: string; }
-export interface EnrichedWord { word: string; translation: string; level: string; }
+export interface EnrichedWord { word: string; translation: string; level: string; isTransliterated?: boolean; }
 export interface HistoryItem { word: string; translation: string | null; }
 export interface GameState { secretWord: string; secretWordData?: EnrichedWord | null; guesses: string[]; history: HistoryItem[]; currentGuess: string; gameStatus: 'playing' | 'won' | 'lost'; rowIndex: number; hint: string | null; loadingHint: boolean; hintCoinsSpent?: number; error: string | null; }
 export interface KeyboardKey { key: string; status?: CharStatus; }

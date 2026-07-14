@@ -8,12 +8,15 @@ import { prodamusNotifyRouter } from "./prodamusNotifyRoutes";
 
 export const paymentRouter = Router();
 
-type Plan = { code: "kids_month" | "kids_year"; productName: string; amountRub: number; periodDays: 31 | 365; paidContent: string };
+type PlanCode = "kids_month" | "kids_year" | "practice_month" | "practice_year";
+type Plan = { code: PlanCode; productName: string; amountRub: number; periodDays: 31 | 365; paidContent: string; mode: "kids" | "practice" };
 type PaymentStatus = "pending" | "paid" | "failed" | "cancelled" | "refunded" | "ignored";
 
-const plans: Record<string, Plan> = {
-  kids_month: { code: "kids_month", productName: "AnnWord Premium — 1 месяц", amountRub: 300, periodDays: 31, paidContent: "AnnWord Premium — 1 месяц" },
-  kids_year: { code: "kids_year", productName: "AnnWord Premium — 1 год", amountRub: 3000, periodDays: 365, paidContent: "AnnWord Premium — 1 год" },
+const plans: Record<PlanCode, Plan> = {
+  kids_month: { code: "kids_month", productName: "AnnWord Kids Premium — 1 месяц", amountRub: 300, periodDays: 31, paidContent: "AnnWord Kids Premium — 1 месяц", mode: "kids" },
+  kids_year: { code: "kids_year", productName: "AnnWord Kids Premium — 1 год", amountRub: 3000, periodDays: 365, paidContent: "AnnWord Kids Premium — 1 год", mode: "kids" },
+  practice_month: { code: "practice_month", productName: "AnnWord Premium — 1 месяц", amountRub: 300, periodDays: 31, paidContent: "AnnWord Premium — 1 месяц", mode: "practice" },
+  practice_year: { code: "practice_year", productName: "AnnWord Premium — 1 год", amountRub: 3000, periodDays: 365, paidContent: "AnnWord Premium — 1 год", mode: "practice" },
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -70,16 +73,24 @@ paymentRouter.use(prodamusNotifyRouter);
 paymentRouter.post("/create", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     if (!runtimeConfig.prodamusSecret) {
-      res.status(503).json({ error: "Оплата Premium временно не настроена. Нужно добавить PRODAMUS_SECRET в окружение backend и повторить попытку." });
+      res.status(503).json({ code: "payments_not_configured", error: "Оплата Premium временно не настроена. Нужно добавить PRODAMUS_SECRET в окружение backend и повторить попытку." });
       return;
     }
 
-    const plan = plans[String(req.body?.planCode || "")];
+    const plan = plans[String(req.body?.planCode || "") as PlanCode];
     if (!plan) {
-      res.status(400).json({ error: "Unknown Premium plan" });
+      res.status(400).json({ code: "unknown_premium_plan", error: "Неизвестный тариф Premium." });
       return;
     }
     const user = req.user!;
+    const profileResult = await query<{ role: string | null; account_mode: string | null }>("select role, account_mode from profiles where id = $1", [user.id]);
+    const profile = profileResult.rows[0];
+    const accountMode = profile?.role === "parent" || profile?.account_mode === "parent" ? "kids" : profile?.role === "teacher" || profile?.account_mode === "teacher" ? "teacher" : "practice";
+    if (accountMode === "teacher" || accountMode !== plan.mode) {
+      res.status(400).json({ code: "premium_plan_mode_mismatch", error: "Выбранный тариф не соответствует режиму аккаунта." });
+      return;
+    }
+
     const orderId = `annword_${plan.code}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
     const callbackOrigin = apiUrl();
     const payload: Record<string, unknown> = {
@@ -100,6 +111,7 @@ paymentRouter.post("/create", requireAuth, async (req: AuthenticatedRequest, res
       payments_limit: "1",
       _param_user_id: user.id,
       _param_plan_code: plan.code,
+      _param_account_mode: plan.mode,
     };
     payload.signature = sign(payload);
     const checkoutUrl = `${payformUrl()}/?${queryString(payload)}`;
@@ -110,10 +122,42 @@ paymentRouter.post("/create", requireAuth, async (req: AuthenticatedRequest, res
       [user.id, orderId, plan.code, plan.periodDays, plan.amountRub, checkoutUrl, user.email, JSON.stringify({ checkout: payload, signature_body: signatureBody(payload) })],
     );
 
-    res.json({ orderId, checkoutUrl, plan: { code: plan.code, title: plan.productName, amountRub: plan.amountRub, periodDays: plan.periodDays } });
+    res.json({ orderId, checkoutUrl, plan: { code: plan.code, title: plan.productName, amountRub: plan.amountRub, periodDays: plan.periodDays, mode: plan.mode } });
   } catch (error) {
     console.error("Prodamus create failed", error);
-    res.status(500).json({ error: error instanceof Error ? error.message : "Payment create failed" });
+    res.status(500).json({ code: "payment_create_failed", error: error instanceof Error ? error.message : "Payment create failed" });
+  }
+});
+
+paymentRouter.get("/history", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const result = await query<{
+      provider_order_id: string;
+      plan_code: PlanCode;
+      amount_rub: number;
+      status: PaymentStatus;
+      created_at: string | Date;
+      premium_expires_at: string | Date | null;
+    }>(
+      `select provider_order_id, plan_code, amount_rub, status, created_at, premium_expires_at
+         from premium_payments
+        where user_id = $1
+          and provider = 'prodamus'
+        order by created_at desc
+        limit 50`,
+      [req.user!.id],
+    );
+    res.json({ payments: result.rows.map(row => ({
+      orderId: row.provider_order_id,
+      planCode: row.plan_code,
+      amountRub: Number(row.amount_rub || 0),
+      status: row.status,
+      createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+      premiumExpiresAt: row.premium_expires_at instanceof Date ? row.premium_expires_at.toISOString() : row.premium_expires_at ? String(row.premium_expires_at) : null,
+    })) });
+  } catch (error) {
+    console.error("Premium payment history failed", error);
+    res.status(500).json({ code: "payment_history_failed", error: "Не удалось загрузить историю оплат." });
   }
 });
 
@@ -170,7 +214,7 @@ paymentRouter.get("/success", async (req, res) => {
 paymentRouter.get("/status", requireAuth, async (req: AuthenticatedRequest, res) => {
   const orderId = text(req.query.order_id || req.query.orderId || req.query.order_num || req.query.order);
   if (!orderId) {
-    res.status(400).json({ error: "missing_order_id" });
+    res.status(400).json({ code: "missing_order_id", error: "missing_order_id" });
     return;
   }
 
@@ -180,7 +224,7 @@ paymentRouter.get("/status", requireAuth, async (req: AuthenticatedRequest, res)
       provider_order_id: string;
       provider_payment_id: string | null;
       payment_status: PaymentStatus;
-      plan_code: string;
+      plan_code: PlanCode;
       payment_premium_expires_at: string | null;
       subscription_tier: string;
       profile_premium_expires_at: string | null;
@@ -219,6 +263,6 @@ paymentRouter.get("/status", requireAuth, async (req: AuthenticatedRequest, res)
     });
   } catch (error) {
     console.error("Prodamus status failed", error);
-    res.status(500).json({ error: error instanceof Error ? error.message : "Payment status failed" });
+    res.status(500).json({ code: "payment_status_failed", error: error instanceof Error ? error.message : "Payment status failed" });
   }
 });
