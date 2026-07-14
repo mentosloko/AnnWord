@@ -18,22 +18,10 @@ const parsePreview = (value: string) => {
   const tokens = value.split(/[^A-Za-z'-]+/).map(item => item.trim()).filter(Boolean);
   const valid = tokens.filter(token => /^[A-Za-z][A-Za-z'-]{1,}$/.test(token)).map(token => token.toUpperCase());
   const unique = Array.from(new Set(valid));
-  const duplicates = Math.max(0, valid.length - unique.length);
-  const rejected = tokens.filter(token => !/^[A-Za-z][A-Za-z'-]{1,}$/.test(token)).slice(0, 20);
-  const playable = unique.filter(word => word.length >= 4 && word.length <= 6);
-  const outsideLength = unique.filter(word => word.length < 4 || word.length > 6);
   return {
-    unique,
-    duplicates,
-    rejected,
-    outsideLength,
-    buckets: {
-      four: unique.filter(word => word.length === 4).length,
-      five: unique.filter(word => word.length === 5).length,
-      six: unique.filter(word => word.length === 6).length,
-      other: outsideLength.length,
-    },
-    playableCount: playable.length,
+    hasDuplicates: valid.length !== unique.length,
+    rejected: tokens.filter(token => !/^[A-Za-z][A-Za-z'-]{1,}$/.test(token)).slice(0, 20),
+    outsideLength: unique.filter(word => word.length < 4 || word.length > 6),
   };
 };
 const latestCollection = (collections: CustomDictionaryCollection[] = []): CustomDictionaryCollection | undefined =>
@@ -73,11 +61,6 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
 
   const words = useMemo(() => parseWords(draft), [draft]);
   const preview = useMemo(() => parsePreview(draft), [draft]);
-  const originalWords = useMemo(() => parseWords(originalDraft), [originalDraft]);
-  const originalWordSet = useMemo(() => new Set(originalWords), [originalWords]);
-  const currentWordSet = useMemo(() => new Set(words), [words]);
-  const addedWordCount = words.filter(word => !originalWordSet.has(word)).length;
-  const removedWordCount = originalWords.filter(word => !currentWordSet.has(word)).length;
 
   const runOcr = async (file: File | undefined) => {
     if (!file || !canUseOcr) return;
@@ -97,7 +80,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
       setDraft(mergedWords.join('\n'));
       setTitle(isTeacher ? 'Словарь для ученика' : 'Мой словарь');
       setSource('ocr');
-      setNotice(`Добавлено слов с фотографии: ${mergedWords.length - words.length}. Проверьте список перед сохранением.`);
+      setNotice('Слова с фотографии добавлены. Проверьте список перед сохранением.');
     } catch (error: unknown) {
       setNotice(error instanceof Error ? error.message : 'Не удалось распознать изображение.');
     } finally {
@@ -125,8 +108,8 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         theme: isTeacher ? theme.trim() || undefined : undefined,
       });
       setNotice(isTeacher
-        ? `Словарь «${title.trim() || 'Словарь для ученика'}» сохранён: ${words.length} слов.`
-        : `Мой словарь сохранён: ${words.length} слов. Он автоматически выбран для игр.`);
+        ? `Словарь «${title.trim() || 'Словарь для ученика'}» сохранён.`
+        : 'Мой словарь сохранён и автоматически выбран для игр.');
     } catch (error: unknown) {
       setNotice(error instanceof Error ? error.message : 'Не удалось сохранить словарь.');
     } finally {
@@ -147,7 +130,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         <div className="text-xs font-black uppercase tracking-widest text-purple-500">{isTeacher ? 'AnnWord Teacher' : 'Premium'}</div>
         <h1 className="text-2xl font-black text-indigo-950 sm:text-3xl">{isTeacher ? 'Словарь преподавателя' : 'Мой словарь'}</h1>
       </div>
-      <div className="rounded-full bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">{canUseOcr ? 'Фото' : isTeacher ? `${userProfile.dictionaryCollections?.length || 0} словарей` : 'Premium'}</div>
+      <div className="rounded-full bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">{canUseOcr ? 'Фото' : isTeacher ? 'Словари' : 'Premium'}</div>
     </header>
 
     {notice && <div role="status" aria-live="polite" className="mb-4 flex justify-between rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">
@@ -163,7 +146,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
     {isTeacher && <div className="mb-5 rounded-3xl border-2 border-indigo-100 bg-indigo-50 p-5">
       <h2 className="text-xl font-black text-indigo-950">Словари для учеников</h2>
       <p className="mt-2 text-sm font-bold text-indigo-700">Редактор открывает последний сохранённый словарь преподавателя. Создайте или обновите список, затем назначьте его ученику в разделе «Ученики».</p>
-      {activeTeacherCollection && <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-black text-indigo-700">Открыт словарь: {activeTeacherCollection.title} · {activeTeacherCollection.words.length} слов</p>}
+      {activeTeacherCollection && <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-black text-indigo-700">Открыт словарь: {activeTeacherCollection.title}</p>}
     </div>}
 
     <main className="rounded-[2rem] border-2 border-indigo-50 bg-white p-5 shadow-sm">
@@ -174,11 +157,6 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
             ? 'Добавьте слова в редактор, по одному слову в строке. После сохранения словарь можно будет назначить ученику.'
             : 'В редакторе уже открыт текущий список. Добавьте новые слова, удалите лишние и сохраните — этот список будет использоваться в играх как “Мой словарь”.'}
         </p>
-        <div className="mt-4 grid gap-2 text-center text-xs font-black text-indigo-700 sm:grid-cols-3">
-          <div className="rounded-2xl bg-white px-3 py-2">Сейчас сохранено: {originalWords.length}</div>
-          <div className="rounded-2xl bg-white px-3 py-2">В редакторе: {words.length}</div>
-          <div className="rounded-2xl bg-white px-3 py-2">Новых: {addedWordCount}{removedWordCount > 0 ? ` · удалено: ${removedWordCount}` : ''}</div>
-        </div>
       </div>
 
       <div className={`grid gap-3 ${isTeacher ? 'sm:grid-cols-3' : ''}`}>
@@ -199,10 +177,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         <div className="h-2 overflow-hidden rounded-full bg-purple-100"><div className="h-full bg-purple-600" style={{ width: `${ocrProgress}%` }} /></div>
       </div>}
 
-      <div className="mt-5 flex items-center justify-between">
-        <h2 className="text-sm font-black uppercase tracking-widest text-indigo-400">Список слов</h2>
-        <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-black text-indigo-700">{words.length} слов</span>
-      </div>
+      <div className="mt-5"><h2 className="text-sm font-black uppercase tracking-widest text-indigo-400">Список слов</h2></div>
       <textarea
         value={draft}
         onChange={event => setDraft(event.target.value)}
@@ -211,18 +186,12 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         className="mt-3 h-72 w-full rounded-2xl border-2 border-indigo-100 p-4 font-mono text-sm font-bold uppercase text-indigo-950 disabled:bg-gray-50 disabled:text-gray-400"
       />
       <section className="mt-4 rounded-3xl border-2 border-indigo-50 bg-indigo-50/50 p-4" aria-label="Предпросмотр словаря">
-        <div className="text-xs font-black uppercase tracking-widest text-indigo-400">Предпросмотр перед сохранением</div>
-        <div className="mt-3 grid gap-2 text-center text-xs font-black text-indigo-800 sm:grid-cols-5">
-          <div className="rounded-2xl bg-white px-3 py-2">Игровых 4–6: {preview.playableCount}</div>
-          <div className="rounded-2xl bg-white px-3 py-2">4 буквы: {preview.buckets.four}</div>
-          <div className="rounded-2xl bg-white px-3 py-2">5 букв: {preview.buckets.five}</div>
-          <div className="rounded-2xl bg-white px-3 py-2">6 букв: {preview.buckets.six}</div>
-          <div className="rounded-2xl bg-white px-3 py-2">Вне 4–6: {preview.buckets.other}</div>
-        </div>
-        {(preview.duplicates > 0 || preview.rejected.length > 0 || preview.outsideLength.length > 0) && <div className="mt-3 grid gap-2 text-xs font-bold text-gray-600 sm:grid-cols-3">
-          <div className="rounded-2xl bg-white p-3">Дубликатов убрано: <b>{preview.duplicates}</b></div>
-          <div className="rounded-2xl bg-white p-3">Отброшено токенов: <b>{preview.rejected.length}</b>{preview.rejected.length ? ` · ${preview.rejected.join(', ')}` : ''}</div>
-          <div className="rounded-2xl bg-white p-3">Не будут в Wordle 4–6: <b>{preview.outsideLength.length}</b>{preview.outsideLength.length ? ` · ${preview.outsideLength.slice(0, 8).join(', ')}` : ''}</div>
+        <div className="text-xs font-black uppercase tracking-widest text-indigo-400">Проверка перед сохранением</div>
+        <p className="mt-2 text-sm font-bold text-indigo-800">Слова из 4–6 букв будут использоваться во всех игровых режимах с ограничением длины. Остальные останутся доступны в режимах без ограничения.</p>
+        {(preview.hasDuplicates || preview.rejected.length > 0 || preview.outsideLength.length > 0) && <div className="mt-3 grid gap-2 text-xs font-bold text-gray-600 sm:grid-cols-3">
+          {preview.hasDuplicates && <div className="rounded-2xl bg-white p-3">Дубликаты будут удалены автоматически.</div>}
+          {preview.rejected.length > 0 && <div className="rounded-2xl bg-white p-3">Некорректные элементы: <b>{preview.rejected.join(', ')}</b></div>}
+          {preview.outsideLength.length > 0 && <div className="rounded-2xl bg-white p-3">Не подходят для игр 4–6 букв: <b>{preview.outsideLength.slice(0, 8).join(', ')}</b></div>}
         </div>}
       </section>
       <p className="mt-2 text-xs font-bold text-gray-500">Можно вставить слова списком, через пробел или из учебника: приложение само оставит английские слова и уберёт дубликаты.</p>

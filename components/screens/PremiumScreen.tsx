@@ -21,14 +21,11 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
   const kidsMode = isKidsMode(userProfile, true);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
   const dictionaries = kidsMode ? getKidsDictionaryCatalog() : getPremiumDictionaryCatalog();
-  const totalWords = dictionaries.reduce((sum, item) => sum + item.wordCount, 0);
-  const minWords = Math.min(...dictionaries.map(item => item.wordCount));
-  const maxWords = Math.max(...dictionaries.map(item => item.wordCount));
   const premiumTitle = kidsMode ? 'Kids Premium' : 'AnnWord Premium';
   const headline = kidsMode ? 'Игры по словам, которые ребёнку действительно нужно повторить' : 'Учите не случайные слова, а нужные именно вам';
   const body = kidsMode
-    ? `В бесплатном режиме ребёнок играет по базовому набору. Premium открывает детские темы и возможность добавить слова из школы, курса или учебника — чтобы тренировка была ближе к реальным занятиям.`
-    : `Откройте тематические словари и добавляйте слова из работы, экзамена, курса или своей темы. Сейчас доступно ${totalWords} игровых слов в наборах Business, Travel, Medicine, IELTS, IT, Finance, Legal, Science, Everyday+ и Food.`;
+    ? 'В бесплатном режиме ребёнок играет по базовому набору. Premium открывает детские темы и возможность добавить слова из школы, курса или учебника — чтобы тренировка была ближе к реальным занятиям.'
+    : 'Откройте тематические словари и добавляйте слова из работы, экзамена, курса или своей темы. Доступны наборы Business, Travel, Medicine, IELTS, IT, Finance, Legal, Science, Everyday+ и Food.';
   const plans = getProdamusPlansForMode(kidsMode);
   const [loadingPlan, setLoadingPlan] = useState<ProdamusPlanCode | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -54,12 +51,12 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
           <h1 className="mt-5 text-4xl font-black leading-tight text-indigo-950 sm:text-5xl">{headline}</h1>
           <p className="mt-4 max-w-2xl text-base font-bold leading-relaxed text-gray-600">{body}</p>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-3xl border-2 border-indigo-50 bg-indigo-50/60 p-4"><div className="text-3xl font-black text-indigo-700">{dictionaries.length}</div><div className="text-xs font-black uppercase tracking-widest text-indigo-400">словарей</div></div>
-            <div className="rounded-3xl border-2 border-purple-50 bg-purple-50/60 p-4"><div className="text-3xl font-black text-purple-700">{totalWords}</div><div className="text-xs font-black uppercase tracking-widest text-purple-400">слов</div></div>
+            <div className="rounded-3xl border-2 border-indigo-50 bg-indigo-50/60 p-4"><div className="text-2xl font-black text-indigo-700">Темы под цель</div><div className="mt-2 text-xs font-black uppercase tracking-widest text-indigo-400">готовые наборы</div></div>
+            <div className="rounded-3xl border-2 border-purple-50 bg-purple-50/60 p-4"><div className="text-2xl font-black text-purple-700">Свой список</div><div className="mt-2 text-xs font-black uppercase tracking-widest text-purple-400">ваши слова</div></div>
             <div className="rounded-3xl border-2 border-green-50 bg-green-50/60 p-4"><div className="text-3xl font-black text-green-700">A1–C2</div><div className="text-xs font-black uppercase tracking-widest text-green-400">уровни</div></div>
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            {(kidsMode ? ['Детские темы', 'Слова из школы или курса', 'Все игры по выбранным словам'] : ['Темы под цель', 'Слова из вашего списка', `От ${minWords} до ${maxWords} слов в наборе`]).map(item => <div key={item} className="rounded-2xl border-2 border-amber-100 bg-amber-50 px-4 py-3 text-sm font-black text-amber-800">{item}</div>)}
+            {(kidsMode ? ['Детские темы', 'Слова из школы или курса', 'Все игры по выбранным словам'] : ['Темы под цель', 'Слова из вашего списка', 'Все игры по выбранным словам']).map(item => <div key={item} className="rounded-2xl border-2 border-amber-100 bg-amber-50 px-4 py-3 text-sm font-black text-amber-800">{item}</div>)}
           </div>
           <div className="mt-6">
             {hasPremium ? <button type="button" onClick={onOpenDictionarySetup} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-sm transition hover:bg-indigo-700">{kidsMode ? 'Выбрать слова для ребёнка' : 'Выбрать слова для тренировки'}</button> : PAYMENTS_ENABLED ? <div className="grid gap-3 sm:grid-cols-2">
@@ -72,7 +69,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
         </div>
         <div className="rounded-[2rem] border-2 border-amber-100 bg-amber-50/60 p-4">
           <div className="grid grid-cols-2 gap-3">
-            {dictionaries.map(item => <div key={item.id} className="rounded-2xl border-2 border-white bg-white p-3 shadow-sm"><div className="flex items-center justify-between gap-2"><span className="text-2xl" aria-hidden="true">{item.icon}</span><span className="text-sm">{hasPremium ? '✅' : '🔒'}</span></div><div className="mt-2 truncate text-sm font-black text-indigo-950">{item.shortTitle}</div><div className="text-xs font-black text-amber-700">{item.wordCount} слов · A1–C2</div></div>)}
+            {dictionaries.map(item => <div key={item.id} className="rounded-2xl border-2 border-white bg-white p-3 shadow-sm"><div className="flex items-center justify-between gap-2"><span className="text-2xl" aria-hidden="true">{item.icon}</span><span className="text-sm">{hasPremium ? '✅' : '🔒'}</span></div><div className="mt-2 truncate text-sm font-black text-indigo-950">{item.shortTitle}</div><div className="text-xs font-black text-amber-700">Тематический словарь · A1–C2</div></div>)}
           </div>
         </div>
       </div>

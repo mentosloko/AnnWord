@@ -55,7 +55,7 @@ export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], word
             <div className="text-[11px] font-black uppercase tracking-widest text-indigo-400">Во время игры</div>
             <h2 id="dictionary-peek-title" className="text-2xl font-black text-indigo-950 sm:text-3xl">{label}</h2>
             <p id="dictionary-peek-description" className="mt-1 text-sm font-bold text-gray-500">
-              {locked ? 'Доступно после регистрации' : <>{wordLength ? `Слова из ${wordLength} букв · ` : ''}{normalizedWords.length} слов</>}
+              {locked ? 'Доступно после регистрации' : wordLength ? `Слова из ${wordLength} букв` : 'Слова выбранного словаря'}
             </p>
             {!locked && onBeforeOpen && <p className="mt-1 text-xs font-bold text-amber-600">{wasCharged ? 'Просмотр словаря оплачен для этой игры.' : chargeLabel}</p>}
           </div>
