@@ -11,11 +11,6 @@ export interface PremiumDictionaryDraft {
   theme?: string;
 }
 
-export interface PremiumDictionarySaveResult {
-  collection: CustomDictionaryCollection;
-  profile?: UserProfile | null;
-}
-
 type DictionaryCollectionsResponse = {
   collections?: unknown[];
 };
@@ -81,7 +76,7 @@ export const premiumDictionaryService = {
     return (Array.isArray(data) ? data : []).map(normalizeStoredCollection).filter((item): item is CustomDictionaryCollection => Boolean(item));
   },
 
-  async saveCollection(draft: PremiumDictionaryDraft): Promise<PremiumDictionarySaveResult> {
+  async saveCollection(draft: PremiumDictionaryDraft): Promise<CustomDictionaryCollection> {
     const words = normalizeWords(draft.words);
     if (!words.length) throw new Error('Добавьте хотя бы одно английское слово.');
 
@@ -97,7 +92,10 @@ export const premiumDictionaryService = {
           theme: draft.theme || null,
         },
       });
-      return { collection: normalizeCollection(data.collection, draft, words), profile: data.profile || null };
+      if (data.profile && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('annword:profile-updated', { detail: data.profile }));
+      }
+      return normalizeCollection(data.collection, draft, words);
     }
 
     const { data, error } = await supabase.rpc('save_premium_dictionary_collection', {
@@ -116,6 +114,6 @@ export const premiumDictionaryService = {
       }
       throw error;
     }
-    return { collection: normalizeCollection(data, draft, words), profile: null };
+    return normalizeCollection(data, draft, words);
   },
 };
