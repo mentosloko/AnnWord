@@ -1,13 +1,19 @@
 import { supabase } from '../supabase';
-import { CustomDictionaryCollection } from '../types';
+import { CustomDictionaryCollection, UserProfile } from '../types';
 import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
 
 export interface PremiumDictionaryDraft {
+  id?: string;
   title: string;
   words: string[];
   source: CustomDictionaryCollection['source'];
   classLabel?: string;
   theme?: string;
+}
+
+export interface PremiumDictionarySaveResult {
+  collection: CustomDictionaryCollection;
+  profile?: UserProfile | null;
 }
 
 type DictionaryCollectionsResponse = {
@@ -16,6 +22,7 @@ type DictionaryCollectionsResponse = {
 
 type DictionaryCollectionResponse = {
   collection?: unknown;
+  profile?: UserProfile | null;
 };
 
 const SCHEMA_NOT_READY_CODES = new Set(['PGRST202', '42P01', '42703', '42883']);
@@ -35,7 +42,7 @@ const readString = (data: any, camel: string, snake?: string): string | undefine
 const normalizeSource = (value: unknown, fallback: CustomDictionaryCollection['source'] = 'manual'): CustomDictionaryCollection['source'] => SOURCES.includes(value as CustomDictionaryCollection['source']) ? value as CustomDictionaryCollection['source'] : fallback;
 
 const normalizeCollection = (data: any, draft: PremiumDictionaryDraft, words: string[]): CustomDictionaryCollection => ({
-  id: String(data?.id || crypto.randomUUID()),
+  id: String(data?.id || draft.id || crypto.randomUUID()),
   title: String(data?.title || draft.title || 'Новый словарь'),
   source: normalizeSource(data?.source, draft.source),
   words,
@@ -74,7 +81,7 @@ export const premiumDictionaryService = {
     return (Array.isArray(data) ? data : []).map(normalizeStoredCollection).filter((item): item is CustomDictionaryCollection => Boolean(item));
   },
 
-  async saveCollection(draft: PremiumDictionaryDraft): Promise<CustomDictionaryCollection> {
+  async saveCollection(draft: PremiumDictionaryDraft): Promise<PremiumDictionarySaveResult> {
     const words = normalizeWords(draft.words);
     if (!words.length) throw new Error('Добавьте хотя бы одно английское слово.');
 
@@ -82,6 +89,7 @@ export const premiumDictionaryService = {
       const data = await backendApiRequest<DictionaryCollectionResponse>('/api/profile/dictionary-collections', {
         method: 'POST',
         body: {
+          id: draft.id || null,
           title: draft.title,
           words,
           source: draft.source,
@@ -89,7 +97,7 @@ export const premiumDictionaryService = {
           theme: draft.theme || null,
         },
       });
-      return normalizeCollection(data.collection, draft, words);
+      return { collection: normalizeCollection(data.collection, draft, words), profile: data.profile || null };
     }
 
     const { data, error } = await supabase.rpc('save_premium_dictionary_collection', {
@@ -108,6 +116,6 @@ export const premiumDictionaryService = {
       }
       throw error;
     }
-    return normalizeCollection(data, draft, words);
+    return { collection: normalizeCollection(data, draft, words), profile: null };
   },
 };
