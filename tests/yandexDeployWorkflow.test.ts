@@ -9,8 +9,9 @@ describe('Yandex production deployment workflow', () => {
     expect(workflow).not.toContain('      - infra/ru-cloud-migration');
   });
 
-  it('runs database migrations for production pushes', () => {
-    expect(workflow).toContain("github.event_name == 'push' && github.ref == 'refs/heads/main'");
+  it('keeps database migrations as an explicit manual operation', () => {
+    expect(workflow).toContain("github.event_name == 'workflow_dispatch' && inputs.run_migrations == 'true'");
+    expect(workflow).not.toContain("github.event_name == 'push' && github.ref == 'refs/heads/main'");
   });
 
   it('contains the complete backend and frontend publication sequence', () => {
@@ -25,5 +26,6 @@ describe('Yandex production deployment workflow', () => {
     expect(workflow).toContain('Verify live Yandex production');
     expect(workflow).toContain('russian_email_domain_required');
     expect(workflow).toContain('/api/auth/email/account');
+    expect(workflow).toContain('Yandex Production');
   });
 });
