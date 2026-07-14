@@ -43,6 +43,20 @@ const writeExplicitLogout = (value: boolean): void => {
     else window.localStorage.removeItem(EXPLICIT_LOGOUT_STORAGE_KEY);
   } catch { /* local storage must not block auth */ }
 };
+const delay = (ms: number): Promise<void> => new Promise(resolve => window.setTimeout(resolve, ms));
+const isTransientAuthError = (error: unknown): boolean => {
+  if (error instanceof BackendApiError) return error.status === 0 || error.status >= 500;
+  return error instanceof TypeError || /network|fetch|connection/i.test(error instanceof Error ? error.message : String(error || ''));
+};
+const withTransientRetry = async <T,>(operation: () => Promise<T>): Promise<T> => {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!isTransientAuthError(error)) throw error;
+    await delay(450);
+    return operation();
+  }
+};
 
 const toSupabaseUser = (user: BackendUserPayload): User => ({
   id: user.id,
@@ -94,7 +108,7 @@ export const authService = {
         return currentBackendAuth;
       }
       try {
-        const data = await backendApiRequest<BackendMePayload>('/api/auth/me');
+        const data = await withTransientRetry(() => backendApiRequest<BackendMePayload>('/api/auth/me'));
         currentBackendAuth = data.user ? toAuthBootstrap({ user: data.user }) : { session: null, user: null };
         return currentBackendAuth;
       } catch (error) {
@@ -136,10 +150,10 @@ export const authService = {
 
   signInWithEmail: async (email: string, password: string): Promise<void> => {
     if (isBackendApiConfigured) {
-      const payload = await backendApiRequest<BackendSessionPayload>('/api/auth/email/session', {
+      const payload = await withTransientRetry(() => backendApiRequest<BackendSessionPayload>('/api/auth/email/session', {
         method: 'POST',
         body: { email, credential: password },
-      });
+      }));
       writeExplicitLogout(false);
       currentBackendAuth = toAuthBootstrap(payload);
       emitBackendAuth('SIGNED_IN', currentBackendAuth);
@@ -152,10 +166,10 @@ export const authService = {
 
   signUpWithEmail: async (email: string, password: string): Promise<{ needsEmailConfirmation: boolean }> => {
     if (isBackendApiConfigured) {
-      const payload = await backendApiRequest<BackendSessionPayload>('/api/auth/email/account', {
+      const payload = await withTransientRetry(() => backendApiRequest<BackendSessionPayload>('/api/auth/email/account', {
         method: 'POST',
         body: { email, credential: password, name: email.split('@')[0] },
-      });
+      }));
       writeExplicitLogout(false);
       currentBackendAuth = toAuthBootstrap(payload);
       emitBackendAuth('SIGNED_IN', currentBackendAuth);
@@ -184,7 +198,7 @@ export const authService = {
           return;
         } catch (error) {
           lastError = error;
-          await new Promise(resolve => window.setTimeout(resolve, 250));
+          await delay(250);
         }
       }
       console.warn('Backend logout request failed after local sign-out', lastError);
