@@ -1,10 +1,11 @@
-import { query } from "./db";
+import { query, transaction } from "./db";
 import { getProfileById } from "./profileRepository";
-import type { DailyQuestKind, DailyQuestState, UserProfile } from "../types";
+import { normalizeInventory } from "../services/profileMapper";
+import type { DailyQuestCompletionReward, DailyQuestKind, DailyQuestState, InventoryItem, ShopItem, UserProfile } from "../types";
 import type { GameRewardInput } from "../services/gamificationRules";
 import { DAILY_QUEST_DEFINITIONS } from "../services/dailyQuest";
 
-type DailyQuestRow = {
+ type DailyQuestRow = {
   user_id: string;
   quest_date: string | Date;
   kind: DailyQuestKind;
@@ -19,14 +20,11 @@ type DailyQuestWithVariant = DailyQuestState & { variantKey?: string };
 
 export type DailyQuestResult = {
   quest: DailyQuestState;
-  reward: null;
+  reward: DailyQuestCompletionReward | null;
   profile: UserProfile | null;
 };
 
 const QUEST_VARIANTS: Array<{ kind: DailyQuestKind; variantKey: string }> = [
-  { kind: "wordle_four", variantKey: "wordle_two" },
-  { kind: "wordle_four", variantKey: "wordle_three" },
-  { kind: "wordle_four", variantKey: "wordle_four" },
   { kind: "wordle_four", variantKey: "wordle_win" },
   { kind: "sprint_twelve", variantKey: "sprint_four" },
   { kind: "sprint_twelve", variantKey: "sprint_six" },
@@ -39,11 +37,16 @@ const QUEST_VARIANTS: Array<{ kind: DailyQuestKind; variantKey: string }> = [
   { kind: "memory_sixteen", variantKey: "memory_sixteen" },
   { kind: "memory_sixteen", variantKey: "memory_eighteen" },
   { kind: "memory_sixteen", variantKey: "memory_twenty" },
-  { kind: "hangman_clean", variantKey: "hangman_perfect" },
-  { kind: "hangman_clean", variantKey: "hangman_one" },
-  { kind: "hangman_clean", variantKey: "hangman_clean" },
   { kind: "hangman_clean", variantKey: "hangman_win" },
   { kind: "all_five_games", variantKey: "all_five_games" },
+];
+
+const DAILY_TREATS: Array<{ item: ShopItem; weight: number }> = [
+  { item: { id: "apple", name: "Энерго-яблоко", price: 4, type: "food", minLevel: 1, description: "Простое лакомство. Настроение +8.", effect: { mood: 8 } }, weight: 40 },
+  { item: { id: "cookie", name: "Хрустик", price: 7, type: "food", minLevel: 1, description: "Вкусное лакомство. Настроение +12.", effect: { mood: 12 } }, weight: 30 },
+  { item: { id: "berry", name: "Сияющая ягодка", price: 11, type: "food", minLevel: 2, description: "Особое лакомство. Настроение +16.", effect: { mood: 16 } }, weight: 20 },
+  { item: { id: "icecream", name: "Ледяной десерт", price: 17, type: "food", minLevel: 3, description: "Праздничное лакомство. Настроение +22.", effect: { mood: 22 } }, weight: 8 },
+  { item: { id: "star_treat", name: "Звёздный кристалл", price: 25, type: "food", minLevel: 5, description: "Редкое лакомство. Настроение +30.", effect: { mood: 30 } }, weight: 2 },
 ];
 
 const modeLabels: Record<string, string> = { wordle: "Классика", sprint: "Спринт", anagram: "Анаграммы", memory: "Память", hangman: "Виселица", letter_square: "Змейка", letterSquare: "Змейка" };
@@ -75,7 +78,17 @@ function stableIndex(input: string, modulo: number): number {
 }
 
 function pickVariant(userId: string, questDate: string) {
-  return QUEST_VARIANTS[stableIndex(`${userId}:${questDate}:daily-quest-v3`, QUEST_VARIANTS.length)];
+  return QUEST_VARIANTS[stableIndex(`${userId}:${questDate}:daily-quest-v4`, QUEST_VARIANTS.length)];
+}
+
+function pickDailyTreat(userId: string, questDate: string): ShopItem {
+  const totalWeight = DAILY_TREATS.reduce((sum, entry) => sum + entry.weight, 0);
+  let point = stableIndex(`${userId}:${questDate}:daily-treat-v1`, totalWeight);
+  for (const entry of DAILY_TREATS) {
+    if (point < entry.weight) return entry.item;
+    point -= entry.weight;
+  }
+  return DAILY_TREATS[0].item;
 }
 
 function getVariantKey(progress: Record<string, unknown>, kind: DailyQuestKind): string {
@@ -154,25 +167,21 @@ function completedModeFromInput(input: GameRewardInput): string | null {
 function qualifies(quest: DailyQuestWithVariant, input: GameRewardInput): boolean {
   const variantKey = quest.variantKey || quest.kind;
   if (quest.completed) return true;
-  if (quest.kind === "wordle_four") {
-    if (variantKey === "wordle_win") return input.type === "wordle" && boolFrom(input.won);
-    const target = variantKey === "wordle_two" ? 2 : variantKey === "wordle_three" ? 3 : 4;
-    return input.type === "wordle" && boolFrom(input.won) && numberFrom(input.attempts, 99) <= target;
-  }
+  if (quest.kind === "wordle_four") return input.type === "wordle" && boolFrom(input.won);
   if (quest.kind === "sprint_twelve") {
     const target = variantKey === "sprint_four" ? 4 : variantKey === "sprint_six" ? 6 : variantKey === "sprint_eight" ? 8 : variantKey === "sprint_ten" ? 10 : variantKey === "sprint_fourteen" ? 14 : 12;
     return input.type === "sprint" && numberFrom(input.guessedWords) >= target;
   }
-  if (quest.kind === "memory_sixteen") {
-    return input.type === "memory" && numberFrom(input.clicks) > 0;
-  }
-  if (quest.kind === "hangman_clean") {
-    if (variantKey === "hangman_win") return input.type === "hangman" && boolFrom(input.won);
-    const target = variantKey === "hangman_perfect" ? 0 : variantKey === "hangman_one" ? 1 : 2;
-    return input.type === "hangman" && boolFrom(input.won) && numberFrom(input.mistakes, 99) <= target;
-  }
+  if (quest.kind === "memory_sixteen") return input.type === "memory" && numberFrom(input.clicks) > 0;
+  if (quest.kind === "hangman_clean") return input.type === "hangman" && boolFrom(input.won);
   return false;
 }
+
+const addInventoryReward = (inventory: InventoryItem[], item: ShopItem): InventoryItem[] => {
+  const existing = inventory.find(entry => entry.id === item.id);
+  if (existing) return inventory.map(entry => entry.id === item.id ? { ...entry, quantity: Math.max(0, entry.quantity || 0) + 1 } : entry);
+  return [...inventory, { id: item.id, type: item.type, name: item.name, quantity: 1 }];
+};
 
 export async function applyDailyQuestResult(userId: string, input: GameRewardInput): Promise<DailyQuestResult> {
   const questDate = todayKey();
@@ -204,15 +213,48 @@ export async function applyDailyQuestResult(userId: string, input: GameRewardInp
   }
 
   if (!completed) return { quest: await getOrCreateDailyQuest(userId), reward: null, profile: null };
+  if (quest.completed) return { quest, reward: null, profile: await getProfileById(userId) };
 
-  const updated = await query<DailyQuestRow>(
-    `update daily_quests
-        set completed = true,
-            completed_at = coalesce(completed_at, now()),
-            updated_at = now()
-      where user_id = $1 and quest_date = $2
-      returning user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id`,
-    [userId, questDate],
-  );
-  return { quest: toQuest(updated.rows[0]), reward: null, profile: await getProfileById(userId) };
+  const treat = pickDailyTreat(userId, questDate);
+  const result = await transaction(async client => {
+    const lockedQuest = await client.query<DailyQuestRow>(
+      `select user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id
+         from daily_quests
+        where user_id = $1 and quest_date = $2
+        for update`,
+      [userId, questDate],
+    );
+    const row = lockedQuest.rows[0];
+    if (!row) throw new Error("Daily quest not found");
+    if (row.completed) return { row, awarded: false };
+
+    const profileResult = await client.query<{ role: string | null; account_mode: string | null; inventory: unknown }>(
+      "select role, account_mode, inventory from profiles where id = $1 for update",
+      [userId],
+    );
+    const profile = profileResult.rows[0];
+    const isKids = profile?.role === "parent" || profile?.account_mode === "parent";
+    if (isKids && profile) {
+      const inventory = addInventoryReward(normalizeInventory(profile.inventory), treat);
+      await client.query("update profiles set inventory = $2::jsonb, updated_at = now() where id = $1", [userId, JSON.stringify(inventory)]);
+    }
+    const updated = await client.query<DailyQuestRow>(
+      `update daily_quests
+          set completed = true,
+              completed_at = coalesce(completed_at, now()),
+              reward_item_id = case when $3::boolean then $4 else reward_item_id end,
+              updated_at = now()
+        where user_id = $1 and quest_date = $2
+        returning user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id`,
+      [userId, questDate, isKids, treat.id],
+    );
+    return { row: updated.rows[0], awarded: isKids };
+  });
+
+  const completedQuest = toQuest(result.row);
+  return {
+    quest: completedQuest,
+    reward: result.awarded ? { quest: completedQuest, item: treat, worldId: null } : null,
+    profile: await getProfileById(userId),
+  };
 }
