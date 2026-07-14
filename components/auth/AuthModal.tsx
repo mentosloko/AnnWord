@@ -22,6 +22,11 @@ const LoaderIcon = () => (
   </svg>
 );
 
+const isRussianEmailDomain = (value: string): boolean => {
+  const domain = value.trim().toLowerCase().split('@').pop() || '';
+  return domain.endsWith('.ru') || domain.endsWith('.рф') || domain.endsWith('.xn--p1ai') || domain === 'xn--p1ai';
+};
+
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   mode,
@@ -67,6 +72,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
   const title = mode === 'login' ? 'Вход' : 'Регистрация';
+  const emailHasDomain = email.includes('@') && email.split('@').pop()!.includes('.');
+  const invalidRegistrationDomain = mode === 'register' && emailHasDomain && !isRussianEmailDomain(email);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" role="presentation">
@@ -91,7 +98,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         )}
 
         <form
-          onSubmit={(event) => { event.preventDefault(); onSubmit(); }}
+          onSubmit={(event) => { event.preventDefault(); if (!invalidRegistrationDomain) onSubmit(); }}
           className="space-y-4"
         >
           <div>
@@ -104,9 +111,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               autoComplete="email"
               value={email}
               onChange={(event) => onEmailChange(event.target.value)}
-              placeholder="user@example.com"
-              className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none"
+              placeholder="user@example.ru"
+              aria-invalid={invalidRegistrationDomain || undefined}
+              aria-describedby={mode === 'register' ? 'registration-domain-hint' : undefined}
+              className={`w-full rounded-lg border-2 p-3 transition focus:outline-none ${invalidRegistrationDomain ? 'border-rose-300 bg-rose-50 focus:border-rose-500' : 'border-gray-200 focus:border-indigo-500'}`}
             />
+            {mode === 'register' && <p id="registration-domain-hint" className={`mt-2 text-xs font-bold leading-relaxed ${invalidRegistrationDomain ? 'text-rose-600' : 'text-gray-500'}`}>Для регистрации используйте адрес в зоне <b>.ru</b> или <b>.рф</b>. Ограничение связано с требованиями к хранению и обработке данных пользователей в России.</p>}
           </div>
           <div>
             <label htmlFor="auth-password" className="mb-1 block text-xs font-bold uppercase text-gray-500">Пароль</label>
@@ -122,7 +132,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none"
             />
           </div>
-          <button type="submit" disabled={isLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 p-3 font-bold text-white transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-70">{isLoading && <LoaderIcon />}{mode === 'login' ? 'Войти' : 'Создать аккаунт'}</button>
+          <button type="submit" disabled={isLoading || invalidRegistrationDomain} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 p-3 font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">{isLoading && <LoaderIcon />}{mode === 'login' ? 'Войти' : 'Создать аккаунт'}</button>
         </form>
         <button type="button" disabled={isLoading} onClick={onYandexLogin} className="mt-3 w-full rounded-xl border-2 border-indigo-100 bg-white p-3 font-bold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-wait disabled:opacity-70">Войти через Яндекс</button>
         <button type="button" disabled={isLoading} onClick={() => onModeChange(mode === 'login' ? 'register' : 'login')} className="mt-4 w-full text-sm font-bold text-indigo-600 hover:text-indigo-800">{mode === 'login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}</button>
