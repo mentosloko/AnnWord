@@ -15,6 +15,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  statuses: write
+
 concurrency:
   group: yandex-cloud-production
   cancel-in-progress: true
@@ -26,11 +30,24 @@ env:
 
 jobs:
   build-and-deploy:
-    name: Build and deploy Yandex Cloud production
+    name: Yandex Production
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
+      - name: Mark Yandex production deployment pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Production",description:"Deploying commit to Yandex Cloud",target_url:process.env.TARGET_URL}))' > /tmp/yandex-status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/yandex-status.json
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -80,7 +97,9 @@ jobs:
       - name: Build frontend
         env:
           VITE_API_URL: ${{ secrets.YC_API_PUBLIC_URL }}
-        run: npm run build
+        run: |
+          npm run build
+          printf '{"sha":"%s","builtAt":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > dist/release.json
 
       - name: Install Yandex Cloud CLI
         run: |
@@ -163,7 +182,8 @@ jobs:
             --environment S3_ASSETS_BUCKET="$S3_ASSETS_BUCKET" \
             --environment APP_URL="$APP_URL" \
             --environment API_URL="$API_URL" \
-            --environment YC_API_PUBLIC_URL="$YC_API_PUBLIC_URL"
+            --environment YC_API_PUBLIC_URL="$YC_API_PUBLIC_URL" \
+            --environment RELEASE_SHA="$GITHUB_SHA"
 
       - name: Install AWS CLI for Object Storage upload
         run: python -m pip install --user --upgrade awscli
@@ -177,7 +197,65 @@ jobs:
         run: |
           python -m awscli --endpoint-url "$S3_ENDPOINT" s3 sync dist "s3://${S3_FRONTEND_BUCKET}" --delete --exclude ".well-known/acme-challenge/*"
 
+      - name: Verify live Yandex production
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+        run: |
+          set -euo pipefail
+          APP_BASE="${APP_URL%/}"
+          API_BASE="${YC_API_PUBLIC_URL%/}"
+
+          for attempt in $(seq 1 30); do
+            RELEASE_BODY="$(curl -fsS "${APP_BASE}/release.json?sha=${GITHUB_SHA}" || true)"
+            HEALTH_BODY="$(curl -fsS "${API_BASE}/api/health" || true)"
+            if printf '%s' "$RELEASE_BODY" | grep -Fq "$GITHUB_SHA" && printf '%s' "$HEALTH_BODY" | grep -Eqi 'ok|healthy'; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "Production did not expose release $GITHUB_SHA or a healthy API in time."
+              echo "release.json: $RELEASE_BODY"
+              echo "health: $HEALTH_BODY"
+              exit 1
+            fi
+            sleep 10
+          done
+
+          TEST_EMAIL="deploy-probe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@gmail.com"
+          HTTP_CODE="$(curl -sS -o /tmp/foreign-email-response.json -w '%{http_code}' \
+            -X POST "${API_BASE}/api/auth/email/account" \
+            -H 'Content-Type: application/json' \
+            --data "{\"email\":\"${TEST_EMAIL}\",\"credential\":\"DeployProbe123!\",\"name\":\"Deploy Probe\"}")"
+          cat /tmp/foreign-email-response.json
+          test "$HTTP_CODE" = "400"
+          grep -Fq 'russian_email_domain_required' /tmp/foreign-email-response.json
+
       - name: Deployment summary
         run: |
+          echo "Production commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo "Backend image: $BACKEND_IMAGE" >> "$GITHUB_STEP_SUMMARY"
           echo "Frontend bucket: ${{ secrets.S3_FRONTEND_BUCKET }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Live API foreign-email rejection: verified" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish Yandex production commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then
+            STATE="success"
+            DESCRIPTION="Yandex production deployed and verified"
+          else
+            STATE="failure"
+            DESCRIPTION="Yandex production deployment or verification failed"
+          fi
+          export STATE DESCRIPTION
+          node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Yandex Production",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/yandex-status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/yandex-status.json
