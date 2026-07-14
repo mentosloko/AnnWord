@@ -24,6 +24,10 @@ export const profileApiService = {
     return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/coins", { method: "POST", body: { amount } }));
   },
 
+  async purchaseItem(itemId: string): Promise<UserProfile> {
+    return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/purchase", { method: "POST", body: { itemId } }));
+  },
+
   async updateWeeklyReportEmail(email: string): Promise<UserProfile> {
     return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/weekly-report-email", { method: "PATCH", body: { email } }));
   },
