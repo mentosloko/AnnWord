@@ -45,6 +45,7 @@ export interface AppScreensProps {
   onCloseDailyQuestReward?: () => void;
   settings: GameSettings;
   modeWords: string[];
+  activeDictionaryWordCount?: number;
   selectedPlayMode: PlayableModeRoute;
   classicGame: ClassicGameScreenBindings;
   dictionaryUpload: DictionaryUploadBindings;
