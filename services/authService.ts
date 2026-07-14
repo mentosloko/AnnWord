@@ -30,6 +30,19 @@ type BackendMePayload = {
 type AuthSubscriber = (event: AuthEventName, session: Session | null, user: User | null) => void;
 const backendSubscribers = new Set<AuthSubscriber>();
 let currentBackendAuth: AuthBootstrapResult = { session: null, user: null };
+const EXPLICIT_LOGOUT_STORAGE_KEY = 'annword_explicit_logout_v1';
+
+const readExplicitLogout = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  try { return window.localStorage.getItem(EXPLICIT_LOGOUT_STORAGE_KEY) === '1'; } catch { return false; }
+};
+const writeExplicitLogout = (value: boolean): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (value) window.localStorage.setItem(EXPLICIT_LOGOUT_STORAGE_KEY, '1');
+    else window.localStorage.removeItem(EXPLICIT_LOGOUT_STORAGE_KEY);
+  } catch { /* local storage must not block auth */ }
+};
 
 const toSupabaseUser = (user: BackendUserPayload): User => ({
   id: user.id,
@@ -76,6 +89,10 @@ const emitBackendAuth = (event: AuthEventName, auth: AuthBootstrapResult): void 
 export const authService = {
   getInitialSession: async (): Promise<AuthBootstrapResult> => {
     if (isBackendApiConfigured) {
+      if (readExplicitLogout()) {
+        currentBackendAuth = { session: null, user: null };
+        return currentBackendAuth;
+      }
       try {
         const data = await backendApiRequest<BackendMePayload>('/api/auth/me');
         currentBackendAuth = data.user ? toAuthBootstrap({ user: data.user }) : { session: null, user: null };
@@ -99,6 +116,7 @@ export const authService = {
 
   signInWithYandex: async (): Promise<void> => {
     if (isBackendApiConfigured) {
+      writeExplicitLogout(false);
       window.location.href = `${backendApiBaseUrl}/api/auth/yandex`;
       return;
     }
@@ -118,10 +136,12 @@ export const authService = {
 
   signInWithEmail: async (email: string, password: string): Promise<void> => {
     if (isBackendApiConfigured) {
-      currentBackendAuth = toAuthBootstrap(await backendApiRequest<BackendSessionPayload>('/api/auth/email/session', {
+      const payload = await backendApiRequest<BackendSessionPayload>('/api/auth/email/session', {
         method: 'POST',
         body: { email, credential: password },
-      }));
+      });
+      writeExplicitLogout(false);
+      currentBackendAuth = toAuthBootstrap(payload);
       emitBackendAuth('SIGNED_IN', currentBackendAuth);
       return;
     }
@@ -132,10 +152,12 @@ export const authService = {
 
   signUpWithEmail: async (email: string, password: string): Promise<{ needsEmailConfirmation: boolean }> => {
     if (isBackendApiConfigured) {
-      currentBackendAuth = toAuthBootstrap(await backendApiRequest<BackendSessionPayload>('/api/auth/email/account', {
+      const payload = await backendApiRequest<BackendSessionPayload>('/api/auth/email/account', {
         method: 'POST',
         body: { email, credential: password, name: email.split('@')[0] },
-      }));
+      });
+      writeExplicitLogout(false);
+      currentBackendAuth = toAuthBootstrap(payload);
       emitBackendAuth('SIGNED_IN', currentBackendAuth);
       return { needsEmailConfirmation: false };
     }
@@ -151,13 +173,21 @@ export const authService = {
 
   signOut: async (): Promise<void> => {
     if (isBackendApiConfigured) {
-      const logoutRequest = backendApiRequest<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }).catch((error) => {
-        console.warn('Backend logout request failed after local sign-out', error);
-      });
+      writeExplicitLogout(true);
       writeBackendAccessToken(null);
       currentBackendAuth = { session: null, user: null };
       emitBackendAuth('SIGNED_OUT', currentBackendAuth);
-      await logoutRequest;
+      let lastError: unknown = null;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          await backendApiRequest<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
+          return;
+        } catch (error) {
+          lastError = error;
+          await new Promise(resolve => window.setTimeout(resolve, 250));
+        }
+      }
+      console.warn('Backend logout request failed after local sign-out', lastError);
       return;
     }
 
