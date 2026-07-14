@@ -1,8 +1,8 @@
 import React from 'react';
 import { DailyQuestState, DictionarySource, GameSettings, UserProfile } from '../../types';
 import { isKidsMode } from '../../services/modeFlags';
-import { getKidsDictionaryCatalog, getKidsPremiumDictionaryWords } from '../../services/kidsDictionaryCatalog';
-import { getPremiumDictionaryCatalog, getPremiumDictionaryWords, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
+import { getKidsDictionaryCatalog } from '../../services/kidsDictionaryCatalog';
+import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
 import { QuestContextBanner } from '../QuestContextBanner';
 import { ScreenContainer } from '../layout/ScreenContainer';
 import { PlayableModeRoute } from '../AppScreens';
@@ -60,7 +60,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   const source = settings.dictionarySource;
   const canStart = source !== 'custom' || (hasPremium && customDictionaryWords.length > 0);
   const premiumCatalog = parentMode ? getKidsDictionaryCatalog() : getPremiumDictionaryCatalog();
-  const getPremiumWordsCount = (id: string) => parentMode ? getKidsPremiumDictionaryWords(id, settings.difficulty).length : getPremiumDictionaryWords(id, settings.difficulty).length;
 
   const selectSource = (nextSource: DictionarySource) => {
     if ((nextSource === 'custom' || nextSource === 'premium') && !isAuthenticated) {
@@ -102,7 +101,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             <span className="absolute right-2 top-2 text-xs sm:right-3 sm:top-3 sm:text-sm" aria-hidden="true">{hasPremium ? '✨' : '🔒'}</span>
             <div className="text-lg sm:text-xl" aria-hidden="true">🧩</div>
             <div className="truncate text-xs font-black sm:text-sm">Свои слова</div>
-            <div className="truncate text-[10px] font-bold text-gray-400 sm:text-[11px]">{hasPremium ? `${customDictionaryWords.length} слов` : 'Premium'}</div>
+            <div className="truncate text-[10px] font-bold text-gray-400 sm:text-[11px]">{hasPremium ? (customDictionaryWords.length ? 'готово' : 'добавьте слова') : 'Premium'}</div>
           </button>
           <button type="button" aria-pressed={source === 'premium' && hasPremium} onClick={() => selectSource('premium')} className={`relative min-w-0 rounded-2xl border-2 p-2 text-left sm:p-3 ${source === 'premium' && hasPremium ? 'border-amber-300 bg-amber-50' : 'border-indigo-100'}`}>
             <span className="absolute right-2 top-2 text-xs sm:right-3 sm:top-3 sm:text-sm" aria-hidden="true">{hasPremium ? '✅' : '🔒'}</span>
@@ -120,7 +119,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
       {source === 'custom' && hasPremium && <section className="mt-4 rounded-2xl border-2 border-dashed border-purple-100 bg-purple-50/50 p-4">
         <span className="block font-black text-indigo-950">{customDictionaryWords.length ? 'Слова из вашего списка выбраны' : 'Список слов пока пуст'}</span>
-        <p className="mt-1 text-xs font-bold text-purple-700/80">{customDictionaryWords.length ? `Доступно для игр: ${customDictionaryWords.length}` : 'Добавьте слова, чтобы начать игру по своему списку.'}</p>
+        <p className="mt-1 text-xs font-bold text-purple-700/80">{customDictionaryWords.length ? 'Список готов для игр.' : 'Добавьте слова, чтобы начать игру по своему списку.'}</p>
         {isUploadingDictionary && <p className="mt-2 text-xs font-bold text-purple-700">Сохраняю слова...</p>}
         <button type="button" onClick={onOpenDictionaryStudio} className="mt-3 w-full rounded-xl bg-purple-600 px-4 py-3 text-sm font-black text-white transition hover:bg-purple-700">{customDictionaryWords.length ? 'Изменить свои слова' : 'Добавить свои слова'}</button>
       </section>}
@@ -131,7 +130,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
           {premiumCatalog.map(item => <button type="button" key={item.id} onClick={() => onSettingsChange({ ...settings, dictionarySource: 'premium', useCustomDictionary: false, activePremiumDictionaryId: item.id })} className={`rounded-2xl border-2 bg-white/75 p-3 text-left transition hover:bg-white ${settings.activePremiumDictionaryId === item.id ? 'border-amber-300 shadow-sm' : 'border-white'}`}>
             <div className="text-xl" aria-hidden="true">{item.icon}</div>
             <div className="mt-1 truncate text-xs font-black text-indigo-950">{item.shortTitle}</div>
-            <div className="text-[10px] font-black text-amber-700">{getPremiumWordsCount(item.id)} слов</div>
           </button>)}
         </div>
       </section>}
