@@ -82,6 +82,18 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
   const startRegisterFor = (path: 'practice' | 'kids') => { openEntry(path); onOpenRegister(); };
   const isParentAccount = userProfile.role === 'parent' || userProfile.accountMode === 'parent';
   const isTeacher = userProfile.role === 'teacher' || userProfile.accountMode === 'teacher';
+
+  React.useEffect(() => {
+    if (isAuthenticated || route !== 'landing') return;
+    if (entryPath === 'practice' || entryPath === 'kids' || entryPath === 'teacher') onOpenRegister();
+  }, [entryPath, isAuthenticated, onOpenRegister, route]);
+
+  React.useEffect(() => {
+    if (!isAuthenticated || (!userProfile.accountMode && userProfile.role !== 'admin')) return;
+    const canonicalEntry: ClientEntryPath = userProfile.role === 'admin' ? 'home' : isTeacher ? 'teacher' : isParentAccount ? 'kids' : 'practice';
+    if (entryPath !== canonicalEntry) onEntryPathChange(canonicalEntry);
+  }, [entryPath, isAuthenticated, isParentAccount, isTeacher, onEntryPathChange, userProfile.accountMode, userProfile.role]);
+
   const openPremiumFrom = (from: ViewState) => { setPremiumReturnTo(from); onRouteChange('premium'); };
   const returnFromPremium = () => onRouteChange(premiumReturnTo || 'landing');
   const openDictionaryFromGameArea = () => onRouteChange(isParentAccount ? 'adult_room' : 'dictionary_studio');
