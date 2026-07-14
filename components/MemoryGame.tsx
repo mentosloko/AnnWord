@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
-import { buildPlayableGameDictionary } from '../services/gameSessionEngine';
+import { buildPlayableGameDictionary, WordPracticeResult } from '../services/gameSessionEngine';
 import { motion } from 'motion/react';
 import { GameResultOverlay } from './GameResultOverlay';
-import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
+import { applyGameRewardToCharacter, calculateGameReward, CharacterProgressResult, GameRewardInput } from '../services/gamificationRules';
 import { isKidsMode } from '../services/modeFlags';
 
 interface MemoryGameProps {
   onBack: () => void;
   userProfile: UserProfile;
   onGameReward: (input: GameRewardInput) => void | Promise<void>;
+  onWordPractice?: (word: string, result: WordPracticeResult) => void | Promise<void>;
 }
 interface Card { id: number; content: string; type: 'en' | 'ru'; pairId: number; isFlipped: boolean; isMatched: boolean; }
 export const buildMemoryDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => buildPlayableGameDictionary(customDictionaryEn, fallbackDictionary);
@@ -23,25 +24,36 @@ export const createMemoryCards = (dictionary: EnrichedWord[], random: () => numb
   ]), random);
 };
 
-export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onGameReward }) => {
+export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onGameReward, onWordPractice }) => {
   const dictionary = useMemo(() => buildMemoryDictionary(userProfile.customDictionaryEn), [userProfile.customDictionaryEn]);
   const rewardAppliedRef = useRef(false);
+  const timeoutIdsRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
   const [clicks, setClicks] = useState(0);
   const [isWon, setIsWon] = useState(false);
+  const [resultProgress, setResultProgress] = useState<CharacterProgressResult | null>(null);
   const showKidsRewards = isKidsMode(userProfile);
 
+  const clearTimers = useCallback(() => {
+    timeoutIdsRef.current.forEach(id => clearTimeout(id));
+    timeoutIdsRef.current = [];
+  }, []);
+
   const initializeGame = useCallback(() => {
+    clearTimers();
     setCards(createMemoryCards(dictionary));
     setFlippedCards([]);
     setMoves(0);
     setClicks(0);
     setIsWon(false);
+    setResultProgress(null);
     rewardAppliedRef.current = false;
-  }, [dictionary]);
+  }, [clearTimers, dictionary]);
   useEffect(() => { if (cards.length === 0 && dictionary.length > 0) initializeGame(); }, [cards.length, dictionary.length, initializeGame]);
+  useEffect(() => clearTimers, [clearTimers]);
+
   const handleCardClick = (id: number) => {
     const selectedCard = cards.find(card => card.id === id);
     if (isWon || flippedCards.length === 2 || selectedCard?.isFlipped || selectedCard?.isMatched) return;
@@ -55,14 +67,32 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
       const [firstId, secondId] = newFlipped;
       const firstCard = newCards.find(card => card.id === firstId);
       const secondCard = newCards.find(card => card.id === secondId);
-      if (firstCard?.pairId === secondCard?.pairId) setTimeout(() => { setCards(previous => previous.map(card => card.pairId === firstCard?.pairId ? { ...card, isMatched: true } : card)); setFlippedCards([]); }, 550);
-      else setTimeout(() => { setCards(previous => previous.map(card => (card.id === firstId || card.id === secondId) ? { ...card, isFlipped: false } : card)); setFlippedCards([]); }, 1200);
+      if (firstCard?.pairId === secondCard?.pairId) {
+        const englishCard = newCards.find(card => card.pairId === firstCard?.pairId && card.type === 'en');
+        const timer = setTimeout(() => {
+          setCards(previous => previous.map(card => card.pairId === firstCard?.pairId ? { ...card, isMatched: true } : card));
+          setFlippedCards([]);
+          if (englishCard) void Promise.resolve(onWordPractice?.(englishCard.content, 'mastered')).catch(error => console.error('Failed to save Memory word progress', error));
+        }, 550);
+        timeoutIdsRef.current.push(timer);
+      } else {
+        const timer = setTimeout(() => {
+          setCards(previous => previous.map(card => (card.id === firstId || card.id === secondId) ? { ...card, isFlipped: false } : card));
+          setFlippedCards([]);
+        }, 1200);
+        timeoutIdsRef.current.push(timer);
+      }
     }
   };
   useEffect(() => { if (cards.length > 0 && cards.every(card => card.isMatched) && !isWon) setIsWon(true); }, [cards, isWon]);
-  useEffect(() => { if (isWon && !rewardAppliedRef.current) { rewardAppliedRef.current = true; void onGameReward({ type: 'memory', clicks }); } }, [isWon, clicks, onGameReward]);
+  useEffect(() => {
+    if (!isWon || rewardAppliedRef.current) return;
+    rewardAppliedRef.current = true;
+    const reward = calculateGameReward({ type: 'memory', clicks });
+    setResultProgress(showKidsRewards ? applyGameRewardToCharacter(userProfile.pet, reward) : null);
+    void Promise.resolve(onGameReward({ type: 'memory', clicks })).catch(error => console.error('Failed to save Memory completion', error));
+  }, [isWon, clicks, onGameReward, showKidsRewards, userProfile.pet]);
   const rewardPreview = calculateGameReward({ type: 'memory', clicks });
-  const progressPreview = showKidsRewards ? applyGameRewardToCharacter(userProfile.pet, rewardPreview) : null;
   if (dictionary.length === 0) return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-xl"><div className="mb-4 text-6xl">📚</div><h2 className="mb-2 text-2xl font-bold">Нет доступных слов</h2><p className="mb-6 text-gray-500">В выбранном словаре нет слов с русским переводом.</p><button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col items-center p-3 sm:p-4">
@@ -70,9 +100,9 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
       <div className="grid w-full grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3" role="grid" aria-label="Карточки памяти: найдите пары слово-перевод">{cards.map((card, index) => {
         const isOpen = card.isFlipped || card.isMatched;
         const label = card.isMatched ? `Карточка ${index + 1}. Найденная пара: ${card.content}` : isOpen ? `Карточка ${index + 1}. Открытая карточка: ${card.content}. ${card.type === 'en' ? 'Английское слово' : 'Русский перевод'}` : `Карточка ${index + 1}. Закрытая карточка. Открыть`;
-        return <motion.button key={card.id} type="button" role="gridcell" aria-label={label} aria-pressed={isOpen} disabled={isWon || card.isMatched} animate={card.isMatched ? { scale: [1, 1.06, 1] } : undefined} whileHover={{ scale: isWon ? 1 : 1.05 }} whileTap={{ scale: isWon ? 1 : 0.95 }} onClick={() => handleCardClick(card.id)} className={`flex aspect-square min-h-[5rem] cursor-pointer items-center justify-center rounded-2xl border-4 p-2 text-center shadow-md transition-all disabled:cursor-default ${card.isMatched ? 'border-green-200 bg-green-50' : isOpen ? 'border-indigo-100 bg-white' : 'border-indigo-700 bg-indigo-600'}`}>{isOpen ? <div className="flex min-w-0 flex-col items-center justify-center"><span className={`break-words font-black leading-tight ${card.type === 'en' ? 'text-xs text-indigo-900 sm:text-base' : 'text-[11px] text-pink-600 sm:text-sm'}`}>{card.content}</span><div className="mt-1 text-[8px] font-bold uppercase text-gray-300">{card.type === 'en' ? 'Английский' : 'Русский'}</div></div> : <div className="text-3xl font-black text-white drop-shadow-sm" aria-hidden="true">?</div>}</motion.button>;
+        return <motion.button key={card.id} type="button" aria-label={label} aria-pressed={isOpen} disabled={isWon || card.isMatched} animate={card.isMatched ? { scale: [1, 1.06, 1] } : undefined} whileHover={{ scale: isWon ? 1 : 1.05 }} whileTap={{ scale: isWon ? 1 : 0.95 }} onClick={() => handleCardClick(card.id)} className={`flex aspect-square min-h-[5rem] cursor-pointer items-center justify-center rounded-2xl border-4 p-2 text-center shadow-md transition-all disabled:cursor-default ${card.isMatched ? 'border-green-200 bg-green-50' : isOpen ? 'border-indigo-100 bg-white' : 'border-indigo-700 bg-indigo-600'}`}>{isOpen ? <div className="flex min-w-0 flex-col items-center justify-center"><span className={`break-words font-black leading-tight ${card.type === 'en' ? 'text-xs text-indigo-900 sm:text-base' : 'text-[11px] text-pink-600 sm:text-sm'}`}>{card.content}</span><div className="mt-1 text-[8px] font-bold uppercase text-gray-300">{card.type === 'en' ? 'Английский' : 'Русский'}</div></div> : <div className="text-3xl font-black text-white drop-shadow-sm" aria-hidden="true">?</div>}</motion.button>;
       })}</div>
-      <GameResultOverlay isOpen={isWon} status="won" title="Отлично!" subtitle={`Ты нашёл все пары за ${clicks} кликов.`} emoji="🎉" pet={progressPreview?.pet} xpGained={showKidsRewards ? rewardPreview.xp : 0} coinsGained={showKidsRewards ? rewardPreview.coins : 0} onPrimary={initializeGame} onSecondary={onBack} details={<span>Ходов: {moves}</span>} />
+      <GameResultOverlay isOpen={isWon} status="won" title="Отлично!" subtitle={`Ты нашёл все пары за ${clicks} кликов.`} emoji="🎉" pet={resultProgress?.pet} xpGained={showKidsRewards ? rewardPreview.xp : 0} coinsGained={showKidsRewards ? rewardPreview.coins : 0} onPrimary={initializeGame} onSecondary={onBack} details={<span>Ходов: {moves}</span>} />
     </div>
   );
 };
