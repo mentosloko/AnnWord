@@ -4,7 +4,7 @@ import { getKidsDictionaryCatalog } from '../../services/kidsDictionaryCatalog';
 import { isKidsMode } from '../../services/modeFlags';
 import { formatPremiumExpiresAt } from '../../services/premiumAccess';
 import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
-import { prodamusPaymentService, PRODAMUS_PLAN_OPTIONS, ProdamusPlanCode } from '../../services/prodamusPaymentService';
+import { getProdamusPlansForMode, prodamusPaymentService, ProdamusPlanCode } from '../../services/prodamusPaymentService';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 type PremiumScreenProps = {
@@ -29,6 +29,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
   const body = kidsMode
     ? `В бесплатном режиме ребёнок играет по базовому набору. Premium открывает детские темы и возможность добавить слова из школы, курса или учебника — чтобы тренировка была ближе к реальным занятиям.`
     : `Откройте тематические словари и добавляйте слова из работы, экзамена, курса или своей темы. Сейчас доступно ${totalWords} игровых слов в наборах Business, Travel, Medicine, IELTS, IT, Finance, Legal, Science, Everyday+ и Food.`;
+  const plans = getProdamusPlansForMode(kidsMode);
   const [loadingPlan, setLoadingPlan] = useState<ProdamusPlanCode | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
@@ -49,7 +50,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
     <section className="overflow-hidden rounded-[2.25rem] border-2 border-amber-100 bg-white shadow-sm">
       <div className="grid gap-6 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <div>
-          <div className="inline-flex rounded-full bg-amber-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-amber-600">{premiumTitle}</div>
+          <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-amber-600"><span aria-hidden="true">✦</span>{premiumTitle}</div>
           <h1 className="mt-5 text-4xl font-black leading-tight text-indigo-950 sm:text-5xl">{headline}</h1>
           <p className="mt-4 max-w-2xl text-base font-bold leading-relaxed text-gray-600">{body}</p>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -62,7 +63,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
           </div>
           <div className="mt-6">
             {hasPremium ? <button type="button" onClick={onOpenDictionarySetup} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-sm transition hover:bg-indigo-700">{kidsMode ? 'Выбрать слова для ребёнка' : 'Выбрать слова для тренировки'}</button> : PAYMENTS_ENABLED ? <div className="grid gap-3 sm:grid-cols-2">
-              {PRODAMUS_PLAN_OPTIONS.map(plan => <button key={plan.code} type="button" disabled={loadingPlan !== null} onClick={() => void startPayment(plan.code)} className="rounded-2xl border-2 border-amber-100 bg-amber-500 px-5 py-4 text-left font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-600 disabled:cursor-wait disabled:opacity-70"><span className="block text-lg">{plan.title}</span><span className="mt-1 block text-sm text-white/85">{plan.amountRub.toLocaleString('ru-RU')} ₽</span><span className="mt-2 block text-xs text-white/75">{loadingPlan === plan.code ? 'Открываю оплату…' : 'Перейти к оплате Prodamus'}</span></button>)}
+              {plans.map(plan => <button key={plan.code} type="button" disabled={loadingPlan !== null} onClick={() => void startPayment(plan.code)} className="rounded-2xl border-2 border-amber-100 bg-amber-500 px-5 py-4 text-left font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-600 disabled:cursor-wait disabled:opacity-70"><span className="block text-lg">{plan.title}</span><span className="mt-1 block text-sm text-white/85">{plan.amountRub.toLocaleString('ru-RU')} ₽</span><span className="mt-2 block text-xs text-white/75">{loadingPlan === plan.code ? 'Открываю оплату…' : 'Перейти к оплате Prodamus'}</span></button>)}
             </div> : DEV_TRIAL_ENABLED && onTestUnlockPremium ? <button type="button" onClick={onTestUnlockPremium} className="rounded-2xl bg-amber-500 px-6 py-4 font-black text-white shadow-sm transition hover:bg-amber-600">Открыть Premium на 7 дней</button> : <button type="button" disabled className="rounded-2xl bg-gray-100 px-6 py-4 font-black text-gray-400">Оплата скоро будет подключена</button>}
             <button type="button" onClick={onBack} className="mt-3 rounded-2xl border-2 border-indigo-100 bg-white px-6 py-4 font-black text-indigo-700 transition hover:bg-indigo-50">Вернуться</button>
           </div>
