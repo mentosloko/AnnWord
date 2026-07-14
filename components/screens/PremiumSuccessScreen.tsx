@@ -123,7 +123,7 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
   };
 
   const waitingCopy = confirmationState === 'delayed'
-    ? 'Оплата могла пройти, но серверное подтверждение задерживается. Можно вернуться на главную или нажать «Проверить ещё раз». Если деньги списались, Premium включится после подтверждения платежа.'
+    ? orderId ? 'Оплата могла пройти, но серверное подтверждение задерживается. Можно вернуться на главную или нажать «Проверить ещё раз». Если деньги списались, Premium включится после подтверждения платежа.' : 'Для восстановления покупки войдите в тот аккаунт, с которого была оформлена оплата, и откройте этот экран ещё раз.'
     : confirmationState === 'failed'
       ? 'Оплату не удалось подтвердить. Попробуйте проверить ещё раз или вернитесь к экрану Premium.'
       : 'Оплата принята. AnnWord проверяет статус заказа на сервере и включит Premium автоматически. Обычно это занимает несколько секунд.';
@@ -131,11 +131,11 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
   return <ScreenContainer className="max-w-5xl pb-20 pt-8">
     <section className="overflow-hidden rounded-[2.5rem] border-2 border-green-100 bg-white shadow-sm">
       <div className="grid gap-6 p-6 lg:grid-cols-[0.9fr_1.1fr] lg:p-8">
-        <div className="rounded-[2rem] bg-gradient-to-br from-green-50 via-emerald-50 to-indigo-50 p-6">
-          <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white text-5xl shadow-sm" aria-hidden="true">{showNextStep ? '✅' : confirmationState === 'failed' ? '⚠️' : '⏳'}</div>
-          <div className="mt-6 inline-flex rounded-full bg-green-100 px-4 py-2 text-xs font-black uppercase tracking-widest text-green-700">{statusText}</div>
+        <div className="rounded-[2rem] bg-gradient-to-br from-green-50 via-emerald-50 to-amber-50 p-6">
+          <div className={`flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white text-5xl shadow-sm ${showNextStep ? 'text-amber-500' : ''}`} aria-hidden="true">{showNextStep ? '✦' : confirmationState === 'failed' ? '⚠️' : '⏳'}</div>
+          <div className={`mt-6 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-widest ${showNextStep ? 'border border-amber-200 bg-amber-50 text-amber-700' : 'bg-green-100 text-green-700'}`}>{showNextStep && <span aria-hidden="true">✦</span>}{statusText}</div>
           <h1 className="mt-4 text-4xl font-black leading-tight text-indigo-950 sm:text-5xl">{showNextStep ? (kidsMode ? 'Kids Premium подключён' : 'AnnWord Premium подключён') : confirmationState === 'failed' ? 'Оплату нужно проверить' : 'Включаем Premium'}</h1>
-          <p className="mt-4 text-base font-bold leading-relaxed text-gray-600">{showNextStep ? 'Доступ уже активирован. Теперь можно выбрать тему или добавить слова, которые нужно повторить в играх.' : waitingCopy}</p>
+          <p className="mt-4 text-base font-bold leading-relaxed text-gray-600">{showNextStep ? 'Доступ уже активирован. Значок ✦ Premium теперь отображается в шапке и профиле. Можно выбрать тему или добавить слова, которые нужно повторить в играх.' : waitingCopy}</p>
           {orderId && <p className="mt-4 rounded-2xl bg-white/80 px-4 py-3 text-xs font-black text-indigo-700">Заказ: {orderId}</p>}
           {paymentStatus && !showNextStep && <p className="mt-3 rounded-2xl bg-white/80 px-4 py-3 text-xs font-black text-gray-500">Статус платежа: {paymentStatus.paymentStatus}</p>}
           {effectiveProfile.premiumExpiresAt && <p className="mt-4 rounded-2xl bg-white/80 px-4 py-3 text-sm font-black text-green-700">Premium активен до: {formatPremiumExpiresAt(effectiveProfile.premiumExpiresAt)}</p>}
@@ -161,7 +161,7 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
             <p className="mt-3 text-sm font-bold leading-relaxed text-gray-600">{waitingCopy}</p>
             {confirmationState === 'checking' && <div className="mt-5 h-3 overflow-hidden rounded-full bg-white"><div className="h-full w-1/3 animate-[premiumLoading_1.2s_ease-in-out_infinite] rounded-full bg-indigo-600" /></div>}
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              {(confirmationState === 'delayed' || confirmationState === 'failed') && <button type="button" onClick={() => void retry()} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-700">Проверить ещё раз</button>}
+              {(confirmationState === 'delayed' || confirmationState === 'failed') && orderId && <button type="button" onClick={() => void retry()} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-700">Проверить ещё раз</button>}
               <button type="button" onClick={onBackHome} className="rounded-2xl border-2 border-indigo-100 bg-white px-6 py-4 font-black text-indigo-700 transition hover:bg-indigo-50">На главную</button>
             </div>
             <style>{`@keyframes premiumLoading { 0% { transform: translateX(-120%); } 50% { transform: translateX(120%); } 100% { transform: translateX(320%); } }`}</style>
