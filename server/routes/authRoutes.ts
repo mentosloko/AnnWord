@@ -1,6 +1,5 @@
 import { Router } from "express";
 import {
-  requireAuth,
   makeSessionPayload,
   clearSessionCookie,
   createSessionToken,
@@ -17,6 +16,7 @@ import { runtimeConfig } from "../config";
 import { transaction } from "../db";
 import { createProfileForUser } from "../profileRepository";
 import { appBack, checkYa, completeYa, yaBackUrl } from "../ya";
+import { assertRussianRegistrationEmail } from "../emailPolicy";
 
 export const authRouter = Router();
 
@@ -34,7 +34,9 @@ const writeSession = (res: { json: (body: unknown) => void; status: (code: numbe
 authRouter.post("/email/account", async (req, res) => {
   const body = req.body || {};
   try {
-    const input = validateNewUserInput(readText(body.email), readText(body[field]), readText(body.name));
+    const rawEmail = readText(body.email);
+    assertRussianRegistrationEmail(rawEmail);
+    const input = validateNewUserInput(rawEmail, readText(body[field]), readText(body.name));
     const user = await transaction(async (client) => {
       const id = newUserId();
       const result = await client.query<{ id: string; email: string; full_name: string | null; password_reset_required: boolean }>(
@@ -50,18 +52,17 @@ authRouter.post("/email/account", async (req, res) => {
     writeSession(res, user, 201);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Account create failed";
+    const code = typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code || "") : "";
     console.error("Email account create failed", error);
-    if (/duplicate|unique/i.test(message)) {
-      const user = await findUserByEmail(readText(body.email)).catch(() => null);
-      const supplied = readText(body[field]);
-      if (user && !user.passwordResetRequired && !isLegacyMigratedPassword(user.passwordHash) && verifyPassword(supplied, user.passwordHash)) {
-        writeSession(res, user);
-        return;
-      }
-      res.status(409).json({ error: "Аккаунт с такой электронной почтой уже существует." });
+    if (code === "russian_email_domain_required") {
+      res.status(400).json({ code, error: message });
       return;
     }
-    res.status(400).json({ error: message });
+    if (/duplicate|unique/i.test(message) || code === "23505") {
+      res.status(409).json({ code: "email_already_exists", error: "Аккаунт с такой электронной почтой уже существует. Войдите в него через форму входа." });
+      return;
+    }
+    res.status(400).json({ code: "account_create_failed", error: message });
   }
 });
 
@@ -76,12 +77,12 @@ authRouter.post("/email/session", async (req, res) => {
     const supplied = readText(body[field]);
     const accepted = user ? verifyPassword(supplied, user.passwordHash) : false;
     if (!user || !accepted) {
-      res.status(401).json({ error: "Invalid email or credential" });
+      res.status(401).json({ code: "invalid_credentials", error: "Неверная электронная почта или пароль." });
       return;
     }
     writeSession(res, user);
   } catch (error) {
-    res.status(400).json({ error: error instanceof Error ? error.message : "Session create failed" });
+    res.status(400).json({ code: "session_create_failed", error: error instanceof Error ? error.message : "Session create failed" });
   }
 });
 
@@ -94,7 +95,7 @@ authRouter.get("/yandex", (req, res) => {
     redirect.searchParams.set("redirect_uri", yaBackUrl(req));
     res.redirect(302, redirect.toString());
   } catch (error) {
-    res.status(400).json({ error: error instanceof Error ? error.message : "Yandex auth start failed" });
+    res.status(400).json({ code: "yandex_auth_start_failed", error: error instanceof Error ? error.message : "Yandex auth start failed" });
   }
 });
 
@@ -122,7 +123,7 @@ authRouter.get("/me", (req, res) => {
   const token = readBearerOrCookieToken(req);
   const payload = token ? verifySessionToken(token) : null;
   if (!token || !payload) {
-    res.status(401).json({ error: "Unauthorized" });
+    res.status(401).json({ code: "unauthorized", error: "Unauthorized" });
     return;
   }
 
@@ -138,7 +139,8 @@ authRouter.get("/me", (req, res) => {
   });
 });
 
-authRouter.post("/logout", requireAuth, (_req, res) => {
+authRouter.post("/logout", (_req, res) => {
   clearSessionCookie(res);
+  res.setHeader("Cache-Control", "no-store");
   res.json({ ok: true });
 });
