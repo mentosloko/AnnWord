@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import express, { type Request, type Response } from "express";
 import { checkDatabaseHealth, closeDatabasePool, query, transaction } from "./db";
 import { runtimeConfig } from "./config";
+import { ensureConsentSchema } from "./consentSchema";
 import { createSessionToken, makeSessionPayload, writeSessionCookie, type BackendUser } from "./auth";
 import { appBack, completeYa } from "./ya";
 import { authRouter } from "./routes/authRoutes";
@@ -22,6 +23,7 @@ import { migrationSchemaRouter } from "./routes/migrationSchemaRoutes";
 dotenv.config();
 
 const app = express();
+let server: ReturnType<typeof app.listen> | null = null;
 const distDir = path.join(process.cwd(), "dist");
 const indexHtmlPath = path.join(distDir, "index.html");
 
@@ -237,18 +239,35 @@ if (fs.existsSync(distDir)) {
   });
 }
 
-const server = app.listen(runtimeConfig.port, "0.0.0.0", () => {
-  console.log(`AnnWord API listening on 0.0.0.0:${runtimeConfig.port}`);
-});
+async function startServer(): Promise<void> {
+  try {
+    await ensureConsentSchema();
+    console.log("Consent schema is ready.");
+    server = app.listen(runtimeConfig.port, "0.0.0.0", () => {
+      console.log(`AnnWord API listening on 0.0.0.0:${runtimeConfig.port}`);
+    });
+  } catch (error) {
+    console.error("AnnWord API startup failed while preparing the consent schema", error);
+    await closeDatabasePool().catch(() => undefined);
+    process.exit(1);
+  }
+}
 
 async function shutdown(signal: string): Promise<void> {
   console.log(`Received ${signal}, shutting down AnnWord API...`);
+
+  if (!server) {
+    await closeDatabasePool().catch(() => undefined);
+    process.exit(0);
+  }
 
   server.close(async () => {
     await closeDatabasePool();
     process.exit(0);
   });
 }
+
+void startServer();
 
 process.on("SIGTERM", () => {
   void shutdown("SIGTERM");
