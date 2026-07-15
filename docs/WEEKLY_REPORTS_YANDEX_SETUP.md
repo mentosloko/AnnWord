@@ -8,14 +8,12 @@ AnnWord sends parent reports through Yandex Cloud Postbox from the existing Serv
 2. Grant the service account attached to the AnnWord Serverless Container the `postbox.sender` role.
 3. Add GitHub Actions repository secrets:
    - `WEEKLY_REPORT_FROM_EMAIL` — verified sender, for example `reports@annword.ru`;
-   - `WEEKLY_REPORT_CRON_SECRET` — a long random secret used only by the timer trigger.
-4. Run a normal production deployment so the two variables are injected into the new container revision.
-5. Create a Yandex Cloud timer trigger that sends a `POST` request every Monday to:
-   - `https://api.annword.ru/api/reports/weekly/run`
-   - JSON body: `{ "secret": "<WEEKLY_REPORT_CRON_SECRET>" }`
-6. Ensure the service account used by the trigger is allowed to invoke the AnnWord container.
+   - `WEEKLY_REPORT_CRON_SECRET` — a long random value used to protect the report runner endpoint.
+4. Run a normal production deployment so the variables are injected into the new container revision.
 
-Recommended schedule: Monday morning in Moscow time, after the previous week is complete.
+The repository workflow `Weekly Parent Reports` invokes the protected Yandex API every Monday at 06:00 UTC (09:00 Moscow). It performs one cURL request, has a three-minute timeout and exits without error while `WEEKLY_REPORT_CRON_SECRET` is not configured.
+
+No Yandex Timer Trigger or additional function is required.
 
 ## Runtime behavior
 
@@ -31,7 +29,7 @@ Recommended schedule: Monday morning in Moscow time, after the previous week is 
 After configuration:
 
 1. Save a report email in a Premium parent profile.
-2. Invoke the runner endpoint once manually with the cron secret.
+2. Run GitHub Actions workflow `Weekly Parent Reports` manually once.
 3. Confirm the response contains `sent: 1` or a clear per-profile error.
 4. Confirm the message appears in Postbox delivery history and in the destination mailbox.
 5. Confirm `/api/runtime-config` returns `hasWeeklyReports: true`.
