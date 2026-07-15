@@ -25,10 +25,7 @@ const optionalRuntime = [
 ] as const;
 
 function isPlaceholder(value: string | undefined): boolean {
-  if (!value) {
-    return false;
-  }
-
+  if (!value) return false;
   return ["0", "CHANGE_ME", "TEMP_REPLACE_ME"].includes(value.trim());
 }
 
@@ -38,9 +35,7 @@ const placeholders = [...requiredForDeploy, ...optionalRuntime].filter((name) =>
 
 if (process.env.CI === "true" && missing.length > 0) {
   console.error("Missing required Yandex deploy env variables:");
-  for (const name of missing) {
-    console.error(`- ${name}`);
-  }
+  missing.forEach((name) => console.error(`- ${name}`));
   process.exit(1);
 }
 
@@ -52,10 +47,25 @@ if (process.env.CI === "true" && missingApiUrl) {
 
 if (process.env.CI === "true" && placeholders.length > 0) {
   console.error("Replace placeholder values before deploying:");
-  for (const name of placeholders) {
-    console.error(`- ${name}`);
-  }
+  placeholders.forEach((name) => console.error(`- ${name}`));
   process.exit(1);
+}
+
+const isYandexProductionWorkflow = process.env.CI === "true"
+  && process.env.GITHUB_ACTIONS === "true"
+  && process.env.GITHUB_WORKFLOW === "Deploy to Yandex Cloud";
+
+if (isYandexProductionWorkflow) {
+  const [{ applyYandexMigrations }, { closeDatabasePool }] = await Promise.all([
+    import("../server/yandexMigrations"),
+    import("../server/db"),
+  ]);
+  try {
+    await applyYandexMigrations();
+    console.log("Yandex PostgreSQL migrations applied during deploy preflight.");
+  } finally {
+    await closeDatabasePool();
+  }
 }
 
 console.log("Yandex API deploy environment smoke check passed.");
