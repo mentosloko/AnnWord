@@ -2,7 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AccountMode } from '../../types';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
-interface AccountModeSetupScreenProps { onSelectMode: (mode: AccountMode) => Promise<void>; }
+interface AccountModeSetupScreenProps {
+  onSelectMode: (mode: AccountMode) => Promise<void>;
+  suggestedMode?: AccountMode | null;
+}
 const PRACTICE_IMAGE = '/assets/branding/annword-logo-mark.svg';
 const s = {
   welcome: 'Добро пожаловать в AnnWord',
@@ -27,18 +30,19 @@ const getModeFromCurrentPath = (): AccountMode | null => {
   return null;
 };
 
-const getModeTitle = (mode: AccountMode): string => {
-  if (mode === 'player') return 'AnnWord Practice';
-  if (mode === 'parent') return 'AnnWord Kids';
-  return 'AnnWord Teacher';
-};
+const getModeTitle = (mode: AccountMode): string => mode === 'player' ? 'AnnWord Practice' : mode === 'parent' ? 'AnnWord Kids' : 'AnnWord Teacher';
 
-export const AccountModeSetupScreen: React.FC<AccountModeSetupScreenProps> = ({ onSelectMode }) => {
-  const autoModeRef = useRef<AccountMode | null>(getModeFromCurrentPath());
+export const AccountModeSetupScreen: React.FC<AccountModeSetupScreenProps> = ({ onSelectMode, suggestedMode }) => {
+  const autoModeRef = useRef<AccountMode | null>(suggestedMode || getModeFromCurrentPath());
   const autoSelectStartedRef = useRef(false);
   const [selected, setSelected] = useState<AccountMode | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const choose = async (mode: AccountMode) => { setSelected(mode); setError(null); try { await onSelectMode(mode); } catch (problem: unknown) { setSelected(null); setError(problem instanceof Error ? problem.message : s.fail); } };
+  const choose = async (mode: AccountMode) => {
+    setSelected(mode);
+    setError(null);
+    try { await onSelectMode(mode); }
+    catch (problem: unknown) { setSelected(null); setError(problem instanceof Error ? problem.message : s.fail); }
+  };
 
   useEffect(() => {
     const autoMode = autoModeRef.current;
