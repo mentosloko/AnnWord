@@ -49,8 +49,18 @@ export const getInitialClientLocation = (): ClientLocationState => {
   return getClientLocationFromPathname(window.location.pathname);
 };
 
-export const getClientRouteUrl = (route: ViewState, entryPath: ClientEntryPath): string =>
-  route === 'landing' ? getEntryPathUrl(entryPath) : ROUTE_PATHS[route];
+const onboardingAudience = (entryPath: ClientEntryPath): string => {
+  if (entryPath === 'practice') return '?audience=practice';
+  if (entryPath === 'kids') return '?audience=kids';
+  if (entryPath === 'teacher') return '?audience=teacher';
+  return '';
+};
+
+export const getClientRouteUrl = (route: ViewState, entryPath: ClientEntryPath): string => {
+  if (route === 'landing') return getEntryPathUrl(entryPath);
+  if (route === 'account_mode_setup') return `${ROUTE_PATHS.account_mode_setup}${onboardingAudience(entryPath)}`;
+  return ROUTE_PATHS[route];
+};
 
 export const getKnownClientPaths = (): string[] => [
   '/',
