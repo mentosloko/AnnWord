@@ -1,0 +1,40 @@
+name: Weekly Parent Reports
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-parent-reports
+  cancel-in-progress: false
+
+jobs:
+  deliver:
+    name: Send weekly reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Invoke Yandex report runner
+        env:
+          API_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+          REPORT_SECRET: ${{ secrets.WEEKLY_REPORT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${REPORT_SECRET:-}" ]; then
+            echo "WEEKLY_REPORT_CRON_SECRET is not configured; report delivery is disabled."
+            exit 0
+          fi
+          API_BASE="${API_URL%/}"
+          HTTP_CODE="$(curl --silent --show-error \
+            --output /tmp/weekly-report-result.json \
+            --write-out '%{http_code}' \
+            -X POST "${API_BASE}/api/reports/weekly/run" \
+            -H "Authorization: Bearer ${REPORT_SECRET}" \
+            -H 'Content-Type: application/json' \
+            --data '{}')"
+          cat /tmp/weekly-report-result.json
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "207" ]; then
+            echo "Weekly report runner returned HTTP ${HTTP_CODE}."
+            exit 1
+          fi
