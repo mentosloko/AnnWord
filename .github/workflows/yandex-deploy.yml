@@ -153,6 +153,8 @@ jobs:
           APP_URL: ${{ secrets.APP_URL }}
           API_URL: ${{ secrets.API_URL }}
           YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+          WEEKLY_REPORT_FROM_EMAIL: ${{ secrets.WEEKLY_REPORT_FROM_EMAIL }}
+          WEEKLY_REPORT_CRON_SECRET: ${{ secrets.WEEKLY_REPORT_CRON_SECRET }}
         run: |
           yc serverless container revision deploy \
             --container-id "$YC_SERVERLESS_CONTAINER_ID" \
@@ -183,6 +185,8 @@ jobs:
             --environment APP_URL="$APP_URL" \
             --environment API_URL="$API_URL" \
             --environment YC_API_PUBLIC_URL="$YC_API_PUBLIC_URL" \
+            --environment WEEKLY_REPORT_FROM_EMAIL="$WEEKLY_REPORT_FROM_EMAIL" \
+            --environment WEEKLY_REPORT_CRON_SECRET="$WEEKLY_REPORT_CRON_SECRET" \
             --environment RELEASE_SHA="$GITHUB_SHA"
 
       - name: Install AWS CLI for Object Storage upload

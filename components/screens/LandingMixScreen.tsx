@@ -1,13 +1,54 @@
 import React, { useState } from 'react';
+import { ClientEntryPath } from '../../services/clientEntryPath';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface LandingMixScreenProps {
+  entryPath: ClientEntryPath;
   onLogin: () => void;
   onStartPractice: () => void;
   onStartKids: () => void;
+  onStartTeacher: () => void;
 }
 
 const HERO_IMAGE = '/assets/landing/landing_right_corner.webp';
+
+type Audience = 'practice' | 'kids' | 'teacher';
+
+type AudienceCopy = {
+  eyebrow: string;
+  title: string;
+  body: string;
+  cta: string;
+  note: string;
+  accent: string;
+};
+
+const audienceCopy: Record<Audience, AudienceCopy> = {
+  practice: {
+    eyebrow: 'AnnWord Practice · самостоятельная практика',
+    title: 'Регулярно повторяйте английские слова без длинных уроков',
+    body: 'Короткие игровые тренировки, ежедневные задания, статистика ошибок и тематические словари помогают взрослому заниматься самостоятельно и видеть, какие слова действительно требуют повторения.',
+    cta: 'Создать Practice-аккаунт',
+    note: 'После регистрации вы выберете уровень и сможете сразу запустить первую тренировку.',
+    accent: 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20',
+  },
+  kids: {
+    eyebrow: 'AnnWord Kids · ребёнок и родитель',
+    title: 'Учите слова через игру, питомца и понятные награды',
+    body: 'Ребёнок играет и заботится о питомце, а взрослый управляет профилем, видит прогресс и при необходимости связывает домашнюю практику с заданиями преподавателя.',
+    cta: 'Создать Kids-профиль',
+    note: 'После регистрации взрослый добавит ребёнка, создаст PIN и поможет выбрать персонажа.',
+    accent: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20',
+  },
+  teacher: {
+    eyebrow: 'AnnWord Teacher · кабинет преподавателя',
+    title: 'Назначайте ученикам словари и отслеживайте сложные слова',
+    body: 'Преподаватель подключает ученика по коду родителя, создаёт учебные подборки, назначает их и видит статистику домашних тренировок без детской экономики и игровых отвлечений.',
+    cta: 'Создать Teacher-аккаунт',
+    note: 'После регистрации откроется рабочий кабинет для подключения первого ученика.',
+    accent: 'bg-cyan-700 hover:bg-cyan-800 shadow-cyan-700/20',
+  },
+};
 
 const benefits = [
   { icon: '⏱️', title: 'Коротко', text: 'Одна тренировка занимает несколько минут: легко начать сегодня и вернуться завтра.' },
@@ -16,41 +57,82 @@ const benefits = [
   { icon: '📈', title: 'Персонально', text: 'Ошибки становятся планом повторения, а статистика показывает реальный прогресс.' },
 ];
 
-const memorySteps = [
-  { title: '1. Вспомнить самому', text: 'Пользователь не просто видит перевод, а сам достаёт слово из памяти: угадывает, выбирает, собирает или сопоставляет.' },
-  { title: '2. Закрепить в короткой игре', text: 'Каждая сессия компактная и понятная: можно потренироваться за несколько минут без ощущения большого урока.' },
-  { title: '3. Вернуть сложное в повторение', text: 'Если слово не получилось, оно не теряется: оно возвращается в практику и помогает закрывать реальные пробелы.' },
-];
-
 const games = [
-  { iconSrc: '/assets/games/game_classic.webp', title: 'Классика', tag: 'вспомнить по буквам', text: 'Формат угадывания слова заставляет удерживать в голове spelling и постепенно приближаться к ответу.' },
-  { iconSrc: '/assets/games/game_anagrams.webp', title: 'Анаграммы', tag: 'собрать форму слова', text: 'Перемешанные буквы превращают слово в задачу: ребёнок или взрослый активно восстанавливает его структуру.' },
-  { iconSrc: '/assets/games/game_sprint.webp', title: 'Спринт', tag: 'быстро узнать перевод', text: 'Темп помогает автоматизировать узнавание знакомых слов и почувствовать прогресс уже за одну сессию.' },
-  { iconSrc: '/assets/games/game_one_of_two.webp', title: '1 из 2', tag: 'отличить похожее', text: 'Выбор между близкими вариантами тренирует внимательность и снижает случайное запоминание.' },
-  { iconSrc: '/assets/games/game_memory.webp', title: 'Память', tag: 'связать слово и смысл', text: 'Парные карточки закрепляют связь между английским словом и значением через визуальное сопоставление.' },
-  { iconSrc: '/assets/games/line_game.webp', title: 'Змейка', tag: 'найти путь по буквам', text: 'Слово собирается цепочкой из соседних букв: это добавляет исследование, фокус и удовольствие от найденного решения.' },
+  { iconSrc: '/assets/games/game_classic.webp', title: 'Классика', tag: 'вспомнить по буквам' },
+  { iconSrc: '/assets/games/game_anagrams.webp', title: 'Анаграммы', tag: 'собрать форму слова' },
+  { iconSrc: '/assets/games/game_sprint.webp', title: 'Спринт', tag: 'быстро узнать перевод' },
+  { iconSrc: '/assets/games/game_one_of_two.webp', title: '1 из 2', tag: 'отличить похожее' },
+  { iconSrc: '/assets/games/game_memory.webp', title: 'Память', tag: 'связать слово и смысл' },
+  { iconSrc: '/assets/games/line_game.webp', title: 'Змейка', tag: 'найти путь по буквам' },
 ];
 
-const ModalShell: React.FC<{ title: string; children: React.ReactNode; onClose: () => void }> = ({ title, children, onClose }) => <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm" role="presentation"><div role="dialog" aria-modal="true" aria-labelledby="landing-mix-modal-title" className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl outline-none sm:p-7"><div className="mb-5 flex items-center justify-between gap-4"><h2 id="landing-mix-modal-title" className="text-2xl font-black text-indigo-950 sm:text-3xl">{title}</h2><button type="button" onClick={onClose} aria-label="Закрыть" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-2xl font-black text-slate-500 hover:bg-slate-100">×</button></div>{children}</div></div>;
-const HeroVisual: React.FC = () => <div className="relative mx-auto max-w-[36rem] overflow-hidden rounded-[2.25rem] bg-gradient-to-br from-sky-100 via-white to-indigo-50 p-2 shadow-2xl shadow-indigo-900/10"><img src={HERO_IMAGE} alt="AnnWord: ребёнок изучает английские слова с игровым питомцем и учебными карточками" className="block aspect-[4/3] w-full rounded-[1.9rem] object-cover object-center" draggable={false} /></div>;
-
-export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ onLogin, onStartPractice, onStartKids }) => {
-  const [choiceOpen, setChoiceOpen] = useState(false);
-  const choosePractice = () => { setChoiceOpen(false); onStartPractice(); };
-  const chooseKids = () => { setChoiceOpen(false); onStartKids(); };
-
-  return <ScreenContainer className="max-w-7xl pb-24 pt-5">
-    <section className="overflow-hidden rounded-[2.25rem] border-2 border-indigo-50 bg-white shadow-sm">
-      <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1fr_35rem] lg:items-center">
-        <div className="py-2"><div className="mb-4 inline-flex rounded-full bg-indigo-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-indigo-500">AnnWord · активная тренировка слов</div><h1 className="max-w-3xl text-4xl font-black leading-[0.98] tracking-tight text-indigo-950 sm:text-6xl">Английские слова, которые остаются в памяти</h1><p className="mt-5 max-w-2xl text-base font-bold leading-relaxed text-slate-600 sm:text-lg">AnnWord превращает лексику в короткие игровые тренировки. Слова не просто просматриваются — их нужно вспомнить, собрать, узнать и повторить. Так практика становится понятной привычкой для взрослых и увлекательной игрой для детей.</p><div className="mt-7 flex flex-col gap-3 sm:flex-row"><button type="button" onClick={() => setChoiceOpen(true)} className="rounded-2xl bg-blue-600 px-6 py-4 text-base font-black text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700">Начать бесплатно</button><button type="button" onClick={onLogin} className="rounded-2xl border-2 border-slate-100 bg-white px-6 py-4 text-base font-black text-slate-600 transition hover:bg-slate-50">Войти</button></div><div className="mt-5 flex flex-wrap gap-3 text-xs font-black text-slate-500"><span className="rounded-full bg-slate-50 px-3 py-2">⏱ 5–10 минут в день</span><span className="rounded-full bg-slate-50 px-3 py-2">🎮 6 игровых режимов</span><span className="rounded-full bg-slate-50 px-3 py-2">📊 повторение сложных слов</span></div></div>
-        <HeroVisual />
+const ModalShell: React.FC<{ title: string; children: React.ReactNode; onClose: () => void }> = ({ title, children, onClose }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm" role="presentation">
+    <div role="dialog" aria-modal="true" aria-labelledby="landing-choice-title" className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl sm:p-7">
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <h2 id="landing-choice-title" className="text-2xl font-black text-indigo-950 sm:text-3xl">{title}</h2>
+        <button type="button" onClick={onClose} aria-label="Закрыть" className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-2xl font-black text-slate-500">×</button>
       </div>
-      <div className="grid gap-3 border-y border-indigo-50 bg-slate-50/70 p-4 sm:grid-cols-4 sm:p-5">{benefits.map(item => <div key={item.title} className="rounded-3xl bg-white px-4 py-4 shadow-sm"><div className="text-2xl" aria-hidden="true">{item.icon}</div><h3 className="mt-2 text-base font-black text-indigo-950">{item.title}</h3><p className="mt-1 text-xs font-bold leading-relaxed text-slate-500">{item.text}</p></div>)}</div>
-      <div className="grid gap-4 p-5 sm:p-8 lg:grid-cols-2"><article className="rounded-[2rem] bg-gradient-to-br from-orange-50 to-rose-50 p-5 shadow-sm"><div className="text-3xl" aria-hidden="true">🔥</div><h2 className="mt-3 text-2xl font-black text-indigo-950">Для взрослых — привычка без перегруза</h2><p className="mt-2 text-sm font-bold leading-relaxed text-slate-600">Streak, ежедневные задания и статистика помогают возвращаться к словам регулярно. Не нужно выделять час: достаточно короткой тренировки, которая показывает прогресс и поддерживает темп.</p><button type="button" onClick={onStartPractice} className="mt-5 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white hover:bg-orange-600">Начать Practice</button></article><article className="rounded-[2rem] bg-gradient-to-br from-emerald-50 to-sky-50 p-5 shadow-sm"><div className="text-3xl" aria-hidden="true">🐾</div><h2 className="mt-3 text-2xl font-black text-indigo-950">Для детей — обучение через заботу и игру</h2><p className="mt-2 text-sm font-bold leading-relaxed text-slate-600">Питомец, монеты и награды превращают повторение слов в понятную цель. Родитель видит прогресс ребёнка, а при занятиях с преподавателем можно связывать домашнюю практику с учебными словами и рекомендациями.</p><button type="button" onClick={onStartKids} className="mt-5 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white hover:bg-emerald-700">Начать Kids</button></article></div>
-      <div className="px-5 pb-5 sm:px-8 sm:pb-8"><h2 className="text-center text-2xl font-black text-indigo-950 sm:text-3xl">Как AnnWord помогает запоминать</h2><div className="mt-5 grid gap-3 lg:grid-cols-3">{memorySteps.map(step => <article key={step.title} className="rounded-[1.75rem] border-2 border-indigo-50 bg-white p-5 shadow-sm"><h3 className="text-base font-black text-indigo-950">{step.title}</h3><p className="mt-2 text-sm font-bold leading-relaxed text-slate-500">{step.text}</p></article>)}</div></div>
-      <div className="bg-gradient-to-b from-white to-indigo-50/60 px-5 pb-8 sm:px-8"><div className="mx-auto max-w-3xl text-center"><h2 className="text-2xl font-black text-indigo-950 sm:text-3xl">6 игр — 6 способов закрепить слово</h2><p className="mt-3 text-sm font-bold leading-relaxed text-slate-500 sm:text-base">Игры тренируют разные навыки: вспомнить написание, узнать перевод, отличить похожие варианты, связать слово со смыслом и вернуть сложные слова в повторение.</p></div><div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{games.map(game => <article key={game.title} className="group rounded-[2rem] border-2 border-white bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-indigo-100 hover:shadow-xl"><div className="flex items-start gap-4"><div className="grid h-16 w-16 shrink-0 place-items-center rounded-3xl bg-gradient-to-br from-indigo-50 to-sky-50 p-2 shadow-inner" aria-hidden="true"><img src={game.iconSrc} alt="" className="h-full w-full object-contain transition group-hover:scale-110" draggable={false} /></div><div><div className="text-lg font-black text-indigo-950">{game.title}</div><div className="mt-1 inline-flex rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-indigo-500">{game.tag}</div></div></div><p className="mt-4 text-sm font-bold leading-relaxed text-slate-600">{game.text}</p></article>)}</div></div>
-      <div className="flex flex-col items-center gap-4 bg-gradient-to-r from-slate-950 to-indigo-950 px-5 py-6 text-center text-white sm:flex-row sm:justify-between sm:text-left"><div><div className="text-xl font-black">Начните с первой короткой тренировки сегодня</div><p className="mt-1 text-sm font-bold text-white/70">Выберите формат — самостоятельная практика или детский режим — и запустите первую игру.</p></div><button type="button" onClick={() => setChoiceOpen(true)} className="rounded-2xl bg-blue-600 px-6 py-3 font-black text-white shadow-lg shadow-blue-600/30 hover:bg-blue-500">Создать аккаунт</button></div>
-    </section>
-    {choiceOpen && <ModalShell title="Кто будет заниматься в AnnWord?" onClose={() => setChoiceOpen(false)}><div className="grid gap-4 md:grid-cols-2"><button type="button" onClick={choosePractice} className="rounded-[2rem] border-2 border-indigo-100 bg-indigo-50 p-5 text-left transition hover:-translate-y-1 hover:border-indigo-300 hover:shadow-lg"><div className="text-4xl" aria-hidden="true">🔥</div><h3 className="mt-4 text-2xl font-black text-indigo-950">Я буду заниматься сам</h3><p className="mt-2 text-sm font-bold leading-relaxed text-slate-600">Practice — для взрослой регулярной практики: ежедневные задания, streak, статистика ошибок и словари под цель.</p><span className="mt-5 inline-flex rounded-2xl bg-indigo-600 px-5 py-3 font-black text-white">Продолжить в Practice</span></button><button type="button" onClick={chooseKids} className="rounded-[2rem] border-2 border-emerald-100 bg-emerald-50 p-5 text-left transition hover:-translate-y-1 hover:border-emerald-300 hover:shadow-lg"><div className="text-4xl" aria-hidden="true">🐾</div><h3 className="mt-4 text-2xl font-black text-indigo-950">Заниматься будет ребёнок</h3><p className="mt-2 text-sm font-bold leading-relaxed text-slate-600">Kids — игровой режим с питомцем, монетами, наградами, родительским контролем и связью с учебным процессом.</p><span className="mt-5 inline-flex rounded-2xl bg-emerald-600 px-5 py-3 font-black text-white">Продолжить в Kids</span></button></div></ModalShell>}
-  </ScreenContainer>;
+      {children}
+    </div>
+  </div>
+);
+
+const AudienceChoice: React.FC<{ audience: Audience; onClick: () => void }> = ({ audience, onClick }) => {
+  const copy = audienceCopy[audience];
+  const icon = audience === 'practice' ? '🔥' : audience === 'kids' ? '🐾' : '🎓';
+  return (
+    <button type="button" onClick={onClick} className="rounded-[2rem] border-2 border-indigo-50 bg-slate-50 p-5 text-left transition hover:-translate-y-1 hover:border-indigo-200 hover:bg-white hover:shadow-lg">
+      <div className="text-4xl" aria-hidden="true">{icon}</div>
+      <h3 className="mt-4 text-xl font-black text-indigo-950">{copy.eyebrow.replace(/^AnnWord /, '')}</h3>
+      <p className="mt-2 text-sm font-bold leading-relaxed text-slate-600">{copy.body}</p>
+      <span className="mt-5 inline-flex rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white">{copy.cta}</span>
+    </button>
+  );
+};
+
+export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, onLogin, onStartPractice, onStartKids, onStartTeacher }) => {
+  const [choiceOpen, setChoiceOpen] = useState(false);
+  const targetedAudience: Audience | null = entryPath === 'practice' || entryPath === 'kids' || entryPath === 'teacher' ? entryPath : null;
+  const targeted = targetedAudience ? audienceCopy[targetedAudience] : null;
+  const startTargeted = targetedAudience === 'practice' ? onStartPractice : targetedAudience === 'kids' ? onStartKids : onStartTeacher;
+
+  return (
+    <ScreenContainer className="max-w-7xl pb-24 pt-5">
+      <section className="overflow-hidden rounded-[2.25rem] border-2 border-indigo-50 bg-white shadow-sm">
+        <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1fr_35rem] lg:items-center">
+          <div className="py-2">
+            <div className="mb-4 inline-flex rounded-full bg-indigo-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-indigo-500">{targeted?.eyebrow || 'AnnWord · активная тренировка слов'}</div>
+            <h1 className="max-w-3xl text-4xl font-black leading-[0.98] tracking-tight text-indigo-950 sm:text-6xl">{targeted?.title || 'Английские слова, которые остаются в памяти'}</h1>
+            <p className="mt-5 max-w-2xl text-base font-bold leading-relaxed text-slate-600 sm:text-lg">{targeted?.body || 'AnnWord превращает лексику в короткие игровые тренировки. Слова нужно вспомнить, собрать, узнать и повторить — так практика становится понятной привычкой для взрослых и увлекательной игрой для детей.'}</p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <button type="button" onClick={targeted ? startTargeted : () => setChoiceOpen(true)} className={`rounded-2xl px-6 py-4 text-base font-black text-white shadow-lg transition hover:-translate-y-0.5 ${targeted?.accent || 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'}`}>{targeted?.cta || 'Выбрать формат и начать'}</button>
+              <button type="button" onClick={onLogin} className="rounded-2xl border-2 border-slate-100 bg-white px-6 py-4 text-base font-black text-slate-600 transition hover:bg-slate-50">Войти</button>
+            </div>
+            <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed text-slate-500">{targeted?.note || 'Сначала выберите, кто будет пользоваться AnnWord. Регистрация откроется только после понятного выбора формата.'}</p>
+          </div>
+          <div className="relative mx-auto max-w-[36rem] overflow-hidden rounded-[2.25rem] bg-gradient-to-br from-sky-100 via-white to-indigo-50 p-2 shadow-2xl shadow-indigo-900/10">
+            <img src={HERO_IMAGE} alt="AnnWord: игровые тренировки английских слов" className="block aspect-[4/3] w-full rounded-[1.9rem] object-cover object-center" draggable={false} />
+          </div>
+        </div>
+
+        <div className="grid gap-3 border-y border-indigo-50 bg-slate-50/70 p-4 sm:grid-cols-4 sm:p-5">
+          {benefits.map(item => <div key={item.title} className="rounded-3xl bg-white px-4 py-4 shadow-sm"><div className="text-2xl" aria-hidden="true">{item.icon}</div><h3 className="mt-2 text-base font-black text-indigo-950">{item.title}</h3><p className="mt-1 text-xs font-bold leading-relaxed text-slate-500">{item.text}</p></div>)}
+        </div>
+
+        <div className="grid gap-4 p-5 sm:p-8 lg:grid-cols-3">
+          <AudienceChoice audience="practice" onClick={onStartPractice} />
+          <AudienceChoice audience="kids" onClick={onStartKids} />
+          <AudienceChoice audience="teacher" onClick={onStartTeacher} />
+        </div>
+
+        <div className="bg-gradient-to-b from-white to-indigo-50/60 px-5 pb-8 sm:px-8">
+          <div className="mx-auto max-w-3xl text-center"><h2 className="text-2xl font-black text-indigo-950 sm:text-3xl">6 игр — 6 способов закрепить слово</h2><p className="mt-3 text-sm font-bold leading-relaxed text-slate-500 sm:text-base">Игры тренируют написание, перевод, внимательность и связь между словом и смыслом.</p></div>
+          <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">{games.map(game => <article key={game.title} className="rounded-[1.5rem] border-2 border-white bg-white p-4 text-center shadow-sm"><img src={game.iconSrc} alt="" aria-hidden="true" className="mx-auto h-14 w-14 object-contain" draggable={false} /><div className="mt-3 text-sm font-black text-indigo-950">{game.title}</div><div className="mt-1 text-[10px] font-black uppercase tracking-wide text-indigo-400">{game.tag}</div></article>)}</div>
+        </div>
+      </section>
+
+      {choiceOpen && <ModalShell title="Кто будет пользоваться AnnWord?" onClose={() => setChoiceOpen(false)}><div className="grid gap-4 lg:grid-cols-3"><AudienceChoice audience="practice" onClick={() => { setChoiceOpen(false); onStartPractice(); }} /><AudienceChoice audience="kids" onClick={() => { setChoiceOpen(false); onStartKids(); }} /><AudienceChoice audience="teacher" onClick={() => { setChoiceOpen(false); onStartTeacher(); }} /></div></ModalShell>}
+    </ScreenContainer>
+  );
 };

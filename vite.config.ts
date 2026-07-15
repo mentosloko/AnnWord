@@ -51,7 +51,7 @@ const configureYcShim = () => {
     '      local network_id="${YC_NETWORK_ID:-}"',
     "      if [ -z \"$network_id\" ]; then",
     "        network_id=$(\"$real_yc\" vpc network list --format json 2>/dev/null | grep -m1 '\"id\"' | sed -E 's/.*\"id\"[[:space:]]*:[[:space:]]*\"([^\"]+)\".*/\\1/' || true)",
-    "      fi",
+    '      fi',
     '      if [ -n "$network_id" ]; then',
     '        echo "AnnWord YC shim: attaching container revision to network $network_id"',
     '        args+=("--network-id" "$network_id")',
@@ -69,7 +69,34 @@ const configureYcShim = () => {
   console.log('Configured AnnWord YC CLI compatibility shim through BASH_ENV.');
 };
 
-const spaFallbackRoutes = ['practice', 'kids', 'teacher', 'landing-mix'];
+const spaFallbackRoutes = [
+  'practice',
+  'kids',
+  'teacher',
+  'landing-mix',
+  'profile',
+  'review',
+  'shop',
+  'pet',
+  'workspace',
+  'dictionary',
+  'dictionary/edit',
+  'premium',
+  'premium/success',
+  'admin',
+  'play/setup',
+  'play/classic',
+  'play/anagrams',
+  'play/one-of-two',
+  'play/sprint',
+  'play/hangman',
+  'play/memory',
+  'play/snake',
+  'onboarding/mode',
+  'onboarding/character',
+  'onboarding/family',
+];
+
 const yandexSpaFallbackPlugin = () => ({
   name: 'annword-yandex-spa-fallbacks',
   closeBundle() {
@@ -86,23 +113,53 @@ const yandexSpaFallbackPlugin = () => ({
   },
 });
 
+const safeChunkName = (filename: string): string => filename
+  .replace(/\.(json|ts|tsx)$/i, '')
+  .replace(/^premium_/, '')
+  .replace(/[^a-z0-9]+/gi, '-')
+  .replace(/^-|-$/g, '')
+  .toLowerCase();
+
+const manualChunk = (id: string): string | undefined => {
+  const normalized = id.replace(/\\/g, '/');
+  if (normalized.includes('/dictionaries/premium/')) {
+    return `dictionary-premium-${safeChunkName(path.basename(normalized))}`;
+  }
+  if (
+    normalized.endsWith('/dictionaries/englishBase.ts')
+    || normalized.endsWith('/dictionaries/mainEnglish.ts')
+    || normalized.endsWith('/dictionaries/english.ts')
+  ) return 'dictionary-general';
+  if (!normalized.includes('/node_modules/')) return undefined;
+  if (normalized.includes('/react/') || normalized.includes('/react-dom/') || normalized.includes('/scheduler/')) return 'vendor-react';
+  if (normalized.includes('/@supabase/')) return 'vendor-supabase';
+  return undefined;
+};
+
 export default defineConfig(({ mode }) => {
-    configureYcShim();
-    const env = loadEnv(mode, '.', '');
-    return {
-      server: {
-        port: 3000,
-        host: '0.0.0.0',
+  configureYcShim();
+  const env = loadEnv(mode, '.', '');
+  return {
+    server: {
+      port: 3000,
+      host: '0.0.0.0',
+    },
+    plugins: [react(), yandexSpaFallbackPlugin()],
+    define: {
+      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+    },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '.'),
       },
-      plugins: [react(), yandexSpaFallbackPlugin()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: manualChunk,
+        },
       },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
-        }
-      }
-    };
+    },
+  };
 });

@@ -59,6 +59,7 @@ const renderScreens = (overrides: Partial<React.ComponentProps<typeof AppScreens
   const onSelectedPlayModeChange = vi.fn();
   const props: React.ComponentProps<typeof AppScreens> = {
     route: 'landing',
+    entryPath: 'home',
     selectedPlayMode: 'game',
     userProfile: profile,
     isAuthenticated: true,
@@ -71,12 +72,20 @@ const renderScreens = (overrides: Partial<React.ComponentProps<typeof AppScreens
       onFileUpload: vi.fn(),
     },
     onRouteChange,
+    onEntryPathChange: vi.fn(),
     onSelectedPlayModeChange,
     onSettingsChange: vi.fn(),
     onOpenLogin: vi.fn(),
+    onOpenRegister: vi.fn(),
     onOpenRules: vi.fn(),
     onBuy: vi.fn().mockResolvedValue(undefined),
     onUseItem: vi.fn().mockResolvedValue(undefined),
+    onUpdatePet: vi.fn().mockResolvedValue(undefined),
+    onSaveDictionary: vi.fn().mockResolvedValue(undefined),
+    onSelectAccountMode: vi.fn().mockResolvedValue(undefined),
+    onCreateChild: vi.fn().mockResolvedValue({ childName: 'Kid', childShareCode: 'ABC123', childSlotsLimit: 1 }),
+    onChildSetupComplete: vi.fn(),
+    onGameReward: vi.fn().mockResolvedValue(undefined),
     onCharacterOnboardingComplete: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
@@ -86,27 +95,27 @@ const renderScreens = (overrides: Partial<React.ComponentProps<typeof AppScreens
 };
 
 describe('shared setup flow for all game modes', () => {
-  it('routes Memory from landing through setup instead of opening the game directly', () => {
+  it('routes Memory from landing through setup instead of opening the game directly', async () => {
     const { onRouteChange, onSelectedPlayModeChange } = renderScreens();
 
-    fireEvent.click(screen.getByRole('button', { name: /Память/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /Память/i }));
 
     expect(onSelectedPlayModeChange).toHaveBeenCalledWith('memory');
     expect(onRouteChange).toHaveBeenCalledWith('setup');
     expect(onRouteChange).not.toHaveBeenCalledWith('memory');
   });
 
-  it('starts selected mini-game from setup with current dictionary settings', () => {
+  it('starts selected mini-game from setup with current dictionary settings', async () => {
     const { onRouteChange } = renderScreens({ route: 'setup', selectedPlayMode: 'sprint' });
 
-    expect(screen.getByText('Спринт')).toBeInTheDocument();
+    expect(await screen.findByText('Спринт')).toBeInTheDocument();
     expect(screen.getByText('Перед стартом')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Начать: Спринт' }));
 
     expect(onRouteChange).toHaveBeenCalledWith('sprint');
   });
 
-  it('keeps Wordle start using the classic game initializer', () => {
+  it('keeps Wordle start using the classic game initializer', async () => {
     const startNewGame = vi.fn();
     renderScreens({
       route: 'setup',
@@ -114,7 +123,7 @@ describe('shared setup flow for all game modes', () => {
       classicGame: { ...classicGame, startNewGame },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Начать: Классика' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Начать: Классика' }));
 
     expect(startNewGame).toHaveBeenCalledTimes(1);
   });
