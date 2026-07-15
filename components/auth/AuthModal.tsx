@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { legalConsentService } from '../../services/legalConsentService';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -44,8 +45,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const dialogRef = useRef<HTMLDivElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const onCloseRef = useRef(onClose);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [personalDataAccepted, setPersonalDataAccepted] = useState(false);
+  const [marketingEmailsAccepted, setMarketingEmailsAccepted] = useState(false);
 
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  useEffect(() => {
+    setTermsAccepted(false);
+    setPersonalDataAccepted(false);
+    setMarketingEmailsAccepted(false);
+  }, [isOpen, mode]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -74,67 +83,59 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const title = mode === 'login' ? 'Вход' : 'Регистрация';
   const emailHasDomain = email.includes('@') && email.split('@').pop()!.includes('.');
   const invalidRegistrationDomain = mode === 'register' && emailHasDomain && !isRussianEmailDomain(email);
+  const requiredConsentsMissing = mode === 'register' && (!termsAccepted || !personalDataAccepted);
+
+  const submit = () => {
+    if (invalidRegistrationDomain || requiredConsentsMissing) return;
+    if (mode === 'register') {
+      legalConsentService.setRegistrationConsents({ termsAccepted, personalDataAccepted, marketingEmailsAccepted });
+    }
+    onSubmit();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" role="presentation">
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="auth-modal-title"
-        aria-describedby={error ? 'auth-modal-error' : undefined}
-        tabIndex={-1}
-        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl outline-none animate-fade-in"
-      >
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-describedby={error ? 'auth-modal-error' : undefined} tabIndex={-1} className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl outline-none animate-fade-in">
         <div className="mb-6 flex items-center justify-between">
           <h3 id="auth-modal-title" className="text-xl font-bold text-gray-800">{title}</h3>
           <button type="button" onClick={onClose} aria-label="Закрыть окно входа" className="flex h-10 w-10 items-center justify-center rounded-xl text-xl text-gray-400 hover:bg-gray-50 hover:text-gray-600">×</button>
         </div>
 
-        {error && (
-          <div id="auth-modal-error" className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-600" role="alert">
-            ⚠️ {error}
-          </div>
-        )}
+        {error && <div id="auth-modal-error" className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-600" role="alert">⚠️ {error}</div>}
 
-        <form
-          onSubmit={(event) => { event.preventDefault(); if (!invalidRegistrationDomain) onSubmit(); }}
-          className="space-y-4"
-        >
+        <form onSubmit={(event) => { event.preventDefault(); submit(); }} className="space-y-4">
           <div>
             <label htmlFor="auth-email" className="mb-1 block text-xs font-bold uppercase text-gray-500">Электронная почта</label>
-            <input
-              ref={emailRef}
-              id="auth-email"
-              required
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => onEmailChange(event.target.value)}
-              placeholder="user@example.ru"
-              aria-invalid={invalidRegistrationDomain || undefined}
-              aria-describedby={mode === 'register' ? 'registration-domain-hint' : undefined}
-              className={`w-full rounded-lg border-2 p-3 transition focus:outline-none ${invalidRegistrationDomain ? 'border-rose-300 bg-rose-50 focus:border-rose-500' : 'border-gray-200 focus:border-indigo-500'}`}
-            />
+            <input ref={emailRef} id="auth-email" required type="email" autoComplete="email" value={email} onChange={(event) => onEmailChange(event.target.value)} placeholder="user@example.ru" aria-invalid={invalidRegistrationDomain || undefined} aria-describedby={mode === 'register' ? 'registration-domain-hint' : undefined} className={`w-full rounded-lg border-2 p-3 transition focus:outline-none ${invalidRegistrationDomain ? 'border-rose-300 bg-rose-50 focus:border-rose-500' : 'border-gray-200 focus:border-indigo-500'}`} />
             {mode === 'register' && <p id="registration-domain-hint" className={`mt-2 text-xs font-bold leading-relaxed ${invalidRegistrationDomain ? 'text-rose-600' : 'text-gray-500'}`}>Для регистрации используйте адрес в зоне <b>.ru</b> или <b>.рф</b>. Ограничение связано с требованиями к хранению и обработке данных пользователей в России.</p>}
           </div>
           <div>
             <label htmlFor="auth-password" className="mb-1 block text-xs font-bold uppercase text-gray-500">Пароль</label>
-            <input
-              id="auth-password"
-              required
-              type="password"
-              minLength={mode === 'register' ? 8 : undefined}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              value={password}
-              onChange={(event) => onPasswordChange(event.target.value)}
-              placeholder={mode === 'login' ? 'ваш пароль' : 'минимум 8 символов'}
-              className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none"
-            />
+            <input id="auth-password" required type="password" minLength={mode === 'register' ? 8 : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => onPasswordChange(event.target.value)} placeholder={mode === 'login' ? 'ваш пароль' : 'минимум 8 символов'} className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none" />
           </div>
-          <button type="submit" disabled={isLoading || invalidRegistrationDomain} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 p-3 font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">{isLoading && <LoaderIcon />}{mode === 'login' ? 'Войти' : 'Создать аккаунт'}</button>
+
+          {mode === 'register' && (
+            <fieldset className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
+              <legend className="px-1 text-xs font-black uppercase tracking-wider text-indigo-700">Согласия</legend>
+              <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-5 text-slate-700">
+                <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <span>Я принимаю Пользовательское соглашение.</span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-5 text-slate-700">
+                <input type="checkbox" checked={personalDataAccepted} onChange={(event) => setPersonalDataAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <span>Я даю согласие на обработку моих персональных данных в соответствии с Согласием на обработку персональных данных.</span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-5 text-slate-700">
+                <input type="checkbox" checked={marketingEmailsAccepted} onChange={(event) => setMarketingEmailsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <span>Я согласен получать новости, специальные предложения и рекламные сообщения AnnWord по электронной почте.</span>
+              </label>
+              <p className="text-xs font-semibold leading-5 text-slate-500">Первые два согласия обязательны для создания аккаунта. Согласие на рекламные сообщения является добровольным.</p>
+            </fieldset>
+          )}
+
+          <button type="submit" disabled={isLoading || invalidRegistrationDomain || requiredConsentsMissing} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 p-3 font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">{isLoading && <LoaderIcon />}{mode === 'login' ? 'Войти' : 'Создать аккаунт'}</button>
         </form>
-        <button type="button" disabled={isLoading} onClick={onYandexLogin} className="mt-3 w-full rounded-xl border-2 border-indigo-100 bg-white p-3 font-bold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-wait disabled:opacity-70">Войти через Яндекс</button>
+        {mode === 'login' && <button type="button" disabled={isLoading} onClick={onYandexLogin} className="mt-3 w-full rounded-xl border-2 border-indigo-100 bg-white p-3 font-bold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-wait disabled:opacity-70">Войти через Яндекс</button>}
         <button type="button" disabled={isLoading} onClick={() => onModeChange(mode === 'login' ? 'register' : 'login')} className="mt-4 w-full text-sm font-bold text-indigo-600 hover:text-indigo-800">{mode === 'login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}</button>
       </div>
     </div>
