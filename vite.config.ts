@@ -113,8 +113,23 @@ const yandexSpaFallbackPlugin = () => ({
   },
 });
 
+const safeChunkName = (filename: string): string => filename
+  .replace(/\.(json|ts|tsx)$/i, '')
+  .replace(/^premium_/, '')
+  .replace(/[^a-z0-9]+/gi, '-')
+  .replace(/^-|-$/g, '')
+  .toLowerCase();
+
 const manualChunk = (id: string): string | undefined => {
   const normalized = id.replace(/\\/g, '/');
+  if (normalized.includes('/dictionaries/premium/')) {
+    return `dictionary-premium-${safeChunkName(path.basename(normalized))}`;
+  }
+  if (
+    normalized.endsWith('/dictionaries/englishBase.ts')
+    || normalized.endsWith('/dictionaries/mainEnglish.ts')
+    || normalized.endsWith('/dictionaries/english.ts')
+  ) return 'dictionary-general';
   if (!normalized.includes('/node_modules/')) return undefined;
   if (normalized.includes('/react/') || normalized.includes('/react-dom/') || normalized.includes('/scheduler/')) return 'vendor-react';
   if (normalized.includes('/@supabase/')) return 'vendor-supabase';
