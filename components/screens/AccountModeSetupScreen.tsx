@@ -23,6 +23,10 @@ const OPTIONS: Array<{ mode: AccountMode; imageSrc: string; title: string; tag: 
 
 const getModeFromCurrentPath = (): AccountMode | null => {
   if (typeof window === 'undefined') return null;
+  const audience = new URLSearchParams(window.location.search).get('audience');
+  if (audience === 'practice') return 'player';
+  if (audience === 'kids') return 'parent';
+  if (audience === 'teacher') return 'teacher';
   const path = window.location.pathname.replace(/\/+$/, '') || '/';
   if (path === '/practice') return 'player';
   if (path === '/kids') return 'parent';
