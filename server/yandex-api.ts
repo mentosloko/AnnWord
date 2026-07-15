@@ -7,6 +7,7 @@ import express, { type Request, type Response } from "express";
 import { checkDatabaseHealth, closeDatabasePool, query, transaction } from "./db";
 import { runtimeConfig } from "./config";
 import { ensureConsentSchema } from "./consentSchema";
+import { ensureWeeklyReportSchema } from "./weeklyReportSchema";
 import { createSessionToken, makeSessionPayload, writeSessionCookie, type BackendUser } from "./auth";
 import { appBack, completeYa } from "./ya";
 import { authRouter } from "./routes/authRoutes";
@@ -19,6 +20,7 @@ import { analyticsRouter } from "./routes/analyticsRoutes";
 import { gameEventRouter } from "./routes/gameEventRoutes";
 import { migrationRouter } from "./routes/migrationRoutes";
 import { migrationSchemaRouter } from "./routes/migrationSchemaRoutes";
+import { weeklyReportRouter } from "./routes/weeklyReportRoutes";
 
 dotenv.config();
 
@@ -166,6 +168,7 @@ app.get("/api/runtime-config", (_req: Request, res: Response) => {
     hasYandexOAuth: Boolean(runtimeConfig.yandexClientId && runtimeConfig.yandexClientSecret),
     hasProdamus: Boolean(runtimeConfig.prodamusSecret),
     hasObjectStorage: Boolean(runtimeConfig.s3Endpoint && runtimeConfig.s3FrontendBucket && runtimeConfig.s3AssetsBucket),
+    hasWeeklyReports: Boolean(process.env.WEEKLY_REPORT_FROM_EMAIL && process.env.WEEKLY_REPORT_CRON_SECRET),
   });
 });
 
@@ -222,6 +225,7 @@ app.use("/api/mentor", mentorRouter);
 app.use("/api/daily-quest", dailyQuestRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/game-events", gameEventRouter);
+app.use("/api/reports/weekly", weeklyReportRouter);
 app.use("/api/admin/migration", migrationSchemaRouter);
 app.use("/api/admin/migration", migrationRouter);
 
@@ -242,12 +246,13 @@ if (fs.existsSync(distDir)) {
 async function startServer(): Promise<void> {
   try {
     await ensureConsentSchema();
-    console.log("Consent schema is ready.");
+    await ensureWeeklyReportSchema();
+    console.log("Runtime schemas are ready.");
     server = app.listen(runtimeConfig.port, "0.0.0.0", () => {
       console.log(`AnnWord API listening on 0.0.0.0:${runtimeConfig.port}`);
     });
   } catch (error) {
-    console.error("AnnWord API startup failed while preparing the consent schema", error);
+    console.error("AnnWord API startup failed while preparing runtime schemas", error);
     await closeDatabasePool().catch(() => undefined);
     process.exit(1);
   }
