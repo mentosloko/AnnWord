@@ -115,13 +115,10 @@ const yandexSpaFallbackPlugin = () => ({
 
 const manualChunk = (id: string): string | undefined => {
   const normalized = id.replace(/\\/g, '/');
-  if (normalized.includes('/dictionaries/')) return 'dictionaries';
   if (!normalized.includes('/node_modules/')) return undefined;
   if (normalized.includes('/react/') || normalized.includes('/react-dom/') || normalized.includes('/scheduler/')) return 'vendor-react';
-  if (normalized.includes('/motion/')) return 'vendor-motion';
   if (normalized.includes('/@supabase/')) return 'vendor-supabase';
-  if (normalized.includes('/firebase/')) return 'vendor-firebase';
-  return 'vendor';
+  return undefined;
 };
 
 export default defineConfig(({ mode }) => {
