@@ -17,11 +17,13 @@ import { dailyQuestService } from './services/dailyQuestService';
 import { premiumDictionaryService, PremiumDictionaryDraft } from './services/premiumDictionaryService';
 import { ChildSetupResult, familyAccountService } from './services/familyAccountService';
 import { getDefaultPremiumDictionaryId } from './services/premiumDictionaryCatalog';
-import { ClientEntryPath, getEntryPathFromPathname, getEntryPathUrl, getInitialEntryPath } from './services/clientEntryPath';
+import { ClientEntryPath } from './services/clientEntryPath';
+import { getClientLocationFromPathname, getClientRouteUrl, getInitialClientLocation } from './services/clientRoute';
 import { gameEventLedgerService } from './services/gameEventLedgerService';
 
 const LENGTH_AGNOSTIC_MODES = new Set<PlayableModeRoute>(['anagrams', 'translation', 'sprint', 'memory', 'letter_square']);
 const PAYMENT_ORDER_STORAGE_KEY = 'annword_pending_payment_order_id';
+const PENDING_ROUTE_STORAGE_KEY = 'annword_pending_route_v1';
 const isLengthAgnosticMode = (mode: PlayableModeRoute): boolean => LENGTH_AGNOSTIC_MODES.has(mode);
 const toAnalyticsGameType = (mode: PlayableModeRoute): GameRewardType => mode === 'game' ? 'wordle' : mode === 'anagrams' ? 'anagram' : mode === 'letter_square' ? 'letterSquare' : mode;
 const toWordLedgerMode = (route: ViewState): string => route === 'game' ? 'wordle' : route === 'anagrams' ? 'anagram' : route === 'letter_square' ? 'letterSquare' : route;
@@ -100,10 +102,22 @@ const addPracticeWordToStats = (stats: UserStats, word: string, result: WordPrac
 const hasInitialOAuthCode = (): boolean => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('oauth_code');
 const rememberPaymentOrder = (orderId: string | null): void => { if (!orderId || typeof window === 'undefined') return; try { window.localStorage.setItem(PAYMENT_ORDER_STORAGE_KEY, orderId); } catch { /* ignore */ } };
 const paymentReturnStatus = (value: string | null): 'success' | 'pending' | 'error' | 'fail' | null => value === 'success' || value === 'pending' || value === 'error' || value === 'fail' ? value : null;
+const rememberPendingRoute = (route: ViewState): void => { if (typeof window === 'undefined' || route === 'landing') return; try { window.sessionStorage.setItem(PENDING_ROUTE_STORAGE_KEY, route); } catch { /* ignore */ } };
+const consumePendingRoute = (): ViewState | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const value = window.sessionStorage.getItem(PENDING_ROUTE_STORAGE_KEY) as ViewState | null;
+    if (value) window.sessionStorage.removeItem(PENDING_ROUTE_STORAGE_KEY);
+    return value;
+  } catch { return null; }
+};
 
 const AppV2: React.FC = () => {
-  const [route, setRouteState] = useState<ViewState>('landing');
-  const [entryPath, setEntryPathState] = useState<ClientEntryPath>(() => getInitialEntryPath());
+  const [initialLocation] = useState(() => getInitialClientLocation());
+  const [route, setRouteState] = useState<ViewState>(initialLocation.route);
+  const [entryPath, setEntryPathState] = useState<ClientEntryPath>(initialLocation.entryPath);
+  const routeRef = useRef<ViewState>(initialLocation.route);
+  const entryPathRef = useRef<ClientEntryPath>(initialLocation.entryPath);
   const [selectedPlayMode, setSelectedPlayMode] = useState<PlayableModeRoute>('game');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
@@ -124,55 +138,89 @@ const AppV2: React.FC = () => {
   const canUseDailyQuest = isAuthenticated && (isPractice || (isKids && userProfile.pet.characterOnboarded));
   const hasKidsProfileShell = Boolean(userProfile.childDisplayName || userProfile.childShareCode || userProfile.pet.characterOnboarded);
 
-  useEffect(() => {
-    const onPopState = () => setEntryPathState(getEntryPathFromPathname(window.location.pathname));
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
+  const writeRouteUrl = useCallback((nextRoute: ViewState, nextEntryPath: ClientEntryPath, replace = false) => {
+    if (typeof window === 'undefined') return;
+    const nextUrl = getClientRouteUrl(nextRoute, nextEntryPath);
+    if (window.location.pathname === nextUrl && !window.location.search) return;
+    window.history[replace ? 'replaceState' : 'pushState']({}, '', nextUrl);
   }, []);
-  const setEntryPath = useCallback((nextEntryPath: ClientEntryPath) => {
-    setEntryPathState(nextEntryPath);
-    if (typeof window !== 'undefined') {
-      const nextUrl = getEntryPathUrl(nextEntryPath);
-      if (window.location.pathname !== nextUrl) window.history.pushState({}, '', nextUrl);
-    }
-  }, []);
-  useEffect(() => { wordReviewStatsRef.current = userProfile.stats; }, [userProfile.stats]);
-  const setRoute = useCallback((nextRoute: ViewState) => setRouteState(previousRoute => {
+
+  const navigateRoute = useCallback((nextRoute: ViewState, replace = false) => {
+    const previousRoute = routeRef.current;
+    routeRef.current = nextRoute;
+    setRouteState(nextRoute);
+    writeRouteUrl(nextRoute, entryPathRef.current, replace);
     if (previousRoute !== nextRoute) {
       analyticsService.trackEvent({ userId: currentUserId, eventType: 'navigation', eventName: 'route_changed', route: nextRoute, payload: { previousRoute, nextRoute } });
       if (typeof window !== 'undefined') window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
     }
-    return nextRoute;
-  }), [currentUserId]);
+  }, [currentUserId, writeRouteUrl]);
+  const setRoute = useCallback((nextRoute: ViewState) => navigateRoute(nextRoute, false), [navigateRoute]);
+  const replaceRoute = useCallback((nextRoute: ViewState) => navigateRoute(nextRoute, true), [navigateRoute]);
+
+  const setEntryPath = useCallback((nextEntryPath: ClientEntryPath) => {
+    entryPathRef.current = nextEntryPath;
+    setEntryPathState(nextEntryPath);
+    if (routeRef.current === 'landing') writeRouteUrl('landing', nextEntryPath, false);
+  }, [writeRouteUrl]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      const next = getClientLocationFromPathname(window.location.pathname);
+      routeRef.current = next.route;
+      entryPathRef.current = next.entryPath;
+      setRouteState(next.route);
+      setEntryPathState(next.entryPath);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  useEffect(() => { wordReviewStatsRef.current = userProfile.stats; }, [userProfile.stats]);
   const goRoot = useCallback(() => { setEntryPath('home'); setRoute('landing'); }, [setEntryPath, setRoute]);
   const openDictionaryArea = useCallback(() => setRoute(isAdmin || isTeacher || isKids ? 'dictionary_studio' : 'dictionary_settings'), [isAdmin, isKids, isTeacher, setRoute]);
   const setDictionarySource = useCallback((source: DictionarySource) => setSettings(previous => ({ ...previous, dictionarySource: source, useCustomDictionary: source === 'custom' })), [setSettings]);
   const dictionaryUpload = useDictionaryUpload({ updateDictionary: profileEconomy.updateDictionary, setDictionarySource });
+
   useEffect(() => { if (isAuthenticated) setShowLoginModal(false); }, [isAuthenticated]);
   useEffect(() => { if (bootstrapStatus === 'ready' && isKids) preloadAppAssetsForProfile(userProfile); }, [bootstrapStatus, isKids, userProfile.pet.type, userProfile.pet.characterOnboarded]);
   useEffect(() => {
+    if (bootstrapStatus !== 'ready') return;
+    if (!isAuthenticated && routeRef.current !== 'landing') {
+      rememberPendingRoute(routeRef.current);
+      entryPathRef.current = 'home';
+      setEntryPathState('home');
+      replaceRoute('landing');
+      return;
+    }
+    if (isAuthenticated && (userProfile.accountMode || userProfile.role === 'admin') && routeRef.current === 'landing') {
+      const pending = consumePendingRoute();
+      if (pending && pending !== 'landing') setRoute(pending);
+    }
+  }, [bootstrapStatus, isAuthenticated, replaceRoute, setRoute, userProfile.accountMode, userProfile.role]);
+  useEffect(() => {
     if (bootstrapStatus !== 'ready' || !isAuthenticated) return;
     if (userProfile.role !== 'admin' && !userProfile.accountMode) {
-      if (route !== 'account_mode_setup') setRoute('account_mode_setup');
+      if (route !== 'account_mode_setup') replaceRoute('account_mode_setup');
       return;
     }
     if (isKids) {
       if (!hasKidsProfileShell) {
-        if (route !== 'family_setup') setRoute('family_setup');
+        if (route !== 'family_setup') replaceRoute('family_setup');
         return;
       }
       if (!userProfile.pet.characterOnboarded) {
-        if (route !== 'character_onboarding' && route !== 'premium' && route !== 'premium_success') setRoute('character_onboarding');
+        if (route !== 'character_onboarding' && route !== 'premium' && route !== 'premium_success') replaceRoute('character_onboarding');
         return;
       }
     }
     if (isTeacher) {
-      if (route !== 'landing' && route !== 'adult_room' && route !== 'dictionary_studio' && route !== 'profile') setRoute('adult_room');
+      if (route !== 'landing' && route !== 'adult_room' && route !== 'dictionary_studio' && route !== 'profile') replaceRoute('adult_room');
       return;
     }
     if (entryPath === 'home' && route === 'landing') return;
-    if (isPractice && (route === 'account_mode_setup' || route === 'family_setup' || route === 'character_onboarding')) setRoute('landing');
-  }, [bootstrapStatus, entryPath, hasKidsProfileShell, isAuthenticated, isKids, isPractice, isTeacher, route, setRoute, userProfile.accountMode, userProfile.pet.characterOnboarded, userProfile.role]);
+    if (isPractice && (route === 'account_mode_setup' || route === 'family_setup' || route === 'character_onboarding')) replaceRoute('landing');
+  }, [bootstrapStatus, entryPath, hasKidsProfileShell, isAuthenticated, isKids, isPractice, isTeacher, replaceRoute, route, userProfile.accountMode, userProfile.pet.characterOnboarded, userProfile.role]);
   useEffect(() => {
     if (bootstrapStatus !== 'ready' || !isAuthenticated || isTeacher) return;
     if (settings.dictionarySource === 'custom' && userProfile.customDictionaryEn.length === 0 && (userProfile.assignedWords || []).length === 0) {
@@ -186,9 +234,9 @@ const AppV2: React.FC = () => {
     if (!payment) return;
     const orderId = params.get('order_id') || params.get('orderId') || params.get('order_num');
     rememberPaymentOrder(orderId);
-    setRoute(payment === 'fail' || payment === 'error' ? 'premium' : 'premium_success');
-    window.history.replaceState({}, '', window.location.pathname || '/');
-  }, [bootstrapStatus, setRoute]);
+    replaceRoute(payment === 'fail' || payment === 'error' ? 'premium' : 'premium_success');
+  }, [bootstrapStatus, replaceRoute]);
+
   const loadDailyQuest = useCallback(async () => {
     if (bootstrapStatus !== 'ready' || !canUseDailyQuest) { setDailyQuest(null); return; }
     try { setDailyQuest(await dailyQuestService.getTodayQuest()); }
@@ -302,7 +350,7 @@ const AppV2: React.FC = () => {
   const startTrackedGame = useCallback((mode: PlayableModeRoute) => {
     analyticsService.trackEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_started', gameType: toAnalyticsGameType(mode), route: mode, payload: { wordLength: isLengthAgnosticMode(mode) ? 'any' : settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty, wordsAvailable: modeWords.length } });
   }, [currentUserId, modeWords.length, settings.dictionarySource, settings.difficulty, settings.wordLength]);
-  const canRenderWhileBootstrapping = bootstrapStatus === 'loading' && !blockGuestShellOnBootstrap && (entryPath === 'home' || entryPath === 'landing_mix' || Boolean(userProfile.accountMode) || userProfile.role === 'admin');
+  const canRenderWhileBootstrapping = bootstrapStatus === 'loading' && !blockGuestShellOnBootstrap && (route === 'landing' || Boolean(userProfile.accountMode) || userProfile.role === 'admin');
   if (bootstrapStatus === 'error') return <AuthBootstrapGate error={bootstrapError} onRetry={() => window.location.reload()} />;
   if (bootstrapStatus !== 'ready' && !canRenderWhileBootstrapping) return <AuthBootstrapGate mode="blocking" />;
   const shell = <AppShell route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} showLoginModal={showLoginModal} showRulesModal={showRulesModal} authMode={authMode} tempUsername={tempUsername} tempPassword={tempPassword} authError={authError} isAuthLoading={isAuthLoading} onHomeClick={goRoot} onLoginClick={openLogin} onLogoutClick={handleLogout} onProfileClick={() => setRoute('profile')} onShopClick={() => setRoute('shop')} onAdminClick={() => setRoute('admin')} onAdultRoomClick={() => setRoute('adult_room')} onDictionaryStudioClick={openDictionaryArea} onCloseLogin={() => setShowLoginModal(false)} onCloseRules={() => setShowRulesModal(false)} onAuthModeChange={handleAuthModeChange} onUsernameChange={updateEmail} onPasswordChange={updatePassword} onAuthSubmit={submitEmailAuth} onYandexLogin={loginWithYandex}><AppScreens route={route} entryPath={entryPath} selectedPlayMode={selectedPlayMode} userProfile={userProfile} isAuthenticated={isAuthenticated} dailyQuest={dailyQuest} dailyQuestReward={dailyQuestReward} onCloseDailyQuestReward={() => setDailyQuestReward(null)} settings={settings} modeWords={modeWords} activeDictionaryWordCount={activeDictionaryWordCount} classicGame={classicGame} dictionaryUpload={{ isUploadingDictionary: dictionaryUpload.isUploadingDictionary, error: dictionaryUpload.dictionaryUploadError, onFileUpload: dictionaryUpload.handleDictionaryFileUpload }} onRouteChange={setRoute} onEntryPathChange={setEntryPath} onSelectedPlayModeChange={setSelectedPlayMode} onSettingsChange={setSettings} onOpenLogin={openLogin} onOpenRegister={openRegister} onOpenRules={() => setShowRulesModal(true)} onBuy={handleBuy} onUseItem={handleUseItem} onUpdatePet={profileEconomy.updateCharacter} onSaveDictionary={handleSaveDictionary} onSelectAccountMode={handleSelectAccountMode} onCreateChild={handleCreateChild} onChildSetupComplete={handleChildSetupComplete} onGameReward={handleGameReward} onWordPractice={handleWordPractice} onCharacterOnboardingComplete={handleCharacterOnboardingComplete} onGameStarted={startTrackedGame} onTestUnlockPremium={handleTestUnlockPremium} onDictionaryPeek={chargeDictionaryPeek} /></AppShell>;
