@@ -6,6 +6,7 @@ import { GUEST_PROFILE } from '../constants/profileDefaults';
 import { DictionarySource, DifficultyLevel, GameSettings, UserProfile, WordLength } from '../types';
 import { profileCache } from '../services/profileCache';
 import { preserveEstablishedAccountAccess } from '../services/profileAccessState';
+import { legalConsentService } from '../services/legalConsentService';
 
 export type AuthMode = 'login' | 'register';
 export type AuthBootstrapStatus = 'loading' | 'ready' | 'error';
@@ -132,7 +133,33 @@ export const useAuthProfile = () => {
   useEffect(() => { if (isRestoringSession) return; writeStoredSettings(currentUser?.id || cachedUserId, settings); }, [cachedUserId, currentUser?.id, isRestoringSession, settings]);
   const openLoginMode = useCallback(() => { setAuthMode('login'); setAuthError(null); setTempPassword(''); }, []);
   const openRegisterMode = useCallback(() => { setAuthMode('register'); setAuthError(null); setTempPassword(''); }, []);
-  const submitEmailAuth = useCallback(async () => { if (!tempUsername.trim() || !tempPassword.trim()) { setAuthError('Заполните все поля'); return false; } setIsAuthLoading(true); setAuthError(null); let profileWillLoadFromAuthEvent = false; try { if (authMode === 'login') { await authService.signInWithEmail(tempUsername, tempPassword); profileWillLoadFromAuthEvent = true; } else { const result = await authService.signUpWithEmail(tempUsername, tempPassword); if (result.needsEmailConfirmation) setAuthError('На вашу электронную почту отправлено письмо для подтверждения. Подтвердите её перед входом.'); else profileWillLoadFromAuthEvent = true; } return true; } catch (error: unknown) { setAuthError(getAuthErrorMessage(error, 'Не удалось войти. Попробуйте ещё раз.')); return false; } finally { if (!profileWillLoadFromAuthEvent) setIsAuthLoading(false); } }, [authMode, tempPassword, tempUsername]);
+  const submitEmailAuth = useCallback(async () => {
+    if (!tempUsername.trim() || !tempPassword.trim()) { setAuthError('Заполните все поля'); return false; }
+    const registrationConsents = authMode === 'register' ? legalConsentService.consumeRegistrationConsents() : null;
+    if (authMode === 'register' && (!registrationConsents?.termsAccepted || !registrationConsents.personalDataAccepted)) {
+      setAuthError('Для регистрации необходимо принять пользовательское соглашение и дать согласие на обработку персональных данных.');
+      return false;
+    }
+    setIsAuthLoading(true);
+    setAuthError(null);
+    let profileWillLoadFromAuthEvent = false;
+    try {
+      if (authMode === 'login') {
+        await authService.signInWithEmail(tempUsername, tempPassword);
+        profileWillLoadFromAuthEvent = true;
+      } else {
+        const result = await authService.signUpWithEmail(tempUsername, tempPassword, registrationConsents!);
+        if (result.needsEmailConfirmation) setAuthError('На вашу электронную почту отправлено письмо для подтверждения. Подтвердите её перед входом.');
+        else profileWillLoadFromAuthEvent = true;
+      }
+      return true;
+    } catch (error: unknown) {
+      setAuthError(getAuthErrorMessage(error, 'Не удалось войти. Попробуйте ещё раз.'));
+      return false;
+    } finally {
+      if (!profileWillLoadFromAuthEvent) setIsAuthLoading(false);
+    }
+  }, [authMode, tempPassword, tempUsername]);
   const loginWithYandex = useCallback(async () => { setIsAuthLoading(true); setAuthError(null); try { await authService.signInWithYandex(); } catch (error: unknown) { setAuthError(getAuthErrorMessage(error, 'Не удалось войти через Яндекс.')); setIsAuthLoading(false); } }, []);
   const logout = useCallback(async () => { setIsAuthLoading(true); try { await authService.signOut(); } finally { setIsAuthLoading(false); resetToGuest(); } }, [resetToGuest]);
   return { bootstrapStatus, bootstrapError, isRestoringSession, settings, setSettings, userProfile, setUserProfile, currentUser, cachedUserId, isAuthenticated: Boolean(currentUser) || Boolean(cachedUserId), authMode, setAuthMode, tempUsername, setTempUsername, tempPassword, setTempPassword, authError, isAuthLoading, setAuthError, openLoginMode, openRegisterMode, submitEmailAuth, loginWithYandex, logout };

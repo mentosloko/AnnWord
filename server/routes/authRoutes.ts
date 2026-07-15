@@ -25,6 +25,35 @@ const field = ["creden", "tial"].join("");
 const isLegacyMigratedPassword = (hash: string): boolean => hash.startsWith("migration-disabled-") || !hash.startsWith("scrypt$");
 const legacyPasswordMessage = "Этот аккаунт перенесён из старой системы, но старый пароль не был перенесён. Войдите через Яндекс с тем же email.";
 const nameFromEmail = (email: string): string => email.split("@")[0] || "Пользователь";
+const consentVersions = {
+  userAgreement: "2026-07-15",
+  personalData: "2026-07-15",
+  marketingEmail: "2026-07-15",
+} as const;
+
+type RegistrationConsents = {
+  termsAccepted: true;
+  personalDataAccepted: true;
+  marketingEmailsAccepted: boolean;
+};
+
+const registrationConsentError = (): Error & { code: string } => {
+  const error = new Error("Для регистрации необходимо принять пользовательское соглашение и дать согласие на обработку персональных данных.") as Error & { code: string };
+  error.code = "registration_consents_required";
+  return error;
+};
+
+const readRegistrationConsents = (value: unknown): RegistrationConsents => {
+  if (!value || typeof value !== "object") throw registrationConsentError();
+  const input = value as Record<string, unknown>;
+  if (input.termsAccepted !== true || input.personalDataAccepted !== true) throw registrationConsentError();
+  return {
+    termsAccepted: true,
+    personalDataAccepted: true,
+    marketingEmailsAccepted: input.marketingEmailsAccepted === true,
+  };
+};
+
 const writeSession = (res: { json: (body: unknown) => void; status: (code: number) => { json: (body: unknown) => void } }, user: BackendUser, status = 200): void => {
   const token = createSessionToken(user);
   writeSessionCookie(res as never, token);
@@ -36,6 +65,7 @@ authRouter.post("/email/account", async (req, res) => {
   try {
     const rawEmail = readText(body.email);
     assertRussianRegistrationEmail(rawEmail);
+    const consents = readRegistrationConsents(body.consents);
     const input = validateNewUserInput(rawEmail, readText(body[field]), readText(body.name));
     const user = await transaction(async (client) => {
       const id = newUserId();
@@ -46,6 +76,21 @@ authRouter.post("/email/account", async (req, res) => {
         [id, input.email, input.passwordHash, input.name],
       );
       await createProfileForUser(client, id, input.name);
+      await client.query(
+        `insert into user_consents (user_id, consent_type, granted, document_version, source, context)
+         values
+           ($1, 'user_agreement', true, $2, 'web', $5::jsonb),
+           ($1, 'personal_data', true, $3, 'web', $5::jsonb),
+           ($1, 'marketing_email', $4, $6, 'web', $5::jsonb)`,
+        [
+          id,
+          consentVersions.userAgreement,
+          consentVersions.personalData,
+          consents.marketingEmailsAccepted,
+          JSON.stringify({ channel: "email_registration" }),
+          consentVersions.marketingEmail,
+        ],
+      );
       const row = result.rows[0];
       return { id: row.id, email: row.email, name: row.full_name || undefined, passwordResetRequired: row.password_reset_required } satisfies BackendUser;
     });
@@ -54,7 +99,7 @@ authRouter.post("/email/account", async (req, res) => {
     const message = error instanceof Error ? error.message : "Account create failed";
     const code = typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code || "") : "";
     console.error("Email account create failed", error);
-    if (code === "russian_email_domain_required") {
+    if (code === "russian_email_domain_required" || code === "registration_consents_required") {
       res.status(400).json({ code, error: message });
       return;
     }

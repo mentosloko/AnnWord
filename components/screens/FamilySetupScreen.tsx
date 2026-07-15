@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ChildSetupResult } from '../../services/familyAccountService';
+import { legalConsentService } from '../../services/legalConsentService';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface FamilySetupScreenProps {
@@ -15,6 +16,7 @@ export const FamilySetupScreen: React.FC<FamilySetupScreenProps> = ({ onCreateCh
   const [childName, setChildName] = useState('');
   const [pin, setPin] = useState('');
   const [pinRepeat, setPinRepeat] = useState('');
+  const [legalRepresentativeConsent, setLegalRepresentativeConsent] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pinHint, setPinHint] = useState<string | null>(null);
@@ -28,8 +30,9 @@ export const FamilySetupScreen: React.FC<FamilySetupScreenProps> = ({ onCreateCh
     if (normalizedName.length > 40) return 'Имя ребёнка должно быть не длиннее 40 символов.';
     if (!/^\d{4}$/.test(normalizedPin)) return 'PIN должен состоять из 4 цифр.';
     if (normalizedPin !== normalizedPinRepeat) return 'PIN и повтор PIN не совпадают.';
+    if (!legalRepresentativeConsent) return 'Подтвердите согласие законного представителя на обработку данных ребёнка.';
     return null;
-  }, [normalizedName, normalizedPin, normalizedPinRepeat]);
+  }, [legalRepresentativeConsent, normalizedName, normalizedPin, normalizedPinRepeat]);
 
   const handlePinChange = (value: string, setter: (value: string) => void) => {
     const next = onlyDigits(value);
@@ -43,6 +46,7 @@ export const FamilySetupScreen: React.FC<FamilySetupScreenProps> = ({ onCreateCh
     if (validationError) { setError(validationError); return; }
     setIsSaving(true);
     setError(null);
+    legalConsentService.setChildConsent(legalRepresentativeConsent);
     try {
       const result = await onCreateChild(normalizedName, normalizedPin);
       onComplete(result);
@@ -99,10 +103,15 @@ export const FamilySetupScreen: React.FC<FamilySetupScreenProps> = ({ onCreateCh
             </section>
           </div>
 
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border-2 border-indigo-100 bg-white px-4 py-4 text-sm font-bold leading-6 text-slate-700">
+            <input type="checkbox" checked={legalRepresentativeConsent} onChange={event => { setLegalRepresentativeConsent(event.target.checked); setError(null); }} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+            <span>Я подтверждаю, что являюсь родителем или иным законным представителем ребёнка, и даю согласие на обработку его персональных данных.</span>
+          </label>
+
           {pinHint && <div id="pin-format-hint" role="status" aria-live="polite" className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{pinHint}</div>}
           {error && <div id="family-setup-error" role="alert" aria-live="assertive" className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</div>}
 
-          <button type="submit" disabled={isSaving} className="rounded-2xl bg-indigo-600 px-5 py-4 text-base font-black text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
+          <button type="submit" disabled={isSaving || !legalRepresentativeConsent} className="rounded-2xl bg-indigo-600 px-5 py-4 text-base font-black text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
             {isSaving ? 'Создаём профиль...' : 'Продолжить к выбору питомца'}
           </button>
         </form>

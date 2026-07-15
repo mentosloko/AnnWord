@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppHeader } from './layout/AppHeader';
+import { LegalFooter } from './layout/LegalFooter';
 import { AppModals } from './AppModals';
 import { UserProfile, ViewState } from '../types';
 
@@ -38,7 +39,7 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
   const isGameRoute = GAME_ROUTES.includes(route);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
       {!isGameRoute && (
         <AppHeader
           route={route}
@@ -54,7 +55,8 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
           onDictionaryStudioClick={onDictionaryStudioClick}
         />
       )}
-      {children}
+      <div className="flex-1">{children}</div>
+      {!isGameRoute && <LegalFooter />}
       <AppModals
         showLoginModal={showLoginModal}
         showRulesModal={showRulesModal}
