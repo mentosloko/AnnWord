@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import { AccountMode } from '../types';
 import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
+import { legalConsentService } from './legalConsentService';
 
 export interface ChildSetupResult {
   childName: string;
@@ -104,6 +105,11 @@ export const familyAccountService = {
   async createChild(childName: string, pin: string): Promise<ChildSetupResult> {
     const normalizedName = validateChildName(childName);
     const normalizedPin = validateParentPin(pin);
+    const consent = legalConsentService.consumeChildConsent();
+
+    if (!consent?.legalRepresentativeConfirmed || !consent.childPersonalDataAccepted) {
+      throw new Error('Необходимо подтвердить полномочия законного представителя и согласие на обработку данных ребёнка.');
+    }
 
     if (isBackendApiConfigured) {
       const data = await backendApiRequest<ChildRpcResponse>('/api/family/child', {
@@ -111,6 +117,7 @@ export const familyAccountService = {
         body: {
           childName: normalizedName,
           accessCode: normalizedPin,
+          consent,
         },
       });
       return normalizeChildSetupResult(data);
