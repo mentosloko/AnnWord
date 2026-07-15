@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { familyAccountService } from '../../services/familyAccountService';
 import { mentorRoomService } from '../../services/mentorRoomService';
 import { isPremiumActive, formatPremiumExpiresAt } from '../../services/premiumAccess';
-import { getFreeKidsDictionaryEntries } from '../../services/kidsDictionaryCatalog';
 import { getRecentFixedWords, getWordLearningSummary } from '../../services/wordLearningStats';
 import { ManagedLearner, UserProfile, WordPerformance } from '../../types';
+import { WeeklyReportSettingsCard } from '../WeeklyReportSettingsCard';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface Props { userProfile: UserProfile; onBackHome: () => void; onOpenDictionaryStudio: () => void; }
@@ -14,7 +14,6 @@ const learned = (word: WordPerformance) => word.correct > 0 && accuracy(word) >=
 const byMistakes = (a: WordPerformance, b: WordPerformance) => b.mistakes - a.mistakes || attempts(b) - attempts(a) || a.word.localeCompare(b.word);
 const byFrequency = (a: WordPerformance, b: WordPerformance) => attempts(b) - attempts(a) || b.mistakes - a.mistakes || a.word.localeCompare(b.word);
 const getEncounteredWords = (learner?: ManagedLearner): WordPerformance[] => Object.values(learner?.stats.wordPerformance ?? {}).filter(word => attempts(word) > 0).sort(byFrequency);
-const getActiveDictionaryCount = (learner: ManagedLearner | undefined, profile: UserProfile, isParent: boolean): number => learner?.assignedWords.length || profile.customDictionaryEn.length || (isParent ? getFreeKidsDictionaryEntries().length : 0);
 const Metric = ({ label, value }: { label: string; value: number | string }) => <div className="rounded-2xl bg-white p-4 shadow-sm"><div className="text-xs font-black text-indigo-400">{label}</div><div className="text-3xl font-black text-indigo-950">{value}</div></div>;
 const EmptyCard = ({ children }: { children: React.ReactNode }) => <div className="rounded-2xl bg-indigo-50 p-3 text-sm font-bold text-indigo-700">{children}</div>;
 
@@ -39,7 +38,6 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
   const errorWords = useMemo(() => encounteredWords.filter(word => word.mistakes > 0).sort(byMistakes), [encounteredWords]);
   const learning = useMemo(() => getWordLearningSummary(learner?.stats || { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} }), [learner]);
   const recentFixed = useMemo(() => getRecentFixedWords(learner?.stats || { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} }, 10), [learner]);
-  const activeDictionaryCount = getActiveDictionaryCount(learner, userProfile, isParent && !isTeacher);
   const normalizedCode = code.trim().toUpperCase();
 
   const load = async () => {
@@ -47,7 +45,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
     try {
       const result = await mentorRoomService.loadLearners();
       setLearners(result.learners);
-      setSelectedId(result.learners[0]?.id || '');
+      setSelectedId(current => result.learners.some(item => item.id === current) ? current : result.learners[0]?.id || '');
       if (!result.backendReady) setNotice('Данные кабинета пока недоступны.');
     } catch (error: unknown) {
       setNotice(error instanceof Error ? error.message : 'Не удалось загрузить данные.');
@@ -55,6 +53,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
       setBusy(false);
     }
   };
+
   useEffect(() => { if (unlocked || isTeacher) void load(); }, [unlocked, isTeacher]);
 
   const unlock = async () => {
@@ -76,6 +75,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
       setBusy(false);
     }
   };
+
   const connect = async () => {
     setNotice(null);
     setCodeError(null);
@@ -92,8 +92,30 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
       setBusy(false);
     }
   };
-  const assign = async () => { if (!learner || !collectionId) return; setBusy(true); try { await mentorRoomService.assignCollection(learner.id, collectionId); setNotice('Словарь назначен ученику.'); await load(); } catch (error: unknown) { setNotice(error instanceof Error ? error.message : 'Не удалось назначить словарь.'); } finally { setBusy(false); } };
-  const copyChildCode = async (childCode: string) => { if (!premiumActive) { setNotice('Код преподавателя доступен в Kids Premium.'); return; } try { await navigator.clipboard.writeText(childCode); setNotice('Код скопирован. Передайте его преподавателю.'); } catch { setNotice('Не удалось скопировать код. Скопируйте его вручную.'); } };
+
+  const assign = async () => {
+    if (!learner || !collectionId) return;
+    setBusy(true);
+    try {
+      await mentorRoomService.assignCollection(learner.id, collectionId);
+      setNotice('Словарь назначен ученику.');
+      await load();
+    } catch (error: unknown) {
+      setNotice(error instanceof Error ? error.message : 'Не удалось назначить словарь.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copyChildCode = async (childCode: string) => {
+    if (!premiumActive) { setNotice('Код преподавателя доступен в Kids Premium.'); return; }
+    try {
+      await navigator.clipboard.writeText(childCode);
+      setNotice('Код скопирован. Передайте его преподавателю.');
+    } catch {
+      setNotice('Не удалось скопировать код. Скопируйте его вручную.');
+    }
+  };
 
   if (isParent && !isTeacher && !unlocked) return <ScreenContainer className="max-w-md pb-20">
     <button type="button" onClick={onBackHome} className="mb-5 rounded-xl border-2 border-indigo-100 px-4 py-2 font-bold text-indigo-700">← Назад</button>
@@ -114,13 +136,27 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
       <div className="text-center"><div className="text-xs font-black uppercase tracking-widest text-indigo-400">{isTeacher ? 'AnnWord Teacher · Ученики' : 'AnnWord Kids'}</div><h1 className="text-xl font-black text-indigo-950 sm:text-3xl">{isTeacher ? 'Ученики преподавателя' : 'Кабинет родителя'}</h1></div>
       {isTeacher || premiumActive ? <button type="button" onClick={onOpenDictionaryStudio} className="rounded-xl bg-indigo-600 px-4 py-2 font-black text-white">Открыть словари</button> : <button type="button" onClick={onOpenDictionaryStudio} className="rounded-xl bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">Словари · Premium</button>}
     </header>
+
     {!isTeacher && <section className={`mb-5 rounded-3xl border-2 p-4 ${premiumActive ? 'border-green-100 bg-green-50' : 'border-amber-100 bg-amber-50'}`}><div className={`text-xs font-black uppercase tracking-widest ${premiumActive ? 'text-green-600' : 'text-amber-600'}`}>{premiumActive ? 'Kids Premium активен' : 'Бесплатный Kids'}</div><p className="mt-1 text-sm font-bold text-gray-600">{premiumActive ? `Доступ открыт до: ${formatPremiumExpiresAt(userProfile.premiumExpiresAt)}.` : 'Игры, питомец, магазин и общий детский словарь доступны бесплатно. Код преподавателя, отчёты и расширенные словари открываются в Premium.'}</p></section>}
     {notice && <p role="status" aria-live="polite" className="mb-4 rounded-xl bg-indigo-50 p-3 text-sm font-bold text-indigo-700">{notice}</p>}
+
     {isTeacher && <section className="mb-5 rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black text-indigo-950">Подключить ученика по коду</h2><p className="mt-1 text-sm font-bold text-gray-500">Введите код, который родитель передал из своего кабинета.</p><div className="mt-3 flex flex-col gap-2 sm:flex-row"><input value={code} onChange={event => { setCode(event.target.value.toUpperCase()); if (codeError) setCodeError(null); }} placeholder="Код ребёнка" aria-label="Код ребёнка" aria-invalid={Boolean(codeError)} aria-describedby={codeError ? 'teacher-code-error' : undefined} name="childCode" className={`min-w-0 flex-1 rounded-xl border-2 px-3 py-2 font-black uppercase ${codeError ? 'border-rose-300 bg-rose-50 text-rose-900' : 'border-indigo-100'}`} /><button type="button" disabled={busy || !normalizedCode} onClick={() => void connect()} className="rounded-xl bg-indigo-600 px-4 py-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">Подключить</button></div>{codeError && <p id="teacher-code-error" role="alert" className="mt-3 rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700">{codeError}</p>}</section>}
 
     <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
-      <aside className="rounded-3xl bg-white p-4 shadow-sm"><h2 className="mb-3 text-xs font-black uppercase text-indigo-400">{isTeacher ? 'Ученики' : 'Ребёнок'}</h2>{busy && !learners.length ? <p>Загружаю...</p> : learners.length ? learners.map(item => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} aria-pressed={selectedId === item.id} className={`mb-2 w-full rounded-xl p-3 text-left font-black ${selectedId === item.id ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-950'}`}>{item.name}</button>) : <EmptyCard>{isTeacher ? 'Пока нет подключённых учеников.' : 'Профиль ребёнка не найден.'}</EmptyCard>}{!isTeacher && learner?.childShareCode && (premiumActive ? <div className="mt-4 rounded-xl bg-purple-50 p-3"><div className="text-xs font-black text-purple-500">КОД ДЛЯ ПРЕПОДАВАТЕЛЯ</div><div className="mt-2 text-center text-xl font-black tracking-widest text-purple-800">{learner.childShareCode}</div><p className="mt-2 text-xs font-bold text-purple-700">Передайте этот код учителю.</p><button type="button" onClick={() => void copyChildCode(learner.childShareCode || '')} className="mt-3 w-full rounded-xl bg-purple-600 px-3 py-2 text-sm font-black text-white">Скопировать код</button></div> : <div className="mt-4 rounded-xl bg-amber-50 p-3"><div className="text-xs font-black text-amber-600">Код преподавателя</div><p className="mt-2 text-sm font-bold text-amber-800">Доступен в Kids Premium.</p></div>)}{!isTeacher && <div className={`mt-4 rounded-xl p-3 ${premiumActive ? 'bg-indigo-50' : 'bg-gray-50'}`}><div className={`text-xs font-black uppercase ${premiumActive ? 'text-indigo-500' : 'text-gray-400'}`}>Отчёт на почту</div><p className="mt-2 text-sm font-bold text-gray-500">{premiumActive ? (userProfile.weeklyReportEmail || 'Email можно добавить в настройках отчётов.') : 'Еженедельные отчёты доступны в Premium.'}</p></div>}</aside>
-      {learner ? <main className="space-y-4"><div className="grid grid-cols-2 gap-3 md:grid-cols-4"><Metric label="ИГР" value={learner.stats.gamesPlayed} /><Metric label="ПОБЕД" value={learner.stats.gamesWon} /><Metric label="СЛОВ ВСТРЕТИЛОСЬ" value={encounteredWords.length} /><Metric label="ОШИБОЧНЫХ" value={errorWords.length} /></div><div className="grid grid-cols-2 gap-3 md:grid-cols-4"><Metric label="ВЫУЧЕНО" value={learnedWords.length} /><Metric label="АКТИВНЫЙ СЛОВАРЬ" value={activeDictionaryCount} /><Metric label="К ПОВТОРЕНИЮ" value={learning.activeReview.length} /><Metric label="ИСПРАВЛЕНО" value={learning.fixedAfterMistake.length} /></div>{isTeacher && <section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Назначить сохранённый словарь</h2><p className="mt-1 text-sm font-bold text-gray-500">Словарь появится у ребёнка, если у семьи активен Premium.</p><div className="mt-3 flex gap-2"><select value={collectionId} onChange={event => setCollectionId(event.target.value)} className="min-w-0 flex-1 rounded-xl border-2 border-indigo-100 p-2 font-bold"><option value="">Выберите подборку</option>{collections.map(item => <option key={item.id} value={item.id}>{item.title} · {item.words.length}</option>)}</select><button type="button" disabled={!collectionId || busy} onClick={() => void assign()} className="rounded-xl bg-indigo-600 px-4 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">Назначить</button></div>{!collections.length && <p className="mt-3 text-xs font-bold text-gray-500">Сначала создайте словарь в разделе «Словари».</p>}</section>}<section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Ошибки и исправления</h2><p className="mt-1 text-sm font-bold text-gray-500">Сложные слова и исправления по истории тренировок.</p><div className="mt-4 grid gap-3 md:grid-cols-2"><div className="rounded-2xl bg-rose-50 p-3"><div className="text-xs font-black uppercase text-rose-500">К повторению</div>{learning.activeReview.length ? learning.activeReview.slice(0, 8).map(item => <div key={item.word} className="mt-2 font-black text-rose-900">{item.word}</div>) : <p className="mt-2 text-sm font-bold text-rose-700">Нет активных повторений.</p>}</div><div className="rounded-2xl bg-green-50 p-3"><div className="text-xs font-black uppercase text-green-600">Недавно исправлено</div>{recentFixed.length ? recentFixed.map(item => <div key={item.word} className="mt-2 font-black text-green-900">{item.word}</div>) : <p className="mt-2 text-sm font-bold text-green-700">Пока нет исправленных слов.</p>}</div></div></section><section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Частые слова</h2>{encounteredWords.length ? <div className="mt-3 grid gap-2 sm:grid-cols-2">{encounteredWords.slice(0, 12).map(word => <div key={word.word} className="rounded-2xl bg-indigo-50 p-3"><div className="font-black text-indigo-950">{word.word}</div><div className="text-xs font-bold text-indigo-500">попыток: {attempts(word)} · точность: {accuracy(word)}% · ошибок: {word.mistakes}</div></div>)}</div> : <EmptyCard>После игр здесь появится статистика слов.</EmptyCard>}</section></main> : <main className="rounded-3xl bg-white p-6 shadow-sm"><EmptyCard>{isTeacher ? 'Подключите ученика по коду, чтобы видеть прогресс.' : 'Профиль ребёнка ещё не создан.'}</EmptyCard></main>}
+      <aside className="rounded-3xl bg-white p-4 shadow-sm">
+        <h2 className="mb-3 text-xs font-black uppercase text-indigo-400">{isTeacher ? 'Ученики' : 'Ребёнок'}</h2>
+        {busy && !learners.length ? <p>Загружаю...</p> : learners.length ? learners.map(item => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} aria-pressed={selectedId === item.id} className={`mb-2 w-full rounded-xl p-3 text-left font-black ${selectedId === item.id ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-950'}`}>{item.name}</button>) : <EmptyCard>{isTeacher ? 'Пока нет подключённых учеников.' : 'Профиль ребёнка не найден.'}</EmptyCard>}
+        {!isTeacher && learner?.childShareCode && (premiumActive ? <div className="mt-4 rounded-xl bg-purple-50 p-3"><div className="text-xs font-black text-purple-500">КОД ДЛЯ ПРЕПОДАВАТЕЛЯ</div><div className="mt-2 text-center text-xl font-black tracking-widest text-purple-800">{learner.childShareCode}</div><p className="mt-2 text-xs font-bold text-purple-700">Передайте этот код учителю.</p><button type="button" onClick={() => void copyChildCode(learner.childShareCode || '')} className="mt-3 w-full rounded-xl bg-purple-600 px-3 py-2 text-sm font-black text-white">Скопировать код</button></div> : <div className="mt-4 rounded-xl bg-amber-50 p-3"><div className="text-xs font-black text-amber-600">Код преподавателя</div><p className="mt-2 text-sm font-bold text-amber-800">Доступен в Kids Premium.</p></div>)}
+        {!isTeacher && <WeeklyReportSettingsCard userProfile={userProfile} premiumActive={premiumActive} />}
+      </aside>
+
+      {learner ? <main className="space-y-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4"><Metric label="ИГР" value={learner.stats.gamesPlayed} /><Metric label="ПОБЕД" value={learner.stats.gamesWon} /><Metric label="СЛОВ ВСТРЕТИЛОСЬ" value={encounteredWords.length} /><Metric label="ОШИБОЧНЫХ" value={errorWords.length} /></div>
+        <div className="grid grid-cols-3 gap-3"><Metric label="ВЫУЧЕНО" value={learnedWords.length} /><Metric label="К ПОВТОРЕНИЮ" value={learning.activeReview.length} /><Metric label="ИСПРАВЛЕНО" value={learning.fixedAfterMistake.length} /></div>
+        {isTeacher && <section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Назначить сохранённый словарь</h2><p className="mt-1 text-sm font-bold text-gray-500">Словарь появится у ребёнка, если у семьи активен Premium.</p><div className="mt-3 flex gap-2"><select value={collectionId} onChange={event => setCollectionId(event.target.value)} className="min-w-0 flex-1 rounded-xl border-2 border-indigo-100 p-2 font-bold"><option value="">Выберите подборку</option>{collections.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select><button type="button" disabled={!collectionId || busy} onClick={() => void assign()} className="rounded-xl bg-indigo-600 px-4 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">Назначить</button></div>{!collections.length && <p className="mt-3 text-xs font-bold text-gray-500">Сначала создайте словарь в разделе «Словари».</p>}</section>}
+        <section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Ошибки и исправления</h2><p className="mt-1 text-sm font-bold text-gray-500">Сложные слова и исправления по истории тренировок.</p><div className="mt-4 grid gap-3 md:grid-cols-2"><div className="rounded-2xl bg-rose-50 p-3"><div className="text-xs font-black uppercase text-rose-500">К повторению</div>{learning.activeReview.length ? learning.activeReview.slice(0, 8).map(item => <div key={item.word} className="mt-2 font-black text-rose-900">{item.word}</div>) : <p className="mt-2 text-sm font-bold text-rose-700">Нет активных повторений.</p>}</div><div className="rounded-2xl bg-green-50 p-3"><div className="text-xs font-black uppercase text-green-600">Недавно исправлено</div>{recentFixed.length ? recentFixed.map(item => <div key={item.word} className="mt-2 font-black text-green-900">{item.word}</div>) : <p className="mt-2 text-sm font-bold text-green-700">Пока нет исправленных слов.</p>}</div></div></section>
+        <section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Частые слова</h2>{encounteredWords.length ? <div className="mt-3 grid gap-2 sm:grid-cols-2">{encounteredWords.slice(0, 12).map(word => <div key={word.word} className="rounded-2xl bg-indigo-50 p-3"><div className="font-black text-indigo-950">{word.word}</div><div className="text-xs font-bold text-indigo-500">попыток: {attempts(word)} · точность: {accuracy(word)}% · ошибок: {word.mistakes}</div></div>)}</div> : <EmptyCard>После игр здесь появится статистика слов.</EmptyCard>}</section>
+      </main> : <main className="rounded-3xl bg-white p-6 shadow-sm"><EmptyCard>{isTeacher ? 'Подключите ученика по коду, чтобы видеть прогресс.' : 'Профиль ребёнка ещё не создан.'}</EmptyCard></main>}
     </div>
   </ScreenContainer>;
 };
