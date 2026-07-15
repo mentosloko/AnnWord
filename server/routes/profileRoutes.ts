@@ -1,7 +1,8 @@
 import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
-import { applyGameResult, getOrCreateProfile, incrementProfileCoins, syncProfileState, updateProfileDictionary, updateProfilePet, updateProfileStats, updateWeeklyReportEmail } from "../profileRepository";
+import { applyGameResult, getOrCreateProfile, incrementProfileCoins, syncProfileState, updateProfileDictionary, updateProfilePet, updateProfileStats } from "../profileRepository";
+import { updateWeeklyReportEmailPreference } from "../weeklyReportProfileRepository";
 import { listDictionaryCollections, saveDictionaryCollection } from "../dictionaryCollectionRepository";
 import { purchaseProfileItem } from "../purchaseRepository";
 import { assignedWordsRouter } from "./assignedWordsRoutes";
@@ -97,7 +98,7 @@ profileRouter.post("/purchase", async (req: AuthenticatedRequest, res) => {
 profileRouter.patch("/weekly-report-email", async (req: AuthenticatedRequest, res) => {
   try {
     const email = typeof req.body?.email === "string" ? req.body.email : "";
-    const profile = await updateWeeklyReportEmail(req.user!.id, email);
+    const profile = await updateWeeklyReportEmailPreference(req.user!.id, email);
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "weekly_email_update_failed", error: error instanceof Error ? error.message : "Weekly email update failed" });
