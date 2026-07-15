@@ -1,6 +1,7 @@
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
 import { BackendApiError, backendApiBaseUrl, backendApiRequest, isBackendApiConfigured, writeBackendAccessToken } from './backendApiClient';
+import type { RegistrationConsentSnapshot } from './legalConsentService';
 
 export interface AuthBootstrapResult {
   session: Session | null;
@@ -164,11 +165,11 @@ export const authService = {
     if (error) throw error;
   },
 
-  signUpWithEmail: async (email: string, password: string): Promise<{ needsEmailConfirmation: boolean }> => {
+  signUpWithEmail: async (email: string, password: string, consents: RegistrationConsentSnapshot): Promise<{ needsEmailConfirmation: boolean }> => {
     if (isBackendApiConfigured) {
       const payload = await withTransientRetry(() => backendApiRequest<BackendSessionPayload>('/api/auth/email/account', {
         method: 'POST',
-        body: { email, credential: password, name: email.split('@')[0] },
+        body: { email, credential: password, name: email.split('@')[0], consents },
       }));
       writeExplicitLogout(false);
       currentBackendAuth = toAuthBootstrap(payload);
@@ -179,7 +180,7 @@ export const authService = {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name: email.split('@')[0] } },
+      options: { data: { name: email.split('@')[0], legal_consents: consents } },
     });
     if (error) throw error;
     return { needsEmailConfirmation: Boolean(data.user && !data.session) };
