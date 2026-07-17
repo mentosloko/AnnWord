@@ -1,4 +1,4 @@
-name: Diagnose Postbox Easy DKIM creation
+name: Bootstrap Postbox Easy DKIM
 
 on:
   push:
@@ -15,18 +15,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  diagnose:
-    name: Create annword.ru with Easy DKIM
+  bootstrap:
+    name: Configure annword.ru Postbox
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 25
 
     steps:
-      - name: Mark diagnostic pending
+      - name: Mark Postbox bootstrap pending
         env:
           GH_TOKEN: ${{ github.token }}
           TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Postbox Easy DKIM",description:"Testing Postbox identity creation",target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Postbox Bootstrap",description:"Configuring Postbox IAM and Easy DKIM",target_url:process.env.TARGET_URL}))' > /tmp/status.json
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
@@ -44,12 +44,79 @@ jobs:
           curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
           echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
           printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > /tmp/yc-sa-key.json
-          "$HOME/yandex-cloud/bin/yc" config profile create annword-postbox-easy-dkim
+          "$HOME/yandex-cloud/bin/yc" config profile create annword-postbox-bootstrap
           "$HOME/yandex-cloud/bin/yc" config set service-account-key /tmp/yc-sa-key.json
           "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
           "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
+          "$HOME/yandex-cloud/bin/yc" dns zone list --format json > /tmp/dns-zones.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const zones = JSON.parse(fs.readFileSync('/tmp/dns-zones.json', 'utf8'));
+          const zone = zones.find(item => String(item.zone || '').replace(/\.$/, '').toLowerCase() === 'annword.ru');
+          if (!zone?.id) throw new Error('Public annword.ru DNS zone was not found in the deployment folder.');
+          fs.writeFileSync('/tmp/dns-zone-id', zone.id);
+          NODE
 
-      - name: Attempt Easy DKIM identity creation
+      - name: Grant minimal Postbox role to service accounts
+        continue-on-error: true
+        env:
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+          YC_RUNTIME_SERVICE_ACCOUNT_ID: ${{ secrets.YC_SERVICE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          YC="$HOME/yandex-cloud/bin/yc"
+          DEPLOY_SA_ID="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/yc-sa-key.json","utf8"));process.stdout.write(String(x.service_account_id||x.serviceAccountId||""));')"
+          RUNTIME_SA_ID="${YC_RUNTIME_SERVICE_ACCOUNT_ID:-$DEPLOY_SA_ID}"
+          if [ -z "$DEPLOY_SA_ID" ] || [ -z "$RUNTIME_SA_ID" ]; then
+            echo 'Could not resolve deployment or runtime service account ID.'
+            exit 1
+          fi
+
+          try_grant() {
+            local label="$1"
+            local account_id="$2"
+            set +e
+            local output
+            output="$($YC resource-manager folder add-access-binding \
+              --id "$YC_FOLDER_ID" \
+              --role postbox.editor \
+              --service-account-id "$account_id" 2>&1)"
+            local code=$?
+            set -e
+            printf '%s' "$code" > "/tmp/${label}-role-code"
+            printf '%s' "$output" > "/tmp/${label}-role-output"
+          }
+
+          try_grant deploy "$DEPLOY_SA_ID"
+          if [ "$RUNTIME_SA_ID" = "$DEPLOY_SA_ID" ]; then
+            cp /tmp/deploy-role-code /tmp/runtime-role-code
+            cp /tmp/deploy-role-output /tmp/runtime-role-output
+          else
+            try_grant runtime "$RUNTIME_SA_ID"
+          fi
+
+          DEPLOY_SA_ID="$DEPLOY_SA_ID" RUNTIME_SA_ID="$RUNTIME_SA_ID" node - <<'NODE'
+          const fs = require('fs');
+          const read = path => fs.existsSync(path) ? fs.readFileSync(path, 'utf8').trim() : '';
+          const clean = value => value.replace(/\s+/g, ' ').slice(0, 600);
+          const result = {
+            deployServiceAccountId: process.env.DEPLOY_SA_ID,
+            runtimeServiceAccountId: process.env.RUNTIME_SA_ID,
+            sameServiceAccount: process.env.DEPLOY_SA_ID === process.env.RUNTIME_SA_ID,
+            deployGrant: { code: Number(read('/tmp/deploy-role-code') || -1), message: clean(read('/tmp/deploy-role-output')) },
+            runtimeGrant: { code: Number(read('/tmp/runtime-role-code') || -1), message: clean(read('/tmp/runtime-role-output')) },
+          };
+          fs.writeFileSync('/tmp/postbox-iam-result.json', JSON.stringify(result, null, 2));
+          console.log(JSON.stringify({
+            sameServiceAccount: result.sameServiceAccount,
+            deployGrantCode: result.deployGrant.code,
+            runtimeGrantCode: result.runtimeGrant.code,
+          }));
+          if (result.deployGrant.code !== 0 || result.runtimeGrant.code !== 0) process.exit(1);
+          NODE
+          sleep 5
+
+      - name: Create or read Easy DKIM identity
         run: |
           set -euo pipefail
           YC="$HOME/yandex-cloud/bin/yc"
@@ -63,8 +130,12 @@ jobs:
 
           if [ "$GET_CODE" = "200" ]; then
             cp /tmp/identity-before.json /tmp/identity-after.json
-            echo 'Identity already exists; no create request was needed.'
+            printf '%s' 'existing' > /tmp/identity-source
             exit 0
+          fi
+          if [ "$GET_CODE" != "404" ]; then
+            cat /tmp/identity-before.json
+            exit 1
           fi
 
           printf '%s' '{"EmailIdentity":"annword.ru"}' > /tmp/create-request.json
@@ -76,33 +147,99 @@ jobs:
             'https://postbox.cloud.yandex.net/v2/email/identities')"
           printf '%s' "$CREATE_CODE" > /tmp/create-http-code
           echo "Easy DKIM create: HTTP $CREATE_CODE"
-          cat /tmp/create-response.json
+          if [ "$CREATE_CODE" != "200" ]; then
+            cat /tmp/create-response.json
+            exit 1
+          fi
+          printf '%s' 'created' > /tmp/identity-source
 
           AFTER_CODE="$(curl -sS -o /tmp/identity-after.json -w '%{http_code}' \
             -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
             "$IDENTITY_URL")"
           printf '%s' "$AFTER_CODE" > /tmp/after-http-code
-          echo "Identity lookup after create: HTTP $AFTER_CODE"
+          test "$AFTER_CODE" = "200"
 
-          if [ "$CREATE_CODE" != "200" ] || [ "$AFTER_CODE" != "200" ]; then
-            exit 1
-          fi
+      - name: Install Easy DKIM CNAME records
+        run: |
+          set -euo pipefail
+          ZONE_ID="$(cat /tmp/dns-zone-id)"
+          node - <<'NODE' > /tmp/easy-dkim-records.tsv
+          const fs = require('fs');
+          const identity = JSON.parse(fs.readFileSync('/tmp/identity-after.json', 'utf8'));
+          const dkim = identity.DkimAttributes || {};
+          const tokens = Array.isArray(dkim.Tokens) ? dkim.Tokens.filter(Boolean) : [];
+          const hostedZone = String(dkim.SigningHostedZone || identity.SigningHostedZone || '').replace(/^\.+|\.+$/g, '');
+          if (!tokens.length) throw new Error('Postbox identity did not return Easy DKIM tokens.');
+          if (!hostedZone) throw new Error('Postbox identity did not return SigningHostedZone for Easy DKIM.');
+          const rows = tokens.map(token => {
+            const selector = String(token).replace(/\.$/, '');
+            return `${selector}._domainkey.annword.ru.\t${selector}.${hostedZone}.`;
+          });
+          fs.writeFileSync('/tmp/easy-dkim-records.json', JSON.stringify({ tokenCount: tokens.length, hostedZone, names: rows.map(row => row.split('\t')[0]) }, null, 2));
+          process.stdout.write(rows.join('\n'));
+          NODE
 
-      - name: Upload sanitized API responses
+          while IFS=$'\t' read -r record_name record_target; do
+            [ -n "$record_name" ] || continue
+            "$HOME/yandex-cloud/bin/yc" dns zone replace-records --id "$ZONE_ID" \
+              --record "$record_name 300 CNAME $record_target"
+          done < /tmp/easy-dkim-records.tsv
+
+      - name: Wait for Postbox verification
+        run: |
+          set -euo pipefail
+          YC="$HOME/yandex-cloud/bin/yc"
+          IAM_TOKEN="$($YC iam create-token)"
+          IDENTITY_URL='https://postbox.cloud.yandex.net/v2/email/identities/annword.ru'
+          for attempt in $(seq 1 60); do
+            curl -fsS -H "X-YaCloud-SubjectToken: $IAM_TOKEN" "$IDENTITY_URL" -o /tmp/identity-status.json
+            STATUS="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-status.json","utf8"));process.stdout.write(String(x.VerificationStatus||x.DkimAttributes?.Status||""));')"
+            SENDING="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-status.json","utf8"));process.stdout.write(String(x.SendingEnabled??x.VerifiedForSendingStatus??false));')"
+            echo "Postbox verification attempt $attempt: status=${STATUS:-unknown} sending=$SENDING"
+            if [ "$STATUS" = "SUCCESS" ] && [ "$SENDING" = "true" ]; then
+              exit 0
+            fi
+            sleep 15
+          done
+          cat /tmp/identity-status.json
+          exit 1
+
+      - name: Verify live weekly-report preflight
+        env:
+          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+        run: |
+          set -euo pipefail
+          API_BASE="${YC_API_PUBLIC_URL%/}"
+          for attempt in $(seq 1 20); do
+            HTTP_CODE="$(curl -sS -o /tmp/live-weekly-status.json -w '%{http_code}' "$API_BASE/api/reports/weekly/status")"
+            cat /tmp/live-weekly-status.json
+            if [ "$HTTP_CODE" = "200" ] && node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/live-weekly-status.json","utf8"));process.exit(x.configured&&x.postboxIdentityVerified===true?0:1)'; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+
+      - name: Upload sanitized bootstrap result
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: annword-postbox-easy-dkim-diagnostic
+          name: annword-postbox-bootstrap-result
           path: |
+            /tmp/postbox-iam-result.json
             /tmp/identity-before.json
             /tmp/create-response.json
             /tmp/identity-after.json
+            /tmp/identity-status.json
+            /tmp/easy-dkim-records.json
+            /tmp/live-weekly-status.json
             /tmp/create-http-code
             /tmp/after-http-code
+            /tmp/identity-source
           if-no-files-found: ignore
           retention-days: 3
 
-      - name: Publish diagnostic status
+      - name: Publish Postbox bootstrap status
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -111,13 +248,13 @@ jobs:
         run: |
           if [ "$JOB_STATUS" = "success" ]; then
             STATE=success
-            DESCRIPTION='Postbox identity creation is available'
+            DESCRIPTION='annword.ru Postbox sender verified'
           else
             STATE=failure
-            DESCRIPTION='Postbox identity creation failed'
+            DESCRIPTION='Postbox IAM, identity or DKIM setup failed'
           fi
           export STATE DESCRIPTION
-          node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Yandex Postbox Easy DKIM",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Yandex Postbox Bootstrap",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/status.json
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
