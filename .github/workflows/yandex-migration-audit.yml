@@ -1,0 +1,53 @@
+name: Yandex migration gap audit
+
+on:
+  push:
+    branches:
+      - audit/yandex-migration-gap-scan
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Scan Supabase and Vercel migration gaps
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build source inventory and migration report
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/annword-audit
+          git ls-files > /tmp/annword-audit/tracked-files.txt
+
+          {
+            echo '# Direct Supabase references'
+            git grep -n -I -E 'supabase|SUPABASE|functions\.invoke|storage\.from|auth\.(getUser|signIn|signOut|onAuthStateChange)|\.rpc\(' -- '*.ts' '*.tsx' '*.js' '*.mjs' '*.sql' '*.yml' '*.yaml' '*.json' || true
+            echo
+            echo '# Vercel and hosting assumptions'
+            git grep -n -I -E 'vercel|VERCEL|\.vercel\.app|api/cron|cron|rewrites|redirects|serverless|edge function|Edge Function' -- '*.ts' '*.tsx' '*.js' '*.mjs' '*.sql' '*.yml' '*.yaml' '*.json' '*.md' || true
+            echo
+            echo '# Backend feature switches'
+            git grep -n -I -E 'isBackendApiConfigured|VITE_API|API_URL|YC_API|APP_URL|window\.location|location\.origin|localhost' -- '*.ts' '*.tsx' '*.js' '*.mjs' '*.yml' '*.yaml' '*.json' || true
+            echo
+            echo '# Environment variables'
+            git grep -n -I -E 'import\.meta\.env\.|process\.env\.' -- '*.ts' '*.tsx' '*.js' '*.mjs' || true
+            echo
+            echo '# Background jobs, webhooks, reports and payments'
+            git grep -n -I -E 'webhook|weekly|report|schedule|cron|prodamus|payment|email|mail|queue|retry' -- 'server/**' 'services/**' 'scripts/**' 'api/**' '.github/workflows/**' || true
+          } > /tmp/annword-audit/migration-reference-report.txt
+
+          git ls-files -z \
+            ':!public/assets/**' ':!assets/**' ':!**/*.webp' ':!**/*.png' ':!**/*.jpg' ':!**/*.jpeg' ':!**/*.gif' ':!**/*.ico' \
+            | tar --null -czf /tmp/annword-audit/annword-source.tar.gz --files-from=-
+
+      - name: Upload audit bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: yandex-migration-gap-audit
+          path: /tmp/annword-audit
+          retention-days: 3
