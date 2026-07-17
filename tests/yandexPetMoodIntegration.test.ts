@@ -38,4 +38,11 @@ describe('Yandex pet mood integration', () => {
     expect(decayBody).not.toContain('lastDailyActivityDate');
     expect(policy.slice(activityStart)).toContain('lastDailyActivityDate');
   });
+
+  it('does not leave the temporary production diagnostic endpoint in the application', () => {
+    const routes = read('server/routes/profileRoutes.ts');
+    expect(routes).not.toContain('internal-diagnostic');
+    expect(routes).not.toContain('x-annword-diagnostic-secret');
+    expect(routes).not.toContain('createHmac');
+  });
 });
