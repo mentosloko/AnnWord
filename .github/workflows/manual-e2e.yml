@@ -6,14 +6,14 @@ on:
       base_url:
         description: 'Base URL for E2E tests'
         required: false
-        default: 'https://ann-word-44xjpe5t4-mentosloko-1417s-projects.vercel.app'
+        default: 'https://annword.ru'
   push:
     paths:
       - '.github/workflows/manual-e2e.yml'
 
 jobs:
   e2e:
-    name: Playwright E2E against production-equivalent URL
+    name: Playwright E2E against Yandex production
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -30,7 +30,7 @@ jobs:
         run: |
           TARGET_URL="${{ github.event.inputs.base_url }}"
           if [ -z "$TARGET_URL" ]; then
-            TARGET_URL="https://ann-word-44xjpe5t4-mentosloko-1417s-projects.vercel.app"
+            TARGET_URL="https://annword.ru"
           fi
           echo "E2E_BASE_URL=$TARGET_URL" >> "$GITHUB_ENV"
           echo "Running E2E against $TARGET_URL"
