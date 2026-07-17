@@ -1,7 +1,21 @@
 import { Router } from 'express';
+import { inspectWeeklyReportRuntime } from '../weeklyReportRuntimeConfig';
 import { runWeeklyReports } from '../weeklyReportService';
 
 export const weeklyReportRouter = Router();
+
+weeklyReportRouter.get('/status', async (_req, res) => {
+  try {
+    const runtime = await inspectWeeklyReportRuntime();
+    res.status(runtime.configured ? 200 : 503).json({ status: runtime.configured ? 'ok' : 'error', ...runtime });
+  } catch (error) {
+    res.status(503).json({
+      status: 'error',
+      configured: false,
+      error: error instanceof Error ? error.message : 'Weekly report preflight failed',
+    });
+  }
+});
 
 weeklyReportRouter.post('/run', async (req, res) => {
   const expected = process.env.WEEKLY_REPORT_CRON_SECRET?.trim();

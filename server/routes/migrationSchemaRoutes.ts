@@ -3,6 +3,8 @@ import { transaction } from "../db";
 
 export const migrationSchemaRouter = Router();
 
+const MIGRATION_ENDPOINT_ENABLED = process.env.ANNWORD_ENABLE_SUPABASE_MIGRATION_ENDPOINT === "true";
+
 const ddlStatements = [
   `alter table public.app_users drop constraint if exists app_users_provider_check`,
   `alter table public.app_users add constraint app_users_provider_check check (provider in ('email', 'yandex', 'supabase'))`,
@@ -40,6 +42,7 @@ const ddlStatements = [
 ];
 
 function isAuthorized(req: Request): boolean {
+  if (!MIGRATION_ENDPOINT_ENABLED) return false;
   const secret = process.env.ANNWORD_MIGRATION_SECRET || "";
   const header = req.headers["x-annword-migration-secret"];
   return Boolean(secret) && typeof header === "string" && header === secret;

@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { getCustomWordsMissingTranslation, normalizeCustomDictionary } from './dictionaryEngine';
+import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
 
 export interface AdminDailyGameStat {
   day: string;
@@ -50,8 +51,42 @@ const parseCustomDictionary = (value: unknown): string[] => {
   return normalizeCustomDictionary(value.filter((word): word is string => typeof word === 'string'));
 };
 
+const normalizeSnapshot = (value: Partial<AdminAnalyticsSnapshot> | null | undefined): AdminAnalyticsSnapshot => ({
+  gameStats: Array.isArray(value?.gameStats) ? value!.gameStats.map(row => ({
+    day: String(row.day || ''),
+    game_type: row.game_type || null,
+    games_started: parseNumber(row.games_started),
+    games_finished: parseNumber(row.games_finished),
+    games_won: parseNumber(row.games_won),
+    unique_users: parseNumber(row.unique_users),
+  })) : [],
+  economyStats: Array.isArray(value?.economyStats) ? value!.economyStats.map(row => ({
+    day: String(row.day || ''),
+    coins_earned: parseNumber(row.coins_earned),
+    coins_spent: parseNumber(row.coins_spent),
+    purchases: parseNumber(row.purchases),
+    items_used: parseNumber(row.items_used),
+  })) : [],
+  eventSummary: Array.isArray(value?.eventSummary) ? value!.eventSummary.map(row => ({
+    event_type: String(row.event_type || ''),
+    event_name: String(row.event_name || ''),
+    count: parseNumber(row.count),
+  })) : [],
+  unsupportedDictionaryWords: Array.isArray(value?.unsupportedDictionaryWords)
+    ? value!.unsupportedDictionaryWords.map(row => ({
+        userId: String(row.userId || ''),
+        username: String(row.username || 'Без имени'),
+        words: Array.isArray(row.words) ? row.words.filter((word): word is string => typeof word === 'string') : [],
+      }))
+    : [],
+});
+
 export const adminAnalyticsService = {
   loadSnapshot: async (): Promise<AdminAnalyticsSnapshot> => {
+    if (isBackendApiConfigured) {
+      return normalizeSnapshot(await backendApiRequest<AdminAnalyticsSnapshot>('/api/analytics/admin'));
+    }
+
     const [gameStatsResult, economyStatsResult, eventSummaryResult, customDictionaryResult] = await Promise.all([
       supabase.from('admin_daily_game_stats').select('*').order('day', { ascending: false }).limit(30),
       supabase.from('admin_economy_stats').select('*').order('day', { ascending: false }).limit(30),
@@ -82,15 +117,11 @@ export const adminAnalyticsService = {
       .filter(row => row.words.length > 0)
       .sort((first, second) => first.username.localeCompare(second.username));
 
-    return {
-      gameStats: (gameStatsResult.data || []).map(row => ({
-        day: row.day, game_type: row.game_type, games_started: parseNumber(row.games_started), games_finished: parseNumber(row.games_finished), games_won: parseNumber(row.games_won), unique_users: parseNumber(row.unique_users),
-      })),
-      economyStats: (economyStatsResult.data || []).map(row => ({
-        day: row.day, coins_earned: parseNumber(row.coins_earned), coins_spent: parseNumber(row.coins_spent), purchases: parseNumber(row.purchases), items_used: parseNumber(row.items_used),
-      })),
+    return normalizeSnapshot({
+      gameStats: gameStatsResult.data || [],
+      economyStats: economyStatsResult.data || [],
       eventSummary: Array.from(summaryMap.values()).sort((a, b) => b.count - a.count),
       unsupportedDictionaryWords,
-    };
+    });
   },
 };

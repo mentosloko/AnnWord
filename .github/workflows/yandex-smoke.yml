@@ -8,7 +8,7 @@ on:
     types:
       - completed
     branches:
-      - infra/ru-cloud-migration
+      - main
 
 concurrency:
   group: yandex-runtime-smoke
@@ -18,7 +18,7 @@ jobs:
   smoke:
     name: Smoke Yandex frontend and API
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
@@ -31,47 +31,66 @@ jobs:
           API_URL="${YC_API_PUBLIC_URL%/}"
           FRONTEND_URL="${APP_URL%/}"
 
-          if [ -z "$API_URL" ]; then
-            echo "YC_API_PUBLIC_URL is not configured"
+          if [ -z "$API_URL" ] || [ -z "$FRONTEND_URL" ]; then
+            echo "YC_API_PUBLIC_URL or APP_URL is not configured"
             exit 1
           fi
 
           echo "Checking API health"
-          curl --fail-with-body -sS "$API_URL/api/health" | tee /tmp/annword-health.json
+          curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/health" | tee /tmp/annword-health.json
 
           echo "Checking DB health"
-          curl --fail-with-body -sS "$API_URL/api/health/db" | tee /tmp/annword-db-health.json
+          curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/health/db" | tee /tmp/annword-db-health.json
 
           echo "Checking runtime config"
-          curl --fail-with-body -sS "$API_URL/api/runtime-config" | tee /tmp/annword-runtime-config.json
+          curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/runtime-config" | tee /tmp/annword-runtime-config.json
+
+          echo "Checking weekly report runtime"
+          curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/reports/weekly/status" | tee /tmp/annword-weekly-status.json
 
           echo "Checking Prodamus notify URL probe"
           curl --fail-with-body -sS "$API_URL/api/payments/prodamus/notify" | grep -q "OK"
           curl --fail-with-body -sS -I "$API_URL/api/payments/prodamus/notify" | head -n 20
 
-          echo "Checking migration endpoint is closed"
-          MIGRATION_STATUS=$(curl -sS -o /tmp/annword-migration-response.json -w "%{http_code}" -X POST "$API_URL/api/admin/migration/supabase" -H 'Content-Type: application/json' --data '{"apply":false}')
-          if [ "$MIGRATION_STATUS" != "404" ]; then
-            echo "Migration endpoint is not closed; status=$MIGRATION_STATUS"
-            cat /tmp/annword-migration-response.json
-            exit 1
-          fi
+          echo "Checking protected endpoints"
+          PROFILE_STATUS=$(curl -sS -o /tmp/profile-response.json -w "%{http_code}" "$API_URL/api/profile/me")
+          ADMIN_STATUS=$(curl -sS -o /tmp/admin-response.json -w "%{http_code}" "$API_URL/api/analytics/admin")
+          WEEKLY_RUN_STATUS=$(curl -sS -o /tmp/weekly-run-response.json -w "%{http_code}" -X POST "$API_URL/api/reports/weekly/run" -H 'Content-Type: application/json' --data '{}')
+          test "$PROFILE_STATUS" = "401"
+          test "$ADMIN_STATUS" = "401"
+          test "$WEEKLY_RUN_STATUS" = "401"
+
+          echo "Checking all legacy migration endpoints are closed"
+          for PATH_SUFFIX in prepare supabase; do
+            MIGRATION_STATUS=$(curl -sS -o "/tmp/annword-migration-${PATH_SUFFIX}.json" -w "%{http_code}" -X POST "$API_URL/api/admin/migration/$PATH_SUFFIX" -H 'Content-Type: application/json' --data '{"apply":false}')
+            if [ "$MIGRATION_STATUS" != "404" ]; then
+              echo "Migration endpoint $PATH_SUFFIX is not closed; status=$MIGRATION_STATUS"
+              cat "/tmp/annword-migration-${PATH_SUFFIX}.json"
+              exit 1
+            fi
+          done
+
+          echo "Checking frontend root, SPA deep links and release marker"
+          for ROUTE in / /practice /kids /premium /setup; do
+            SAFE_ROUTE=$(printf '%s' "$ROUTE" | tr '/' '_' | tr -cd '[:alnum:]_')
+            BODY_FILE="/tmp/annword-page-${SAFE_ROUTE:-root}.html"
+            curl --fail-with-body --retry 3 --retry-all-errors -sS "$FRONTEND_URL$ROUTE" -o "$BODY_FILE"
+            grep -q 'AnnWord' "$BODY_FILE"
+          done
+          curl --fail-with-body --retry 3 --retry-all-errors -sS "$FRONTEND_URL/release.json" | tee /tmp/annword-release.json
 
           node - <<'NODE'
           const fs = require('fs');
           const health = JSON.parse(fs.readFileSync('/tmp/annword-health.json', 'utf8'));
           const db = JSON.parse(fs.readFileSync('/tmp/annword-db-health.json', 'utf8'));
           const config = JSON.parse(fs.readFileSync('/tmp/annword-runtime-config.json', 'utf8'));
-          if (health.status !== 'ok') throw new Error('API health is not ok');
+          const weekly = JSON.parse(fs.readFileSync('/tmp/annword-weekly-status.json', 'utf8'));
+          const release = JSON.parse(fs.readFileSync('/tmp/annword-release.json', 'utf8'));
+          if (health.status !== 'ok' || health.runtime !== 'yandex-cloud') throw new Error('API health is not Yandex/ok');
           if (db.status !== 'ok' || !db.database?.ok) throw new Error('DB health is not ok');
-          if (!config.hasDatabase) throw new Error('Runtime config has no database');
-          if (!config.hasProdamus) throw new Error('Runtime config has no Prodamus secret');
-          console.log('Yandex API smoke passed');
+          if (!config.hasDatabase || !config.hasYandexOAuth || !config.hasProdamus || !config.hasObjectStorage) throw new Error('Required Yandex runtime feature is missing');
+          if (!config.hasWeeklyReports || !weekly.configured) throw new Error('Weekly reports are not configured');
+          if (weekly.postboxIdentityVerified === false) throw new Error(`Postbox sender domain ${weekly.senderDomain || 'unknown'} is not verified`);
+          if (!release.sha || !release.builtAt) throw new Error('Frontend release marker is incomplete');
+          console.log('Full Yandex runtime smoke passed');
           NODE
-
-          if [ -n "$FRONTEND_URL" ]; then
-            echo "Checking frontend"
-            curl --fail-with-body -sS -I "$FRONTEND_URL" | head -n 20
-          else
-            echo "APP_URL is not configured; frontend check skipped"
-          fi
