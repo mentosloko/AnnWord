@@ -21,8 +21,8 @@ describe('mobile Practice root-cause regressions', () => {
     const grid = read('components/Grid.tsx');
     const screen = read('components/screens/ClassicGameScreen.tsx');
     expect(screen).toContain('h-[100svh]');
-    expect(grid).toContain('100svh');
-    expect(grid).not.toContain('100dvh');
+    expect(grid).toContain('calc((100svh - 10.25rem) / 6)');
+    expect(grid).not.toContain('calc((100dvh - 10.25rem) / 6)');
     expect(grid).toContain('six rows overflowed their actual parent');
   });
 
