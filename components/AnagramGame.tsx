@@ -107,7 +107,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
   const xpEarned = solvedCount * 5;
   const activeWordLength = currentWord?.word.length || shuffledLetters.length || 1;
   const attemptsLeft = Math.max(0, MAX_WRONG_ATTEMPTS - wrongAttempts);
-
+  const attemptsLabel = wrongAttempts === 0 ? 'На это слово — 2 попытки' : attemptsLeft === 1 ? 'Осталась 1 попытка' : 'Попытки закончились';
   const clearSavedSessions = useCallback(() => clearStoredGameSession(sessionKey(userProfile.username), ...legacySessionKeys(userProfile.username)), [userProfile.username]);
   const clearNextWordTimeout = useCallback(() => {
     if (nextWordTimeoutRef.current) {
@@ -271,7 +271,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     <div className="mb-5 text-center sm:mb-7">
       <div className="mb-1 text-sm uppercase tracking-tighter text-gray-400">Перевод</div>
       <div className="text-xl font-bold text-indigo-900 sm:text-2xl">{currentWord?.translation}</div>
-      <div className="mt-1 text-xs font-black text-rose-600">Ошибок: {wrongAttempts} / {MAX_WRONG_ATTEMPTS} · осталось попыток: {attemptsLeft}</div>
+      <div className={`mt-1 text-xs font-black ${wrongAttempts > 0 ? 'text-rose-600' : 'text-indigo-500'}`}>{attemptsLabel}</div>
       {showKidsRewards && <div className="mt-1 text-xs font-black text-amber-600">1 монета за каждые 10 угаданных слов</div>}
     </div>
     <div key={`answer-${currentWord?.word || 'empty'}-${wordEpoch}`} className="mb-5 grid w-full items-center gap-1.5 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50 p-2 sm:mb-7 sm:gap-2 sm:p-4" style={{ gridTemplateColumns: `repeat(${activeWordLength}, minmax(0, 1fr))` }}>

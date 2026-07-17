@@ -10,8 +10,9 @@ describe('entry route UX', () => {
     expect(appScreens).not.toContain('ModeEntryScreen');
     expect(appScreens).not.toContain("if (entryPath === 'practice' || entryPath === 'kids' || entryPath === 'teacher') onOpenRegister()");
     expect(appScreens).toContain('const homeScreen = isAuthenticated ? roleHomeScreen : landingMix;');
-    expect(landing).toContain('Регистрация откроется только после понятного выбора формата.');
+    expect(landing).toContain('Кто будет пользоваться AnnWord?');
     expect(landing).toContain('Создать Teacher-аккаунт');
+    expect(landing).toContain('Ребёнок возвращается к словам ради игры');
   });
 });
 
