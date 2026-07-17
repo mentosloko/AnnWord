@@ -26,7 +26,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Postbox Bootstrap",description:"Configuring length-safe BYODKIM",target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Postbox Bootstrap",description:"Configuring BYODKIM with Node crypto",target_url:process.env.TARGET_URL}))' > /tmp/status.json
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
@@ -57,18 +57,13 @@ jobs:
           fs.writeFileSync('/tmp/dns-zone-id', zone.id);
           NODE
 
-      - name: Create length-safe BYODKIM identity
+      - name: Create deterministic BYODKIM identity
         env:
           YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
         run: |
           set -euo pipefail
           cleanup_private_material() {
-            rm -f \
-              /tmp/annword-dkim-private.pem \
-              /tmp/annword-dkim-public.pem \
-              /tmp/annword-dkim-private.b64 \
-              /tmp/annword-dkim-public.b64 \
-              /tmp/create-request.json
+            rm -f /tmp/annword-dkim-private.b64 /tmp/create-request.json
           }
           trap cleanup_private_material EXIT
 
@@ -124,15 +119,36 @@ jobs:
           fi
 
           if [ "$NEED_CREATE" = "true" ]; then
-            openssl genrsa -out /tmp/annword-dkim-private.pem 1024 2>/dev/null
-            openssl rsa -in /tmp/annword-dkim-private.pem -pubout -out /tmp/annword-dkim-public.pem 2>/dev/null
-            grep -v 'BEGIN' /tmp/annword-dkim-private.pem | grep -v 'END' | tr -d '\n' > /tmp/annword-dkim-private.b64
-            grep -v 'BEGIN' /tmp/annword-dkim-public.pem | grep -v 'END' | tr -d '\n' > /tmp/annword-dkim-public.b64
+            printf '%s' 'generating-key' > /tmp/bootstrap-phase
+            SELECTOR="$SELECTOR" node - <<'NODE'
+            const fs = require('fs');
+            const { generateKeyPairSync } = require('crypto');
+            const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+              modulusLength: 1024,
+              publicKeyEncoding: { type: 'spki', format: 'der' },
+              privateKeyEncoding: { type: 'pkcs8', format: 'der' },
+            });
+            const privateKeyBase64 = privateKey.toString('base64');
+            const publicKeyBase64 = publicKey.toString('base64');
+            const recordValue = `v=DKIM1;h=sha256;k=rsa;p=${publicKeyBase64}`;
+            if (recordValue.length > 255) {
+              throw new Error(`Generated DKIM TXT payload is too long: ${recordValue.length}`);
+            }
+            fs.writeFileSync('/tmp/annword-dkim-private.b64', privateKeyBase64, { mode: 0o600 });
+            fs.writeFileSync('/tmp/dkim-record-value', recordValue);
+            fs.writeFileSync('/tmp/dkim-generation-summary.json', JSON.stringify({
+              selector: process.env.SELECTOR,
+              modulusLength: 1024,
+              publicKeyDerBytes: publicKey.length,
+              privateKeyDerBytes: privateKey.length,
+              txtLength: recordValue.length,
+              privateFormat: 'pkcs8-der-base64',
+              publicFormat: 'spki-der-base64',
+            }, null, 2));
+            NODE
 
-            PUBLIC_KEY_B64="$(cat /tmp/annword-dkim-public.b64)"
-            RECORD_VALUE="v=DKIM1;h=sha256;k=rsa;p=${PUBLIC_KEY_B64}"
-            test "${#RECORD_VALUE}" -le 255
-
+            printf '%s' 'writing-dns' > /tmp/bootstrap-phase
+            RECORD_VALUE="$(cat /tmp/dkim-record-value)"
             set +e
             "$YC" dns zone replace-records --id "$ZONE_ID" \
               --record "$RECORD_NAME 300 TXT \"$RECORD_VALUE\"" \
@@ -141,20 +157,21 @@ jobs:
             set -e
             printf '%s' "$DNS_CODE" > /tmp/dns-write-code
             if [ "$DNS_CODE" != "0" ]; then
-              echo 'Cloud DNS rejected the length-safe DKIM TXT record.'
+              echo 'Cloud DNS rejected the DKIM TXT record.'
+              cat /tmp/dns-write-output
               exit 1
             fi
 
+            printf '%s' 'creating-identity' > /tmp/bootstrap-phase
             SELECTOR="$SELECTOR" node - <<'NODE'
             const fs = require('fs');
-            const privateKey = fs.readFileSync('/tmp/annword-dkim-private.b64', 'utf8').trim();
             fs.writeFileSync('/tmp/create-request.json', JSON.stringify({
               EmailIdentity: 'annword.ru',
               DkimSigningAttributes: {
                 DomainSigningSelector: process.env.SELECTOR,
-                DomainSigningPrivateKey: privateKey,
+                DomainSigningPrivateKey: fs.readFileSync('/tmp/annword-dkim-private.b64', 'utf8').trim(),
               },
-            }));
+            }), { mode: 0o600 });
             NODE
 
             CREATE_CODE="$(curl -sS -o /tmp/create-response.json -w '%{http_code}' \
@@ -169,8 +186,10 @@ jobs:
               exit 1
             fi
 
+            cleanup_private_material
+            printf '%s' 'reading-created-identity' > /tmp/bootstrap-phase
             curl -fsS -H "X-YaCloud-SubjectToken: $IAM_TOKEN" "$IDENTITY_URL" -o /tmp/identity-after.json
-            printf '%s' 'byodkim-1024-created' > /tmp/identity-source
+            printf '%s' 'byodkim-node-created' > /tmp/identity-source
             node - <<'NODE'
             const fs = require('fs');
             const identity = JSON.parse(fs.readFileSync('/tmp/identity-after.json', 'utf8'));
@@ -234,9 +253,12 @@ jobs:
             /tmp/identity-after.json
             /tmp/identity-status.json
             /tmp/byodkim-summary.json
+            /tmp/dkim-generation-summary.json
+            /tmp/bootstrap-phase
             /tmp/live-weekly-status.json
             /tmp/delete-http-code
             /tmp/dns-write-code
+            /tmp/dns-write-output
             /tmp/create-http-code
             /tmp/create-response.json
             /tmp/identity-source
@@ -246,7 +268,6 @@ jobs:
       - name: Assert no DKIM private material remains
         if: always()
         run: |
-          test ! -e /tmp/annword-dkim-private.pem
           test ! -e /tmp/annword-dkim-private.b64
           test ! -e /tmp/create-request.json
 
