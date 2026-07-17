@@ -28,6 +28,15 @@ weeklyReportRouter.post('/run', async (req, res) => {
   }
 
   try {
+    const runtime = await inspectWeeklyReportRuntime();
+    if (!runtime.configured || runtime.postboxIdentityVerified !== true) {
+      res.status(503).json({
+        code: 'weekly_reports_not_configured',
+        error: 'Yandex Postbox does not have a verified sending identity for weekly reports.',
+        runtime,
+      });
+      return;
+    }
     const result = await runWeeklyReports();
     res.status(result.failed.length ? 207 : 200).json(result);
   } catch (error) {
