@@ -22,10 +22,12 @@ jobs:
   smoke:
     name: Smoke Yandex frontend and API
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     env:
       SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+      APP_URL: ${{ secrets.APP_URL }}
 
     steps:
       - name: Mark Yandex runtime smoke pending
@@ -33,7 +35,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Runtime Smoke",description:"Verifying live Yandex frontend, API and DB",target_url:process.env.TARGET_URL}))' > /tmp/runtime-smoke-status.json
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Runtime Smoke",description:"Verifying live Yandex frontend, API, DB and Postbox",target_url:process.env.TARGET_URL}))' > /tmp/runtime-smoke-status.json
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
@@ -41,52 +43,30 @@ jobs:
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${SOURCE_SHA}" \
             --data-binary @/tmp/runtime-smoke-status.json
 
-      - name: Check Yandex runtime endpoints
-        env:
-          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
-          APP_URL: ${{ secrets.APP_URL }}
+      - name: Validate smoke configuration
         run: |
           set -euo pipefail
-          API_URL="${YC_API_PUBLIC_URL%/}"
-          FRONTEND_URL="${APP_URL%/}"
+          test -n "$YC_API_PUBLIC_URL"
+          test -n "$APP_URL"
+          printf '%s' "${YC_API_PUBLIC_URL%/}" > /tmp/api-url
+          printf '%s' "${APP_URL%/}" > /tmp/frontend-url
 
-          if [ -z "$API_URL" ] || [ -z "$FRONTEND_URL" ]; then
-            echo "YC_API_PUBLIC_URL or APP_URL is not configured"
-            exit 1
-          fi
-
+      - name: Check API, database and Postbox
+        id: api
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          API_URL="$(cat /tmp/api-url)"
+          printf '%s' 'health' > /tmp/smoke-phase-api
           curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/health" | tee /tmp/annword-health.json
+          printf '%s' 'database' > /tmp/smoke-phase-api
           curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/health/db" | tee /tmp/annword-db-health.json
+          printf '%s' 'runtime-config' > /tmp/smoke-phase-api
           curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/runtime-config" | tee /tmp/annword-runtime-config.json
+          printf '%s' 'weekly-status' > /tmp/smoke-phase-api
           curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/reports/weekly/status" | tee /tmp/annword-weekly-status.json
-          curl --fail-with-body -sS "$API_URL/api/payments/prodamus/notify" | grep -q "OK"
-
-          PROFILE_STATUS=$(curl -sS -o /tmp/profile-response.json -w "%{http_code}" "$API_URL/api/profile/me")
-          ADMIN_STATUS=$(curl -sS -o /tmp/admin-response.json -w "%{http_code}" "$API_URL/api/analytics/admin")
-          WEEKLY_RUN_STATUS=$(curl -sS -o /tmp/weekly-run-response.json -w "%{http_code}" -X POST "$API_URL/api/reports/weekly/run" -H 'Content-Type: application/json' --data '{}')
-          test "$PROFILE_STATUS" = "401"
-          test "$ADMIN_STATUS" = "401"
-          test "$WEEKLY_RUN_STATUS" = "401"
-
-          for PATH_SUFFIX in prepare supabase; do
-            MIGRATION_STATUS=$(curl -sS -o "/tmp/annword-migration-${PATH_SUFFIX}.json" -w "%{http_code}" -X POST "$API_URL/api/admin/migration/$PATH_SUFFIX" -H 'Content-Type: application/json' --data '{"apply":false}')
-            test "$MIGRATION_STATUS" = "404"
-          done
-
-          ROUTES=(
-            / /practice /kids /teacher /landing-mix /profile /play/setup /play/classic /review
-            /play/anagrams /play/one-of-two /play/sprint /play/hangman /play/memory /play/snake
-            /shop /pet /onboarding/mode /onboarding/character /onboarding/family /admin /workspace
-            /dictionary /dictionary/edit /premium /premium/success
-          )
-          for ROUTE in "${ROUTES[@]}"; do
-            SAFE_ROUTE=$(printf '%s' "$ROUTE" | tr '/' '_' | tr -cd '[:alnum:]_')
-            BODY_FILE="/tmp/annword-page-${SAFE_ROUTE:-root}.html"
-            HTTP_CODE=$(curl -sS --retry 3 --retry-all-errors -o "$BODY_FILE" -w '%{http_code}' "$FRONTEND_URL$ROUTE")
-            test "$HTTP_CODE" = "200"
-            grep -q 'AnnWord' "$BODY_FILE"
-          done
-          curl --fail-with-body --retry 3 --retry-all-errors -sS "$FRONTEND_URL/release.json" | tee /tmp/annword-release.json
+          printf '%s' 'prodamus-callback' > /tmp/smoke-phase-api
+          curl --fail-with-body -sS "$API_URL/api/payments/prodamus/notify" | tee /tmp/annword-prodamus-response.txt | grep -q "OK"
 
           node - <<'NODE'
           const fs = require('fs');
@@ -94,15 +74,104 @@ jobs:
           const db = JSON.parse(fs.readFileSync('/tmp/annword-db-health.json', 'utf8'));
           const config = JSON.parse(fs.readFileSync('/tmp/annword-runtime-config.json', 'utf8'));
           const weekly = JSON.parse(fs.readFileSync('/tmp/annword-weekly-status.json', 'utf8'));
-          const release = JSON.parse(fs.readFileSync('/tmp/annword-release.json', 'utf8'));
           if (health.status !== 'ok' || health.runtime !== 'yandex-cloud') throw new Error('API health is not Yandex/ok');
           if (db.status !== 'ok' || !db.database?.ok) throw new Error('DB health is not ok');
           if (!config.hasDatabase || !config.hasYandexOAuth || !config.hasProdamus || !config.hasObjectStorage) throw new Error('Required Yandex runtime feature is missing');
           if (!config.hasWeeklyReports || !weekly.configured) throw new Error('Weekly reports are not configured');
           if (weekly.postboxIdentityVerified !== true) throw new Error(`No verified Postbox sender; verified identities=${weekly.verifiedIdentityCount ?? 'unknown'}`);
-          if (!release.sha || !release.builtAt) throw new Error('Frontend release marker is incomplete');
-          console.log('Full Yandex runtime smoke passed');
+          console.log('API, DB and Postbox checks passed');
           NODE
+          printf '%s' 'passed' > /tmp/smoke-phase-api
+
+      - name: Check authorization and closed migration endpoints
+        id: security
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          API_URL="$(cat /tmp/api-url)"
+          printf '%s' 'profile-auth' > /tmp/smoke-phase-security
+          PROFILE_STATUS=$(curl -sS -o /tmp/profile-response.json -w "%{http_code}" "$API_URL/api/profile/me")
+          test "$PROFILE_STATUS" = "401"
+          printf '%s' 'admin-auth' > /tmp/smoke-phase-security
+          ADMIN_STATUS=$(curl -sS -o /tmp/admin-response.json -w "%{http_code}" "$API_URL/api/analytics/admin")
+          test "$ADMIN_STATUS" = "401"
+          printf '%s' 'weekly-run-auth' > /tmp/smoke-phase-security
+          WEEKLY_RUN_STATUS=$(curl -sS -o /tmp/weekly-run-response.json -w "%{http_code}" -X POST "$API_URL/api/reports/weekly/run" -H 'Content-Type: application/json' --data '{}')
+          test "$WEEKLY_RUN_STATUS" = "401"
+
+          for PATH_SUFFIX in prepare supabase; do
+            printf '%s' "migration-${PATH_SUFFIX}" > /tmp/smoke-phase-security
+            MIGRATION_STATUS=$(curl -sS -o "/tmp/annword-migration-${PATH_SUFFIX}.json" -w "%{http_code}" -X POST "$API_URL/api/admin/migration/$PATH_SUFFIX" -H 'Content-Type: application/json' --data '{"apply":false}')
+            test "$MIGRATION_STATUS" = "404"
+          done
+          printf '%s' 'passed' > /tmp/smoke-phase-security
+
+      - name: Check frontend routes and release marker
+        id: frontend
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          FRONTEND_URL="$(cat /tmp/frontend-url)"
+          ROUTES=(
+            / /practice /kids /teacher /landing-mix /profile /play/setup /play/classic /review
+            /play/anagrams /play/one-of-two /play/sprint /play/hangman /play/memory /play/snake
+            /shop /pet /onboarding/mode /onboarding/character /onboarding/family /admin /workspace
+            /dictionary /dictionary/edit /premium /premium/success
+          )
+          for ROUTE in "${ROUTES[@]}"; do
+            printf '%s' "$ROUTE" > /tmp/smoke-phase-frontend
+            SAFE_ROUTE=$(printf '%s' "$ROUTE" | tr '/' '_' | tr -cd '[:alnum:]_')
+            BODY_FILE="/tmp/annword-page-${SAFE_ROUTE:-root}.html"
+            HTTP_CODE=$(curl -sS --retry 3 --retry-all-errors -o "$BODY_FILE" -w '%{http_code}' "$FRONTEND_URL$ROUTE")
+            if [ "$HTTP_CODE" != "200" ]; then
+              echo "Route $ROUTE returned HTTP $HTTP_CODE"
+              exit 1
+            fi
+            if ! grep -q 'AnnWord' "$BODY_FILE"; then
+              echo "Route $ROUTE did not return the AnnWord SPA shell"
+              exit 1
+            fi
+          done
+          printf '%s' 'release-marker' > /tmp/smoke-phase-frontend
+          curl --fail-with-body --retry 3 --retry-all-errors -sS "$FRONTEND_URL/release.json" | tee /tmp/annword-release.json
+          SOURCE_SHA="$SOURCE_SHA" node - <<'NODE'
+          const fs = require('fs');
+          const release = JSON.parse(fs.readFileSync('/tmp/annword-release.json', 'utf8'));
+          if (!release.sha || !release.builtAt) throw new Error('Frontend release marker is incomplete');
+          if (release.sha !== process.env.SOURCE_SHA) throw new Error(`Frontend SHA ${release.sha} does not match deployed source ${process.env.SOURCE_SHA}`);
+          NODE
+          printf '%s' 'passed' > /tmp/smoke-phase-frontend
+
+      - name: Upload runtime smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: annword-yandex-runtime-smoke
+          path: |
+            /tmp/smoke-phase-*
+            /tmp/annword-health.json
+            /tmp/annword-db-health.json
+            /tmp/annword-runtime-config.json
+            /tmp/annword-weekly-status.json
+            /tmp/annword-prodamus-response.txt
+            /tmp/profile-response.json
+            /tmp/admin-response.json
+            /tmp/weekly-run-response.json
+            /tmp/annword-migration-*.json
+            /tmp/annword-release.json
+          if-no-files-found: ignore
+          retention-days: 5
+
+      - name: Assert all runtime smoke sections passed
+        env:
+          API_OUTCOME: ${{ steps.api.outcome }}
+          SECURITY_OUTCOME: ${{ steps.security.outcome }}
+          FRONTEND_OUTCOME: ${{ steps.frontend.outcome }}
+        run: |
+          echo "API=$API_OUTCOME security=$SECURITY_OUTCOME frontend=$FRONTEND_OUTCOME"
+          test "$API_OUTCOME" = "success"
+          test "$SECURITY_OUTCOME" = "success"
+          test "$FRONTEND_OUTCOME" = "success"
 
       - name: Publish Yandex runtime smoke status
         if: always()
