@@ -62,12 +62,14 @@ const writeSession = (res: { json: (body: unknown) => void; status: (code: numbe
 
 authRouter.post("/email/account", async (req, res) => {
   const body = req.body || {};
+  const startedAt = Date.now();
   try {
     const rawEmail = readText(body.email);
     assertRussianRegistrationEmail(rawEmail);
     const consents = readRegistrationConsents(body.consents);
     const input = validateNewUserInput(rawEmail, readText(body[field]), readText(body.name));
-    const user = await transaction(async (client) => {
+    const validatedAt = Date.now();
+    const created = await transaction(async (client) => {
       const id = newUserId();
       const result = await client.query<{ id: string; email: string; full_name: string | null; password_reset_required: boolean }>(
         `insert into app_users (id, email, password_hash, full_name, provider, email_confirmed_at)
@@ -75,7 +77,7 @@ authRouter.post("/email/account", async (req, res) => {
          returning id, email, full_name, password_reset_required`,
         [id, input.email, input.passwordHash, input.name],
       );
-      await createProfileForUser(client, id, input.name);
+      const profile = await createProfileForUser(client, id, input.name);
       await client.query(
         `insert into user_consents (user_id, consent_type, granted, document_version, source, context)
          values
@@ -92,9 +94,19 @@ authRouter.post("/email/account", async (req, res) => {
         ],
       );
       const row = result.rows[0];
-      return { id: row.id, email: row.email, name: row.full_name || undefined, passwordResetRequired: row.password_reset_required } satisfies BackendUser;
+      const user = { id: row.id, email: row.email, name: row.full_name || undefined, passwordResetRequired: row.password_reset_required } satisfies BackendUser;
+      return { user, profile };
     });
-    writeSession(res, user, 201);
+    const databaseCompletedAt = Date.now();
+    const token = createSessionToken(created.user);
+    writeSessionCookie(res, token);
+    res.setHeader(
+      "Server-Timing",
+      `registration_validate;dur=${validatedAt - startedAt}, registration_database;dur=${databaseCompletedAt - validatedAt}, registration_total;dur=${databaseCompletedAt - startedAt}`,
+    );
+    // Returning the profile here avoids a second authenticated profile request on
+    // the client immediately after this transaction has already created it.
+    res.status(201).json({ ...makeSessionPayload(created.user, token), profile: created.profile });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Account create failed";
     const code = typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code || "") : "";
