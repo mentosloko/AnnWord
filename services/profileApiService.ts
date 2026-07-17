@@ -28,6 +28,10 @@ export const profileApiService = {
     return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/purchase", { method: "POST", body: { itemId } }));
   },
 
+  async useItem(itemId: string): Promise<UserProfile> {
+    return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/use-item", { method: "POST", body: { itemId } }));
+  },
+
   async updateWeeklyReportEmail(email: string): Promise<UserProfile> {
     return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/weekly-report-email", { method: "PATCH", body: { email } }));
   },
