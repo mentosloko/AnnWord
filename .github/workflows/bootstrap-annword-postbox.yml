@@ -3,7 +3,8 @@ name: Bootstrap AnnWord Postbox
 on:
   push:
     branches:
-      - infra/bootstrap-annword-postbox
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -38,7 +39,6 @@ jobs:
           yc config set folder-id "$YC_FOLDER_ID"
 
       - name: Locate public annword.ru DNS zone
-        id: dns
         run: |
           set -euo pipefail
           yc dns zone list --format json > /tmp/dns-zones.json
@@ -54,9 +54,9 @@ jobs:
           NODE
 
       - name: Recreate annword.ru Postbox identity with BYODKIM
+        id: identity
         env:
           POSTBOX_IDENTITY: annword.ru
-          DKIM_SELECTOR: annword
         run: |
           set -euo pipefail
           IAM_TOKEN="$(yc iam create-token)"
@@ -70,7 +70,7 @@ jobs:
             CURRENT_STATUS="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/current-identity.json","utf8"));process.stdout.write(String(x.VerificationStatus||x.DkimAttributes?.Status||""));')"
             if [ "$CURRENT_STATUS" = "SUCCESS" ]; then
               echo "annword.ru is already verified in Postbox."
-              touch /tmp/postbox-already-verified
+              echo "already_verified=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             echo "Removing the existing unverified annword.ru identity before deterministic BYODKIM setup."
@@ -86,6 +86,7 @@ jobs:
             exit 1
           fi
 
+          echo "already_verified=false" >> "$GITHUB_OUTPUT"
           openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /tmp/annword-dkim-private.pem 2>/dev/null
           PRIVATE_KEY_B64="$(openssl pkcs8 -topk8 -nocrypt -in /tmp/annword-dkim-private.pem -outform DER | base64 -w0)"
           PUBLIC_KEY_B64="$(openssl pkey -in /tmp/annword-dkim-private.pem -pubout -outform DER | base64 -w0)"
@@ -117,7 +118,7 @@ jobs:
           echo "Created annword.ru Postbox identity with BYODKIM."
 
       - name: Install DKIM record in Yandex Cloud DNS
-        if: ${{ hashFiles('/tmp/postbox-already-verified') == '' }}
+        if: ${{ steps.identity.outputs.already_verified != 'true' }}
         run: |
           set -euo pipefail
           ZONE_ID="$(cat /tmp/dns-zone-id)"
@@ -164,15 +165,16 @@ jobs:
         run: |
           set -euo pipefail
           API_BASE="${YC_API_PUBLIC_URL%/}"
-          curl --fail-with-body --retry 6 --retry-all-errors -sS \
-            "$API_BASE/api/reports/weekly/status" | tee /tmp/live-weekly-status.json
-          node - <<'NODE'
-          const fs = require('fs');
-          const status = JSON.parse(fs.readFileSync('/tmp/live-weekly-status.json', 'utf8'));
-          if (!status.configured || status.postboxIdentityVerified !== true) {
-            throw new Error(`Live weekly-report preflight is not green: ${JSON.stringify(status)}`);
-          }
-          NODE
+          for attempt in $(seq 1 20); do
+            HTTP_CODE="$(curl -sS -o /tmp/live-weekly-status.json -w '%{http_code}' "$API_BASE/api/reports/weekly/status")"
+            cat /tmp/live-weekly-status.json
+            if [ "$HTTP_CODE" = "200" ] && node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/live-weekly-status.json","utf8"));process.exit(x.configured&&x.postboxIdentityVerified===true?0:1)'; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Live AnnWord weekly-report preflight did not turn green."
+          exit 1
 
       - name: Upload sanitized bootstrap result
         if: always()
