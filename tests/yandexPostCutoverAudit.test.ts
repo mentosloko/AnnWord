@@ -39,7 +39,7 @@ describe('Yandex post-cutover guarantees', () => {
     expect(migrate).toContain('ANNWORD_ENABLE_SUPABASE_MIGRATION_ENDPOINT === "true"');
   });
 
-  it('runs Yandex runtime smoke after main deployments and checks the full contour', () => {
+  it('runs Yandex runtime smoke after main deployments, checks the full contour and publishes a commit status', () => {
     const workflow = read('.github/workflows/yandex-smoke.yml');
     expect(workflow).toContain('- main');
     expect(workflow).not.toContain('- infra/ru-cloud-migration');
@@ -47,6 +47,9 @@ describe('Yandex post-cutover guarantees', () => {
     expect(workflow).toContain('/api/analytics/admin');
     expect(workflow).toContain('/api/reports/weekly/status');
     expect(workflow).toContain('for PATH_SUFFIX in prepare supabase');
+    expect(workflow).toContain('context:"Yandex Runtime Smoke"');
+    expect(workflow).toContain('github.event.workflow_run.head_sha || github.sha');
+    expect(workflow).toContain('statuses: write');
   });
 
   it('targets Yandex production in Playwright instead of a Vercel preview', () => {
