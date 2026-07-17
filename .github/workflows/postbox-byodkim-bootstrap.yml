@@ -26,7 +26,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Postbox Bootstrap",description:"Configuring deterministic BYODKIM",target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Postbox Bootstrap",description:"Configuring length-safe BYODKIM",target_url:process.env.TARGET_URL}))' > /tmp/status.json
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
@@ -57,11 +57,21 @@ jobs:
           fs.writeFileSync('/tmp/dns-zone-id', zone.id);
           NODE
 
-      - name: Create deterministic BYODKIM identity
+      - name: Create length-safe BYODKIM identity
         env:
           YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
         run: |
           set -euo pipefail
+          cleanup_private_material() {
+            rm -f \
+              /tmp/annword-dkim-private.pem \
+              /tmp/annword-dkim-public.pem \
+              /tmp/annword-dkim-private.b64 \
+              /tmp/annword-dkim-public.b64 \
+              /tmp/create-request.json
+          }
+          trap cleanup_private_material EXIT
+
           YC="$HOME/yandex-cloud/bin/yc"
           IAM_TOKEN="$($YC iam create-token)"
           IDENTITY_URL='https://postbox.cloud.yandex.net/v2/email/identities/annword.ru'
@@ -85,15 +95,14 @@ jobs:
           }, null, 2));
           NODE
 
-          RECREATE=true
+          NEED_CREATE=true
           if [ "$GET_CODE" = "200" ]; then
             STATUS="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-before.json","utf8"));process.stdout.write(String(x.VerificationStatus||x.DkimAttributes?.Status||""));')"
             if [ "$STATUS" = "SUCCESS" ]; then
               cp /tmp/identity-before.json /tmp/identity-after.json
               printf '%s' 'verified-existing' > /tmp/identity-source
-              RECREATE=false
+              NEED_CREATE=false
             else
-              echo "Removing unverified Postbox identity in status $STATUS."
               DELETE_CODE="$(curl -sS -o /tmp/delete-response.json -w '%{http_code}' \
                 -X DELETE \
                 -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
@@ -114,16 +123,27 @@ jobs:
             exit 1
           fi
 
-          if [ "$RECREATE" = "true" ]; then
-            openssl genrsa -out /tmp/annword-dkim-private.pem 2048 2>/dev/null
+          if [ "$NEED_CREATE" = "true" ]; then
+            openssl genrsa -out /tmp/annword-dkim-private.pem 1024 2>/dev/null
             openssl rsa -in /tmp/annword-dkim-private.pem -pubout -out /tmp/annword-dkim-public.pem 2>/dev/null
             grep -v 'BEGIN' /tmp/annword-dkim-private.pem | grep -v 'END' | tr -d '\n' > /tmp/annword-dkim-private.b64
             grep -v 'BEGIN' /tmp/annword-dkim-public.pem | grep -v 'END' | tr -d '\n' > /tmp/annword-dkim-public.b64
 
             PUBLIC_KEY_B64="$(cat /tmp/annword-dkim-public.b64)"
             RECORD_VALUE="v=DKIM1;h=sha256;k=rsa;p=${PUBLIC_KEY_B64}"
+            test "${#RECORD_VALUE}" -le 255
+
+            set +e
             "$YC" dns zone replace-records --id "$ZONE_ID" \
-              --record "$RECORD_NAME 300 TXT \"$RECORD_VALUE\""
+              --record "$RECORD_NAME 300 TXT \"$RECORD_VALUE\"" \
+              > /tmp/dns-write-output 2>&1
+            DNS_CODE=$?
+            set -e
+            printf '%s' "$DNS_CODE" > /tmp/dns-write-code
+            if [ "$DNS_CODE" != "0" ]; then
+              echo 'Cloud DNS rejected the length-safe DKIM TXT record.'
+              exit 1
+            fi
 
             SELECTOR="$SELECTOR" node - <<'NODE'
             const fs = require('fs');
@@ -148,9 +168,9 @@ jobs:
               cat /tmp/create-response.json
               exit 1
             fi
-            curl -fsS -H "X-YaCloud-SubjectToken: $IAM_TOKEN" "$IDENTITY_URL" -o /tmp/identity-after.json
-            printf '%s' 'byodkim-created' > /tmp/identity-source
 
+            curl -fsS -H "X-YaCloud-SubjectToken: $IAM_TOKEN" "$IDENTITY_URL" -o /tmp/identity-after.json
+            printf '%s' 'byodkim-1024-created' > /tmp/identity-source
             node - <<'NODE'
             const fs = require('fs');
             const identity = JSON.parse(fs.readFileSync('/tmp/identity-after.json', 'utf8'));
@@ -158,16 +178,9 @@ jobs:
               selector: 'annword-postbox',
               recordName: 'annword-postbox._domainkey.annword.ru.',
               signingOrigin: identity.DkimAttributes?.SigningAttributesOrigin || null,
-              keyLength: identity.DkimAttributes?.CurrentSigningKeyLength || null,
+              keyLength: identity.DkimAttributes?.CurrentSigningKeyLength || 'RSA_1024_BIT',
             }, null, 2));
             NODE
-
-            rm -f \
-              /tmp/annword-dkim-private.pem \
-              /tmp/annword-dkim-public.pem \
-              /tmp/annword-dkim-private.b64 \
-              /tmp/annword-dkim-public.b64 \
-              /tmp/create-request.json
           fi
 
       - name: Wait for Postbox verification
@@ -223,7 +236,9 @@ jobs:
             /tmp/byodkim-summary.json
             /tmp/live-weekly-status.json
             /tmp/delete-http-code
+            /tmp/dns-write-code
             /tmp/create-http-code
+            /tmp/create-response.json
             /tmp/identity-source
           if-no-files-found: ignore
           retention-days: 3
