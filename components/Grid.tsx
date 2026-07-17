@@ -13,7 +13,10 @@ interface GridProps {
 const getCellSize = (wordLength: WordLength): string => {
   const horizontalGap = wordLength === 6 ? '0.28rem' : '0.34rem';
   const maxSize = wordLength === 6 ? '4.45rem' : '4.85rem';
-  return `min(calc((100vw - 1.1rem - (${wordLength - 1} * ${horizontalGap})) / ${wordLength}), calc((100dvh - 10.25rem) / 6), ${maxSize})`;
+  // ClassicGameScreen is constrained by 100svh. Using 100dvh here made the
+  // cells calculate against a taller viewport while browser chrome was visible,
+  // so the six rows overflowed their actual parent on mobile browsers.
+  return `min(calc((100vw - 1.1rem - (${wordLength - 1} * ${horizontalGap})) / ${wordLength}), calc((100svh - 10.25rem) / 6), ${maxSize})`;
 };
 
 const statusText = (status: CharStatus): string => {
@@ -92,7 +95,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
     rows.push(
       <div key={i} role="row" aria-label={`Попытка ${i + 1}`} className={`flex w-full justify-center gap-[min(1.1vw,0.34rem)] ${isShake ? 'animate-shake' : ''}`} style={{ animation: isShake ? 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both' : 'none' }}>
         {rowContent}
-      </div>
+      </div>,
     );
   }
 
@@ -106,7 +109,7 @@ export const Grid: React.FC<GridProps> = ({ guesses, currentGuess, secretWord, w
           40%, 60% { transform: translate3d(4px, 0, 0); }
         }
       `}</style>
-      <div role="grid" aria-label="Поле игры Классика" className="flex h-full w-full max-w-[min(42rem,100vw)] flex-col items-center justify-center gap-[min(0.5dvh,0.32rem)] p-0.5">
+      <div role="grid" aria-label="Поле игры Классика" className="flex h-full min-h-0 w-full max-w-[min(42rem,100vw)] flex-col items-center justify-center gap-[min(0.5svh,0.32rem)] p-0.5">
         {rows}
       </div>
     </>
