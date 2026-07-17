@@ -34,13 +34,14 @@ jobs:
       - name: Read sanitized state through Yandex backend
         env:
           YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
-          ANNWORD_MIGRATION_SECRET: ${{ secrets.ANNWORD_MIGRATION_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           set -euo pipefail
           API_BASE="${YC_API_PUBLIC_URL%/}"
-          HTTP_CODE="$(curl -sS -o /tmp/pet-mood-diagnostic.json -w '%{http_code}' \
+          DIAGNOSTIC_TOKEN="$(node -e 'const {createHmac}=require("crypto"); process.stdout.write(createHmac("sha256", process.env.JWT_SECRET).update(`pet-mood-diagnostic:${process.env.USER_ID}`).digest("hex"));')"
+          HTTP_CODE="$(curl -sS --retry 3 --retry-all-errors -o /tmp/pet-mood-diagnostic.json -w '%{http_code}' \
             "${API_BASE}/api/profile/internal-diagnostic/pet-mood/${USER_ID}" \
-            -H "x-annword-diagnostic-secret: ${ANNWORD_MIGRATION_SECRET}")"
+            -H "x-annword-diagnostic-secret: ${DIAGNOSTIC_TOKEN}")"
           cat /tmp/pet-mood-diagnostic.json
           test "$HTTP_CODE" = "200"
           node <<'NODE'
