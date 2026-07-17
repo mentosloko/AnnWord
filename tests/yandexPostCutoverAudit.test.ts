@@ -39,7 +39,7 @@ describe('Yandex post-cutover guarantees', () => {
     expect(migrate).toContain('ANNWORD_ENABLE_SUPABASE_MIGRATION_ENDPOINT === "true"');
   });
 
-  it('runs Yandex runtime smoke after main deployments, checks the full contour and publishes a commit status', () => {
+  it('runs Yandex runtime smoke after main deployments, checks every real route and publishes a commit status', () => {
     const workflow = read('.github/workflows/yandex-smoke.yml');
     expect(workflow).toContain('- main');
     expect(workflow).not.toContain('- infra/ru-cloud-migration');
@@ -47,6 +47,10 @@ describe('Yandex post-cutover guarantees', () => {
     expect(workflow).toContain('/api/analytics/admin');
     expect(workflow).toContain('/api/reports/weekly/status');
     expect(workflow).toContain('for PATH_SUFFIX in prepare supabase');
+    expect(workflow).toContain('/play/setup');
+    expect(workflow).toContain('/premium/success');
+    expect(workflow).not.toContain(' /setup');
+    expect(workflow).toContain('weekly.postboxIdentityVerified !== true');
     expect(workflow).toContain('context:"Yandex Runtime Smoke"');
     expect(workflow).toContain('github.event.workflow_run.head_sha || github.sha');
     expect(workflow).toContain('statuses: write');
@@ -69,6 +73,17 @@ describe('Yandex post-cutover guarantees', () => {
     expect(workflow).toContain('annword-weekly-reports-v1');
     expect(workflow).not.toContain('vercel');
     expect(workflow).not.toContain('supabase');
+  });
+
+  it('selects only a verified Postbox identity before report delivery', () => {
+    const runtime = read('server/weeklyReportRuntimeConfig.ts');
+    const routes = read('server/routes/weeklyReportRoutes.ts');
+    expect(runtime).toContain('identity.SendingEnabled === true');
+    expect(runtime).toContain('identity.VerificationStatus === "SUCCESS"');
+    expect(runtime).toContain('senderSource = "verified-identity-fallback"');
+    expect(runtime).toContain('process.env.WEEKLY_REPORT_FROM_EMAIL = selectedSender');
+    expect(routes).toContain('const runtime = await inspectWeeklyReportRuntime()');
+    expect(routes).toContain('runtime.postboxIdentityVerified !== true');
   });
 
   it('derives stable weekly report defaults from Yandex runtime secrets and domain', () => {
