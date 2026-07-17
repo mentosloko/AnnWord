@@ -5,7 +5,7 @@ const request = async (label: string, url: string, init?: RequestInit): Promise<
   const timeout = setTimeout(() => controller.abort(), 12_000);
   try {
     const response = await fetch(url, { redirect: 'follow', signal: controller.signal, ...init });
-    const body = (await response.text()).replace(/\s+/g, ' ').slice(0, 500);
+    const body = (await response.text()).replace(/\s+/g, ' ').slice(0, 240);
     return `${label}|${response.status}|${response.headers.get('content-type') || ''}|${body}`;
   } catch (error) {
     return `${label}|NETWORK_ERROR||${error instanceof Error ? error.message : String(error)}`;
@@ -13,6 +13,13 @@ const request = async (label: string, url: string, init?: RequestInit): Promise<
     clearTimeout(timeout);
   }
 };
+
+const clientPaths = [
+  '/', '/practice', '/kids', '/teacher', '/landing-mix', '/profile', '/play/setup', '/play/classic', '/review',
+  '/play/anagrams', '/play/one-of-two', '/play/sprint', '/play/hangman', '/play/memory', '/play/snake', '/shop', '/pet',
+  '/onboarding/mode', '/onboarding/character', '/onboarding/family', '/admin', '/workspace', '/dictionary', '/dictionary/edit',
+  '/premium', '/premium/success',
+];
 
 describe('one-time Yandex runtime diagnostic', () => {
   it('prints every live smoke probe independently', async () => {
@@ -27,10 +34,8 @@ describe('one-time Yandex runtime diagnostic', () => {
     rows.push(await request('weekly-run-auth', 'https://api.annword.ru/api/reports/weekly/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
     rows.push(await request('migration-prepare', 'https://api.annword.ru/api/admin/migration/prepare', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }));
     rows.push(await request('migration-supabase', 'https://api.annword.ru/api/admin/migration/supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"apply":false}' }));
-    for (const route of ['/', '/practice', '/kids', '/premium', '/setup']) {
-      rows.push(await request(`frontend:${route}`, `https://annword.ru${route}`));
-    }
+    for (const route of clientPaths) rows.push(await request(`frontend:${route}`, `https://annword.ru${route}`));
     rows.push(await request('release', 'https://annword.ru/release.json'));
     throw new Error(`YANDEX_RUNTIME_DIAGNOSTIC_BEGIN\n${rows.join('\n')}\nYANDEX_RUNTIME_DIAGNOSTIC_END`);
-  }, 120_000);
+  }, 180_000);
 });
