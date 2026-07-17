@@ -1,0 +1,168 @@
+name: Diagnose Anna pet mood in Yandex
+
+on:
+  push:
+    branches:
+      - diagnostics/pet-mood-anna
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  diagnose:
+    name: Yandex Pet Mood Diagnostic
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      USER_ID: d1dadbb4-924a-46a4-8e4f-3ac8d9f700cd
+
+    steps:
+      - name: Mark diagnostic pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Pet Mood Diagnostic",description:"Reading sanitized production state",target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/status.json
+
+      - name: Install PostgreSQL client library
+        run: npm install --no-save --no-package-lock pg@8.16.3
+
+      - name: Read sanitized Yandex PostgreSQL state
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          node <<'NODE'
+          const { Client } = require('pg');
+          const fs = require('fs');
+
+          const userId = process.env.USER_ID;
+          const rawUrl = process.env.DATABASE_URL;
+          if (!rawUrl) throw new Error('DATABASE_URL is missing');
+          let connectionString = rawUrl;
+          try {
+            const url = new URL(rawUrl);
+            ['sslmode', 'sslcert', 'sslkey', 'sslrootcert'].forEach(key => url.searchParams.delete(key));
+            connectionString = url.toString();
+          } catch {}
+
+          const quote = value => `"${String(value).replaceAll('"', '""')}"`;
+          const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 7000 });
+
+          (async () => {
+            await client.connect();
+            const now = await client.query('select now() as server_now');
+            const profileResult = await client.query(
+              `select id, username, role, account_mode, subscription_tier, pet, stats, created_at, updated_at
+                 from profiles
+                where id = $1`,
+              [userId],
+            );
+            if (!profileResult.rows[0]) throw new Error('Profile not found');
+            const profile = profileResult.rows[0];
+
+            const userColumnsResult = await client.query(
+              `select column_name
+                 from information_schema.columns
+                where table_schema = 'public' and table_name = 'users'`,
+            );
+            const userColumns = new Set(userColumnsResult.rows.map(row => row.column_name));
+            const safeUserColumns = ['id', 'email', 'created_at', 'updated_at', 'last_login_at', 'last_seen_at']
+              .filter(column => userColumns.has(column));
+            let user = null;
+            if (safeUserColumns.length > 0) {
+              const result = await client.query(
+                `select ${safeUserColumns.map(quote).join(', ')} from users where id = $1`,
+                [userId],
+              );
+              user = result.rows[0] || null;
+            }
+
+            const columnsResult = await client.query(
+              `select table_name, array_agg(column_name order by ordinal_position) as columns
+                 from information_schema.columns
+                where table_schema = 'public'
+                group by table_name
+                having bool_or(column_name = 'user_id')
+                    or bool_or(column_name = 'learner_user_id')`,
+            );
+            const timestampCandidates = ['created_at', 'updated_at', 'completed_at', 'occurred_at', 'played_at', 'last_active_at', 'sent_at'];
+            const activity = [];
+            for (const row of columnsResult.rows) {
+              const columns = new Set(row.columns);
+              const ownerColumn = columns.has('user_id') ? 'user_id' : 'learner_user_id';
+              const timestampColumn = timestampCandidates.find(column => columns.has(column));
+              const lastExpression = timestampColumn ? `max(${quote(timestampColumn)})` : 'null';
+              try {
+                const result = await client.query(
+                  `select count(*)::int as count, ${lastExpression} as last_time
+                     from ${quote(row.table_name)}
+                    where ${quote(ownerColumn)} = $1`,
+                  [userId],
+                );
+                if ((result.rows[0]?.count || 0) > 0) {
+                  activity.push({ table: row.table_name, ownerColumn, ...result.rows[0] });
+                }
+              } catch (error) {
+                activity.push({ table: row.table_name, ownerColumn, diagnosticError: error.message });
+              }
+            }
+
+            const pet = profile.pet || {};
+            const output = {
+              serverNow: now.rows[0].server_now,
+              profile: {
+                id: profile.id,
+                username: profile.username,
+                role: profile.role,
+                accountMode: profile.account_mode,
+                subscriptionTier: profile.subscription_tier,
+                createdAt: profile.created_at,
+                updatedAt: profile.updated_at,
+                pet,
+                gamesPlayed: profile.stats?.gamesPlayed ?? null,
+                gamesWon: profile.stats?.gamesWon ?? null,
+              },
+              user,
+              activity,
+            };
+            console.log('PET_MOOD_DIAGNOSTIC=' + JSON.stringify(output, null, 2));
+            fs.writeFileSync('/tmp/pet-mood-diagnostic.json', JSON.stringify(output, null, 2));
+            const description = `mood=${pet.moodScore ?? 'n/a'} last=${pet.lastDailyActivityDate ?? 'n/a'} profile=${String(profile.updated_at).slice(0, 10)}`.slice(0, 130);
+            fs.writeFileSync('/tmp/status-description.txt', description);
+          })().finally(async () => { await client.end().catch(() => undefined); });
+          NODE
+
+      - name: Upload diagnostic artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pet-mood-diagnostic
+          path: /tmp/pet-mood-diagnostic.json
+          retention-days: 1
+
+      - name: Publish diagnostic status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          STATE="failure"
+          DESCRIPTION="Yandex pet mood diagnostic failed"
+          if [ "$JOB_STATUS" = "success" ]; then
+            STATE="success"
+            DESCRIPTION="$(cat /tmp/status-description.txt 2>/dev/null || echo 'Production pet state read')"
+          fi
+          STATE="$STATE" DESCRIPTION="$DESCRIPTION" node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Yandex Pet Mood Diagnostic",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/status.json
