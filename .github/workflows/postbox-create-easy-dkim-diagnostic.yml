@@ -70,7 +70,7 @@ jobs:
             -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
             "$IDENTITY_URL")"
 
-          node - <<'NODE'
+          GET_CODE="$GET_CODE" node - <<'NODE'
           const fs = require('fs');
           const key = JSON.parse(fs.readFileSync('/tmp/yc-sa-key.json', 'utf8'));
           fs.writeFileSync('/tmp/postbox-iam-result.json', JSON.stringify({
@@ -129,13 +129,45 @@ jobs:
               --record "$record_name 300 CNAME $record_target"
           done < /tmp/easy-dkim-records.tsv
 
+      - name: Restart failed Postbox verification
+        run: |
+          set -euo pipefail
+          YC="$HOME/yandex-cloud/bin/yc"
+          IAM_TOKEN="$($YC iam create-token)"
+          IDENTITY_URL='https://postbox.cloud.yandex.net/v2/email/identities/annword.ru'
+          DKIM_URL="$IDENTITY_URL/dkim"
+
+          curl -fsS -H "X-YaCloud-SubjectToken: $IAM_TOKEN" "$IDENTITY_URL" -o /tmp/identity-before-reverify.json
+          STATUS="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-before-reverify.json","utf8"));process.stdout.write(String(x.VerificationStatus||x.DkimAttributes?.Status||""));')"
+
+          case "$STATUS" in
+            FAILED|TEMPORARY_FAILURE|NOT_STARTED)
+              echo "Restarting Postbox verification from status $STATUS."
+              for enabled in false true; do
+                printf '{"SigningEnabled":%s}' "$enabled" > /tmp/dkim-toggle-request.json
+                HTTP_CODE="$(curl -sS -o /tmp/dkim-toggle-response.json -w '%{http_code}' \
+                  -X PUT \
+                  -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
+                  -H 'Content-Type: application/json' \
+                  --data-binary @/tmp/dkim-toggle-request.json \
+                  "$DKIM_URL")"
+                echo "DKIM signing toggle $enabled: HTTP $HTTP_CODE"
+                test "$HTTP_CODE" = "200"
+                sleep 2
+              done
+              ;;
+            *)
+              echo "Postbox verification status is $STATUS; no restart is needed."
+              ;;
+          esac
+
       - name: Wait for Postbox verification
         run: |
           set -euo pipefail
           YC="$HOME/yandex-cloud/bin/yc"
           IAM_TOKEN="$($YC iam create-token)"
           IDENTITY_URL='https://postbox.cloud.yandex.net/v2/email/identities/annword.ru'
-          for attempt in $(seq 1 60); do
+          for attempt in $(seq 1 80); do
             curl -fsS -H "X-YaCloud-SubjectToken: $IAM_TOKEN" "$IDENTITY_URL" -o /tmp/identity-status.json
             STATUS="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-status.json","utf8"));process.stdout.write(String(x.VerificationStatus||x.DkimAttributes?.Status||""));')"
             SENDING="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-status.json","utf8"));process.stdout.write(String(x.SendingEnabled??x.VerifiedForSendingStatus??false));')"
@@ -174,6 +206,7 @@ jobs:
             /tmp/identity-before.json
             /tmp/create-response.json
             /tmp/identity-after.json
+            /tmp/identity-before-reverify.json
             /tmp/identity-status.json
             /tmp/easy-dkim-records.json
             /tmp/live-weekly-status.json
