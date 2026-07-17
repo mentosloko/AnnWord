@@ -33,37 +33,52 @@ jobs:
             --data-binary @/tmp/status.json
 
       - name: Read sanitized state through Yandex backend
+        id: read
+        continue-on-error: true
         env:
           YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          set -euo pipefail
+          set -u
           API_BASE="${YC_API_PUBLIC_URL%/}"
-          RELEASE_SHA="$(curl -fsS --retry 3 --retry-all-errors "${API_BASE}/release.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).sha||""))')"
-          test "$RELEASE_SHA" = "$FIX_RELEASE_SHA"
+          RELEASE_BODY="$(curl -sS --retry 3 --retry-all-errors "${API_BASE}/release.json" || true)"
+          RELEASE_SHA="$(printf '%s' "$RELEASE_BODY" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).sha||"")}catch{process.stdout.write("")}})')"
           DIAGNOSTIC_TOKEN="$(node -e 'const {createHmac}=require("crypto"); process.stdout.write(createHmac("sha256", process.env.JWT_SECRET).update(`pet-mood-diagnostic:${process.env.USER_ID}`).digest("hex"));')"
-          HTTP_CODE="$(curl -sS --retry 3 --retry-all-errors -o /tmp/pet-mood-diagnostic.json -w '%{http_code}' \
+          HTTP_CODE="$(curl -sS --retry 3 --retry-all-errors -o /tmp/pet-mood-response.json -w '%{http_code}' \
             "${API_BASE}/api/profile/internal-diagnostic/pet-mood/${USER_ID}" \
-            -H "x-annword-diagnostic-secret: ${DIAGNOSTIC_TOKEN}")"
-          cat /tmp/pet-mood-diagnostic.json
-          test "$HTTP_CODE" = "200"
-          node <<'NODE'
+            -H "x-annword-diagnostic-secret: ${DIAGNOSTIC_TOKEN}" || echo 000)"
+          RELEASE_SHA="$RELEASE_SHA" HTTP_CODE="$HTTP_CODE" node <<'NODE'
           const fs = require('fs');
-          const data = JSON.parse(fs.readFileSync('/tmp/pet-mood-diagnostic.json', 'utf8'));
-          const pet = data.profile?.pet || {};
-          const diagnostic = data.decayDiagnostic || {};
-          if (pet.moodScore !== 0) throw new Error(`Expected persisted moodScore 0, received ${pet.moodScore}`);
-          if (!diagnostic.moodUpdatedAt) throw new Error('moodUpdatedAt was not persisted');
-          const description = `mood=${pet.moodScore} anchor=${diagnostic.moodUpdatedAt}`;
-          fs.writeFileSync('/tmp/status-description.txt', description.slice(0, 130));
+          let response = null;
+          try { response = JSON.parse(fs.readFileSync('/tmp/pet-mood-response.json', 'utf8')); } catch {}
+          const output = {
+            expectedReleaseSha: process.env.FIX_RELEASE_SHA,
+            actualReleaseSha: process.env.RELEASE_SHA || null,
+            httpCode: process.env.HTTP_CODE,
+            response,
+          };
+          fs.writeFileSync('/tmp/pet-mood-diagnostic.json', JSON.stringify(output, null, 2));
+          console.log(JSON.stringify(output, null, 2));
+          const pet = response?.profile?.pet || {};
+          const diagnostic = response?.decayDiagnostic || {};
+          fs.writeFileSync('/tmp/status-description.txt', `release=${process.env.RELEASE_SHA || 'n/a'} http=${process.env.HTTP_CODE} mood=${pet.moodScore ?? 'n/a'} anchor=${diagnostic.moodUpdatedAt ?? 'n/a'}`.slice(0, 130));
+          const ok = process.env.RELEASE_SHA === process.env.FIX_RELEASE_SHA
+            && process.env.HTTP_CODE === '200'
+            && pet.moodScore === 0
+            && Boolean(diagnostic.moodUpdatedAt);
+          fs.writeFileSync('/tmp/diagnostic-ok.txt', ok ? 'true' : 'false');
           NODE
 
       - name: Upload diagnostic artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pet-mood-diagnostic
           path: /tmp/pet-mood-diagnostic.json
           retention-days: 1
+
+      - name: Assert production state
+        run: test "$(cat /tmp/diagnostic-ok.txt 2>/dev/null || echo false)" = "true"
 
       - name: Publish diagnostic status
         if: always()
@@ -73,11 +88,8 @@ jobs:
           JOB_STATUS: ${{ job.status }}
         run: |
           STATE="failure"
-          DESCRIPTION="Yandex pet mood diagnostic failed"
-          if [ "$JOB_STATUS" = "success" ]; then
-            STATE="success"
-            DESCRIPTION="$(cat /tmp/status-description.txt 2>/dev/null || echo 'Production pet state read')"
-          fi
+          DESCRIPTION="$(cat /tmp/status-description.txt 2>/dev/null || echo 'Yandex pet mood diagnostic failed')"
+          if [ "$JOB_STATUS" = "success" ]; then STATE="success"; fi
           STATE="$STATE" DESCRIPTION="$DESCRIPTION" node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Yandex Pet Mood Diagnostic",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/status.json
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
