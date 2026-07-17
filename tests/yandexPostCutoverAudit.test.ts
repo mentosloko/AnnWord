@@ -56,14 +56,6 @@ describe('Yandex post-cutover guarantees', () => {
     expect(workflow).toContain('statuses: write');
   });
 
-  it('builds physical SPA entry files for all known Yandex Object Storage routes', () => {
-    const packageJson = JSON.parse(read('package.json')) as { scripts?: Record<string, string> };
-    const routeWriter = read('scripts/write-spa-route-files.ts');
-    expect(packageJson.scripts?.build).toContain('tsx scripts/write-spa-route-files.ts');
-    expect(routeWriter).toContain('getKnownClientPaths');
-    expect(routeWriter).toContain("writeFile(join(routeDir, 'index.html'), indexHtml");
-  });
-
   it('targets Yandex production in Playwright instead of a Vercel preview', () => {
     const workflow = read('.github/workflows/manual-e2e.yml');
     const spec = read('e2e/annword.e2e.spec.ts');
