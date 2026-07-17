@@ -1,68 +1,47 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const workflowPath = '.github/workflows/postbox-byodkim-bootstrap.yml';
+const workflowPath = '.github/workflows/yandex-smoke.yml';
 const workflow = readFileSync(workflowPath, 'utf8');
 
-describe('Yandex Postbox bootstrap', () => {
-  it('uses deterministic BYODKIM with explicit DER formats', () => {
+describe('Yandex post-cutover runtime smoke', () => {
+  it('removes all one-time Postbox and DNS bootstrap workflows', () => {
+    expect(existsSync('.github/workflows/postbox-byodkim-bootstrap.yml')).toBe(false);
     expect(existsSync('.github/workflows/postbox-create-easy-dkim-diagnostic.yml')).toBe(false);
     expect(existsSync('.github/workflows/bootstrap-annword-postbox.yml')).toBe(false);
     expect(existsSync('.github/workflows/postbox-bootstrap-status.yml')).toBe(false);
     expect(existsSync('.github/workflows/diagnose-postbox-dns-status.yml')).toBe(false);
     expect(existsSync('.github/workflows/diagnose-postbox-dns-write.yml')).toBe(false);
-    expect(workflow).toContain("requiredRoles: ['postbox.editor', 'dns.editor']");
-    expect(workflow).toContain('SELECTOR: annword-postbox');
-    expect(workflow).toContain("generateKeyPairSync('rsa'");
-    expect(workflow).toContain("publicKeyEncoding: { type: 'spki', format: 'der' }");
-    expect(workflow).toContain("privateKeyEncoding: { type: 'pkcs8', format: 'der' }");
-    expect(workflow).toContain('DomainSigningSelector');
-    expect(workflow).toContain('DomainSigningPrivateKey');
-    expect(workflow).toContain('v=DKIM1;h=sha256;k=rsa;p=');
-    expect(workflow).toContain('recordValue.length > 255');
-    expect(workflow).toContain('context:"Yandex Postbox Bootstrap"');
-    expect(workflow).not.toContain('openssl genrsa');
-    expect(workflow).not.toContain('dkim.amazonses.com.');
-    expect(workflow).not.toContain('SigningHostedZone');
   });
 
-  it('isolates identity, key, DNS and Postbox operations into observable steps', () => {
-    expect(workflow).toContain('Inspect and reset unverified Postbox identity');
-    expect(workflow).toContain('Generate PKCS8 and SPKI DKIM key material');
-    expect(workflow).toContain('Install BYODKIM TXT record');
-    expect(workflow).toContain('Create Postbox BYODKIM identity');
-    expect(workflow).toContain("case \"$GET_CODE\" in");
-    expect(workflow).toContain("if: ${{ steps.identity.outputs.skip != 'true' }}");
+  it('checks API, database, Postbox, security and frontend in separate observable sections', () => {
+    expect(workflow).toContain('Check API, database and Postbox');
+    expect(workflow).toContain('Check authorization and closed migration endpoints');
+    expect(workflow).toContain('Check frontend routes and release marker');
+    expect(workflow).toContain('id: api');
+    expect(workflow).toContain('id: security');
+    expect(workflow).toContain('id: frontend');
+    expect(workflow.match(/continue-on-error: true/g)?.length).toBe(3);
+    expect(workflow).toContain('Assert all runtime smoke sections passed');
   });
 
-  it('installs the public key before creating the identity and removes private material', () => {
-    const dnsWrite = workflow.indexOf('dns zone replace-records');
-    const identityCreate = workflow.indexOf('--data-binary @/tmp/create-request.json');
-    expect(dnsWrite).toBeGreaterThan(-1);
-    expect(identityCreate).toBeGreaterThan(dnsWrite);
-    expect(workflow).toContain('Remove DKIM private material');
+  it('keeps critical post-migration invariants under live verification', () => {
+    expect(workflow).toContain('health.runtime !== \'yandex-cloud\'');
+    expect(workflow).toContain('!db.database?.ok');
+    expect(workflow).toContain('weekly.postboxIdentityVerified !== true');
+    expect(workflow).toContain('test "$PROFILE_STATUS" = "401"');
+    expect(workflow).toContain('test "$ADMIN_STATUS" = "401"');
+    expect(workflow).toContain('test "$WEEKLY_RUN_STATUS" = "401"');
+    expect(workflow).toContain('test "$MIGRATION_STATUS" = "404"');
+    expect(workflow).toContain("release.sha !== process.env.SOURCE_SHA");
+  });
+
+  it('uploads sanitized diagnostics and phase markers on failure', () => {
+    expect(workflow).toContain('name: annword-yandex-runtime-smoke');
+    expect(workflow).toContain('/tmp/smoke-phase-*');
+    expect(workflow).toContain('/tmp/annword-weekly-status.json');
+    expect(workflow).toContain('/tmp/annword-release.json');
     expect(workflow).toContain('if: always()');
-    expect(workflow).toContain('/tmp/annword-dkim-private.b64');
-    expect(workflow).toContain('Assert no DKIM private material remains');
-    const artifactStart = workflow.indexOf('Upload sanitized bootstrap result');
-    const artifactEnd = workflow.indexOf('Assert no DKIM private material remains');
-    const artifactBlock = workflow.slice(artifactStart, artifactEnd);
-    expect(artifactBlock).not.toContain('/tmp/annword-dkim-private.b64');
-    expect(artifactBlock).not.toContain('/tmp/create-request.json');
-  });
-
-  it('records the last safe phase and external response codes', () => {
-    expect(workflow).toContain('/tmp/bootstrap-phase');
-    expect(workflow).toContain('/tmp/dkim-generation-summary.json');
-    expect(workflow).toContain('/tmp/dns-write-code');
-    expect(workflow).toContain('/tmp/dns-write-output');
-    expect(workflow).toContain('/tmp/create-http-code');
-    expect(workflow).toContain('/tmp/create-response.json');
-    expect(workflow).toContain('/tmp/postbox-iam-result.json');
-    expect(workflow).toContain('/tmp/byodkim-summary.json');
-    expect(workflow).toContain('postboxIdentityVerified===true');
-    expect(workflow).toContain('VerificationStatus');
-    expect(workflow).toContain('VerifiedForSendingStatus');
-    expect(workflow).toContain('if [ "$JOB_STATUS" = "success" ]');
+    expect(workflow).toContain('context:"Yandex Runtime Smoke"');
   });
 });
