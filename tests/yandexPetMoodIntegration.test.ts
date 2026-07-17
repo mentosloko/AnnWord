@@ -27,11 +27,15 @@ describe('Yandex pet mood integration', () => {
     expect(repository).toContain('applyServerMoodIncrease(pet, food.moodEffect || 8, nowMs)');
   });
 
-  it('tracks a dedicated mood timestamp instead of using streak activity as a decay clock', () => {
+  it('uses moodUpdatedAt as the decay anchor and keeps streak activity separate', () => {
     const types = read('types.ts');
     const policy = read('services/serverPetMoodPolicy.ts');
+    const decayStart = policy.indexOf('export const applyServerPetMoodClock');
+    const activityStart = policy.indexOf('export const markServerPetActivity');
+    const decayBody = policy.slice(decayStart, activityStart);
     expect(types).toContain('moodUpdatedAt?: string');
-    expect(policy).toContain('pet.moodUpdatedAt');
-    expect(policy).not.toContain('lastDailyActivityDate');
+    expect(decayBody).toContain('const anchorMs = validTimestamp(pet.moodUpdatedAt)');
+    expect(decayBody).not.toContain('lastDailyActivityDate');
+    expect(policy.slice(activityStart)).toContain('lastDailyActivityDate');
   });
 });
