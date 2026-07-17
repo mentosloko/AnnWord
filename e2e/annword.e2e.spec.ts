@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const DEFAULT_E2E_BASE_URL = 'https://ann-word-git-main-mentosloko-1417s-projects.vercel.app';
+const DEFAULT_E2E_BASE_URL = 'https://annword.ru';
 
 const normalizeBaseUrl = (rawUrl: string): string => {
   const trimmed = rawUrl.trim().replace(/\/$/, '');
