@@ -5,35 +5,37 @@ const workflowPath = '.github/workflows/postbox-create-easy-dkim-diagnostic.yml'
 const workflow = readFileSync(workflowPath, 'utf8');
 
 describe('Yandex Postbox bootstrap', () => {
-  it('uses Easy DKIM without handling private keys', () => {
+  it('uses deterministic BYODKIM after Easy DKIM target discovery proved incomplete', () => {
     expect(existsSync('.github/workflows/bootstrap-annword-postbox.yml')).toBe(false);
     expect(existsSync('.github/workflows/postbox-bootstrap-status.yml')).toBe(false);
     expect(existsSync('.github/workflows/diagnose-postbox-dns-status.yml')).toBe(false);
     expect(existsSync('.github/workflows/diagnose-postbox-dns-write.yml')).toBe(false);
-    expect(workflow).toContain("requiredRole: 'postbox.editor'");
-    expect(workflow).toContain("'{\"EmailIdentity\":\"annword.ru\"}'");
-    expect(workflow).toContain('DkimAttributes');
-    expect(workflow).toContain('Tokens');
-    expect(workflow).toContain('CNAME');
-    expect(workflow).toContain('dkim.amazonses.com.');
+    expect(workflow).toContain("requiredRoles: ['postbox.editor', 'dns.editor']");
+    expect(workflow).toContain("SELECTOR='annword-postbox'");
+    expect(workflow).toContain('DomainSigningSelector');
+    expect(workflow).toContain('DomainSigningPrivateKey');
+    expect(workflow).toContain('v=DKIM1;h=sha256;k=rsa;p=');
+    expect(workflow).toContain('TXT');
+    expect(workflow).toContain('openssl genrsa');
     expect(workflow).toContain('context:"Yandex Postbox Bootstrap"');
+    expect(workflow).not.toContain('dkim.amazonses.com.');
     expect(workflow).not.toContain('SigningHostedZone');
-    expect(workflow).not.toContain('DomainSigningPrivateKey');
-    expect(workflow).not.toContain('openssl genpkey');
   });
 
-  it('recreates only a terminal FAILED identity before installing its current DNS records', () => {
-    expect(workflow).toContain("if [ \"$STATUS\" = \"FAILED\" ]");
-    expect(workflow).toContain('Removing terminal FAILED identity before a clean verification cycle.');
-    expect(workflow).toContain('-X DELETE');
-    expect(workflow).toContain('SHOULD_CREATE=true');
-    expect(workflow).toContain("printf '%s' 'recreated' > /tmp/identity-source");
-    expect(workflow).not.toContain('Restart failed Postbox verification');
-    expect(workflow).not.toContain('SigningEnabled');
+  it('installs the public key before creating the address and removes private material', () => {
+    const dnsWrite = workflow.indexOf('dns zone replace-records');
+    const identityCreate = workflow.indexOf('--data-binary @/tmp/create-request.json');
+    expect(dnsWrite).toBeGreaterThan(-1);
+    expect(identityCreate).toBeGreaterThan(dnsWrite);
+    expect(workflow).toContain('rm -f \\');
+    expect(workflow).toContain('/tmp/annword-dkim-private.pem');
+    expect(workflow).toContain('Assert no DKIM private material remains');
+    expect(workflow).not.toContain('/tmp/annword-dkim-private.pem\n            /tmp/identity');
   });
 
   it('keeps failures observable and never treats an unverified sender as success', () => {
     expect(workflow).toContain('/tmp/postbox-iam-result.json');
+    expect(workflow).toContain('/tmp/byodkim-summary.json');
     expect(workflow).toContain('postboxIdentityVerified===true');
     expect(workflow).toContain('VerificationStatus');
     expect(workflow).toContain('VerifiedForSendingStatus');
