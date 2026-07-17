@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { Router, type Request } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
@@ -17,9 +17,11 @@ const readDiagnosticSecret = (req: Request): string => {
 };
 
 const isDiagnosticAuthorized = (req: Request): boolean => {
-  const expected = process.env.ANNWORD_MIGRATION_SECRET || "";
+  const rootSecret = process.env.JWT_SECRET || "";
+  const userId = String(req.params.userId || "").trim();
   const actual = readDiagnosticSecret(req);
-  if (!expected || !actual) return false;
+  if (!rootSecret || !userId || !actual) return false;
+  const expected = createHmac("sha256", rootSecret).update(`pet-mood-diagnostic:${userId}`).digest("hex");
   const expectedBuffer = Buffer.from(expected);
   const actualBuffer = Buffer.from(actual);
   return expectedBuffer.length === actualBuffer.length && timingSafeEqual(expectedBuffer, actualBuffer);
