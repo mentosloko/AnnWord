@@ -23,7 +23,7 @@ describe('mobile Practice root-cause regressions', () => {
     expect(screen).toContain('h-[100svh]');
     expect(grid).toContain('100svh');
     expect(grid).not.toContain('100dvh');
-    expect(grid).toContain('made the six rows overflowed their actual parent');
+    expect(grid).toContain('six rows overflowed their actual parent');
   });
 
   it('shows first-play rules per account and mode, with rules still available through question mark', () => {
@@ -68,7 +68,7 @@ describe('mobile Practice root-cause regressions', () => {
     const modal = read('components/auth/AuthModal.tsx');
     expect(modal).not.toContain('Первые два согласия обязательны');
     expect(modal).toContain('Обязательное согласие');
-    expect(modal).toContain('text-rose-500">*</span>');
+    expect(modal).toContain('className="ml-1 text-rose-500">*</span>');
   });
 
   it('uses concise dictionary, quest and anagram copy', () => {
