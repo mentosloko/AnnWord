@@ -3,7 +3,8 @@ import { Router, type Request } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { query } from "../db";
-import { applyGameResult, getOrCreateProfile, incrementProfileCoins, syncProfileState, updateProfileDictionary, updateProfilePet, updateProfileStats } from "../profileRepository";
+import { applyGameResult, getOrCreateProfile, incrementProfileCoins, updateProfileDictionary, updateProfilePet, updateProfileStats } from "../profileRepository";
+import { reconcileProfileMood, syncProfileStateServerAuthoritative, useProfileItemServerAuthoritative } from "../petMoodRepository";
 import { updateWeeklyReportEmailPreference } from "../weeklyReportProfileRepository";
 import { listDictionaryCollections, saveDictionaryCollection } from "../dictionaryCollectionRepository";
 import { purchaseProfileItem } from "../purchaseRepository";
@@ -45,6 +46,7 @@ profileRouter.get("/internal-diagnostic/pet-mood/:userId", async (req, res) => {
 
   try {
     const userId = String(req.params.userId || "").trim();
+    await reconcileProfileMood(userId);
     const profileResult = await query<{
       id: string;
       username: string;
@@ -97,13 +99,11 @@ profileRouter.get("/internal-diagnostic/pet-mood/:userId", async (req, res) => {
 
     const pet = profile.pet || {};
     const lastDailyActivityDate = typeof pet.lastDailyActivityDate === "string" ? pet.lastDailyActivityDate : null;
-    const lastDailyActivityMs = lastDailyActivityDate ? Date.parse(`${lastDailyActivityDate}T00:00:00+03:00`) : Number.NaN;
+    const moodUpdatedAt = typeof pet.moodUpdatedAt === "string" ? pet.moodUpdatedAt : null;
+    const moodUpdatedMs = moodUpdatedAt ? Date.parse(moodUpdatedAt) : Number.NaN;
     const serverNowMs = Date.now();
-    const elapsedDays = Number.isFinite(lastDailyActivityMs) ? Math.max(0, (serverNowMs - lastDailyActivityMs) / 86_400_000) : null;
+    const elapsedDays = Number.isFinite(moodUpdatedMs) ? Math.max(0, (serverNowMs - moodUpdatedMs) / 86_400_000) : null;
     const currentMoodScore = typeof pet.moodScore === "number" ? pet.moodScore : null;
-    const theoreticalMoodScore = currentMoodScore !== null && elapsedDays !== null
-      ? Math.max(0, Math.round(currentMoodScore - elapsedDays * 8))
-      : null;
 
     res.json({
       serverNow: new Date(serverNowMs).toISOString(),
@@ -123,10 +123,10 @@ profileRouter.get("/internal-diagnostic/pet-mood/:userId", async (req, res) => {
       activity: { gameEvents, analyticsEvents, dailyQuest },
       decayDiagnostic: {
         lastDailyActivityDate,
+        moodUpdatedAt,
         elapsedDays,
         configuredLossPerDay: 8,
         storedMoodScore: currentMoodScore,
-        theoreticalMoodScoreWithoutInterveningActivity: theoreticalMoodScore,
       },
     });
   } catch (error) {
@@ -145,7 +145,8 @@ profileRouter.get("/me", async (req: AuthenticatedRequest, res) => {
       res.status(401).json({ code: "unauthorized", error: "Unauthorized" });
       return;
     }
-    const profile = await getOrCreateProfile(user.id, user.name || user.email.split("@")[0] || "Пользователь");
+    await getOrCreateProfile(user.id, user.name || user.email.split("@")[0] || "Пользователь");
+    const profile = await reconcileProfileMood(user.id);
     res.json({ profile });
   } catch (error) {
     res.status(500).json({ code: "profile_load_failed", error: error instanceof Error ? error.message : "Profile load failed" });
@@ -173,7 +174,8 @@ profileRouter.post("/dictionary-collections", async (req: AuthenticatedRequest, 
 profileRouter.patch("/dictionary", async (req: AuthenticatedRequest, res) => {
   try {
     const words = Array.isArray(req.body?.words) ? req.body.words.filter((item: unknown): item is string => typeof item === "string") : [];
-    const profile = await updateProfileDictionary(req.user!.id, words);
+    await updateProfileDictionary(req.user!.id, words);
+    const profile = await reconcileProfileMood(req.user!.id);
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "dictionary_update_failed", error: error instanceof Error ? error.message : "Dictionary update failed" });
@@ -182,7 +184,8 @@ profileRouter.patch("/dictionary", async (req: AuthenticatedRequest, res) => {
 
 profileRouter.patch("/stats", async (req: AuthenticatedRequest, res) => {
   try {
-    const profile = await updateProfileStats(req.user!.id, req.body?.stats);
+    await updateProfileStats(req.user!.id, req.body?.stats);
+    const profile = await reconcileProfileMood(req.user!.id);
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "stats_update_failed", error: error instanceof Error ? error.message : "Stats update failed" });
@@ -191,7 +194,8 @@ profileRouter.patch("/stats", async (req: AuthenticatedRequest, res) => {
 
 profileRouter.patch("/pet", async (req: AuthenticatedRequest, res) => {
   try {
-    const profile = await updateProfilePet(req.user!.id, req.body?.pet);
+    await updateProfilePet(req.user!.id, req.body?.pet);
+    const profile = await reconcileProfileMood(req.user!.id);
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "pet_update_failed", error: error instanceof Error ? error.message : "Pet update failed" });
@@ -200,7 +204,8 @@ profileRouter.patch("/pet", async (req: AuthenticatedRequest, res) => {
 
 profileRouter.post("/coins", async (req: AuthenticatedRequest, res) => {
   try {
-    const profile = await incrementProfileCoins(req.user!.id, Number(req.body?.amount || 0));
+    await incrementProfileCoins(req.user!.id, Number(req.body?.amount || 0));
+    const profile = await reconcileProfileMood(req.user!.id);
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "coins_update_failed", error: error instanceof Error ? error.message : "Coins update failed" });
@@ -214,17 +219,33 @@ profileRouter.post("/purchase", async (req: AuthenticatedRequest, res) => {
       res.status(400).json({ code: "item_required", error: "Не выбран товар." });
       return;
     }
-    const profile = await purchaseProfileItem(req.user!.id, itemId);
+    await purchaseProfileItem(req.user!.id, itemId);
+    const profile = await reconcileProfileMood(req.user!.id);
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "purchase_failed", error: error instanceof Error ? error.message : "Покупка не удалась." });
   }
 });
 
+profileRouter.post("/use-item", async (req: AuthenticatedRequest, res) => {
+  try {
+    const itemId = typeof req.body?.itemId === "string" ? req.body.itemId.trim() : "";
+    if (!itemId) {
+      res.status(400).json({ code: "item_required", error: "Не выбран предмет." });
+      return;
+    }
+    const profile = await useProfileItemServerAuthoritative(req.user!.id, itemId);
+    res.json({ profile });
+  } catch (error) {
+    res.status(400).json({ code: "item_use_failed", error: error instanceof Error ? error.message : "Предмет не удалось использовать." });
+  }
+});
+
 profileRouter.patch("/weekly-report-email", async (req: AuthenticatedRequest, res) => {
   try {
     const email = typeof req.body?.email === "string" ? req.body.email : "";
-    const profile = await updateWeeklyReportEmailPreference(req.user!.id, email);
+    await updateWeeklyReportEmailPreference(req.user!.id, email);
+    const profile = await reconcileProfileMood(req.user!.id);
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "weekly_email_update_failed", error: error instanceof Error ? error.message : "Weekly email update failed" });
@@ -233,11 +254,11 @@ profileRouter.patch("/weekly-report-email", async (req: AuthenticatedRequest, re
 
 profileRouter.post("/sync-state", async (req: AuthenticatedRequest, res) => {
   try {
-    const profile = await syncProfileState(req.user!.id, {
-      inventory: Array.isArray(req.body?.inventory) ? req.body.inventory : [],
-      pet: req.body?.pet,
-      coins: 0,
-    });
+    const profile = await syncProfileStateServerAuthoritative(
+      req.user!.id,
+      req.body?.pet,
+      Array.isArray(req.body?.inventory) ? req.body.inventory : [],
+    );
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "profile_sync_failed", error: error instanceof Error ? error.message : "Profile sync failed" });
@@ -246,7 +267,8 @@ profileRouter.post("/sync-state", async (req: AuthenticatedRequest, res) => {
 
 profileRouter.post("/game-result", async (req: AuthenticatedRequest, res) => {
   try {
-    const profile = await applyGameResult(req.user!.id, req.body?.stats, req.body?.pet, Number(req.body?.coinsDelta || 0));
+    await applyGameResult(req.user!.id, req.body?.stats, req.body?.pet, Number(req.body?.coinsDelta || 0));
+    const profile = await reconcileProfileMood(req.user!.id, true);
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "game_result_update_failed", error: error instanceof Error ? error.message : "Game result update failed" });
