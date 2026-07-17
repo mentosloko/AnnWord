@@ -1,0 +1,274 @@
+name: Bootstrap Postbox BYODKIM
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: bootstrap-annword-postbox
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    name: Configure annword.ru Postbox
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Mark Postbox bootstrap pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Postbox Bootstrap",description:"Configuring length-safe BYODKIM",target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/status.json
+
+      - name: Install and configure Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > /tmp/yc-sa-key.json
+          "$HOME/yandex-cloud/bin/yc" config profile create annword-postbox-bootstrap
+          "$HOME/yandex-cloud/bin/yc" config set service-account-key /tmp/yc-sa-key.json
+          "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
+          "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
+          "$HOME/yandex-cloud/bin/yc" dns zone list --format json > /tmp/dns-zones.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const zones = JSON.parse(fs.readFileSync('/tmp/dns-zones.json', 'utf8'));
+          const zone = zones.find(item => String(item.zone || '').replace(/\.$/, '').toLowerCase() === 'annword.ru');
+          if (!zone?.id) throw new Error('Public annword.ru DNS zone was not found in the deployment folder.');
+          fs.writeFileSync('/tmp/dns-zone-id', zone.id);
+          NODE
+
+      - name: Create length-safe BYODKIM identity
+        env:
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          cleanup_private_material() {
+            rm -f \
+              /tmp/annword-dkim-private.pem \
+              /tmp/annword-dkim-public.pem \
+              /tmp/annword-dkim-private.b64 \
+              /tmp/annword-dkim-public.b64 \
+              /tmp/create-request.json
+          }
+          trap cleanup_private_material EXIT
+
+          YC="$HOME/yandex-cloud/bin/yc"
+          IAM_TOKEN="$($YC iam create-token)"
+          IDENTITY_URL='https://postbox.cloud.yandex.net/v2/email/identities/annword.ru'
+          IDENTITIES_URL='https://postbox.cloud.yandex.net/v2/email/identities'
+          SELECTOR='annword-postbox'
+          RECORD_NAME="${SELECTOR}._domainkey.annword.ru."
+          ZONE_ID="$(cat /tmp/dns-zone-id)"
+
+          GET_CODE="$(curl -sS -o /tmp/identity-before.json -w '%{http_code}' \
+            -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
+            "$IDENTITY_URL")"
+
+          GET_CODE="$GET_CODE" node - <<'NODE'
+          const fs = require('fs');
+          const key = JSON.parse(fs.readFileSync('/tmp/yc-sa-key.json', 'utf8'));
+          fs.writeFileSync('/tmp/postbox-iam-result.json', JSON.stringify({
+            serviceAccountId: key.service_account_id || key.serviceAccountId || null,
+            folderIdConfigured: Boolean(process.env.YC_FOLDER_ID),
+            requiredRoles: ['postbox.editor', 'dns.editor'],
+            identityLookupHttpCode: Number(process.env.GET_CODE || 0),
+          }, null, 2));
+          NODE
+
+          NEED_CREATE=true
+          if [ "$GET_CODE" = "200" ]; then
+            STATUS="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-before.json","utf8"));process.stdout.write(String(x.VerificationStatus||x.DkimAttributes?.Status||""));')"
+            if [ "$STATUS" = "SUCCESS" ]; then
+              cp /tmp/identity-before.json /tmp/identity-after.json
+              printf '%s' 'verified-existing' > /tmp/identity-source
+              NEED_CREATE=false
+            else
+              DELETE_CODE="$(curl -sS -o /tmp/delete-response.json -w '%{http_code}' \
+                -X DELETE \
+                -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
+                "$IDENTITY_URL")"
+              printf '%s' "$DELETE_CODE" > /tmp/delete-http-code
+              test "$DELETE_CODE" = "200" -o "$DELETE_CODE" = "204"
+              for attempt in $(seq 1 20); do
+                LOOKUP_CODE="$(curl -sS -o /tmp/identity-after-delete.json -w '%{http_code}' \
+                  -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
+                  "$IDENTITY_URL")"
+                if [ "$LOOKUP_CODE" = "404" ]; then break; fi
+                sleep 2
+              done
+              test "$LOOKUP_CODE" = "404"
+            fi
+          elif [ "$GET_CODE" != "404" ]; then
+            cat /tmp/identity-before.json
+            exit 1
+          fi
+
+          if [ "$NEED_CREATE" = "true" ]; then
+            openssl genrsa -out /tmp/annword-dkim-private.pem 1024 2>/dev/null
+            openssl rsa -in /tmp/annword-dkim-private.pem -pubout -out /tmp/annword-dkim-public.pem 2>/dev/null
+            grep -v 'BEGIN' /tmp/annword-dkim-private.pem | grep -v 'END' | tr -d '\n' > /tmp/annword-dkim-private.b64
+            grep -v 'BEGIN' /tmp/annword-dkim-public.pem | grep -v 'END' | tr -d '\n' > /tmp/annword-dkim-public.b64
+
+            PUBLIC_KEY_B64="$(cat /tmp/annword-dkim-public.b64)"
+            RECORD_VALUE="v=DKIM1;h=sha256;k=rsa;p=${PUBLIC_KEY_B64}"
+            test "${#RECORD_VALUE}" -le 255
+
+            set +e
+            "$YC" dns zone replace-records --id "$ZONE_ID" \
+              --record "$RECORD_NAME 300 TXT \"$RECORD_VALUE\"" \
+              > /tmp/dns-write-output 2>&1
+            DNS_CODE=$?
+            set -e
+            printf '%s' "$DNS_CODE" > /tmp/dns-write-code
+            if [ "$DNS_CODE" != "0" ]; then
+              echo 'Cloud DNS rejected the length-safe DKIM TXT record.'
+              exit 1
+            fi
+
+            SELECTOR="$SELECTOR" node - <<'NODE'
+            const fs = require('fs');
+            const privateKey = fs.readFileSync('/tmp/annword-dkim-private.b64', 'utf8').trim();
+            fs.writeFileSync('/tmp/create-request.json', JSON.stringify({
+              EmailIdentity: 'annword.ru',
+              DkimSigningAttributes: {
+                DomainSigningSelector: process.env.SELECTOR,
+                DomainSigningPrivateKey: privateKey,
+              },
+            }));
+            NODE
+
+            CREATE_CODE="$(curl -sS -o /tmp/create-response.json -w '%{http_code}' \
+              -X POST \
+              -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
+              -H 'Content-Type: application/json' \
+              --data-binary @/tmp/create-request.json \
+              "$IDENTITIES_URL")"
+            printf '%s' "$CREATE_CODE" > /tmp/create-http-code
+            if [ "$CREATE_CODE" != "200" ]; then
+              cat /tmp/create-response.json
+              exit 1
+            fi
+
+            curl -fsS -H "X-YaCloud-SubjectToken: $IAM_TOKEN" "$IDENTITY_URL" -o /tmp/identity-after.json
+            printf '%s' 'byodkim-1024-created' > /tmp/identity-source
+            node - <<'NODE'
+            const fs = require('fs');
+            const identity = JSON.parse(fs.readFileSync('/tmp/identity-after.json', 'utf8'));
+            fs.writeFileSync('/tmp/byodkim-summary.json', JSON.stringify({
+              selector: 'annword-postbox',
+              recordName: 'annword-postbox._domainkey.annword.ru.',
+              signingOrigin: identity.DkimAttributes?.SigningAttributesOrigin || null,
+              keyLength: identity.DkimAttributes?.CurrentSigningKeyLength || 'RSA_1024_BIT',
+            }, null, 2));
+            NODE
+          fi
+
+      - name: Wait for Postbox verification
+        run: |
+          set -euo pipefail
+          YC="$HOME/yandex-cloud/bin/yc"
+          IAM_TOKEN="$($YC iam create-token)"
+          IDENTITY_URL='https://postbox.cloud.yandex.net/v2/email/identities/annword.ru'
+          for attempt in $(seq 1 80); do
+            curl -fsS -H "X-YaCloud-SubjectToken: $IAM_TOKEN" "$IDENTITY_URL" -o /tmp/identity-status.json
+            STATUS="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-status.json","utf8"));process.stdout.write(String(x.VerificationStatus||x.DkimAttributes?.Status||""));')"
+            SENDING="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-status.json","utf8"));process.stdout.write(String(x.VerifiedForSendingStatus??false));')"
+            ORIGIN="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-status.json","utf8"));process.stdout.write(String(x.DkimAttributes?.SigningAttributesOrigin||""));')"
+            echo "Postbox verification attempt $attempt: status=${STATUS:-unknown} sending=$SENDING origin=${ORIGIN:-unknown}"
+            if [ "$STATUS" = "SUCCESS" ] && [ "$SENDING" = "true" ]; then
+              exit 0
+            fi
+            if [ "$STATUS" = "FAILED" ] && [ "$attempt" -gt 8 ]; then
+              cat /tmp/identity-status.json
+              exit 1
+            fi
+            sleep 15
+          done
+          cat /tmp/identity-status.json
+          exit 1
+
+      - name: Verify live weekly-report preflight
+        env:
+          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+        run: |
+          set -euo pipefail
+          API_BASE="${YC_API_PUBLIC_URL%/}"
+          for attempt in $(seq 1 20); do
+            HTTP_CODE="$(curl -sS -o /tmp/live-weekly-status.json -w '%{http_code}' "$API_BASE/api/reports/weekly/status")"
+            cat /tmp/live-weekly-status.json
+            if [ "$HTTP_CODE" = "200" ] && node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/live-weekly-status.json","utf8"));process.exit(x.configured&&x.postboxIdentityVerified===true?0:1)'; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+
+      - name: Upload sanitized bootstrap result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: annword-postbox-bootstrap-result
+          path: |
+            /tmp/postbox-iam-result.json
+            /tmp/identity-before.json
+            /tmp/identity-after.json
+            /tmp/identity-status.json
+            /tmp/byodkim-summary.json
+            /tmp/live-weekly-status.json
+            /tmp/delete-http-code
+            /tmp/dns-write-code
+            /tmp/create-http-code
+            /tmp/create-response.json
+            /tmp/identity-source
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Assert no DKIM private material remains
+        if: always()
+        run: |
+          test ! -e /tmp/annword-dkim-private.pem
+          test ! -e /tmp/annword-dkim-private.b64
+          test ! -e /tmp/create-request.json
+
+      - name: Publish Postbox bootstrap status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then
+            STATE=success
+            DESCRIPTION='annword.ru Postbox sender verified'
+          else
+            STATE=failure
+            DESCRIPTION='Postbox BYODKIM verification failed'
+          fi
+          export STATE DESCRIPTION
+          node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Yandex Postbox Bootstrap",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/status.json
