@@ -34,8 +34,8 @@
     "premium-dictionaries:validate": "tsx scripts/validatePremiumDictionaries.ts",
     "check:smoke": "npm run dictionary:smoke && npm run navigation:smoke && npm run route:smoke && npm run economy:smoke && npm run pet:smoke && npm run screens:smoke && npm run hooks:smoke && npm run appv2:smoke",
     "check": "npm run lint && npm run premium-dictionaries:validate && npm run check:unit && npm run check:smoke && npm run api:check",
-    "build": "vite build",
-    "build:verified": "npm run check && vite build",
+    "build": "vite build && tsx scripts/write-spa-route-files.ts",
+    "build:verified": "npm run check && npm run build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
