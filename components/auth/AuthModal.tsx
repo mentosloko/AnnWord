@@ -23,6 +23,8 @@ const LoaderIcon = () => (
   </svg>
 );
 
+const RequiredMark = () => <><span aria-hidden="true" className="ml-1 text-rose-500">*</span><span className="sr-only"> Обязательное согласие.</span></>;
+
 const isRussianEmailDomain = (value: string): boolean => {
   const domain = value.trim().toLowerCase().split('@').pop() || '';
   return domain.endsWith('.ru') || domain.endsWith('.рф') || domain.endsWith('.xn--p1ai') || domain === 'xn--p1ai';
@@ -118,18 +120,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <fieldset className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
               <legend className="px-1 text-xs font-black uppercase tracking-wider text-indigo-700">Согласия</legend>
               <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-5 text-slate-700">
-                <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                <span>Я принимаю Пользовательское соглашение.</span>
+                <input type="checkbox" required checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <span>Я принимаю Пользовательское соглашение.<RequiredMark /></span>
               </label>
               <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-5 text-slate-700">
-                <input type="checkbox" checked={personalDataAccepted} onChange={(event) => setPersonalDataAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                <span>Я даю согласие на обработку моих персональных данных в соответствии с Согласием на обработку персональных данных.</span>
+                <input type="checkbox" required checked={personalDataAccepted} onChange={(event) => setPersonalDataAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <span>Я даю согласие на обработку моих персональных данных в соответствии с Согласием на обработку персональных данных.<RequiredMark /></span>
               </label>
               <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-5 text-slate-700">
                 <input type="checkbox" checked={marketingEmailsAccepted} onChange={(event) => setMarketingEmailsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                 <span>Я согласен получать новости, специальные предложения и рекламные сообщения AnnWord по электронной почте.</span>
               </label>
-              <p className="text-xs font-semibold leading-5 text-slate-500">Первые два согласия обязательны для создания аккаунта. Согласие на рекламные сообщения является добровольным.</p>
             </fieldset>
           )}
 
