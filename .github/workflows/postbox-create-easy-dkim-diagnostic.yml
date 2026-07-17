@@ -1,0 +1,126 @@
+name: Diagnose Postbox Easy DKIM creation
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: bootstrap-annword-postbox
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Create annword.ru with Easy DKIM
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Mark diagnostic pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Postbox Easy DKIM",description:"Testing Postbox identity creation",target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/status.json
+
+      - name: Install and configure Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > /tmp/yc-sa-key.json
+          "$HOME/yandex-cloud/bin/yc" config profile create annword-postbox-easy-dkim
+          "$HOME/yandex-cloud/bin/yc" config set service-account-key /tmp/yc-sa-key.json
+          "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
+          "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
+
+      - name: Attempt Easy DKIM identity creation
+        run: |
+          set -euo pipefail
+          YC="$HOME/yandex-cloud/bin/yc"
+          IAM_TOKEN="$($YC iam create-token)"
+          IDENTITY_URL='https://postbox.cloud.yandex.net/v2/email/identities/annword.ru'
+
+          GET_CODE="$(curl -sS -o /tmp/identity-before.json -w '%{http_code}' \
+            -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
+            "$IDENTITY_URL")"
+          echo "Identity lookup before create: HTTP $GET_CODE"
+
+          if [ "$GET_CODE" = "200" ]; then
+            cp /tmp/identity-before.json /tmp/identity-after.json
+            echo 'Identity already exists; no create request was needed.'
+            exit 0
+          fi
+
+          printf '%s' '{"EmailIdentity":"annword.ru"}' > /tmp/create-request.json
+          CREATE_CODE="$(curl -sS -o /tmp/create-response.json -w '%{http_code}' \
+            -X POST \
+            -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/create-request.json \
+            'https://postbox.cloud.yandex.net/v2/email/identities')"
+          printf '%s' "$CREATE_CODE" > /tmp/create-http-code
+          echo "Easy DKIM create: HTTP $CREATE_CODE"
+          cat /tmp/create-response.json
+
+          AFTER_CODE="$(curl -sS -o /tmp/identity-after.json -w '%{http_code}' \
+            -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
+            "$IDENTITY_URL")"
+          printf '%s' "$AFTER_CODE" > /tmp/after-http-code
+          echo "Identity lookup after create: HTTP $AFTER_CODE"
+
+          if [ "$CREATE_CODE" != "200" ] || [ "$AFTER_CODE" != "200" ]; then
+            exit 1
+          fi
+
+      - name: Upload sanitized API responses
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: annword-postbox-easy-dkim-diagnostic
+          path: |
+            /tmp/identity-before.json
+            /tmp/create-response.json
+            /tmp/identity-after.json
+            /tmp/create-http-code
+            /tmp/after-http-code
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Publish diagnostic status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then
+            STATE=success
+            DESCRIPTION='Postbox identity creation is available'
+          else
+            STATE=failure
+            DESCRIPTION='Postbox identity creation failed'
+          fi
+          export STATE DESCRIPTION
+          node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Yandex Postbox Easy DKIM",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/status.json
