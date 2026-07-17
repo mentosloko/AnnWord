@@ -70,8 +70,13 @@ jobs:
             fi
           done
 
-          echo "Checking frontend and release marker"
-          curl --fail-with-body --retry 3 --retry-all-errors -sS -I "$FRONTEND_URL" | head -n 20
+          echo "Checking frontend root, SPA deep links and release marker"
+          for ROUTE in / /practice /kids /premium /setup; do
+            SAFE_ROUTE=$(printf '%s' "$ROUTE" | tr '/' '_' | tr -cd '[:alnum:]_')
+            BODY_FILE="/tmp/annword-page-${SAFE_ROUTE:-root}.html"
+            curl --fail-with-body --retry 3 --retry-all-errors -sS "$FRONTEND_URL$ROUTE" -o "$BODY_FILE"
+            grep -q 'AnnWord' "$BODY_FILE"
+          done
           curl --fail-with-body --retry 3 --retry-all-errors -sS "$FRONTEND_URL/release.json" | tee /tmp/annword-release.json
 
           node - <<'NODE'
