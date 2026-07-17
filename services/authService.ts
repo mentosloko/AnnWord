@@ -2,6 +2,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
 import { BackendApiError, backendApiBaseUrl, backendApiRequest, isBackendApiConfigured, writeBackendAccessToken } from './backendApiClient';
 import type { RegistrationConsentSnapshot } from './legalConsentService';
+import type { UserProfile } from '../types';
 
 export interface AuthBootstrapResult {
   session: Session | null;
@@ -22,6 +23,7 @@ type BackendSessionPayload = {
   token_type?: string;
   expires_in?: number;
   user?: BackendUserPayload | null;
+  profile?: UserProfile | null;
 };
 
 type BackendMePayload = {
@@ -31,7 +33,15 @@ type BackendMePayload = {
 type AuthSubscriber = (event: AuthEventName, session: Session | null, user: User | null) => void;
 const backendSubscribers = new Set<AuthSubscriber>();
 let currentBackendAuth: AuthBootstrapResult = { session: null, user: null };
+let pendingRegisteredProfile: { userId: string; profile: UserProfile } | null = null;
 const EXPLICIT_LOGOUT_STORAGE_KEY = 'annword_explicit_logout_v1';
+
+export const consumePendingRegisteredProfile = (userId: string): UserProfile | null => {
+  if (!pendingRegisteredProfile || pendingRegisteredProfile.userId !== userId) return null;
+  const profile = pendingRegisteredProfile.profile;
+  pendingRegisteredProfile = null;
+  return profile;
+};
 
 const readExplicitLogout = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -151,6 +161,7 @@ export const authService = {
 
   signInWithEmail: async (email: string, password: string): Promise<void> => {
     if (isBackendApiConfigured) {
+      pendingRegisteredProfile = null;
       const payload = await withTransientRetry(() => backendApiRequest<BackendSessionPayload>('/api/auth/email/session', {
         method: 'POST',
         body: { email, credential: password },
@@ -172,6 +183,7 @@ export const authService = {
         body: { email, credential: password, name: email.split('@')[0], consents },
       }));
       writeExplicitLogout(false);
+      if (payload.user && payload.profile) pendingRegisteredProfile = { userId: payload.user.id, profile: payload.profile };
       currentBackendAuth = toAuthBootstrap(payload);
       emitBackendAuth('SIGNED_IN', currentBackendAuth);
       return { needsEmailConfirmation: false };
@@ -188,6 +200,7 @@ export const authService = {
 
   signOut: async (): Promise<void> => {
     if (isBackendApiConfigured) {
+      pendingRegisteredProfile = null;
       writeExplicitLogout(true);
       writeBackendAccessToken(null);
       currentBackendAuth = { session: null, user: null };
