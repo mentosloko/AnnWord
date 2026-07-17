@@ -51,3 +51,5 @@ jobs:
           name: yandex-migration-gap-audit
           path: /tmp/annword-audit
           retention-days: 3
+
+# one-time audit trigger
