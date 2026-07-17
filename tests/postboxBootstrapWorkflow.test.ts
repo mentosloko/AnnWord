@@ -31,7 +31,9 @@ describe('Yandex Postbox bootstrap', () => {
     expect(workflow).toContain('trap cleanup_private_material EXIT');
     expect(workflow).toContain('/tmp/annword-dkim-private.pem');
     expect(workflow).toContain('Assert no DKIM private material remains');
-    const artifactBlock = workflow.slice(workflow.indexOf('Upload sanitized bootstrap result'));
+    const artifactStart = workflow.indexOf('Upload sanitized bootstrap result');
+    const artifactEnd = workflow.indexOf('Assert no DKIM private material remains');
+    const artifactBlock = workflow.slice(artifactStart, artifactEnd);
     expect(artifactBlock).not.toContain('/tmp/annword-dkim-private.pem');
     expect(artifactBlock).not.toContain('/tmp/annword-dkim-private.b64');
     expect(artifactBlock).not.toContain('/tmp/create-request.json');
