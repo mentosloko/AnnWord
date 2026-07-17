@@ -57,7 +57,7 @@ jobs:
           fs.writeFileSync('/tmp/dns-zone-id', zone.id);
           NODE
 
-      - name: Verify Postbox access and create identity
+      - name: Create a verifiable Postbox identity
         env:
           YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
         run: |
@@ -65,6 +65,7 @@ jobs:
           YC="$HOME/yandex-cloud/bin/yc"
           IAM_TOKEN="$($YC iam create-token)"
           IDENTITY_URL='https://postbox.cloud.yandex.net/v2/email/identities/annword.ru'
+          IDENTITIES_URL='https://postbox.cloud.yandex.net/v2/email/identities'
 
           GET_CODE="$(curl -sS -o /tmp/identity-before.json -w '%{http_code}' \
             -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
@@ -81,27 +82,55 @@ jobs:
           }, null, 2));
           NODE
 
+          SHOULD_CREATE=false
           if [ "$GET_CODE" = "200" ]; then
-            cp /tmp/identity-before.json /tmp/identity-after.json
-            printf '%s' 'existing' > /tmp/identity-source
+            STATUS="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-before.json","utf8"));process.stdout.write(String(x.VerificationStatus||x.DkimAttributes?.Status||""));')"
+            if [ "$STATUS" = "SUCCESS" ]; then
+              cp /tmp/identity-before.json /tmp/identity-after.json
+              printf '%s' 'verified-existing' > /tmp/identity-source
+            elif [ "$STATUS" = "FAILED" ]; then
+              echo 'Removing terminal FAILED identity before a clean verification cycle.'
+              DELETE_CODE="$(curl -sS -o /tmp/delete-response.json -w '%{http_code}' \
+                -X DELETE \
+                -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
+                "$IDENTITY_URL")"
+              printf '%s' "$DELETE_CODE" > /tmp/delete-http-code
+              test "$DELETE_CODE" = "200" -o "$DELETE_CODE" = "204"
+              for attempt in $(seq 1 20); do
+                LOOKUP_CODE="$(curl -sS -o /tmp/identity-after-delete.json -w '%{http_code}' \
+                  -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
+                  "$IDENTITY_URL")"
+                if [ "$LOOKUP_CODE" = "404" ]; then break; fi
+                sleep 2
+              done
+              test "$LOOKUP_CODE" = "404"
+              SHOULD_CREATE=true
+            else
+              cp /tmp/identity-before.json /tmp/identity-after.json
+              printf '%s' 'pending-existing' > /tmp/identity-source
+            fi
           elif [ "$GET_CODE" = "404" ]; then
+            SHOULD_CREATE=true
+          else
+            cat /tmp/identity-before.json
+            exit 1
+          fi
+
+          if [ "$SHOULD_CREATE" = "true" ]; then
             printf '%s' '{"EmailIdentity":"annword.ru"}' > /tmp/create-request.json
             CREATE_CODE="$(curl -sS -o /tmp/create-response.json -w '%{http_code}' \
               -X POST \
               -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
               -H 'Content-Type: application/json' \
               --data-binary @/tmp/create-request.json \
-              'https://postbox.cloud.yandex.net/v2/email/identities')"
+              "$IDENTITIES_URL")"
             printf '%s' "$CREATE_CODE" > /tmp/create-http-code
             test "$CREATE_CODE" = "200"
             curl -fsS -H "X-YaCloud-SubjectToken: $IAM_TOKEN" "$IDENTITY_URL" -o /tmp/identity-after.json
-            printf '%s' 'created' > /tmp/identity-source
-          else
-            cat /tmp/identity-before.json
-            exit 1
+            printf '%s' 'recreated' > /tmp/identity-source
           fi
 
-      - name: Install Easy DKIM CNAME records
+      - name: Install current Easy DKIM CNAME records
         run: |
           set -euo pipefail
           ZONE_ID="$(cat /tmp/dns-zone-id)"
@@ -129,38 +158,6 @@ jobs:
               --record "$record_name 300 CNAME $record_target"
           done < /tmp/easy-dkim-records.tsv
 
-      - name: Restart failed Postbox verification
-        run: |
-          set -euo pipefail
-          YC="$HOME/yandex-cloud/bin/yc"
-          IAM_TOKEN="$($YC iam create-token)"
-          IDENTITY_URL='https://postbox.cloud.yandex.net/v2/email/identities/annword.ru'
-          DKIM_URL="$IDENTITY_URL/dkim"
-
-          curl -fsS -H "X-YaCloud-SubjectToken: $IAM_TOKEN" "$IDENTITY_URL" -o /tmp/identity-before-reverify.json
-          STATUS="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-before-reverify.json","utf8"));process.stdout.write(String(x.VerificationStatus||x.DkimAttributes?.Status||""));')"
-
-          case "$STATUS" in
-            FAILED|TEMPORARY_FAILURE|NOT_STARTED)
-              echo "Restarting Postbox verification from status $STATUS."
-              for enabled in false true; do
-                printf '{"SigningEnabled":%s}' "$enabled" > /tmp/dkim-toggle-request.json
-                HTTP_CODE="$(curl -sS -o /tmp/dkim-toggle-response.json -w '%{http_code}' \
-                  -X PUT \
-                  -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
-                  -H 'Content-Type: application/json' \
-                  --data-binary @/tmp/dkim-toggle-request.json \
-                  "$DKIM_URL")"
-                echo "DKIM signing toggle $enabled: HTTP $HTTP_CODE"
-                test "$HTTP_CODE" = "200"
-                sleep 2
-              done
-              ;;
-            *)
-              echo "Postbox verification status is $STATUS; no restart is needed."
-              ;;
-          esac
-
       - name: Wait for Postbox verification
         run: |
           set -euo pipefail
@@ -170,10 +167,15 @@ jobs:
           for attempt in $(seq 1 80); do
             curl -fsS -H "X-YaCloud-SubjectToken: $IAM_TOKEN" "$IDENTITY_URL" -o /tmp/identity-status.json
             STATUS="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-status.json","utf8"));process.stdout.write(String(x.VerificationStatus||x.DkimAttributes?.Status||""));')"
-            SENDING="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-status.json","utf8"));process.stdout.write(String(x.SendingEnabled??x.VerifiedForSendingStatus??false));')"
+            SENDING="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/identity-status.json","utf8"));process.stdout.write(String(x.VerifiedForSendingStatus??false));')"
             echo "Postbox verification attempt $attempt: status=${STATUS:-unknown} sending=$SENDING"
             if [ "$STATUS" = "SUCCESS" ] && [ "$SENDING" = "true" ]; then
               exit 0
+            fi
+            if [ "$STATUS" = "FAILED" ] && [ "$attempt" -gt 8 ]; then
+              echo 'The freshly recreated identity entered FAILED after DNS records were installed.'
+              cat /tmp/identity-status.json
+              exit 1
             fi
             sleep 15
           done
@@ -204,12 +206,11 @@ jobs:
           path: |
             /tmp/postbox-iam-result.json
             /tmp/identity-before.json
-            /tmp/create-response.json
             /tmp/identity-after.json
-            /tmp/identity-before-reverify.json
             /tmp/identity-status.json
             /tmp/easy-dkim-records.json
             /tmp/live-weekly-status.json
+            /tmp/delete-http-code
             /tmp/create-http-code
             /tmp/identity-source
           if-no-files-found: ignore
