@@ -15,7 +15,9 @@ type IdentityResponse = {
 
 const hostFromAppUrl = (): string => {
   try {
-    return new URL(runtimeConfig.appUrl).hostname.replace(/^www\./, "");
+    const hostname = new URL(runtimeConfig.appUrl).hostname.replace(/^www\./, "").toLowerCase();
+    if (!hostname || hostname === "localhost" || hostname.endsWith(".localhost") || /^127\./.test(hostname)) return "annword.ru";
+    return hostname;
   } catch {
     return "annword.ru";
   }
