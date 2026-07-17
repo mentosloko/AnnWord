@@ -17,10 +17,24 @@ const patterns = [
   /isBackendApiConfigured/g,
   /VITE_[A-Z0-9_]+/g,
   /process\.env\.[A-Z0-9_]+/g,
+  /getAllUsersStats/g,
+  /buyCurrentUserItem/g,
+  /adminAnalyticsService/g,
+  /runWeeklyReports/g,
 ];
 
+const probe = async (url: string, init?: RequestInit): Promise<string> => {
+  try {
+    const response = await fetch(url, { redirect: 'manual', ...init });
+    const body = (await response.text()).replace(/\s+/g, ' ').slice(0, 1200);
+    return `${init?.method || 'GET'} ${url} -> ${response.status} ${response.headers.get('content-type') || ''} :: ${body}`;
+  } catch (error) {
+    return `${init?.method || 'GET'} ${url} -> NETWORK_ERROR :: ${error instanceof Error ? error.message : String(error)}`;
+  }
+};
+
 describe('one-time Yandex migration audit dump', () => {
-  it('prints every hosting and database migration-sensitive reference', () => {
+  it('prints every hosting and database migration-sensitive reference plus live contour probes', async () => {
     const files = execFileSync('git', ['ls-files'], { encoding: 'utf8' })
       .split(/\r?\n/)
       .filter(Boolean)
@@ -34,6 +48,21 @@ describe('one-time Yandex migration audit dump', () => {
         }
       });
     }
-    throw new Error(`YANDEX_MIGRATION_AUDIT_BEGIN\n${hits.join('\n')}\nYANDEX_MIGRATION_AUDIT_END`);
+
+    const live = await Promise.all([
+      probe('https://api.annword.ru/api/health'),
+      probe('https://api.annword.ru/api/health/db'),
+      probe('https://api.annword.ru/api/runtime-config'),
+      probe('https://annword.ru/release.json'),
+      probe('https://api.annword.ru/api/payments/prodamus/notify'),
+      probe('https://api.annword.ru/api/auth/me'),
+      probe('https://api.annword.ru/api/profile/me'),
+      probe('https://api.annword.ru/api/admin/analytics'),
+      probe('https://api.annword.ru/api/reports/weekly/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }),
+      probe('https://api.annword.ru/api/admin/migration/prepare', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }),
+      probe('https://api.annword.ru/api/admin/migration/supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"apply":false}' }),
+    ]);
+
+    throw new Error(`YANDEX_MIGRATION_AUDIT_BEGIN\n${hits.join('\n')}\nLIVE_PROBES_BEGIN\n${live.join('\n')}\nLIVE_PROBES_END\nYANDEX_MIGRATION_AUDIT_END`);
   });
 });
