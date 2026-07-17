@@ -12,7 +12,7 @@ describe('Yandex Postbox bootstrap', () => {
     expect(existsSync('.github/workflows/diagnose-postbox-dns-status.yml')).toBe(false);
     expect(existsSync('.github/workflows/diagnose-postbox-dns-write.yml')).toBe(false);
     expect(workflow).toContain("requiredRoles: ['postbox.editor', 'dns.editor']");
-    expect(workflow).toContain("SELECTOR='annword-postbox'");
+    expect(workflow).toContain('SELECTOR: annword-postbox');
     expect(workflow).toContain("generateKeyPairSync('rsa'");
     expect(workflow).toContain("publicKeyEncoding: { type: 'spki', format: 'der' }");
     expect(workflow).toContain("privateKeyEncoding: { type: 'pkcs8', format: 'der' }");
@@ -26,12 +26,22 @@ describe('Yandex Postbox bootstrap', () => {
     expect(workflow).not.toContain('SigningHostedZone');
   });
 
-  it('installs the public key before creating the identity and removes private material on every exit', () => {
+  it('isolates identity, key, DNS and Postbox operations into observable steps', () => {
+    expect(workflow).toContain('Inspect and reset unverified Postbox identity');
+    expect(workflow).toContain('Generate PKCS8 and SPKI DKIM key material');
+    expect(workflow).toContain('Install BYODKIM TXT record');
+    expect(workflow).toContain('Create Postbox BYODKIM identity');
+    expect(workflow).toContain("case \"$GET_CODE\" in");
+    expect(workflow).toContain("if: ${{ steps.identity.outputs.skip != 'true' }}");
+  });
+
+  it('installs the public key before creating the identity and removes private material', () => {
     const dnsWrite = workflow.indexOf('dns zone replace-records');
     const identityCreate = workflow.indexOf('--data-binary @/tmp/create-request.json');
     expect(dnsWrite).toBeGreaterThan(-1);
     expect(identityCreate).toBeGreaterThan(dnsWrite);
-    expect(workflow).toContain('trap cleanup_private_material EXIT');
+    expect(workflow).toContain('Remove DKIM private material');
+    expect(workflow).toContain('if: always()');
     expect(workflow).toContain('/tmp/annword-dkim-private.b64');
     expect(workflow).toContain('Assert no DKIM private material remains');
     const artifactStart = workflow.indexOf('Upload sanitized bootstrap result');
