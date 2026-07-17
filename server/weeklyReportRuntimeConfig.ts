@@ -5,13 +5,14 @@ const METADATA_TOKEN_URL = "http://169.254.169.254/computeMetadata/v1/instance/s
 const POSTBOX_IDENTITIES_URL = "https://postbox.cloud.yandex.net/v2/email/identities?PageSize=1000";
 const WEEKLY_CRON_PURPOSE = "annword-weekly-reports-v1";
 
-type IdentityResponse = {
-  EmailIdentities?: Array<{
-    IdentityName?: string;
-    SendingEnabled?: boolean;
-    VerificationStatus?: string;
-  }>;
+type PostboxIdentity = {
+  IdentityType?: string;
+  IdentityName?: string;
+  SendingEnabled?: boolean;
+  VerificationStatus?: string;
 };
+
+type IdentityResponse = { EmailIdentities?: PostboxIdentity[] };
 
 const hostFromAppUrl = (): string => {
   try {
@@ -23,6 +24,17 @@ const hostFromAppUrl = (): string => {
   }
 };
 
+const domainFromSender = (sender: string): string => sender.includes("@") ? sender.split("@").pop()?.toLowerCase() || "" : "";
+const isVerifiedIdentity = (identity: PostboxIdentity): boolean => Boolean(
+  identity.IdentityName?.trim()
+  && identity.SendingEnabled === true
+  && identity.VerificationStatus === "SUCCESS"
+);
+const senderForIdentity = (identity: PostboxIdentity): string => {
+  const name = identity.IdentityName?.trim().toLowerCase() || "";
+  return name.includes("@") ? name : `reports@${name}`;
+};
+
 export const deriveWeeklyReportCronToken = (): string => {
   const rootSecret = process.env.JWT_SECRET?.trim() || "";
   if (!rootSecret) return "";
@@ -31,12 +43,6 @@ export const deriveWeeklyReportCronToken = (): string => {
 
 export const defaultWeeklyReportFromEmail = (): string => `reports@${hostFromAppUrl()}`;
 
-/**
- * The old Vercel deployment used separate cron and sender environment values.
- * The Yandex container already has JWT_SECRET and a verified application
- * domain, so use deterministic internal auth and the domain sender as safe
- * defaults while still allowing explicit environment overrides.
- */
 export const ensureWeeklyReportRuntimeConfig = (): void => {
   if (!process.env.WEEKLY_REPORT_CRON_SECRET?.trim()) {
     process.env.WEEKLY_REPORT_CRON_SECRET = deriveWeeklyReportCronToken();
@@ -49,18 +55,21 @@ export const ensureWeeklyReportRuntimeConfig = (): void => {
 export async function inspectWeeklyReportRuntime(): Promise<{
   configured: boolean;
   senderDomain: string;
-  senderSource: "environment" | "default";
+  senderSource: "environment" | "default" | "verified-identity-fallback";
   cronAuthConfigured: boolean;
   postboxIdentityVerified: boolean | null;
+  verifiedIdentityCount: number | null;
   postboxIdentityError?: string;
 }> {
-  const explicitSender = Boolean(process.env.WEEKLY_REPORT_FROM_EMAIL?.trim());
+  const hadExplicitSender = Boolean(process.env.WEEKLY_REPORT_FROM_EMAIL?.trim());
   ensureWeeklyReportRuntimeConfig();
-  const sender = process.env.WEEKLY_REPORT_FROM_EMAIL?.trim() || "";
-  const senderDomain = sender.includes("@") ? sender.split("@").pop() || "" : "";
+  let sender = process.env.WEEKLY_REPORT_FROM_EMAIL?.trim().toLowerCase() || "";
+  let senderDomain = domainFromSender(sender);
+  let senderSource: "environment" | "default" | "verified-identity-fallback" = hadExplicitSender ? "environment" : "default";
   const cronAuthConfigured = Boolean(process.env.WEEKLY_REPORT_CRON_SECRET?.trim());
 
   let postboxIdentityVerified: boolean | null = null;
+  let verifiedIdentityCount: number | null = null;
   let postboxIdentityError: string | undefined;
   try {
     const tokenResponse = await fetch(METADATA_TOKEN_URL, { headers: { "Metadata-Flavor": "Google" } });
@@ -72,22 +81,38 @@ export async function inspectWeeklyReportRuntime(): Promise<{
     });
     const identitiesText = await identitiesResponse.text();
     if (!identitiesResponse.ok) throw new Error(`Postbox HTTP ${identitiesResponse.status}: ${identitiesText.slice(0, 200)}`);
-    const identities = JSON.parse(identitiesText) as IdentityResponse;
-    postboxIdentityVerified = Boolean((identities.EmailIdentities || []).some((identity) =>
-      identity.IdentityName?.toLowerCase() === senderDomain.toLowerCase()
-      && identity.SendingEnabled === true
-      && identity.VerificationStatus === "SUCCESS"
-    ));
+    const identityResponse = JSON.parse(identitiesText) as IdentityResponse;
+    const verifiedIdentities = (identityResponse.EmailIdentities || []).filter(isVerifiedIdentity);
+    verifiedIdentityCount = verifiedIdentities.length;
+
+    const configuredIdentity = verifiedIdentities.find((identity) => {
+      const name = identity.IdentityName?.trim().toLowerCase() || "";
+      return name === sender.toLowerCase() || name === senderDomain;
+    });
+    const selectedIdentity = configuredIdentity || verifiedIdentities[0];
+    if (selectedIdentity) {
+      const selectedSender = senderForIdentity(selectedIdentity);
+      if (!configuredIdentity) {
+        sender = selectedSender;
+        senderDomain = domainFromSender(selectedSender);
+        senderSource = "verified-identity-fallback";
+        process.env.WEEKLY_REPORT_FROM_EMAIL = selectedSender;
+      }
+      postboxIdentityVerified = true;
+    } else {
+      postboxIdentityVerified = false;
+    }
   } catch (error) {
     postboxIdentityError = error instanceof Error ? error.message : String(error);
   }
 
   return {
-    configured: Boolean(sender && cronAuthConfigured),
+    configured: Boolean(sender && cronAuthConfigured && postboxIdentityVerified === true),
     senderDomain,
-    senderSource: explicitSender ? "environment" : "default",
+    senderSource,
     cronAuthConfigured,
     postboxIdentityVerified,
+    verifiedIdentityCount,
     ...(postboxIdentityError ? { postboxIdentityError } : {}),
   };
 }
