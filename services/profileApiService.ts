@@ -15,9 +15,21 @@ export interface WeeklyReportPreferenceStatus {
   };
 }
 
+export interface ParentContactEmailStatus {
+  email: string | null;
+}
+
 export const profileApiService = {
   async getCurrentProfile(): Promise<UserProfile> {
     return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/me"));
+  },
+
+  async getParentContactEmail(): Promise<ParentContactEmailStatus> {
+    return backendApiRequest<ParentContactEmailStatus>("/api/profile/parent-contact-email");
+  },
+
+  async updateParentContactEmail(email: string): Promise<ParentContactEmailStatus> {
+    return backendApiRequest<ParentContactEmailStatus>("/api/profile/parent-contact-email", { method: "PATCH", body: { email } });
   },
 
   async updateUserDictionary(words: string[]): Promise<UserProfile> {

@@ -4,6 +4,7 @@ import { requireAuth } from "../auth";
 import { applyGameResult, getOrCreateProfile, incrementProfileCoins, updateProfileDictionary, updateProfilePet, updateProfileStats } from "../profileRepository";
 import { reconcileProfileMood, syncProfileStateServerAuthoritative, useProfileItemServerAuthoritative } from "../petMoodRepository";
 import { getWeeklyReportPreferenceStatus, updateWeeklyReportEmailPreference } from "../weeklyReportProfileRepository";
+import { getParentContactEmail, updateParentContactEmail } from "../parentContactRepository";
 import { listDictionaryCollections, saveDictionaryCollection } from "../dictionaryCollectionRepository";
 import { purchaseProfileItem } from "../purchaseRepository";
 import { assignedWordsRouter } from "./assignedWordsRoutes";
@@ -25,6 +26,24 @@ profileRouter.get("/me", async (req: AuthenticatedRequest, res) => {
     res.json({ profile });
   } catch (error) {
     res.status(500).json({ code: "profile_load_failed", error: error instanceof Error ? error.message : "Profile load failed" });
+  }
+});
+
+profileRouter.get("/parent-contact-email", async (req: AuthenticatedRequest, res) => {
+  try {
+    const email = await getParentContactEmail(req.user!.id);
+    res.json({ email });
+  } catch (error) {
+    res.status(400).json({ code: "parent_contact_email_load_failed", error: error instanceof Error ? error.message : "Parent contact email load failed" });
+  }
+});
+
+profileRouter.patch("/parent-contact-email", async (req: AuthenticatedRequest, res) => {
+  try {
+    const email = await updateParentContactEmail(req.user!.id, req.body?.email);
+    res.json({ email });
+  } catch (error) {
+    res.status(400).json({ code: "parent_contact_email_update_failed", error: error instanceof Error ? error.message : "Parent contact email update failed" });
   }
 });
 

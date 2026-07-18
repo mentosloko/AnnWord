@@ -29,10 +29,10 @@ describe('Yandex post-cutover runtime smoke', () => {
     expect(workflow).toContain('health.runtime !== \'yandex-cloud\'');
     expect(workflow).toContain('!db.database?.ok');
     expect(workflow).toContain('weekly.postboxIdentityVerified !== true');
-    expect(workflow).toContain('test "$PROFILE_STATUS" = "401"');
-    expect(workflow).toContain('test "$ADMIN_STATUS" = "401"');
-    expect(workflow).toContain('test "$WEEKLY_RUN_STATUS" = "401"');
-    expect(workflow).toContain('test "$MIGRATION_STATUS" = "404"');
+    expect(workflow).toContain('expect_status profile-auth 401');
+    expect(workflow).toContain('expect_status admin-auth 401');
+    expect(workflow).toContain('expect_status weekly-run-auth 401');
+    expect(workflow).toContain('expect_status "migration-${PATH_SUFFIX}" 404');
     expect(workflow).toContain("release.sha !== process.env.SOURCE_SHA");
   });
 
