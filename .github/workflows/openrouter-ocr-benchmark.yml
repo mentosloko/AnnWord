@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/openrouter-ocr-benchmark.yml
       - scripts/openrouter_ocr_benchmark.py
+      - scripts/openrouter_ocr_benchmark_segments.py
       - testdata/easyocr/**
   pull_request:
     branches:
@@ -14,6 +15,7 @@ on:
     paths:
       - .github/workflows/openrouter-ocr-benchmark.yml
       - scripts/openrouter_ocr_benchmark.py
+      - scripts/openrouter_ocr_benchmark_segments.py
       - testdata/easyocr/**
   workflow_dispatch:
 
@@ -44,14 +46,16 @@ jobs:
         shell: bash
         run: test -n "${OPENROUTER:-}" || (echo "GitHub secret OPENROUTER is unavailable" && exit 1)
 
-      - name: Run OpenRouter benchmark
-        run: python scripts/openrouter_ocr_benchmark.py
+      - name: Run segmented OpenRouter benchmark
+        run: python scripts/openrouter_ocr_benchmark_segments.py
 
       - name: Upload benchmark results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: openrouter-ocr-benchmark
-          path: openrouter-benchmark/
+          name: openrouter-ocr-benchmark-segments
+          path: |
+            openrouter-benchmark/
+            openrouter-benchmark-segments/
           if-no-files-found: warn
           retention-days: 7
