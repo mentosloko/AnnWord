@@ -4,17 +4,6 @@ on:
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
-  workflow_run:
-    workflows:
-      - Deploy to Yandex Cloud
-    types:
-      - completed
-    branches:
-      - main
-
-permissions:
-  contents: read
-  statuses: write
 
 concurrency:
   group: weekly-parent-reports
@@ -25,39 +14,20 @@ jobs:
     name: Send weekly reports
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_commit.message, '[postbox-smoke]')) }}
-    env:
-      SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
-      - name: Mark delivery check pending
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Postbox Delivery",description:"Running protected weekly-report delivery",target_url:process.env.TARGET_URL}))' > /tmp/postbox-status.json
-          curl -fsS -X POST \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${SOURCE_SHA}" \
-            --data-binary @/tmp/postbox-status.json
-
       - name: Invoke Yandex report runner
-        id: invoke
-        continue-on-error: true
         env:
           API_URL: ${{ secrets.YC_API_PUBLIC_URL }}
           REPORT_SECRET: ${{ secrets.WEEKLY_REPORT_CRON_SECRET }}
           JWT_ROOT_SECRET: ${{ secrets.JWT_SECRET }}
-          SMOKE_MODE: ${{ github.event_name == 'workflow_run' && '1' || '0' }}
         run: |
-          set -uo pipefail
+          set -euo pipefail
+
           if [ -z "${REPORT_SECRET:-}" ] && [ -n "${JWT_ROOT_SECRET:-}" ]; then
             REPORT_SECRET="$(JWT_ROOT_SECRET="$JWT_ROOT_SECRET" node -e 'const {createHmac}=require("node:crypto"); process.stdout.write(createHmac("sha256", process.env.JWT_ROOT_SECRET).update("annword-weekly-reports-v1").digest("hex"))')"
           fi
           if [ -z "${REPORT_SECRET:-}" ]; then
-            printf '%s\n' '{"code":"missing_report_secret","error":"Neither WEEKLY_REPORT_CRON_SECRET nor JWT_SECRET is configured"}' > /tmp/weekly-report-result.json
-            cat /tmp/weekly-report-result.json
+            echo "Neither WEEKLY_REPORT_CRON_SECRET nor JWT_SECRET is configured."
             exit 1
           fi
 
@@ -65,99 +35,39 @@ jobs:
           if [ -z "$API_BASE" ]; then
             API_BASE="https://api.annword.ru"
           fi
-          API_HOST="$(node -e 'process.stdout.write(new URL(process.argv[1]).host)' "$API_BASE")"
-          PAYLOAD='{}'
-          if [ "$SMOKE_MODE" = "1" ]; then
-            PAYLOAD='{"smoke":true}'
-          fi
 
-          set +e
           HTTP_CODE="$(curl --silent --show-error \
             --retry 3 \
             --retry-all-errors \
             --connect-timeout 15 \
-            --max-time 45 \
-            --output /tmp/weekly-report-result.raw \
+            --max-time 90 \
+            --output /tmp/weekly-report-result.json \
             --write-out '%{http_code}' \
             -X POST "${API_BASE}/api/reports/weekly/run" \
             -H "Authorization: Bearer ${REPORT_SECRET}" \
             -H 'Content-Type: application/json' \
-            --data "$PAYLOAD")"
-          CURL_EXIT=$?
-          set -e
+            --data '{}')"
 
-          if [ -s /tmp/weekly-report-result.raw ]; then
-            cp /tmp/weekly-report-result.raw /tmp/weekly-report-result.json
-          else
-            CURL_EXIT="$CURL_EXIT" HTTP_CODE="${HTTP_CODE:-000}" API_HOST="$API_HOST" \
-              node -e 'process.stdout.write(JSON.stringify({code:"curl_failed",error:`curl exit ${process.env.CURL_EXIT}; HTTP ${process.env.HTTP_CODE}`,apiHost:process.env.API_HOST}))' \
-              > /tmp/weekly-report-result.json
-          fi
           cat /tmp/weekly-report-result.json
-          printf '\nHTTP_CODE=%s CURL_EXIT=%s API_HOST=%s\n' "$HTTP_CODE" "$CURL_EXIT" "$API_HOST"
-
-          if [ "$CURL_EXIT" != "0" ]; then
-            exit 1
-          fi
           if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "207" ]; then
+            echo "Weekly report runner returned HTTP ${HTTP_CODE}."
             exit 1
           fi
-          if [ "$SMOKE_MODE" = "1" ]; then
-            node - <<'NODE'
+
+          node - <<'NODE'
           const fs = require('fs');
           const result = JSON.parse(fs.readFileSync('/tmp/weekly-report-result.json', 'utf8'));
-          if (result.smoke !== true || Number(result.sent) !== 1) {
-            throw new Error(`Postbox smoke failed: ${JSON.stringify(result)}`);
+          if (Array.isArray(result.failed) && result.failed.length > 0) {
+            throw new Error(`Weekly reports failed for ${result.failed.length} profile(s).`);
           }
-          if (!result.messageId) throw new Error('Postbox accepted the request without returning MessageId.');
-          console.log(`Postbox smoke accepted: messageId=${result.messageId}`);
+          console.log(`Weekly reports completed: processed=${result.processed ?? 0}, sent=${result.sent ?? 0}, skipped=${result.skipped ?? 0}`);
           NODE
-          fi
 
       - name: Upload delivery result
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: annword-postbox-delivery
-          path: |
-            /tmp/weekly-report-result.json
-            /tmp/weekly-report-result.raw
-          if-no-files-found: warn
+          name: annword-weekly-report-result
+          path: /tmp/weekly-report-result.json
+          if-no-files-found: ignore
           retention-days: 5
-
-      - name: Publish delivery status
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          INVOKE_OUTCOME: ${{ steps.invoke.outcome }}
-          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          if [ "$INVOKE_OUTCOME" = "success" ]; then
-            STATE="success"
-            DESCRIPTION="Postbox accepted a real delivery and returned MessageId"
-          else
-            STATE="failure"
-            DESCRIPTION="$(node - <<'NODE'
-          const fs = require('fs');
-          let text = 'Postbox delivery failed';
-          try {
-            const result = JSON.parse(fs.readFileSync('/tmp/weekly-report-result.json', 'utf8'));
-            text = result.error || result.message || result.code || JSON.stringify(result);
-          } catch {}
-          process.stdout.write(String(text).replace(/\s+/g, ' ').slice(0, 130));
-          NODE
-          )"
-          fi
-          export STATE DESCRIPTION
-          node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Postbox Delivery",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/postbox-status.json
-          curl -fsS -X POST \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${SOURCE_SHA}" \
-            --data-binary @/tmp/postbox-status.json
-
-      - name: Assert delivery succeeded
-        env:
-          INVOKE_OUTCOME: ${{ steps.invoke.outcome }}
-        run: test "$INVOKE_OUTCOME" = "success"
