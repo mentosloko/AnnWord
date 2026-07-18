@@ -1,0 +1,70 @@
+name: Yandex Migration Diagnostic
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/yandex-migration-diagnostic.yml'
+      - 'scripts/yandex-db-migrate.ts'
+      - 'db/yandex/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: yandex-migration-diagnostic
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Diagnose Yandex migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Mark diagnostic pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Yandex Migration Diagnostic",description:"Running Yandex PostgreSQL migrations",target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" --data-binary @/tmp/status.json
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+
+      - name: Run migrations and capture log
+        id: migrations
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -o pipefail
+          npm run db:yandex:migrate 2>&1 | tee /tmp/yandex-migration.log
+
+      - name: Upload migration diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yandex-migration-diagnostic
+          path: /tmp/yandex-migration.log
+          if-no-files-found: error
+          retention-days: 2
+
+      - name: Publish diagnostic status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OUTCOME: ${{ steps.migrations.outcome }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$OUTCOME" = success ]; then STATE=success; DESCRIPTION='Yandex PostgreSQL migrations succeeded'; else STATE=failure; DESCRIPTION='Yandex PostgreSQL migrations failed; see artifact'; fi
+          export STATE DESCRIPTION
+          node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Yandex Migration Diagnostic",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" --data-binary @/tmp/status.json
+          test "$OUTCOME" = success
