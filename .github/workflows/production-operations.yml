@@ -1,0 +1,207 @@
+name: Production Operations
+
+on:
+  schedule:
+    - cron: '17 */2 * * *'
+    - cron: '40 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Operation to run'
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - monitor
+          - backups
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-operations-${{ github.event.schedule || inputs.operation || 'manual' }}
+  cancel-in-progress: true
+
+env:
+  ALERT_EMAIL: mentosloko@gmail.com
+  ALERT_FROM_EMAIL: ${{ secrets.WEEKLY_REPORT_FROM_EMAIL }}
+
+jobs:
+  monitor:
+    name: Monitor production
+    if: ${{ github.event.schedule == '17 */2 * * *' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'monitor' || inputs.operation == 'all')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check frontend, API, database and reports
+        id: check
+        continue-on-error: true
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          API_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+        run: |
+          set -euo pipefail
+          APP_BASE="${APP_URL%/}"
+          API_BASE="${API_URL%/}"
+          test -n "$APP_BASE"
+          test -n "$API_BASE"
+
+          check_url() {
+            local label="$1"
+            local url="$2"
+            local expected="$3"
+            local body="/tmp/${label}.body"
+            local code=""
+            for attempt in 1 2 3; do
+              code="$(curl --silent --show-error --location \
+                --connect-timeout 15 --max-time 45 \
+                --output "$body" --write-out '%{http_code}' "$url" || true)"
+              if [ "$code" = "200" ] && grep -Eqi "$expected" "$body"; then
+                echo "OK $label"
+                return 0
+              fi
+              echo "$label attempt $attempt failed: HTTP=$code"
+              cat "$body" 2>/dev/null || true
+              sleep "$((attempt * 4))"
+            done
+            return 1
+          }
+
+          failures=0
+          check_url frontend "$APP_BASE/release.json?monitor=${GITHUB_RUN_ID}" 'sha' || failures=$((failures + 1))
+          check_url api "$API_BASE/api/health" 'ok|healthy' || failures=$((failures + 1))
+          check_url database "$API_BASE/api/health/db" '"ok"[[:space:]]*:[[:space:]]*true' || failures=$((failures + 1))
+          check_url reports "$API_BASE/api/reports/weekly/status" '"configured"[[:space:]]*:[[:space:]]*true' || failures=$((failures + 1))
+
+          if [ "$failures" -gt 0 ]; then
+            printf 'AnnWord production monitor found %s failed check(s).\nFrontend: %s\nAPI: %s\nRun: %s\n' \
+              "$failures" "$APP_BASE" "$API_BASE" "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" > /tmp/alert.txt
+            exit 1
+          fi
+
+      - name: Configure Yandex Cloud for alert email
+        if: ${{ steps.check.outcome == 'failure' }}
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > /tmp/yc-key.json
+          "$HOME/yandex-cloud/bin/yc" config profile create annword-monitor
+          "$HOME/yandex-cloud/bin/yc" config set service-account-key /tmp/yc-key.json
+          "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
+          "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
+
+      - name: Send monitoring failure email
+        if: ${{ steps.check.outcome == 'failure' }}
+        run: |
+          set -euo pipefail
+          test -n "$ALERT_FROM_EMAIL"
+          IAM_TOKEN="$(yc iam create-token)"
+          SUBJECT="AnnWord: production недоступен"
+          BODY="$(cat /tmp/alert.txt)"
+          node -e 'const fs=require("fs"); const payload={FromEmailAddress:process.env.ALERT_FROM_EMAIL,Destination:{ToAddresses:[process.env.ALERT_EMAIL]},Content:{Simple:{Subject:{Data:process.env.SUBJECT,Charset:"UTF-8"},Body:{Text:{Data:process.env.BODY,Charset:"UTF-8"}}}}}; fs.writeFileSync("/tmp/postbox.json",JSON.stringify(payload));' \
+            SUBJECT="$SUBJECT" BODY="$BODY"
+          curl --fail-with-body --silent --show-error \
+            -X POST https://postbox.cloud.yandex.net/v2/email/outbound-emails \
+            -H 'Content-Type: application/json' \
+            -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
+            --data-binary @/tmp/postbox.json
+
+      - name: Assert production is healthy
+        if: always()
+        env:
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+        run: test "$CHECK_OUTCOME" = success
+
+  backups:
+    name: Guard PostgreSQL backups
+    if: ${{ github.event.schedule == '40 3 * * 0' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'backups' || inputs.operation == 'all')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install and configure Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > /tmp/yc-key.json
+          "$HOME/yandex-cloud/bin/yc" config profile create annword-backups
+          "$HOME/yandex-cloud/bin/yc" config set service-account-key /tmp/yc-key.json
+          "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
+          "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
+
+      - name: Apply and verify backup policy
+        id: audit
+        continue-on-error: true
+        env:
+          CONFIGURED_CLUSTER_ID: ${{ secrets.YC_POSTGRES_CLUSTER_ID }}
+        run: |
+          set -euo pipefail
+          CLUSTER_ID="${CONFIGURED_CLUSTER_ID:-}"
+          if [ -z "$CLUSTER_ID" ]; then
+            yc managed-postgresql cluster list --format json > /tmp/clusters.json
+            COUNT="$(jq 'length' /tmp/clusters.json)"
+            if [ "$COUNT" != "1" ]; then
+              echo "Expected exactly one PostgreSQL cluster, found $COUNT. Configure YC_POSTGRES_CLUSTER_ID." >&2
+              exit 1
+            fi
+            CLUSTER_ID="$(jq -r '.[0].id' /tmp/clusters.json)"
+          fi
+          echo "Cluster: $CLUSTER_ID"
+
+          yc managed-postgresql cluster update --id "$CLUSTER_ID" \
+            --backup-window-start 02:00:00 \
+            --backup-retain-period-days 30 \
+            --deletion-protection
+
+          yc managed-postgresql cluster get --id "$CLUSTER_ID" --format json > /tmp/cluster.json
+          yc managed-postgresql backup list --format json > /tmp/backups.json
+          CLUSTER_ID="$CLUSTER_ID" node - <<'NODE'
+          const fs = require('fs');
+          const cluster = JSON.parse(fs.readFileSync('/tmp/cluster.json', 'utf8'));
+          const backups = JSON.parse(fs.readFileSync('/tmp/backups.json', 'utf8'));
+          const id = process.env.CLUSTER_ID;
+          const retention = Number(cluster?.config?.backupRetainPeriodDays ?? cluster?.config?.backup_retain_period_days ?? 0);
+          if (retention < 30) throw new Error(`Backup retention is ${retention} days, expected at least 30.`);
+          if (cluster.deletionProtection !== true && cluster.deletion_protection !== true) throw new Error('PostgreSQL deletion protection is disabled.');
+          const own = backups.filter(item => (item.clusterId ?? item.cluster_id) === id);
+          if (!own.length) throw new Error('No PostgreSQL backups found for the production cluster.');
+          const newest = own.map(item => Date.parse(item.createdAt ?? item.created_at ?? '')).filter(Number.isFinite).sort((a, b) => b - a)[0];
+          if (!newest || Date.now() - newest > 48 * 60 * 60 * 1000) throw new Error('The newest PostgreSQL backup is older than 48 hours.');
+          console.log(`Backup policy verified. retention=${retention}, newest=${new Date(newest).toISOString()}`);
+          NODE
+
+      - name: Prepare backup failure email
+        if: ${{ steps.audit.outcome == 'failure' }}
+        run: |
+          printf 'AnnWord PostgreSQL backup audit failed.\nRun: https://github.com/%s/actions/runs/%s\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > /tmp/alert.txt
+
+      - name: Send backup failure email
+        if: ${{ steps.audit.outcome == 'failure' }}
+        run: |
+          set -euo pipefail
+          test -n "$ALERT_FROM_EMAIL"
+          IAM_TOKEN="$(yc iam create-token)"
+          SUBJECT="AnnWord: проблема с резервными копиями"
+          BODY="$(cat /tmp/alert.txt)"
+          SUBJECT="$SUBJECT" BODY="$BODY" node -e 'const fs=require("fs"); const payload={FromEmailAddress:process.env.ALERT_FROM_EMAIL,Destination:{ToAddresses:[process.env.ALERT_EMAIL]},Content:{Simple:{Subject:{Data:process.env.SUBJECT,Charset:"UTF-8"},Body:{Text:{Data:process.env.BODY,Charset:"UTF-8"}}}}}; fs.writeFileSync("/tmp/postbox.json",JSON.stringify(payload));'
+          curl --fail-with-body --silent --show-error \
+            -X POST https://postbox.cloud.yandex.net/v2/email/outbound-emails \
+            -H 'Content-Type: application/json' \
+            -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
+            --data-binary @/tmp/postbox.json
+
+      - name: Assert backup policy is healthy
+        if: always()
+        env:
+          AUDIT_OUTCOME: ${{ steps.audit.outcome }}
+        run: test "$AUDIT_OUTCOME" = success
