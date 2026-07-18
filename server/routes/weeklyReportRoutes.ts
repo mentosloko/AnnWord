@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { sendPostboxSmokeEmail } from '../postboxSmoke';
 import { inspectWeeklyReportRuntime } from '../weeklyReportRuntimeConfig';
 import { runWeeklyReports } from '../weeklyReportService';
 
@@ -37,6 +38,20 @@ weeklyReportRouter.post('/run', async (req, res) => {
       });
       return;
     }
+
+    if (req.body?.smoke === true) {
+      const delivery = await sendPostboxSmokeEmail();
+      res.status(200).json({
+        smoke: true,
+        processed: 1,
+        sent: 1,
+        skipped: 0,
+        failed: [],
+        ...delivery,
+      });
+      return;
+    }
+
     const result = await runWeeklyReports();
     res.status(result.failed.length ? 207 : 200).json(result);
   } catch (error) {
