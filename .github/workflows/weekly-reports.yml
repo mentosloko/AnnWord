@@ -61,6 +61,7 @@ jobs:
           if [ -z "$API_BASE" ]; then
             API_BASE="https://api.annword.ru"
           fi
+          API_HOST="$(node -e 'process.stdout.write(new URL(process.argv[1]).host)' "$API_BASE")"
           PAYLOAD='{}'
           if [ "$SMOKE_MODE" = "1" ]; then
             PAYLOAD='{"smoke":true}'
@@ -71,7 +72,7 @@ jobs:
             --retry 3 \
             --retry-all-errors \
             --connect-timeout 15 \
-            --max-time 70 \
+            --max-time 45 \
             --output /tmp/weekly-report-result.raw \
             --write-out '%{http_code}' \
             -X POST "${API_BASE}/api/reports/weekly/run" \
@@ -84,11 +85,12 @@ jobs:
           if [ -s /tmp/weekly-report-result.raw ]; then
             cp /tmp/weekly-report-result.raw /tmp/weekly-report-result.json
           else
-            node -e 'process.stdout.write(JSON.stringify({code:"curl_failed",error:`curl exit ${process.env.CURL_EXIT}; HTTP ${process.env.HTTP_CODE || "000"}`,apiHost:new URL(process.env.API_BASE).host}))' \
+            CURL_EXIT="$CURL_EXIT" HTTP_CODE="${HTTP_CODE:-000}" API_HOST="$API_HOST" \
+              node -e 'process.stdout.write(JSON.stringify({code:"curl_failed",error:`curl exit ${process.env.CURL_EXIT}; HTTP ${process.env.HTTP_CODE}`,apiHost:process.env.API_HOST}))' \
               > /tmp/weekly-report-result.json
           fi
           cat /tmp/weekly-report-result.json
-          printf '\nHTTP_CODE=%s CURL_EXIT=%s API_HOST=%s\n' "$HTTP_CODE" "$CURL_EXIT" "$(node -e 'process.stdout.write(new URL(process.argv[1]).host)' "$API_BASE")"
+          printf '\nHTTP_CODE=%s CURL_EXIT=%s API_HOST=%s\n' "$HTTP_CODE" "$CURL_EXIT" "$API_HOST"
 
           if [ "$CURL_EXIT" != "0" ]; then
             exit 1
