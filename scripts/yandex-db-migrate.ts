@@ -6,17 +6,18 @@ const migrationsDir = path.resolve(process.cwd(), "db", "yandex");
 const historicalMigrationPattern = /^\d{3}_.+\.sql$/;
 
 async function baselineExistingProductionSchema(files: string[], appliedVersions: Set<string>): Promise<void> {
-  const schema = await query<{ has_app_users: boolean; has_profiles: boolean; has_existing_users: boolean }>(`
+  const schema = await query<{ has_app_users: boolean; has_profiles: boolean }>(`
     select
       to_regclass('public.app_users') is not null as has_app_users,
-      to_regclass('public.profiles') is not null as has_profiles,
-      case
-        when to_regclass('public.app_users') is null then false
-        else exists (select 1 from public.app_users limit 1)
-      end as has_existing_users
+      to_regclass('public.profiles') is not null as has_profiles
   `);
   const existing = schema.rows[0];
-  if (!existing?.has_app_users || !existing?.has_profiles || !existing.has_existing_users) return;
+  if (!existing?.has_app_users || !existing?.has_profiles) return;
+
+  const users = await query<{ has_existing_users: boolean }>(
+    "select exists (select 1 from public.app_users limit 1) as has_existing_users",
+  );
+  if (users.rows[0]?.has_existing_users !== true) return;
 
   const historical = files.filter(
     (file) => historicalMigrationPattern.test(file) && !appliedVersions.has(file),
@@ -40,6 +41,11 @@ async function baselineExistingProductionSchema(files: string[], appliedVersions
 }
 
 async function main(): Promise<void> {
+  if (process.env.GITHUB_ACTIONS === "true") {
+    console.log("Yandex PostgreSQL migrations are deferred to backend container startup because Managed PostgreSQL is private.");
+    return;
+  }
+
   const files = (await readdir(migrationsDir))
     .filter((file) => file.endsWith(".sql"))
     .sort((a, b) => a.localeCompare(b));
