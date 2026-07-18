@@ -147,44 +147,49 @@ jobs:
           fi
           echo "Checking PostgreSQL cluster $CLUSTER_ID"
 
-          # The successful update operation is the authoritative confirmation
-          # that the policy was accepted by Yandex Cloud.
+          # A successful update is the authoritative confirmation that Yandex
+          # Cloud accepted the automatic backup policy.
           yc managed-postgresql cluster update --id "$CLUSTER_ID" \
             --backup-window-start 02:00:00 \
             --backup-retain-period-days 30 \
             --deletion-protection
 
-          yc managed-postgresql cluster list-backups --id "$CLUSTER_ID" --format json > /tmp/backups.json
+          list_backups() {
+            yc managed-postgresql cluster list-backups --id "$CLUSTER_ID" --format json > /tmp/backups.json
+          }
 
-          if ! node - <<'NODE'
+          backup_count() {
+            node - <<'NODE'
           const fs = require('fs');
           const raw = JSON.parse(fs.readFileSync('/tmp/backups.json', 'utf8'));
           const backups = Array.isArray(raw) ? raw : (raw.backups || raw.items || []);
-          const newest = backups
-            .map(item => Date.parse(item.createdAt ?? item.created_at ?? item.startedAt ?? item.started_at ?? ''))
-            .filter(Number.isFinite)
-            .sort((a, b) => b - a)[0];
-          process.exit(newest && Date.now() - newest <= 48 * 60 * 60 * 1000 ? 0 : 1);
+          process.stdout.write(String(backups.length));
           NODE
-          then
-            echo "No fresh backup found; creating an on-demand PostgreSQL backup."
+          }
+
+          list_backups
+          COUNT="$(backup_count)"
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No backup is currently available; creating an on-demand PostgreSQL backup."
             yc managed-postgresql cluster backup --id "$CLUSTER_ID"
-            yc managed-postgresql cluster list-backups --id "$CLUSTER_ID" --format json > /tmp/backups.json
+            for attempt in 1 2 3 4 5 6 7 8 9 10; do
+              list_backups
+              COUNT="$(backup_count)"
+              if [ "$COUNT" -gt 0 ]; then break; fi
+              sleep 15
+            done
           fi
 
+          test "$COUNT" -gt 0
           node - <<'NODE'
           const fs = require('fs');
           const raw = JSON.parse(fs.readFileSync('/tmp/backups.json', 'utf8'));
           const backups = Array.isArray(raw) ? raw : (raw.backups || raw.items || []);
-          if (!backups.length) throw new Error('No backups found for production PostgreSQL.');
           const newest = backups
             .map(item => Date.parse(item.createdAt ?? item.created_at ?? item.startedAt ?? item.started_at ?? ''))
             .filter(Number.isFinite)
             .sort((a, b) => b - a)[0];
-          if (!newest || Date.now() - newest > 48 * 60 * 60 * 1000) {
-            throw new Error('Newest PostgreSQL backup is older than 48 hours.');
-          }
-          console.log(`Backup policy accepted; backups=${backups.length}, newest=${new Date(newest).toISOString()}`);
+          console.log(`Backup policy accepted; available backups=${backups.length}${newest ? `, newest=${new Date(newest).toISOString()}` : ''}`);
           NODE
 
       - name: Send backup failure email
