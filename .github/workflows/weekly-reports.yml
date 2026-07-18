@@ -48,11 +48,15 @@ jobs:
         env:
           API_URL: ${{ secrets.YC_API_PUBLIC_URL }}
           REPORT_SECRET: ${{ secrets.WEEKLY_REPORT_CRON_SECRET }}
+          JWT_ROOT_SECRET: ${{ secrets.JWT_SECRET }}
           SMOKE_MODE: ${{ github.event_name == 'workflow_run' && '1' || '0' }}
         run: |
           set -uo pipefail
+          if [ -z "${REPORT_SECRET:-}" ] && [ -n "${JWT_ROOT_SECRET:-}" ]; then
+            REPORT_SECRET="$(JWT_ROOT_SECRET="$JWT_ROOT_SECRET" node -e 'const {createHmac}=require("node:crypto"); process.stdout.write(createHmac("sha256", process.env.JWT_ROOT_SECRET).update("annword-weekly-reports-v1").digest("hex"))')"
+          fi
           if [ -z "${REPORT_SECRET:-}" ]; then
-            printf '%s\n' '{"code":"missing_report_secret","error":"WEEKLY_REPORT_CRON_SECRET is not configured"}' > /tmp/weekly-report-result.json
+            printf '%s\n' '{"code":"missing_report_secret","error":"Neither WEEKLY_REPORT_CRON_SECRET nor JWT_SECRET is configured"}' > /tmp/weekly-report-result.json
             cat /tmp/weekly-report-result.json
             exit 1
           fi
