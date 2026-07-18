@@ -36,6 +36,11 @@ describe('Yandex post-cutover runtime smoke', () => {
     expect(workflow).toContain("release.sha !== process.env.SOURCE_SHA");
   });
 
+  it('follows Object Storage directory redirects before validating SPA routes', () => {
+    expect(workflow).toContain("curl -sSL --retry 3 --retry-all-errors");
+    expect(workflow).toContain('returned final HTTP');
+  });
+
   it('uploads sanitized diagnostics and phase markers on failure', () => {
     expect(workflow).toContain('name: annword-yandex-runtime-smoke');
     expect(workflow).toContain('/tmp/smoke-phase-*');

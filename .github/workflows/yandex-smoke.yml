@@ -122,9 +122,9 @@ jobs:
             printf '%s' "$ROUTE" > /tmp/smoke-phase-frontend
             SAFE_ROUTE=$(printf '%s' "$ROUTE" | tr '/' '_' | tr -cd '[:alnum:]_')
             BODY_FILE="/tmp/annword-page-${SAFE_ROUTE:-root}.html"
-            HTTP_CODE=$(curl -sS --retry 3 --retry-all-errors -o "$BODY_FILE" -w '%{http_code}' "$FRONTEND_URL$ROUTE")
+            HTTP_CODE=$(curl -sSL --retry 3 --retry-all-errors -o "$BODY_FILE" -w '%{http_code}' "$FRONTEND_URL$ROUTE")
             if [ "$HTTP_CODE" != "200" ]; then
-              echo "Route $ROUTE returned HTTP $HTTP_CODE"
+              echo "Route $ROUTE returned final HTTP $HTTP_CODE"
               exit 1
             fi
             if ! grep -q 'AnnWord' "$BODY_FILE"; then
