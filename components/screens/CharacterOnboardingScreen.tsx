@@ -46,7 +46,12 @@ export const CharacterOnboardingScreen: React.FC<CharacterOnboardingScreenProps>
     setError(null);
     try {
       await onComplete(createStarterCharacter(selectedType, normalizedName));
-    } finally {
+      // Reload from the canonical Kids route after the server confirms the save.
+      // This removes any late cached-profile response that could restore the
+      // pre-onboarding flag and send the account back to this screen.
+      if (typeof window !== 'undefined') window.location.replace('/kids');
+    } catch (problem) {
+      setError(problem instanceof Error ? problem.message : 'Не удалось сохранить питомца. Попробуйте ещё раз.');
       setIsSaving(false);
     }
   };
