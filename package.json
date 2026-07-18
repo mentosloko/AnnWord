@@ -34,7 +34,7 @@
     "premium-dictionaries:validate": "tsx scripts/validatePremiumDictionaries.ts",
     "check:smoke": "npm run dictionary:smoke && npm run navigation:smoke && npm run route:smoke && npm run economy:smoke && npm run pet:smoke && npm run screens:smoke && npm run hooks:smoke && npm run appv2:smoke",
     "check": "npm run lint && npm run premium-dictionaries:validate && npm run check:unit && npm run check:smoke && npm run api:check",
-    "build": "python3 -m pip install --break-system-packages --disable-pip-version-check --quiet reportlab==4.4.3 matplotlib==3.10.3 && python3 scripts/inspect_legal_sources.py && python3 scripts/generate_legal_pdfs.py && vite build",
+    "build": "python3 -m pip install --break-system-packages --disable-pip-version-check --quiet reportlab==4.4.3 matplotlib==3.10.3 && python3 scripts/generate_published_legal_pdfs.py && vite build",
     "build:verified": "npm run check && npm run build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
@@ -62,7 +62,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/node": "^22.14.0",
-    "@types/pg": "^8.16.0",
+    "@types/pg": "^8.16.3",
     "@vitejs/plugin-react": "^5.0.0",
     "@vitest/coverage-v8": "^3.2.4",
     "autoprefixer": "^10.4.22",
