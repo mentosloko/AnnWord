@@ -45,3 +45,9 @@ export function ensurePasswordResetSchema(): Promise<void> {
   }
   return ready;
 }
+
+if (process.env.NODE_ENV !== 'test') {
+  void ensurePasswordResetSchema().catch(error => {
+    console.error('Password reset schema or onboarding repair failed', error);
+  });
+}
