@@ -57,14 +57,54 @@ jobs:
         run: |
           set -euo pipefail
           API_URL="$(cat /tmp/api-url)"
+
+          fetch_final_json() {
+            local url="$1"
+            local output="$2"
+            local label="$3"
+            local attempt http_code curl_exit
+
+            for attempt in 1 2 3 4; do
+              rm -f "${output}.tmp"
+              set +e
+              http_code="$(curl --silent --show-error \
+                --connect-timeout 15 \
+                --max-time 45 \
+                --output "${output}.tmp" \
+                --write-out '%{http_code}' \
+                "$url")"
+              curl_exit=$?
+              set -e
+
+              if [ "$curl_exit" -eq 0 ] && [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+                mv "${output}.tmp" "$output"
+                cat "$output"
+                printf '\n'
+                return 0
+              fi
+
+              echo "$label attempt $attempt failed: curl=$curl_exit HTTP=$http_code"
+              if [ "$attempt" -lt 4 ]; then
+                sleep "$((attempt * 2))"
+              fi
+            done
+
+            if [ -f "${output}.tmp" ]; then
+              mv "${output}.tmp" "$output"
+              cat "$output"
+              printf '\n'
+            fi
+            return 1
+          }
+
           printf '%s' 'health' > /tmp/smoke-phase-api
-          curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/health" | tee /tmp/annword-health.json
+          fetch_final_json "$API_URL/api/health" /tmp/annword-health.json health
           printf '%s' 'database' > /tmp/smoke-phase-api
-          curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/health/db" | tee /tmp/annword-db-health.json
+          fetch_final_json "$API_URL/api/health/db" /tmp/annword-db-health.json database
           printf '%s' 'runtime-config' > /tmp/smoke-phase-api
-          curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/runtime-config" | tee /tmp/annword-runtime-config.json
+          fetch_final_json "$API_URL/api/runtime-config" /tmp/annword-runtime-config.json runtime-config
           printf '%s' 'weekly-status' > /tmp/smoke-phase-api
-          curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/reports/weekly/status" | tee /tmp/annword-weekly-status.json
+          fetch_final_json "$API_URL/api/reports/weekly/status" /tmp/annword-weekly-status.json weekly-status
           printf '%s' 'prodamus-callback' > /tmp/smoke-phase-api
           curl --fail-with-body -sS "$API_URL/api/payments/prodamus/notify" | tee /tmp/annword-prodamus-response.txt | grep -q "OK"
 
@@ -133,7 +173,8 @@ jobs:
             fi
           done
           printf '%s' 'release-marker' > /tmp/smoke-phase-frontend
-          curl --fail-with-body --retry 3 --retry-all-errors -sS "$FRONTEND_URL/release.json" | tee /tmp/annword-release.json
+          curl --fail-with-body --retry 3 --retry-all-errors -sS --output /tmp/annword-release.json "$FRONTEND_URL/release.json"
+          cat /tmp/annword-release.json
           SOURCE_SHA="$SOURCE_SHA" node - <<'NODE'
           const fs = require('fs');
           const release = JSON.parse(fs.readFileSync('/tmp/annword-release.json', 'utf8'));
