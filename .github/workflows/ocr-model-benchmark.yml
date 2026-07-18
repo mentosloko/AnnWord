@@ -28,6 +28,7 @@ jobs:
     env:
       HF_HUB_DISABLE_XET: '1'
       TOKENIZERS_PARALLELISM: 'false'
+      FLAGS_use_mkldnn: '0'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,7 +41,7 @@ jobs:
       - name: Install OCR dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install paddleocr paddlepaddle transformers torch torchvision sentencepiece pillow opencv-python-headless
+          python -m pip install paddleocr paddlepaddle 'transformers<5' torch torchvision sentencepiece tiktoken pillow opencv-python-headless
 
       - name: Run benchmark
         run: python scripts/ocr_model_benchmark.py
