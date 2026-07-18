@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './AppV2';
 import ErrorBoundary from './components/ErrorBoundary';
+import { PasswordResetOverlay } from './components/auth/PasswordResetOverlay';
 import './visualAssets.css';
 
 const rootElement = document.getElementById('root');
@@ -25,7 +26,7 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      {window.location.pathname.startsWith('/api/') ? <FrontendApiFallback /> : <App />}
+      {window.location.pathname.startsWith('/api/') ? <FrontendApiFallback /> : <><App /><PasswordResetOverlay /></>}
     </ErrorBoundary>
   </React.StrictMode>
 );
