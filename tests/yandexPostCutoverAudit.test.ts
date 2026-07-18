@@ -66,11 +66,11 @@ describe('Yandex post-cutover guarantees', () => {
   });
 
   it('schedules weekly reports against the Yandex API with deterministic internal auth', () => {
-    const workflow = read('.github/workflows/yandex-weekly-reports.yml');
-    expect(workflow).toContain("cron: '0 7 * * 1'");
-    expect(workflow).toContain('/api/reports/weekly/status');
+    const workflow = read('.github/workflows/weekly-reports.yml');
+    expect(workflow).toContain('cron: "0 6 * * 1"');
     expect(workflow).toContain('/api/reports/weekly/run');
     expect(workflow).toContain('annword-weekly-reports-v1');
+    expect(workflow).toContain('YC_API_PUBLIC_URL');
     expect(workflow).not.toContain('vercel');
     expect(workflow).not.toContain('supabase');
   });
