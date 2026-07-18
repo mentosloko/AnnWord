@@ -1,0 +1,49 @@
+name: OCR model benchmark
+
+on:
+  push:
+    branches:
+      - test/easyocr-evaluation-20260718
+    paths:
+      - .github/workflows/ocr-model-benchmark.yml
+      - scripts/ocr_model_benchmark.py
+      - testdata/easyocr/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: Compare PP-OCRv5 and TrOCR
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      HF_HUB_DISABLE_XET: '1'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install OCR dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install paddleocr paddlepaddle transformers torch torchvision sentencepiece pillow opencv-python-headless
+
+      - name: Run benchmark
+        run: python scripts/ocr_model_benchmark.py
+
+      - name: Upload benchmark result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocr-model-benchmark
+          path: benchmark-output/
+          if-no-files-found: warn
+          retention-days: 7
