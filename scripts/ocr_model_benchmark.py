@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import re
 import time
 from pathlib import Path
@@ -9,6 +10,8 @@ from typing import Any
 
 import cv2
 from PIL import Image
+
+os.environ.setdefault("FLAGS_use_mkldnn", "0")
 
 EXPECTED_ROWS = [
     ["HI"], ["KITE"], ["FINE"], ["RIDE"], ["DRIVE"], ["HOME"],
@@ -18,10 +21,10 @@ EXPECTED_ROWS = [
 ]
 EXPECTED = [word for row in EXPECTED_ROWS for word in row]
 ROW_BOUNDS = [
-    (31, 71), (71, 110), (110, 149), (149, 188), (188, 227), (227, 266),
-    (266, 306), (306, 345), (345, 384), (384, 423), (423, 462), (462, 501),
-    (501, 540), (540, 579), (579, 618), (618, 657), (657, 696), (696, 736),
-    (736, 776), (776, 817), (817, 858), (858, 899), (899, 950),
+    (5, 54), (54, 101), (101, 149), (149, 198), (198, 247), (247, 295),
+    (295, 344), (344, 392), (392, 440), (440, 490), (490, 539), (539, 587),
+    (587, 636), (636, 685), (685, 733), (733, 782), (782, 831), (831, 881),
+    (881, 930), (930, 979), (979, 1028), (1028, 1077), (1077, 1119),
 ]
 
 
@@ -50,7 +53,7 @@ def prepare_rows(image_path: Path) -> list[Path]:
     row_dir.mkdir(parents=True, exist_ok=True)
     paths = []
     for index, (top, bottom) in enumerate(ROW_BOUNDS, start=1):
-        crop = source[top + 1:bottom - 1, 4:source.shape[1] - 4]
+        crop = source[top + 2:bottom - 2, 4:source.shape[1] - 4]
         inv = cv2.threshold(crop, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (max(28, crop.shape[1] // 3), 1))
         lines = cv2.morphologyEx(inv, cv2.MORPH_OPEN, kernel)
@@ -62,7 +65,7 @@ def prepare_rows(image_path: Path) -> list[Path]:
             cleaned = cleaned[max(0, y-margin):min(cleaned.shape[0], y+h+margin), max(0, x-margin):min(cleaned.shape[1], x+w+margin)]
         cleaned = cv2.bitwise_not(cleaned)
         cleaned = cv2.copyMakeBorder(cleaned, 12, 12, 16, 16, cv2.BORDER_CONSTANT, value=255)
-        scale = max(2, int(round(72 / max(1, cleaned.shape[0]))))
+        scale = max(2, int(round(80 / max(1, cleaned.shape[0]))))
         cleaned = cv2.resize(cleaned, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
         out = row_dir / f"row-{index:02d}.png"
         cv2.imwrite(str(out), cleaned)
@@ -117,7 +120,7 @@ def evaluate(name: str, raw_rows: list[str], elapsed: float, scores: list[float 
 def run_paddle_whole(image_path: Path) -> dict[str, Any]:
     from paddleocr import PaddleOCR
     start = time.perf_counter()
-    model = PaddleOCR(ocr_version="PP-OCRv5", lang="en", text_detection_model_name="PP-OCRv5_server_det", text_recognition_model_name="en_PP-OCRv5_mobile_rec", use_doc_orientation_classify=False, use_doc_unwarping=False, use_textline_orientation=False, text_rec_score_thresh=0.0)
+    model = PaddleOCR(ocr_version="PP-OCRv5", lang="en", text_detection_model_name="PP-OCRv5_mobile_det", text_recognition_model_name="en_PP-OCRv5_mobile_rec", use_doc_orientation_classify=False, use_doc_unwarping=False, use_textline_orientation=False, text_rec_score_thresh=0.0, enable_mkldnn=False)
     output = model.predict(input=str(image_path))
     texts, scores = [], []
     for result in output:
@@ -131,7 +134,7 @@ def run_paddle_whole(image_path: Path) -> dict[str, Any]:
 def run_paddle_rows(row_paths: list[Path]) -> dict[str, Any]:
     from paddleocr import TextRecognition
     start = time.perf_counter()
-    output = TextRecognition(model_name="en_PP-OCRv5_mobile_rec").predict(input=[str(path) for path in row_paths], batch_size=8)
+    output = TextRecognition(model_name="en_PP-OCRv5_mobile_rec", enable_mkldnn=False).predict(input=[str(path) for path in row_paths], batch_size=8)
     texts = [str(result.get("rec_text", "")) for result in output]
     scores = [float(result.get("rec_score", 0.0)) for result in output]
     return evaluate("PP-OCRv5 row-by-row", texts, time.perf_counter() - start, scores)
@@ -142,7 +145,7 @@ def run_trocr_rows(row_paths: list[Path]) -> dict[str, Any]:
     from transformers import TrOCRProcessor, VisionEncoderDecoderModel
     start = time.perf_counter()
     model_id = "microsoft/trocr-small-handwritten"
-    processor = TrOCRProcessor.from_pretrained(model_id)
+    processor = TrOCRProcessor.from_pretrained(model_id, use_fast=False)
     model = VisionEncoderDecoderModel.from_pretrained(model_id)
     model.eval()
     texts = []
