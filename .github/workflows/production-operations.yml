@@ -1,4 +1,5 @@
 # Operational checks run independently from application deployments.
+# Workflow-only commits can safely retrigger frontend verification without redeploying Yandex.
 name: Production Operations
 
 on:
