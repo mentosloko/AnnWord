@@ -1,0 +1,68 @@
+name: Finalize embedded legal source
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/finalize-legal-source.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install document dependencies
+        run: python -m pip install --disable-pip-version-check reportlab==4.4.3 matplotlib==3.10.3
+
+      - name: Store finalized source archive
+        run: |
+          python - <<'PY'
+          import base64
+          import gzip
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, str(Path('scripts').resolve()))
+          import generate_published_legal_pdfs as published
+
+          documents = published.finalized_documents()
+          archive = ''.join(
+              f'@@FILE:{name}@@\n{text.strip()}\n'
+              for name, text in sorted(documents.items())
+          )
+          encoded = base64.b64encode(
+              gzip.compress(archive.encode('utf-8'), mtime=0)
+          ).decode('ascii')
+          split_at = (len(encoded) + 1) // 2
+          source_dir = Path('legal-src')
+          (source_dir / 'legal-documents.b64.part1').write_text(
+              encoded[:split_at], encoding='utf-8'
+          )
+          (source_dir / 'legal-documents.b64.part2').write_text(
+              encoded[split_at:], encoding='utf-8'
+          )
+          PY
+
+      - name: Commit finalized archive and remove one-time workflow
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/finalize-legal-source.yml
+          git add legal-src/legal-documents.b64.part1 legal-src/legal-documents.b64.part2
+          git commit -m "Store finalized legal source documents"
+          git push origin HEAD:main
