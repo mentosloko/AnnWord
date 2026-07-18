@@ -38,7 +38,14 @@ jobs:
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
           python -m pip install 'transformers>=5.13,<5.15' pillow safetensors timm einops sentencepiece
       - name: Run Florence benchmark
-        run: python scripts/florence_ocr_quick.py
+        shell: bash
+        run: |
+          mkdir -p florence-ocr-result
+          set +e
+          python scripts/florence_ocr_quick.py > florence-ocr-result/run.log 2>&1
+          status=$?
+          cat florence-ocr-result/run.log
+          exit $status
       - uses: actions/upload-artifact@v4
         if: always()
         with:
