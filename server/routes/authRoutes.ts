@@ -1,9 +1,11 @@
+import { createHash, randomBytes } from "node:crypto";
 import { Router } from "express";
 import {
   makeSessionPayload,
   clearSessionCookie,
   createSessionToken,
   findUserByEmail,
+  hashPassword,
   readBearerOrCookieToken,
   verifyPassword,
   verifySessionToken,
@@ -13,18 +15,22 @@ import {
   type BackendUser,
 } from "../auth";
 import { runtimeConfig } from "../config";
-import { transaction } from "../db";
+import { query, transaction } from "../db";
 import { createProfileForUser } from "../profileRepository";
 import { appBack, checkYa, completeYa, yaBackUrl } from "../ya";
 import { assertRussianRegistrationEmail } from "../emailPolicy";
+import { ensurePasswordResetSchema } from "../passwordResetSchema";
+import { sendPostboxEmail } from "../postboxEmailService";
 
 export const authRouter = Router();
 
 const readText = (value: unknown): string => (typeof value === "string" ? value : "");
 const field = ["creden", "tial"].join("");
 const isLegacyMigratedPassword = (hash: string): boolean => hash.startsWith("migration-disabled-") || !hash.startsWith("scrypt$");
-const legacyPasswordMessage = "Этот аккаунт перенесён из старой системы, но старый пароль не был перенесён. Войдите через Яндекс с тем же email.";
+const legacyPasswordMessage = "Этот аккаунт перенесён из старой системы, но старый пароль не был перенесён. Восстановите пароль или войдите через Яндекс с тем же email.";
 const nameFromEmail = (email: string): string => email.split("@")[0] || "Пользователь";
+const PASSWORD_RESET_TTL_MINUTES = 30;
+const PASSWORD_RESET_REQUEST_MESSAGE = "Если аккаунт с таким адресом существует, письмо для восстановления уже отправлено.";
 const consentVersions = {
   userAgreement: "2026-07-15",
   personalData: "2026-07-15",
@@ -58,6 +64,24 @@ const writeSession = (res: { json: (body: unknown) => void; status: (code: numbe
   const token = createSessionToken(user);
   writeSessionCookie(res as never, token);
   res.status(status).json(makeSessionPayload(user, token));
+};
+
+const hashResetToken = (token: string): string => createHash("sha256").update(token).digest("hex");
+const escapeHtml = (value: string): string => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+const sendPasswordReset = async (email: string, token: string): Promise<void> => {
+  const resetUrl = `${runtimeConfig.appUrl}/?password_reset_token=${encodeURIComponent(token)}`;
+  const safeUrl = escapeHtml(resetUrl);
+  await sendPostboxEmail(email, {
+    subject: "Восстановление пароля AnnWord",
+    text: [
+      "Вы запросили восстановление пароля AnnWord.",
+      `Откройте ссылку в течение ${PASSWORD_RESET_TTL_MINUTES} минут:`,
+      resetUrl,
+      "Если вы не запрашивали восстановление, просто проигнорируйте это письмо.",
+    ].join("\n\n"),
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172554;line-height:1.5"><div style="background:#eef2ff;border-radius:24px;padding:24px"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6366f1">AnnWord</div><h1 style="font-size:26px;margin:8px 0">Восстановление пароля</h1><p style="margin:0;color:#64748b">Ссылка действует ${PASSWORD_RESET_TTL_MINUTES} минут.</p></div><p style="margin:24px 0">Нажмите кнопку, чтобы установить новый пароль.</p><p><a href="${safeUrl}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:14px">Установить новый пароль</a></p><p style="margin-top:24px;font-size:13px;color:#64748b">Если вы не запрашивали восстановление, письмо можно проигнорировать.</p></div>`,
+  });
 };
 
 authRouter.post("/email/account", async (req, res) => {
@@ -104,8 +128,6 @@ authRouter.post("/email/account", async (req, res) => {
       "Server-Timing",
       `registration_validate;dur=${validatedAt - startedAt}, registration_database;dur=${databaseCompletedAt - validatedAt}, registration_total;dur=${databaseCompletedAt - startedAt}`,
     );
-    // Returning the profile here avoids a second authenticated profile request on
-    // the client immediately after this transaction has already created it.
     res.status(201).json({ ...makeSessionPayload(created.user, token), profile: created.profile });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Account create failed";
@@ -140,6 +162,82 @@ authRouter.post("/email/session", async (req, res) => {
     writeSession(res, user);
   } catch (error) {
     res.status(400).json({ code: "session_create_failed", error: error instanceof Error ? error.message : "Session create failed" });
+  }
+});
+
+authRouter.post("/password/reset/request", async (req, res) => {
+  const rawEmail = readText(req.body?.email).trim().toLowerCase();
+  try {
+    await ensurePasswordResetSchema();
+    const user = rawEmail ? await findUserByEmail(rawEmail).catch(() => null) : null;
+    if (user) {
+      const recent = await query<{ created_at: Date | string }>(
+        `select created_at
+           from password_reset_tokens
+          where user_id = $1 and used_at is null and created_at > now() - interval '2 minutes'
+          order by created_at desc
+          limit 1`,
+        [user.id],
+      );
+      if (!recent.rows[0]) {
+        const token = randomBytes(32).toString("base64url");
+        await query(
+          `insert into password_reset_tokens (user_id, token_hash, expires_at)
+           values ($1, $2, now() + interval '${PASSWORD_RESET_TTL_MINUTES} minutes')`,
+          [user.id, hashResetToken(token)],
+        );
+        await query("delete from password_reset_tokens where expires_at < now() - interval '1 day' or used_at < now() - interval '1 day'");
+        await sendPasswordReset(user.email, token).catch(async (error) => {
+          console.error("Password reset email failed", { userId: user.id, error });
+          await query("update password_reset_tokens set used_at = now() where token_hash = $1", [hashResetToken(token)]).catch(() => undefined);
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Password reset request failed", error);
+  }
+  res.json({ ok: true, message: PASSWORD_RESET_REQUEST_MESSAGE });
+});
+
+authRouter.post("/password/reset/confirm", async (req, res) => {
+  try {
+    await ensurePasswordResetSchema();
+    const token = readText(req.body?.token).trim();
+    const password = readText(req.body?.[field]);
+    if (token.length < 20) {
+      res.status(400).json({ code: "password_reset_token_invalid", error: "Ссылка восстановления недействительна." });
+      return;
+    }
+    const passwordHash = hashPassword(password);
+    const changed = await transaction(async (client) => {
+      const tokenResult = await client.query<{ user_id: string }>(
+        `select user_id
+           from password_reset_tokens
+          where token_hash = $1 and used_at is null and expires_at > now()
+          for update`,
+        [hashResetToken(token)],
+      );
+      const row = tokenResult.rows[0];
+      if (!row) return false;
+      await client.query(
+        `update app_users
+            set password_hash = $2,
+                password_reset_required = false,
+                updated_at = now()
+          where id = $1`,
+        [row.user_id, passwordHash],
+      );
+      await client.query("update password_reset_tokens set used_at = now() where user_id = $1 and used_at is null", [row.user_id]);
+      return true;
+    });
+    if (!changed) {
+      res.status(400).json({ code: "password_reset_token_expired", error: "Ссылка восстановления истекла или уже использована." });
+      return;
+    }
+    clearSessionCookie(res);
+    res.json({ ok: true, message: "Пароль обновлён. Теперь можно войти с новым паролем." });
+  } catch (error) {
+    res.status(400).json({ code: "password_reset_failed", error: error instanceof Error ? error.message : "Не удалось изменить пароль." });
   }
 });
 

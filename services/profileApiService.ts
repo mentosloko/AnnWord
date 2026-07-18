@@ -3,6 +3,18 @@ import { backendApiRequest } from "./backendApiClient";
 
 const readProfile = async (request: Promise<{ profile: UserProfile }>): Promise<UserProfile> => (await request).profile;
 
+export interface WeeklyReportPreferenceStatus {
+  enabled: boolean;
+  email: string | null;
+  latestDelivery: null | {
+    weekKey: string;
+    status: "processing" | "sent" | "failed";
+    attemptedAt: string;
+    sentAt: string | null;
+    error: string | null;
+  };
+}
+
 export const profileApiService = {
   async getCurrentProfile(): Promise<UserProfile> {
     return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/me"));
@@ -30,6 +42,10 @@ export const profileApiService = {
 
   async useItem(itemId: string): Promise<UserProfile> {
     return readProfile(backendApiRequest<{ profile: UserProfile }>("/api/profile/use-item", { method: "POST", body: { itemId } }));
+  },
+
+  async getWeeklyReportEmailStatus(): Promise<WeeklyReportPreferenceStatus> {
+    return backendApiRequest<WeeklyReportPreferenceStatus>("/api/profile/weekly-report-email/status");
   },
 
   async updateWeeklyReportEmail(email: string): Promise<UserProfile> {
