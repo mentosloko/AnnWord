@@ -1,6 +1,9 @@
 import { query } from "./db";
+import { runYandexSchemaMigrations } from "./yandexSchemaMigrations";
 
 export async function ensureConsentSchema(): Promise<void> {
+  await runYandexSchemaMigrations();
+
   await query(`
     create table if not exists public.user_consents (
       id bigserial primary key,
