@@ -3,7 +3,7 @@ import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { applyGameResult, getOrCreateProfile, incrementProfileCoins, updateProfileDictionary, updateProfilePet, updateProfileStats } from "../profileRepository";
 import { reconcileProfileMood, syncProfileStateServerAuthoritative, useProfileItemServerAuthoritative } from "../petMoodRepository";
-import { updateWeeklyReportEmailPreference } from "../weeklyReportProfileRepository";
+import { getWeeklyReportPreferenceStatus, updateWeeklyReportEmailPreference } from "../weeklyReportProfileRepository";
 import { listDictionaryCollections, saveDictionaryCollection } from "../dictionaryCollectionRepository";
 import { purchaseProfileItem } from "../purchaseRepository";
 import { assignedWordsRouter } from "./assignedWordsRoutes";
@@ -113,6 +113,15 @@ profileRouter.post("/use-item", async (req: AuthenticatedRequest, res) => {
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "item_use_failed", error: error instanceof Error ? error.message : "Предмет не удалось использовать." });
+  }
+});
+
+profileRouter.get("/weekly-report-email/status", async (req: AuthenticatedRequest, res) => {
+  try {
+    const status = await getWeeklyReportPreferenceStatus(req.user!.id);
+    res.json(status);
+  } catch (error) {
+    res.status(400).json({ code: "weekly_email_status_failed", error: error instanceof Error ? error.message : "Weekly email status failed" });
   }
 });
 
