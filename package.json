@@ -34,8 +34,8 @@
     "premium-dictionaries:validate": "tsx scripts/validatePremiumDictionaries.ts",
     "check:smoke": "npm run dictionary:smoke && npm run navigation:smoke && npm run route:smoke && npm run economy:smoke && npm run pet:smoke && npm run screens:smoke && npm run hooks:smoke && npm run appv2:smoke",
     "check": "npm run lint && npm run premium-dictionaries:validate && npm run check:unit && npm run check:smoke && npm run api:check",
-    "build": "vite build",
-    "build:verified": "npm run check && vite build",
+    "build": "python3 -m pip install --disable-pip-version-check --quiet reportlab==4.4.3 && python3 scripts/generate_legal_pdfs.py && vite build",
+    "build:verified": "npm run check && npm run build",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
