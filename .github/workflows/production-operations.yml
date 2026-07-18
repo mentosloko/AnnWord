@@ -182,26 +182,26 @@ jobs:
 
   report:
     name: Publish production operations status
-    if: always()
+    if: ${{ always() && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
     needs: [monitor, backups]
     runs-on: ubuntu-latest
     steps:
       - name: Publish combined operations status
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
           MONITOR_RESULT: ${{ needs.monitor.result }}
           BACKUPS_RESULT: ${{ needs.backups.result }}
           TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          is_ok() { [ "$1" = success ] || [ "$1" = skipped ]; }
-          if is_ok "$MONITOR_RESULT" && is_ok "$BACKUPS_RESULT"; then
-            STATE=success
-            DESCRIPTION="Production monitoring and PostgreSQL backups verified"
+          if [ "$EVENT_NAME" = workflow_run ]; then
+            if [ "$MONITOR_RESULT" = success ] && [ "$BACKUPS_RESULT" = success ]; then STATE=success; else STATE=failure; fi
           else
-            STATE=failure
-            DESCRIPTION="Production operations check failed"
+            is_ok() { [ "$1" = success ] || [ "$1" = skipped ]; }
+            if is_ok "$MONITOR_RESULT" && is_ok "$BACKUPS_RESULT"; then STATE=success; else STATE=failure; fi
           fi
+          if [ "$STATE" = success ]; then DESCRIPTION="Production monitoring and PostgreSQL backups verified"; else DESCRIPTION="Production operations check failed"; fi
           export STATE DESCRIPTION
           node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Production Operations",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/operations-status.json
           curl -fsS -X POST \
