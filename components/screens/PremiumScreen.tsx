@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../../types';
 import { getKidsDictionaryCatalog } from '../../services/kidsDictionaryCatalog';
+import { LEGAL_DOCUMENTS, LEGAL_LINK_PROPS } from '../../services/legalDocuments';
 import { isKidsMode } from '../../services/modeFlags';
 import { formatPremiumExpiresAt } from '../../services/premiumAccess';
 import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
@@ -62,6 +63,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
             {hasPremium ? <button type="button" onClick={onOpenDictionarySetup} className="rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white shadow-sm transition hover:bg-indigo-700">{kidsMode ? 'Выбрать слова для ребёнка' : 'Выбрать слова для тренировки'}</button> : PAYMENTS_ENABLED ? <div className="grid gap-3 sm:grid-cols-2">
               {plans.map(plan => <button key={plan.code} type="button" disabled={loadingPlan !== null} onClick={() => void startPayment(plan.code)} className="rounded-2xl border-2 border-amber-100 bg-amber-500 px-5 py-4 text-left font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-600 disabled:cursor-wait disabled:opacity-70"><span className="block text-lg">{plan.title}</span><span className="mt-1 block text-sm text-white/85">{plan.amountRub.toLocaleString('ru-RU')} ₽</span><span className="mt-2 block text-xs text-white/75">{loadingPlan === plan.code ? 'Открываю оплату…' : 'Перейти к оплате Prodamus'}</span></button>)}
             </div> : DEV_TRIAL_ENABLED && onTestUnlockPremium ? <button type="button" onClick={onTestUnlockPremium} className="rounded-2xl bg-amber-500 px-6 py-4 font-black text-white shadow-sm transition hover:bg-amber-600">Открыть Premium на 7 дней</button> : <button type="button" disabled className="rounded-2xl bg-gray-100 px-6 py-4 font-black text-gray-400">Оплата скоро будет подключена</button>}
+            {!hasPremium && PAYMENTS_ENABLED && <p className="mt-3 max-w-2xl text-xs font-bold leading-relaxed text-gray-500">Переходя к оплате, вы подтверждаете, что ознакомились и согласны с условиями <a href={LEGAL_DOCUMENTS.publicOffer} {...LEGAL_LINK_PROPS} className="font-black text-indigo-700 underline decoration-indigo-200 underline-offset-2 transition hover:text-indigo-900 hover:decoration-indigo-500">Публичной оферты</a>.</p>}
             <button type="button" onClick={onBack} className="mt-3 rounded-2xl border-2 border-indigo-100 bg-white px-6 py-4 font-black text-indigo-700 transition hover:bg-indigo-50">Вернуться</button>
           </div>
           {paymentError && <p role="alert" className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{paymentError}</p>}

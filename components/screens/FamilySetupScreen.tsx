@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ChildSetupResult } from '../../services/familyAccountService';
 import { legalConsentService } from '../../services/legalConsentService';
+import { LEGAL_DOCUMENTS, LEGAL_LINK_PROPS } from '../../services/legalDocuments';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface FamilySetupScreenProps {
@@ -103,10 +104,10 @@ export const FamilySetupScreen: React.FC<FamilySetupScreenProps> = ({ onCreateCh
             </section>
           </div>
 
-          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border-2 border-indigo-100 bg-white px-4 py-4 text-sm font-bold leading-6 text-slate-700">
-            <input type="checkbox" checked={legalRepresentativeConsent} onChange={event => { setLegalRepresentativeConsent(event.target.checked); setError(null); }} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-            <span>Я подтверждаю, что являюсь родителем или иным законным представителем ребёнка, и даю согласие на обработку его персональных данных.</span>
-          </label>
+          <div className="flex items-start gap-3 rounded-2xl border-2 border-indigo-100 bg-white px-4 py-4 text-sm font-bold leading-6 text-slate-700">
+            <input id="child-data-consent" type="checkbox" checked={legalRepresentativeConsent} onChange={event => { setLegalRepresentativeConsent(event.target.checked); setError(null); }} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+            <label htmlFor="child-data-consent" className="cursor-pointer">Я подтверждаю, что являюсь родителем или иным законным представителем ребёнка, и принимаю <a href={LEGAL_DOCUMENTS.childDataConsent} {...LEGAL_LINK_PROPS} className="font-black text-indigo-700 underline decoration-indigo-200 underline-offset-2 transition hover:text-indigo-900 hover:decoration-indigo-500">Согласие на обработку персональных данных ребёнка</a>.</label>
+          </div>
 
           {pinHint && <div id="pin-format-hint" role="status" aria-live="polite" className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{pinHint}</div>}
           {error && <div id="family-setup-error" role="alert" aria-live="assertive" className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</div>}

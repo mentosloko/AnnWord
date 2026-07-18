@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { legalConsentService } from '../../services/legalConsentService';
+import { LEGAL_DOCUMENTS, LEGAL_LINK_PROPS } from '../../services/legalDocuments';
 import { passwordResetService } from '../../services/passwordResetService';
 
 interface AuthModalProps {
@@ -30,6 +31,8 @@ const isRussianEmailDomain = (value: string): boolean => {
   const domain = value.trim().toLowerCase().split('@').pop() || '';
   return domain.endsWith('.ru') || domain.endsWith('.рф') || domain.endsWith('.xn--p1ai') || domain === 'xn--p1ai';
 };
+
+const legalLinkClassName = 'font-black text-indigo-700 underline decoration-indigo-200 underline-offset-2 transition hover:text-indigo-900 hover:decoration-indigo-500';
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
@@ -75,7 +78,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onCloseRef.current();
       if (event.key !== 'Tab' || !dialogRef.current) return;
-      const focusable: HTMLElement[] = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])'));
+      const focusable: HTMLElement[] = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href]'));
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -160,18 +163,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {mode === 'register' && (
                 <fieldset className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
                   <legend className="px-1 text-xs font-black uppercase tracking-wider text-indigo-700">Согласия</legend>
-                  <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-5 text-slate-700">
-                    <input type="checkbox" required checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                    <span>Я принимаю Пользовательское соглашение.<RequiredMark /></span>
-                  </label>
-                  <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-5 text-slate-700">
-                    <input type="checkbox" required checked={personalDataAccepted} onChange={(event) => setPersonalDataAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                    <span>Я даю согласие на обработку моих персональных данных в соответствии с Согласием на обработку персональных данных.<RequiredMark /></span>
-                  </label>
-                  <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold leading-5 text-slate-700">
-                    <input type="checkbox" checked={marketingEmailsAccepted} onChange={(event) => setMarketingEmailsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                    <span>Я согласен получать новости, специальные предложения и рекламные сообщения AnnWord по электронной почте.</span>
-                  </label>
+                  <div className="flex items-start gap-3 text-sm font-semibold leading-5 text-slate-700">
+                    <input id="accept-user-agreement" type="checkbox" required checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                    <label htmlFor="accept-user-agreement" className="cursor-pointer">Я принимаю <a href={LEGAL_DOCUMENTS.userAgreement} {...LEGAL_LINK_PROPS} className={legalLinkClassName}>Пользовательское соглашение</a>.<RequiredMark /></label>
+                  </div>
+                  <div className="flex items-start gap-3 text-sm font-semibold leading-5 text-slate-700">
+                    <input id="accept-personal-data" type="checkbox" required checked={personalDataAccepted} onChange={(event) => setPersonalDataAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                    <label htmlFor="accept-personal-data" className="cursor-pointer">Я даю согласие на обработку моих персональных данных в соответствии с <a href={LEGAL_DOCUMENTS.personalDataConsent} {...LEGAL_LINK_PROPS} className={legalLinkClassName}>Согласием на обработку персональных данных</a>.<RequiredMark /></label>
+                  </div>
+                  <div className="flex items-start gap-3 text-sm font-semibold leading-5 text-slate-700">
+                    <input id="accept-marketing" type="checkbox" checked={marketingEmailsAccepted} onChange={(event) => setMarketingEmailsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                    <label htmlFor="accept-marketing" className="cursor-pointer">Я согласен получать новости, специальные предложения и рекламные сообщения AnnWord по электронной почте на условиях <a href={LEGAL_DOCUMENTS.marketingConsent} {...LEGAL_LINK_PROPS} className={legalLinkClassName}>Согласия на рассылку</a>.</label>
+                  </div>
                 </fieldset>
               )}
 
