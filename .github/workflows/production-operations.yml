@@ -1,6 +1,11 @@
 name: Production Operations
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/production-operations.yml'
   schedule:
     - cron: '17 */2 * * *'
     - cron: '40 3 * * 0'
@@ -36,7 +41,7 @@ env:
 jobs:
   monitor:
     name: Monitor production
-    if: ${{ github.event.schedule == '17 */2 * * *' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'monitor' || inputs.operation == 'all')) || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
+    if: ${{ github.event_name == 'push' || github.event.schedule == '17 */2 * * *' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'monitor' || inputs.operation == 'all')) || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -113,7 +118,7 @@ jobs:
 
   backups:
     name: Guard PostgreSQL backups
-    if: ${{ github.event.schedule == '40 3 * * 0' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'backups' || inputs.operation == 'all')) || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
+    if: ${{ github.event_name == 'push' || github.event.schedule == '40 3 * * 0' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'backups' || inputs.operation == 'all')) || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -138,59 +143,62 @@ jobs:
         env:
           CONFIGURED_CLUSTER_ID: ${{ secrets.YC_POSTGRES_CLUSTER_ID }}
         run: |
-          set -euo pipefail
-          CLUSTER_ID="${CONFIGURED_CLUSTER_ID:-}"
-          if [ -z "$CLUSTER_ID" ]; then
-            yc managed-postgresql cluster list --format json > /tmp/clusters.json
-            test "$(jq 'length' /tmp/clusters.json)" = "1"
-            CLUSTER_ID="$(jq -r '.[0].id' /tmp/clusters.json)"
-          fi
-          echo "Checking PostgreSQL cluster $CLUSTER_ID"
+          set -o pipefail
+          {
+            set -euo pipefail
+            CLUSTER_ID="${CONFIGURED_CLUSTER_ID:-}"
+            if [ -z "$CLUSTER_ID" ]; then
+              yc managed-postgresql cluster list --format json-rest > /tmp/clusters.json
+              CLUSTER_ID="$(node -e 'const x=require("/tmp/clusters.json"); const a=Array.isArray(x)?x:(x.clusters||x.items||[]); if(a.length!==1) process.exit(2); process.stdout.write(a[0].id)')"
+            fi
+            echo "Checking PostgreSQL cluster $CLUSTER_ID"
 
-          # A successful update is the authoritative confirmation that Yandex
-          # Cloud accepted the automatic backup policy.
-          yc managed-postgresql cluster update --id "$CLUSTER_ID" \
-            --backup-window-start 02:00:00 \
-            --backup-retain-period-days 30 \
-            --deletion-protection
-
-          list_backups() {
-            yc managed-postgresql cluster list-backups --id "$CLUSTER_ID" --format json > /tmp/backups.json
-          }
-
-          backup_count() {
-            node - <<'NODE'
+            if ! yc managed-postgresql cluster update --id "$CLUSTER_ID" \
+              --backup-window-start 02:00:00 \
+              --backup-retain-period-days 30 \
+              --deletion-protection; then
+              echo "Cluster update returned non-zero; verifying that the requested policy is already active."
+              yc managed-postgresql cluster get --id "$CLUSTER_ID" --format json-rest > /tmp/cluster.json
+              node - <<'NODE'
           const fs = require('fs');
-          const raw = JSON.parse(fs.readFileSync('/tmp/backups.json', 'utf8'));
-          const backups = Array.isArray(raw) ? raw : (raw.backups || raw.items || []);
-          process.stdout.write(String(backups.length));
-          NODE
+          const cluster = JSON.parse(fs.readFileSync('/tmp/cluster.json', 'utf8'));
+          const config = cluster.config || cluster.configSpec || {};
+          const retention = Number(config.backupRetainPeriodDays ?? config.backup_retain_period_days ?? 0);
+          const protectedFromDeletion = cluster.deletionProtection === true || cluster.deletion_protection === true;
+          if (retention < 30 || !protectedFromDeletion) {
+            throw new Error(`Backup policy is not active: retention=${retention}, deletionProtection=${protectedFromDeletion}`);
           }
-
-          list_backups
-          COUNT="$(backup_count)"
-          if [ "$COUNT" -eq 0 ]; then
-            echo "No backup is currently available; creating an on-demand PostgreSQL backup."
-            yc managed-postgresql cluster backup --id "$CLUSTER_ID"
-            for attempt in 1 2 3 4 5 6 7 8 9 10; do
-              list_backups
-              COUNT="$(backup_count)"
-              if [ "$COUNT" -gt 0 ]; then break; fi
-              sleep 15
-            done
-          fi
-
-          test "$COUNT" -gt 0
-          node - <<'NODE'
-          const fs = require('fs');
-          const raw = JSON.parse(fs.readFileSync('/tmp/backups.json', 'utf8'));
-          const backups = Array.isArray(raw) ? raw : (raw.backups || raw.items || []);
-          const newest = backups
-            .map(item => Date.parse(item.createdAt ?? item.created_at ?? item.startedAt ?? item.started_at ?? ''))
-            .filter(Number.isFinite)
-            .sort((a, b) => b - a)[0];
-          console.log(`Backup policy accepted; available backups=${backups.length}${newest ? `, newest=${new Date(newest).toISOString()}` : ''}`);
+          console.log(`Backup policy already active: retention=${retention}, deletionProtection=${protectedFromDeletion}`);
           NODE
+            fi
+
+            yc managed-postgresql cluster list-backups --id "$CLUSTER_ID" --format json-rest > /tmp/backups.json
+            COUNT="$(node -e 'const x=require("/tmp/backups.json"); const a=Array.isArray(x)?x:(x.backups||x.items||[]); process.stdout.write(String(a.length))')"
+            if [ "$COUNT" -eq 0 ]; then
+              echo "No backup is available; creating an on-demand PostgreSQL backup."
+              yc managed-postgresql cluster backup --id "$CLUSTER_ID"
+              for attempt in 1 2 3 4 5 6 7 8 9 10; do
+                yc managed-postgresql cluster list-backups --id "$CLUSTER_ID" --format json-rest > /tmp/backups.json
+                COUNT="$(node -e 'const x=require("/tmp/backups.json"); const a=Array.isArray(x)?x:(x.backups||x.items||[]); process.stdout.write(String(a.length))')"
+                if [ "$COUNT" -gt 0 ]; then break; fi
+                sleep 15
+              done
+            fi
+            test "$COUNT" -gt 0
+            echo "Backup policy verified; available backups=$COUNT"
+          } 2>&1 | tee /tmp/backup-audit.log
+
+      - name: Upload backup diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: annword-postgresql-backup-audit
+          path: |
+            /tmp/backup-audit.log
+            /tmp/cluster.json
+            /tmp/backups.json
+          if-no-files-found: ignore
+          retention-days: 3
 
       - name: Send backup failure email
         if: ${{ steps.audit.outcome == 'failure' }}
@@ -199,7 +207,7 @@ jobs:
           FROM_EMAIL="${ALERT_FROM_EMAIL:-reports@annword.ru}"
           IAM_TOKEN="$(yc iam create-token)"
           SUBJECT='AnnWord: проблема с резервными копиями'
-          BODY="AnnWord PostgreSQL backup audit failed. Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="$(printf 'AnnWord PostgreSQL backup audit failed.\nRun: https://github.com/%s/actions/runs/%s\n\nLast log lines:\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"; tail -n 30 /tmp/backup-audit.log 2>/dev/null || true)"
           ALERT_FROM_EMAIL="$FROM_EMAIL" SUBJECT="$SUBJECT" BODY="$BODY" node -e 'const fs=require("fs");fs.writeFileSync("/tmp/postbox.json",JSON.stringify({FromEmailAddress:process.env.ALERT_FROM_EMAIL,Destination:{ToAddresses:[process.env.ALERT_EMAIL]},Content:{Simple:{Subject:{Data:process.env.SUBJECT,Charset:"UTF-8"},Body:{Text:{Data:process.env.BODY,Charset:"UTF-8"}}}}}))'
           curl --fail-with-body --silent --show-error -X POST https://postbox.cloud.yandex.net/v2/email/outbound-emails -H 'Content-Type: application/json' -H "X-YaCloud-SubjectToken: $IAM_TOKEN" --data-binary @/tmp/postbox.json
 
@@ -218,18 +226,12 @@ jobs:
       - name: Publish combined operations status
         env:
           GH_TOKEN: ${{ github.token }}
-          EVENT_NAME: ${{ github.event_name }}
           MONITOR_RESULT: ${{ needs.monitor.result }}
           BACKUPS_RESULT: ${{ needs.backups.result }}
           TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          if [ "$EVENT_NAME" = workflow_run ]; then
-            if [ "$MONITOR_RESULT" = success ] && [ "$BACKUPS_RESULT" = success ]; then STATE=success; else STATE=failure; fi
-          else
-            is_ok() { [ "$1" = success ] || [ "$1" = skipped ]; }
-            if is_ok "$MONITOR_RESULT" && is_ok "$BACKUPS_RESULT"; then STATE=success; else STATE=failure; fi
-          fi
+          if [ "$MONITOR_RESULT" = success ] && [ "$BACKUPS_RESULT" = success ]; then STATE=success; else STATE=failure; fi
           if [ "$STATE" = success ]; then DESCRIPTION="Production monitoring and PostgreSQL backups verified"; else DESCRIPTION="Production operations check failed"; fi
           export STATE DESCRIPTION
           node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Production Operations",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/operations-status.json
