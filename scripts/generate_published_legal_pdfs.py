@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate finalized AnnWord legal PDFs without drafting placeholders."""
+"""Generate finalized AnnWord legal PDFs without publication placeholders."""
 
 import re
 
@@ -10,6 +10,12 @@ ADDRESS_PLACEHOLDER = (
     "[УКАЗАТЬ АДРЕС ДЛЯ ПУБЛИКАЦИИ И ЮРИДИЧЕСКИ ЗНАЧИМЫХ СООБЩЕНИЙ]"
 )
 
+PRIVACY_SECTION_8_2 = (
+    "8.2. Основная база аккаунтов и прогресса размещена в российском "
+    "контуре AnnWord на инфраструктуре Yandex Cloud в Российской "
+    "Федерации. Иностранным поставщикам не передаются данные основной "
+    "базы аккаунтов, учебного прогресса и пользовательских словарей."
+)
 PRIVACY_VARIANTS_BLOCK = re.compile(
     r"8\.2\.\s+\*\*До публикации необходимо выбрать и заполнить один "
     r"фактический вариант:\*\*\s*\n\s*\n"
@@ -19,7 +25,7 @@ PRIVACY_VARIANTS_BLOCK = re.compile(
     re.DOTALL,
 )
 
-DRAFTING_MARKERS = (
+PUBLICATION_MARKERS = (
     "[УКАЗАТЬ",
     "[ЗАПОЛНИТЬ",
     "[НАЗВАНИЕ",
@@ -38,19 +44,15 @@ DRAFTING_MARKERS = (
 
 
 def finalize_document(name: str, markdown: str) -> str:
-    """Apply factual publication data and remove drafting instructions."""
+    """Apply factual publication data and remove editorial instructions."""
     text = markdown.replace(ADDRESS_PLACEHOLDER, PUBLIC_ADDRESS)
 
     if name == "03_privacy_policy.md":
-        replacement = (
-            "8.2. Основная база аккаунтов и прогресса размещена в российском "
-            "контуре AnnWord на инфраструктуре Yandex Cloud в Российской "
-            "Федерации. Иностранным поставщикам не передаются данные основной "
-            "базы аккаунтов, учебного прогресса и пользовательских словарей."
-        )
-        text, count = PRIVACY_VARIANTS_BLOCK.subn(replacement, text)
-        if count != 1:
-            raise RuntimeError("Privacy policy section 8.2 was not found exactly once")
+        text, count = PRIVACY_VARIANTS_BLOCK.subn(PRIVACY_SECTION_8_2, text)
+        if count == 0 and PRIVACY_SECTION_8_2 not in text:
+            raise RuntimeError("Privacy policy section 8.2 could not be finalized")
+        if count > 1:
+            raise RuntimeError("Privacy policy section 8.2 occurred more than once")
 
         text = text.replace(
             "8.3. Наличие статического фронтенда у иностранного хостинга само "
@@ -115,27 +117,34 @@ def finalize_document(name: str, markdown: str) -> str:
 
 
 def validate_document(name: str, markdown: str) -> None:
-    found = [marker for marker in DRAFTING_MARKERS if marker.lower() in markdown.lower()]
+    found = [
+        marker
+        for marker in PUBLICATION_MARKERS
+        if marker.lower() in markdown.lower()
+    ]
     if found:
         raise RuntimeError(
-            f"Drafting artifacts remain in {name}: {', '.join(found)}"
+            f"Unresolved publication fields remain in {name}: {', '.join(found)}"
         )
 
 
-def main() -> None:
-    source_documents = generator.load_documents()
-    published_documents = {
+def finalized_documents() -> dict[str, str]:
+    documents = {
         name: finalize_document(name, markdown)
-        for name, markdown in source_documents.items()
+        for name, markdown in generator.load_documents().items()
     }
-    for name, markdown in published_documents.items():
+    for name, markdown in documents.items():
         validate_document(name, markdown)
+    return documents
 
+
+def main() -> None:
+    published_documents = finalized_documents()
     generator.load_documents = lambda: published_documents
     generator.main()
     print(
         "Validated all AnnWord legal documents: publication address is filled "
-        "and no drafting placeholders remain."
+        "and no unresolved publication fields remain."
     )
 
 
