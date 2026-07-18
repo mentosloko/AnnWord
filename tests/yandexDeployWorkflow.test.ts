@@ -9,9 +9,13 @@ describe('Yandex production deployment workflow', () => {
     expect(workflow).not.toContain('      - infra/ru-cloud-migration');
   });
 
-  it('keeps database migrations as an explicit manual operation', () => {
-    expect(workflow).toContain("github.event_name == 'workflow_dispatch' && inputs.run_migrations == 'true'");
-    expect(workflow).not.toContain("github.event_name == 'push' && github.ref == 'refs/heads/main'");
+  it('runs database migrations before publishing every production revision', () => {
+    const migrationStep = workflow.indexOf('Run Yandex PostgreSQL migrations');
+    const imageStep = workflow.indexOf('Build and push backend image');
+    expect(migrationStep).toBeGreaterThan(-1);
+    expect(workflow).toContain('npm run db:yandex:migrate');
+    expect(migrationStep).toBeLessThan(imageStep);
+    expect(workflow).not.toContain("github.event_name == 'workflow_dispatch' && inputs.run_migrations == 'true'");
   });
 
   it('contains the complete backend and frontend publication sequence', () => {
