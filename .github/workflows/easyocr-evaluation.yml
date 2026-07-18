@@ -42,7 +42,7 @@ jobs:
           import re
           from pathlib import Path
 
-          parts = sorted(Path("testdata/easyocr").glob("sample.b64.*"))
+          parts = sorted(Path("testdata/easyocr").glob("sample-v2.b64.*"))
           if not parts:
               raise SystemExit("No encoded image chunks found")
           encoded = "".join(path.read_text(encoding="utf-8") for path in parts)
@@ -61,8 +61,10 @@ jobs:
           }
           Path("/tmp/restore.json").write_text(json.dumps(diagnostics, indent=2), encoding="utf-8")
           print(json.dumps(diagnostics, indent=2))
+          if not diagnostics["complete_jpeg"]:
+              raise SystemExit("Restored test image is not a complete JPEG")
           PY
-          file /tmp/dictionary.jpg || true
+          file /tmp/dictionary.jpg
           ls -lh /tmp/dictionary.jpg
 
       - name: Call EasyOCR API
@@ -133,6 +135,7 @@ jobs:
               "http_status": int(status) if status.isdigit() else status,
               "request_id": payload.get("request_id"),
               "message": payload.get("message"),
+              "error": payload.get("error"),
               "remaining_quota": payload.get("remaining_quota"),
               "elapsed_seconds": payload.get("elapsed_seconds"),
               "result_summary": payload.get("result_summary"),
