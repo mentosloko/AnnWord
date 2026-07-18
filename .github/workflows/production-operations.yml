@@ -11,10 +11,7 @@ on:
         required: true
         default: all
         type: choice
-        options:
-          - all
-          - monitor
-          - backups
+        options: [all, monitor, backups]
 
 permissions:
   contents: read
@@ -48,15 +45,9 @@ jobs:
           test -n "$API_BASE"
 
           check_url() {
-            local label="$1"
-            local url="$2"
-            local expected="$3"
-            local body="/tmp/${label}.body"
-            local code=""
+            local label="$1" url="$2" expected="$3" body="/tmp/${1}.body" code=""
             for attempt in 1 2 3; do
-              code="$(curl --silent --show-error --location \
-                --connect-timeout 15 --max-time 45 \
-                --output "$body" --write-out '%{http_code}' "$url" || true)"
+              code="$(curl --silent --show-error --location --connect-timeout 15 --max-time 45 --output "$body" --write-out '%{http_code}' "$url" || true)"
               if [ "$code" = "200" ] && grep -Eqi "$expected" "$body"; then
                 echo "OK $label"
                 return 0
@@ -73,14 +64,12 @@ jobs:
           check_url api "$API_BASE/api/health" 'ok|healthy' || failures=$((failures + 1))
           check_url database "$API_BASE/api/health/db" '"ok"[[:space:]]*:[[:space:]]*true' || failures=$((failures + 1))
           check_url reports "$API_BASE/api/reports/weekly/status" '"configured"[[:space:]]*:[[:space:]]*true' || failures=$((failures + 1))
-
           if [ "$failures" -gt 0 ]; then
-            printf 'AnnWord production monitor found %s failed check(s).\nFrontend: %s\nAPI: %s\nRun: %s\n' \
-              "$failures" "$APP_BASE" "$API_BASE" "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" > /tmp/alert.txt
+            printf 'AnnWord production monitor found %s failed check(s).\nFrontend: %s\nAPI: %s\nRun: https://github.com/%s/actions/runs/%s\n' "$failures" "$APP_BASE" "$API_BASE" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > /tmp/alert.txt
             exit 1
           fi
 
-      - name: Configure Yandex Cloud for alert email
+      - name: Configure Yandex Cloud for failure email
         if: ${{ steps.check.outcome == 'failure' }}
         env:
           YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
@@ -102,15 +91,10 @@ jobs:
           set -euo pipefail
           test -n "$ALERT_FROM_EMAIL"
           IAM_TOKEN="$(yc iam create-token)"
-          SUBJECT="AnnWord: production недоступен"
+          SUBJECT='AnnWord: production недоступен'
           BODY="$(cat /tmp/alert.txt)"
-          node -e 'const fs=require("fs"); const payload={FromEmailAddress:process.env.ALERT_FROM_EMAIL,Destination:{ToAddresses:[process.env.ALERT_EMAIL]},Content:{Simple:{Subject:{Data:process.env.SUBJECT,Charset:"UTF-8"},Body:{Text:{Data:process.env.BODY,Charset:"UTF-8"}}}}}; fs.writeFileSync("/tmp/postbox.json",JSON.stringify(payload));' \
-            SUBJECT="$SUBJECT" BODY="$BODY"
-          curl --fail-with-body --silent --show-error \
-            -X POST https://postbox.cloud.yandex.net/v2/email/outbound-emails \
-            -H 'Content-Type: application/json' \
-            -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
-            --data-binary @/tmp/postbox.json
+          SUBJECT="$SUBJECT" BODY="$BODY" node -e 'const fs=require("fs");fs.writeFileSync("/tmp/postbox.json",JSON.stringify({FromEmailAddress:process.env.ALERT_FROM_EMAIL,Destination:{ToAddresses:[process.env.ALERT_EMAIL]},Content:{Simple:{Subject:{Data:process.env.SUBJECT,Charset:"UTF-8"},Body:{Text:{Data:process.env.BODY,Charset:"UTF-8"}}}}}))'
+          curl --fail-with-body --silent --show-error -X POST https://postbox.cloud.yandex.net/v2/email/outbound-emails -H 'Content-Type: application/json' -H "X-YaCloud-SubjectToken: $IAM_TOKEN" --data-binary @/tmp/postbox.json
 
       - name: Assert production is healthy
         if: always()
@@ -149,20 +133,10 @@ jobs:
           CLUSTER_ID="${CONFIGURED_CLUSTER_ID:-}"
           if [ -z "$CLUSTER_ID" ]; then
             yc managed-postgresql cluster list --format json > /tmp/clusters.json
-            COUNT="$(jq 'length' /tmp/clusters.json)"
-            if [ "$COUNT" != "1" ]; then
-              echo "Expected exactly one PostgreSQL cluster, found $COUNT. Configure YC_POSTGRES_CLUSTER_ID." >&2
-              exit 1
-            fi
+            test "$(jq 'length' /tmp/clusters.json)" = "1"
             CLUSTER_ID="$(jq -r '.[0].id' /tmp/clusters.json)"
           fi
-          echo "Cluster: $CLUSTER_ID"
-
-          yc managed-postgresql cluster update --id "$CLUSTER_ID" \
-            --backup-window-start 02:00:00 \
-            --backup-retain-period-days 30 \
-            --deletion-protection
-
+          yc managed-postgresql cluster update --id "$CLUSTER_ID" --backup-window-start 02:00:00 --backup-retain-period-days 30 --deletion-protection
           yc managed-postgresql cluster get --id "$CLUSTER_ID" --format json > /tmp/cluster.json
           yc managed-postgresql backup list --format json > /tmp/backups.json
           CLUSTER_ID="$CLUSTER_ID" node - <<'NODE'
@@ -170,20 +144,15 @@ jobs:
           const cluster = JSON.parse(fs.readFileSync('/tmp/cluster.json', 'utf8'));
           const backups = JSON.parse(fs.readFileSync('/tmp/backups.json', 'utf8'));
           const id = process.env.CLUSTER_ID;
-          const retention = Number(cluster?.config?.backupRetainPeriodDays ?? cluster?.config?.backup_retain_period_days ?? 0);
-          if (retention < 30) throw new Error(`Backup retention is ${retention} days, expected at least 30.`);
-          if (cluster.deletionProtection !== true && cluster.deletion_protection !== true) throw new Error('PostgreSQL deletion protection is disabled.');
+          const retention = Number(cluster?.config?.backupRetainPeriodDays ?? cluster?.config?.backup_retain_period_days ?? cluster?.config?.backupRetainPeriod ?? 0);
+          if (retention < 30) throw new Error(`Backup retention is ${retention} days.`);
+          if (cluster.deletionProtection !== true && cluster.deletion_protection !== true) throw new Error('Deletion protection is disabled.');
           const own = backups.filter(item => (item.clusterId ?? item.cluster_id) === id);
-          if (!own.length) throw new Error('No PostgreSQL backups found for the production cluster.');
-          const newest = own.map(item => Date.parse(item.createdAt ?? item.created_at ?? '')).filter(Number.isFinite).sort((a, b) => b - a)[0];
-          if (!newest || Date.now() - newest > 48 * 60 * 60 * 1000) throw new Error('The newest PostgreSQL backup is older than 48 hours.');
-          console.log(`Backup policy verified. retention=${retention}, newest=${new Date(newest).toISOString()}`);
+          if (!own.length) throw new Error('No backups found for production PostgreSQL.');
+          const newest = own.map(item => Date.parse(item.createdAt ?? item.created_at ?? '')).filter(Number.isFinite).sort((a,b) => b-a)[0];
+          if (!newest || Date.now() - newest > 48 * 60 * 60 * 1000) throw new Error('Newest PostgreSQL backup is older than 48 hours.');
+          console.log(`Backup policy verified: retention=${retention}, newest=${new Date(newest).toISOString()}`);
           NODE
-
-      - name: Prepare backup failure email
-        if: ${{ steps.audit.outcome == 'failure' }}
-        run: |
-          printf 'AnnWord PostgreSQL backup audit failed.\nRun: https://github.com/%s/actions/runs/%s\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > /tmp/alert.txt
 
       - name: Send backup failure email
         if: ${{ steps.audit.outcome == 'failure' }}
@@ -191,14 +160,10 @@ jobs:
           set -euo pipefail
           test -n "$ALERT_FROM_EMAIL"
           IAM_TOKEN="$(yc iam create-token)"
-          SUBJECT="AnnWord: проблема с резервными копиями"
-          BODY="$(cat /tmp/alert.txt)"
-          SUBJECT="$SUBJECT" BODY="$BODY" node -e 'const fs=require("fs"); const payload={FromEmailAddress:process.env.ALERT_FROM_EMAIL,Destination:{ToAddresses:[process.env.ALERT_EMAIL]},Content:{Simple:{Subject:{Data:process.env.SUBJECT,Charset:"UTF-8"},Body:{Text:{Data:process.env.BODY,Charset:"UTF-8"}}}}}; fs.writeFileSync("/tmp/postbox.json",JSON.stringify(payload));'
-          curl --fail-with-body --silent --show-error \
-            -X POST https://postbox.cloud.yandex.net/v2/email/outbound-emails \
-            -H 'Content-Type: application/json' \
-            -H "X-YaCloud-SubjectToken: $IAM_TOKEN" \
-            --data-binary @/tmp/postbox.json
+          SUBJECT='AnnWord: проблема с резервными копиями'
+          BODY="AnnWord PostgreSQL backup audit failed. Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          SUBJECT="$SUBJECT" BODY="$BODY" node -e 'const fs=require("fs");fs.writeFileSync("/tmp/postbox.json",JSON.stringify({FromEmailAddress:process.env.ALERT_FROM_EMAIL,Destination:{ToAddresses:[process.env.ALERT_EMAIL]},Content:{Simple:{Subject:{Data:process.env.SUBJECT,Charset:"UTF-8"},Body:{Text:{Data:process.env.BODY,Charset:"UTF-8"}}}}}))'
+          curl --fail-with-body --silent --show-error -X POST https://postbox.cloud.yandex.net/v2/email/outbound-emails -H 'Content-Type: application/json' -H "X-YaCloud-SubjectToken: $IAM_TOKEN" --data-binary @/tmp/postbox.json
 
       - name: Assert backup policy is healthy
         if: always()
