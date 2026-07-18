@@ -51,3 +51,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Generate AnnWord legal PDFs"
           git push origin HEAD:main
+
+# Regenerate documents when this workflow changes.
