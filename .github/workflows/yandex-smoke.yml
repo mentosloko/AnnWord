@@ -106,7 +106,7 @@ jobs:
           printf '%s' 'weekly-status' > /tmp/smoke-phase-api
           fetch_final_json "$API_URL/api/reports/weekly/status" /tmp/annword-weekly-status.json weekly-status
           printf '%s' 'prodamus-callback' > /tmp/smoke-phase-api
-          curl --fail-with-body -sS "$API_URL/api/payments/prodamus/notify" | tee /tmp/annword-prodamus-response.txt | grep -q "OK"
+          curl --fail-with-body --retry 3 --retry-all-errors -sS "$API_URL/api/payments/prodamus/notify" | tee /tmp/annword-prodamus-response.txt | grep -q "OK"
 
           node - <<'NODE'
           const fs = require('fs');
@@ -129,20 +129,60 @@ jobs:
         run: |
           set -euo pipefail
           API_URL="$(cat /tmp/api-url)"
+
+          expect_status() {
+            local label="$1"
+            local expected="$2"
+            local output="$3"
+            shift 3
+            local attempt code curl_exit
+
+            for attempt in 1 2 3 4; do
+              rm -f "${output}.tmp"
+              set +e
+              code="$(curl --silent --show-error \
+                --connect-timeout 15 \
+                --max-time 45 \
+                --output "${output}.tmp" \
+                --write-out '%{http_code}' \
+                "$@")"
+              curl_exit=$?
+              set -e
+
+              if [ "$curl_exit" -eq 0 ] && [ "$code" = "$expected" ]; then
+                mv "${output}.tmp" "$output"
+                return 0
+              fi
+
+              echo "$label attempt $attempt failed: curl=$curl_exit HTTP=$code expected=$expected"
+              cat "${output}.tmp" 2>/dev/null || true
+              if [ "$attempt" -lt 4 ]; then
+                sleep "$((attempt * 2))"
+              fi
+            done
+
+            if [ -f "${output}.tmp" ]; then
+              mv "${output}.tmp" "$output"
+            fi
+            return 1
+          }
+
           printf '%s' 'profile-auth' > /tmp/smoke-phase-security
-          PROFILE_STATUS=$(curl -sS -o /tmp/profile-response.json -w "%{http_code}" "$API_URL/api/profile/me")
-          test "$PROFILE_STATUS" = "401"
+          expect_status profile-auth 401 /tmp/profile-response.json "$API_URL/api/profile/me"
           printf '%s' 'admin-auth' > /tmp/smoke-phase-security
-          ADMIN_STATUS=$(curl -sS -o /tmp/admin-response.json -w "%{http_code}" "$API_URL/api/analytics/admin")
-          test "$ADMIN_STATUS" = "401"
+          expect_status admin-auth 401 /tmp/admin-response.json "$API_URL/api/analytics/admin"
           printf '%s' 'weekly-run-auth' > /tmp/smoke-phase-security
-          WEEKLY_RUN_STATUS=$(curl -sS -o /tmp/weekly-run-response.json -w "%{http_code}" -X POST "$API_URL/api/reports/weekly/run" -H 'Content-Type: application/json' --data '{}')
-          test "$WEEKLY_RUN_STATUS" = "401"
+          expect_status weekly-run-auth 401 /tmp/weekly-run-response.json \
+            -X POST "$API_URL/api/reports/weekly/run" \
+            -H 'Content-Type: application/json' \
+            --data '{}'
 
           for PATH_SUFFIX in prepare supabase; do
             printf '%s' "migration-${PATH_SUFFIX}" > /tmp/smoke-phase-security
-            MIGRATION_STATUS=$(curl -sS -o "/tmp/annword-migration-${PATH_SUFFIX}.json" -w "%{http_code}" -X POST "$API_URL/api/admin/migration/$PATH_SUFFIX" -H 'Content-Type: application/json' --data '{"apply":false}')
-            test "$MIGRATION_STATUS" = "404"
+            expect_status "migration-${PATH_SUFFIX}" 404 "/tmp/annword-migration-${PATH_SUFFIX}.json" \
+              -X POST "$API_URL/api/admin/migration/$PATH_SUFFIX" \
+              -H 'Content-Type: application/json' \
+              --data '{"apply":false}'
           done
           printf '%s' 'passed' > /tmp/smoke-phase-security
 
