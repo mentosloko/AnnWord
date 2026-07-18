@@ -49,7 +49,7 @@ def main():
     import torch
     from transformers import AutoProcessor, Florence2ForConditionalGeneration
     torch.set_num_threads(4); image=restore(); contrast=ImageEnhance.Contrast(ImageOps.grayscale(image)).enhance(1.8).convert('RGB')
-    model_id='microsoft/Florence-2-base-ft'; processor=AutoProcessor.from_pretrained(model_id,trust_remote_code=True); model=Florence2ForConditionalGeneration.from_pretrained(model_id,trust_remote_code=True).eval()
+    model_id='florence-community/Florence-2-base-ft'; processor=AutoProcessor.from_pretrained(model_id); model=Florence2ForConditionalGeneration.from_pretrained(model_id).eval()
     results=[]
     for name,images in [('whole',[image]),('segments',split(image)),('contrast_segments',split(contrast))]:
         start=time.perf_counter(); result=score(name,infer(images,model,processor),time.perf_counter()-start); results.append(result)
