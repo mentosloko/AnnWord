@@ -2,15 +2,6 @@ name: Deploy to Yandex Cloud
 
 on:
   workflow_dispatch:
-    inputs:
-      run_migrations:
-        description: "Run Yandex PostgreSQL migrations before deploy"
-        required: false
-        default: "false"
-        type: choice
-        options:
-          - "false"
-          - "true"
   push:
     branches:
       - main
@@ -89,7 +80,6 @@ jobs:
         run: npm run api:check
 
       - name: Run Yandex PostgreSQL migrations
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_migrations == 'true' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npm run db:yandex:migrate
