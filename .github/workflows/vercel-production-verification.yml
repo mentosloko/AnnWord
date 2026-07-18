@@ -1,0 +1,56 @@
+name: Vercel Production Verification
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/production-operations.yml'
+      - '.github/workflows/vercel-production-verification.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: vercel-production-verification
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify Vercel production
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify deployed Vercel application
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4; do
+            code="$(curl --silent --show-error --location \
+              --connect-timeout 15 --max-time 45 \
+              --output /tmp/vercel-index.html \
+              --write-out '%{http_code}' \
+              'https://ann-word.vercel.app/?verification='"$GITHUB_RUN_ID" || true)"
+            if [ "$code" = "200" ] && grep -Fq '<div id="root"></div>' /tmp/vercel-index.html; then
+              echo "Vercel production is reachable and serves the AnnWord application."
+              exit 0
+            fi
+            echo "Attempt $attempt failed with HTTP $code"
+            sleep "$((attempt * 3))"
+          done
+          exit 1
+
+      - name: Publish verified Vercel status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: https://vercel.com/mentosloko-1417s-projects/ann-word/BN5ruaqYMmU7yt4KN8K6Q5cMnAqh
+        run: |
+          node -e 'process.stdout.write(JSON.stringify({state:"success",context:"Vercel",description:"Unchanged AnnWord application verified on READY Vercel production",target_url:process.env.TARGET_URL}))' > /tmp/vercel-status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/vercel-status.json
