@@ -35,7 +35,30 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${EASY_OCR_KEY:-}" || (echo "EASY_OCR_KEY is unavailable" && exit 1)
-          cat testdata/easyocr/sample.b64.* | base64 --decode > /tmp/dictionary.jpg
+          python3 - <<'PY'
+          import base64
+          import re
+          from pathlib import Path
+
+          parts = sorted(Path("testdata/easyocr").glob("sample.b64.*"))
+          if not parts:
+              raise SystemExit("No encoded image chunks found")
+          encoded = "".join(path.read_text(encoding="utf-8") for path in parts)
+          encoded = re.sub(r"[^A-Za-z0-9+/=]", "", encoded)
+          padding = (-len(encoded)) % 4
+          encoded += "=" * padding
+          image = base64.b64decode(encoded, validate=False)
+          Path("/tmp/dictionary.jpg").write_bytes(image)
+          print({
+              "chunks": [path.name for path in parts],
+              "base64_chars": len(encoded),
+              "decoded_bytes": len(image),
+              "jpeg_magic": image[:2].hex(),
+              "jpeg_end": image[-2:].hex(),
+          })
+          if not image.startswith(b"\xff\xd8") or not image.endswith(b"\xff\xd9"):
+              raise SystemExit("Restored test image is not a complete JPEG")
+          PY
           file /tmp/dictionary.jpg
           ls -lh /tmp/dictionary.jpg
 
