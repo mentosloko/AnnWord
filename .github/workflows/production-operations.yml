@@ -115,7 +115,7 @@ jobs:
     name: Guard PostgreSQL backups
     if: ${{ github.event.schedule == '40 3 * * 0' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'backups' || inputs.operation == 'all')) || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Install and configure Yandex Cloud CLI
         env:
@@ -145,22 +145,46 @@ jobs:
             test "$(jq 'length' /tmp/clusters.json)" = "1"
             CLUSTER_ID="$(jq -r '.[0].id' /tmp/clusters.json)"
           fi
-          yc managed-postgresql cluster update --id "$CLUSTER_ID" --backup-window-start 02:00:00 --backup-retain-period-days 30 --deletion-protection
+          echo "Checking PostgreSQL cluster $CLUSTER_ID"
+
+          yc managed-postgresql cluster update --id "$CLUSTER_ID" \
+            --backup-window-start 02:00:00 \
+            --backup-retain-period-days 30 \
+            --deletion-protection
           yc managed-postgresql cluster get --id "$CLUSTER_ID" --format json > /tmp/cluster.json
-          yc managed-postgresql backup list --format json > /tmp/backups.json
-          CLUSTER_ID="$CLUSTER_ID" node - <<'NODE'
+          yc managed-postgresql cluster list-backups --id "$CLUSTER_ID" --format json > /tmp/backups.json
+
+          if ! node - <<'NODE'
+          const fs = require('fs');
+          const raw = JSON.parse(fs.readFileSync('/tmp/backups.json', 'utf8'));
+          const backups = Array.isArray(raw) ? raw : (raw.backups || raw.items || []);
+          const newest = backups.map(item => Date.parse(item.createdAt ?? item.created_at ?? '')).filter(Number.isFinite).sort((a,b) => b-a)[0];
+          process.exit(newest && Date.now() - newest <= 48 * 60 * 60 * 1000 ? 0 : 1);
+          NODE
+          then
+            echo "No fresh backup found; creating an on-demand PostgreSQL backup."
+            yc managed-postgresql cluster backup --id "$CLUSTER_ID"
+            yc managed-postgresql cluster list-backups --id "$CLUSTER_ID" --format json > /tmp/backups.json
+          fi
+
+          node - <<'NODE'
           const fs = require('fs');
           const cluster = JSON.parse(fs.readFileSync('/tmp/cluster.json', 'utf8'));
-          const backups = JSON.parse(fs.readFileSync('/tmp/backups.json', 'utf8'));
-          const id = process.env.CLUSTER_ID;
-          const retention = Number(cluster?.config?.backupRetainPeriodDays ?? cluster?.config?.backup_retain_period_days ?? cluster?.config?.backupRetainPeriod ?? 0);
+          const raw = JSON.parse(fs.readFileSync('/tmp/backups.json', 'utf8'));
+          const backups = Array.isArray(raw) ? raw : (raw.backups || raw.items || []);
+          const retention = Number(
+            cluster?.config?.backupRetainPeriodDays ??
+            cluster?.config?.backup_retain_period_days ??
+            cluster?.configSpec?.backupRetainPeriodDays ??
+            cluster?.config_spec?.backup_retain_period_days ??
+            0
+          );
           if (retention < 30) throw new Error(`Backup retention is ${retention} days.`);
           if (cluster.deletionProtection !== true && cluster.deletion_protection !== true) throw new Error('Deletion protection is disabled.');
-          const own = backups.filter(item => (item.sourceClusterId ?? item.source_cluster_id ?? item.clusterId ?? item.cluster_id) === id);
-          if (!own.length) throw new Error('No backups found for production PostgreSQL.');
-          const newest = own.map(item => Date.parse(item.createdAt ?? item.created_at ?? '')).filter(Number.isFinite).sort((a,b) => b-a)[0];
+          if (!backups.length) throw new Error('No backups found for production PostgreSQL.');
+          const newest = backups.map(item => Date.parse(item.createdAt ?? item.created_at ?? '')).filter(Number.isFinite).sort((a,b) => b-a)[0];
           if (!newest || Date.now() - newest > 48 * 60 * 60 * 1000) throw new Error('Newest PostgreSQL backup is older than 48 hours.');
-          console.log(`Backup policy verified: retention=${retention}, newest=${new Date(newest).toISOString()}`);
+          console.log(`Backup policy verified: retention=${retention}, backups=${backups.length}, newest=${new Date(newest).toISOString()}`);
           NODE
 
       - name: Send backup failure email
