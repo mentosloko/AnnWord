@@ -12,12 +12,19 @@ on:
         default: all
         type: choice
         options: [all, monitor, backups]
+  workflow_run:
+    workflows:
+      - Deploy to Yandex Cloud
+    types:
+      - completed
+    branches:
+      - main
 
 permissions:
   contents: read
 
 concurrency:
-  group: production-operations-${{ github.event.schedule || inputs.operation || 'manual' }}
+  group: production-operations
   cancel-in-progress: true
 
 env:
@@ -27,7 +34,7 @@ env:
 jobs:
   monitor:
     name: Monitor production
-    if: ${{ github.event.schedule == '17 */2 * * *' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'monitor' || inputs.operation == 'all')) }}
+    if: ${{ github.event.schedule == '17 */2 * * *' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'monitor' || inputs.operation == 'all')) || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -104,7 +111,7 @@ jobs:
 
   backups:
     name: Guard PostgreSQL backups
-    if: ${{ github.event.schedule == '40 3 * * 0' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'backups' || inputs.operation == 'all')) }}
+    if: ${{ github.event.schedule == '40 3 * * 0' || (github.event_name == 'workflow_dispatch' && (inputs.operation == 'backups' || inputs.operation == 'all')) || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
