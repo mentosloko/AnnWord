@@ -6,17 +6,21 @@ const migrationsDir = path.resolve(process.cwd(), "db", "yandex");
 const historicalMigrationPattern = /^\d{3}_.+\.sql$/;
 
 async function baselineExistingProductionSchema(files: string[], appliedVersions: Set<string>): Promise<void> {
-  if (appliedVersions.size > 0) return;
-
-  const schema = await query<{ has_app_users: boolean; has_profiles: boolean }>(`
+  const schema = await query<{ has_app_users: boolean; has_profiles: boolean; has_existing_users: boolean }>(`
     select
       to_regclass('public.app_users') is not null as has_app_users,
-      to_regclass('public.profiles') is not null as has_profiles
+      to_regclass('public.profiles') is not null as has_profiles,
+      case
+        when to_regclass('public.app_users') is null then false
+        else exists (select 1 from public.app_users limit 1)
+      end as has_existing_users
   `);
   const existing = schema.rows[0];
-  if (!existing?.has_app_users || !existing?.has_profiles) return;
+  if (!existing?.has_app_users || !existing?.has_profiles || !existing.has_existing_users) return;
 
-  const historical = files.filter((file) => historicalMigrationPattern.test(file));
+  const historical = files.filter(
+    (file) => historicalMigrationPattern.test(file) && !appliedVersions.has(file),
+  );
   if (!historical.length) return;
 
   await transaction(async (client) => {
