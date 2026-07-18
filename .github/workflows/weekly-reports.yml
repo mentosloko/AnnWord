@@ -4,7 +4,11 @@ on:
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
-  push:
+  workflow_run:
+    workflows:
+      - Deploy to Yandex Cloud
+    types:
+      - completed
     branches:
       - main
 
@@ -21,7 +25,9 @@ jobs:
     name: Send weekly reports
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    if: ${{ github.event_name != 'push' || contains(github.event.head_commit.message, '[postbox-smoke]') }}
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_commit.message, '[postbox-smoke]')) }}
+    env:
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
       - name: Mark delivery check pending
         env:
@@ -33,7 +39,7 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${SOURCE_SHA}" \
             --data-binary @/tmp/postbox-status.json
 
       - name: Invoke Yandex report runner
@@ -42,7 +48,7 @@ jobs:
         env:
           API_URL: ${{ secrets.YC_API_PUBLIC_URL }}
           REPORT_SECRET: ${{ secrets.WEEKLY_REPORT_CRON_SECRET }}
-          REQUIRE_SENT: ${{ github.event_name == 'push' && '1' || '0' }}
+          SMOKE_MODE: ${{ github.event_name == 'workflow_run' && '1' || '0' }}
         run: |
           set -euo pipefail
           if [ -z "${REPORT_SECRET:-}" ]; then
@@ -50,25 +56,31 @@ jobs:
             exit 1
           fi
           API_BASE="${API_URL%/}"
+          PAYLOAD='{}'
+          if [ "$SMOKE_MODE" = "1" ]; then
+            PAYLOAD='{"smoke":true}'
+          fi
           HTTP_CODE="$(curl --silent --show-error \
             --output /tmp/weekly-report-result.json \
             --write-out '%{http_code}' \
             -X POST "${API_BASE}/api/reports/weekly/run" \
             -H "Authorization: Bearer ${REPORT_SECRET}" \
             -H 'Content-Type: application/json' \
-            --data '{}')"
+            --data "$PAYLOAD")"
           cat /tmp/weekly-report-result.json
           if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "207" ]; then
             echo "Weekly report runner returned HTTP ${HTTP_CODE}."
             exit 1
           fi
-          if [ "$REQUIRE_SENT" = "1" ]; then
+          if [ "$SMOKE_MODE" = "1" ]; then
             node - <<'NODE'
           const fs = require('fs');
           const result = JSON.parse(fs.readFileSync('/tmp/weekly-report-result.json', 'utf8'));
-          if (!Number.isFinite(Number(result.sent)) || Number(result.sent) < 1) {
-            throw new Error(`Postbox smoke did not send a new message: processed=${result.processed ?? 'unknown'} sent=${result.sent ?? 'unknown'} skipped=${result.skipped ?? 'unknown'} failed=${Array.isArray(result.failed) ? result.failed.length : 'unknown'}`);
+          if (result.smoke !== true || Number(result.sent) !== 1) {
+            throw new Error(`Postbox smoke failed: ${JSON.stringify(result)}`);
           }
+          if (!result.messageId) throw new Error('Postbox accepted the request without returning MessageId.');
+          console.log(`Postbox smoke accepted: messageId=${result.messageId}`);
           NODE
           fi
 
@@ -90,7 +102,7 @@ jobs:
         run: |
           if [ "$INVOKE_OUTCOME" = "success" ]; then
             STATE="success"
-            DESCRIPTION="Postbox accepted at least one weekly-report email"
+            DESCRIPTION="Postbox accepted a real delivery and returned MessageId"
           else
             STATE="failure"
             DESCRIPTION="Postbox delivery check failed; inspect workflow result"
@@ -101,7 +113,7 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${SOURCE_SHA}" \
             --data-binary @/tmp/postbox-status.json
 
       - name: Assert delivery succeeded
