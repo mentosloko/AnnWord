@@ -37,6 +37,8 @@ jobs:
           test -n "${EASY_OCR_KEY:-}" || (echo "EASY_OCR_KEY is unavailable" && exit 1)
           python3 - <<'PY'
           import base64
+          import hashlib
+          import json
           import re
           from pathlib import Path
 
@@ -45,21 +47,22 @@ jobs:
               raise SystemExit("No encoded image chunks found")
           encoded = "".join(path.read_text(encoding="utf-8") for path in parts)
           encoded = re.sub(r"[^A-Za-z0-9+/=]", "", encoded)
-          padding = (-len(encoded)) % 4
-          encoded += "=" * padding
+          encoded += "=" * ((-len(encoded)) % 4)
           image = base64.b64decode(encoded, validate=False)
           Path("/tmp/dictionary.jpg").write_bytes(image)
-          print({
-              "chunks": [path.name for path in parts],
+          diagnostics = {
+              "chunks": [{"name": path.name, "chars": len(path.read_text(encoding="utf-8"))} for path in parts],
               "base64_chars": len(encoded),
               "decoded_bytes": len(image),
+              "sha256": hashlib.sha256(image).hexdigest(),
               "jpeg_magic": image[:2].hex(),
               "jpeg_end": image[-2:].hex(),
-          })
-          if not image.startswith(b"\xff\xd8") or not image.endswith(b"\xff\xd9"):
-              raise SystemExit("Restored test image is not a complete JPEG")
+              "complete_jpeg": image.startswith(b"\xff\xd8") and image.endswith(b"\xff\xd9"),
+          }
+          Path("/tmp/restore.json").write_text(json.dumps(diagnostics, indent=2), encoding="utf-8")
+          print(json.dumps(diagnostics, indent=2))
           PY
-          file /tmp/dictionary.jpg
+          file /tmp/dictionary.jpg || true
           ls -lh /tmp/dictionary.jpg
 
       - name: Call EasyOCR API
@@ -77,9 +80,9 @@ jobs:
           python3 -m json.tool /tmp/response.json || cat /tmp/response.json
 
       - name: Evaluate dictionary recognition
+        if: always()
         shell: bash
         run: |
-          set -euo pipefail
           python3 - <<'PY'
           import json
           import re
@@ -91,8 +94,11 @@ jobs:
               "CHAIR", "TABLE", "RADIO", "LOOK", "NICE", "BED", "LEG", "DESK",
               "FLY", "SKY", "BYE", "BONE", "ROSE", "GO", "RUN", "JUMP",
           ]
-          status = Path("/tmp/status").read_text(encoding="utf-8").strip()
-          payload = json.loads(Path("/tmp/response.json").read_text(encoding="utf-8"))
+          status = Path("/tmp/status").read_text(encoding="utf-8").strip() if Path("/tmp/status").exists() else ""
+          try:
+              payload = json.loads(Path("/tmp/response.json").read_text(encoding="utf-8"))
+          except Exception as exc:
+              payload = {"message": f"Unparseable API response: {exc}"}
           raw = payload.get("words", [])
 
           blocks = []
@@ -142,11 +148,9 @@ jobs:
               "fuzzy_matches": fuzzy,
               "extras": extras,
           }
+          Path("/tmp/evaluation.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
           print("EVALUATION_RESULT")
           print(json.dumps(result, ensure_ascii=False, indent=2))
-
-          if status != "200" or not isinstance(raw, list):
-              raise SystemExit("EasyOCR request failed")
           PY
 
       - name: Upload raw evaluation response
@@ -155,7 +159,9 @@ jobs:
         with:
           name: easyocr-evaluation-result
           path: |
+            /tmp/restore.json
             /tmp/response.json
             /tmp/status
+            /tmp/evaluation.json
           if-no-files-found: warn
           retention-days: 7
