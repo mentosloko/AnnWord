@@ -1,1 +1,138 @@
-PLACEHOLDER
+name: EasyOCR provider evaluation
+
+on:
+  push:
+    branches:
+      - test/easyocr-evaluation-20260718
+    paths:
+      - .github/workflows/easyocr-evaluation.yml
+      - testdata/easyocr/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/easyocr-evaluation.yml
+      - testdata/easyocr/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    name: Evaluate handwritten dictionary
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EASY_OCR_KEY: ${{ secrets.EASY_OCR_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate secret and restore test image
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EASY_OCR_KEY:-}" || (echo "EASY_OCR_KEY is unavailable" && exit 1)
+          cat testdata/easyocr/sample.b64.* | base64 --decode > /tmp/dictionary.jpg
+          file /tmp/dictionary.jpg
+          ls -lh /tmp/dictionary.jpg
+
+      - name: Call EasyOCR API
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --max-time 120 --retry 2 --retry-delay 2 --silent --show-error \
+            --output /tmp/response.json \
+            --write-out "%{http_code}" \
+            -X POST "https://console.easyocr.org/api/ocr" \
+            -H "X-Access-Key: $EASY_OCR_KEY" \
+            -F "file=@/tmp/dictionary.jpg;type=image/jpeg")"
+          printf '%s' "$status" > /tmp/status
+          echo "HTTP $status"
+          python3 -m json.tool /tmp/response.json || cat /tmp/response.json
+
+      - name: Evaluate dictionary recognition
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import re
+          from difflib import SequenceMatcher
+          from pathlib import Path
+
+          expected = [
+              "HI", "KITE", "FINE", "RIDE", "DRIVE", "HOME", "TREE", "HOUSE",
+              "CHAIR", "TABLE", "RADIO", "LOOK", "NICE", "BED", "LEG", "DESK",
+              "FLY", "SKY", "BYE", "BONE", "ROSE", "GO", "RUN", "JUMP",
+          ]
+          status = Path("/tmp/status").read_text(encoding="utf-8").strip()
+          payload = json.loads(Path("/tmp/response.json").read_text(encoding="utf-8"))
+          raw = payload.get("words", [])
+
+          blocks = []
+          tokens = []
+          if isinstance(raw, list):
+              for item in raw:
+                  text = item.get("text", "") if isinstance(item, dict) else str(item)
+                  confidence = item.get("score", item.get("rate")) if isinstance(item, dict) else None
+                  blocks.append({"text": text, "confidence": confidence})
+                  tokens.extend(x.upper() for x in re.findall(r"[A-Za-z][A-Za-z'-]{1,}", text))
+          tokens = list(dict.fromkeys(tokens))
+
+          exact = [word for word in expected if word in tokens]
+          missing = [word for word in expected if word not in tokens]
+          extras = [word for word in tokens if word not in expected]
+          fuzzy = []
+          for word in missing:
+              if not tokens:
+                  continue
+              candidate = max(tokens, key=lambda token: SequenceMatcher(None, word, token).ratio())
+              ratio = SequenceMatcher(None, word, candidate).ratio()
+              if ratio >= 0.70:
+                  fuzzy.append({
+                      "expected": word,
+                      "recognized": candidate,
+                      "similarity": round(ratio, 3),
+                  })
+
+          precision = len(exact) / len(tokens) if tokens else 0.0
+          recall = len(exact) / len(expected)
+          result = {
+              "http_status": int(status) if status.isdigit() else status,
+              "request_id": payload.get("request_id"),
+              "message": payload.get("message"),
+              "remaining_quota": payload.get("remaining_quota"),
+              "elapsed_seconds": payload.get("elapsed_seconds"),
+              "result_summary": payload.get("result_summary"),
+              "raw_blocks": blocks,
+              "normalized_tokens": tokens,
+              "expected_count": len(expected),
+              "recognized_token_count": len(tokens),
+              "exact_count": len(exact),
+              "exact_recall": round(recall, 4),
+              "set_precision": round(precision, 4),
+              "exact_matches": exact,
+              "missing": missing,
+              "fuzzy_matches": fuzzy,
+              "extras": extras,
+          }
+          print("EVALUATION_RESULT")
+          print(json.dumps(result, ensure_ascii=False, indent=2))
+
+          if status != "200" or not isinstance(raw, list):
+              raise SystemExit("EasyOCR request failed")
+          PY
+
+      - name: Upload raw evaluation response
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyocr-evaluation-result
+          path: |
+            /tmp/response.json
+            /tmp/status
+          if-no-files-found: warn
+          retention-days: 7
