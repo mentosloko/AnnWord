@@ -1,0 +1,76 @@
+name: Retry Vercel after quota reset
+
+on:
+  schedule:
+    - cron: '25 16 19 7 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  statuses: read
+
+jobs:
+  retry:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '25 16 19 7 *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check one-time execution date
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" && "$(date -u +%F)" != "2026-07-19" ]]; then
+            echo "This one-time retry is only valid on 2026-07-19."
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Trigger and verify Vercel production deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git rm .github/workflows/retry-vercel-after-quota-reset.yml
+
+          for attempt in 1 2 3; do
+            printf 'attempt=%s\ntriggered_at=%s\n' "$attempt" "$(date -u +%FT%TZ)" > .vercel-production-retry
+            git add .vercel-production-retry
+            git commit -m "Retry Vercel production deployment after quota reset (attempt $attempt)"
+            git push origin HEAD:main
+            commit_sha="$(git rev-parse HEAD)"
+            echo "Waiting for Vercel status on $commit_sha"
+
+            for check in $(seq 1 40); do
+              status_json="$(curl -fsS \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${commit_sha}/status")"
+              vercel_state="$(printf '%s' "$status_json" | jq -r '[.statuses[] | select(.context == "Vercel")][0].state // "pending"')"
+              vercel_url="$(printf '%s' "$status_json" | jq -r '[.statuses[] | select(.context == "Vercel")][0].target_url // ""')"
+              echo "Vercel state: $vercel_state $vercel_url"
+
+              if [[ "$vercel_state" == "success" ]]; then
+                echo "Vercel production deployment is green."
+                exit 0
+              fi
+              if [[ "$vercel_state" == "failure" || "$vercel_state" == "error" ]]; then
+                break
+              fi
+              sleep 20
+            done
+
+            if [[ "$attempt" -lt 3 ]]; then
+              echo "Deployment was not green; waiting 10 minutes before retry."
+              sleep 600
+            fi
+          done
+
+          echo "Vercel deployment did not become green after three attempts."
+          exit 1
