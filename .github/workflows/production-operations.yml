@@ -98,11 +98,11 @@ jobs:
         if: ${{ steps.check.outcome == 'failure' }}
         run: |
           set -euo pipefail
-          test -n "$ALERT_FROM_EMAIL"
+          FROM_EMAIL="${ALERT_FROM_EMAIL:-reports@annword.ru}"
           IAM_TOKEN="$(yc iam create-token)"
           SUBJECT='AnnWord: production недоступен'
           BODY="$(cat /tmp/alert.txt)"
-          SUBJECT="$SUBJECT" BODY="$BODY" node -e 'const fs=require("fs");fs.writeFileSync("/tmp/postbox.json",JSON.stringify({FromEmailAddress:process.env.ALERT_FROM_EMAIL,Destination:{ToAddresses:[process.env.ALERT_EMAIL]},Content:{Simple:{Subject:{Data:process.env.SUBJECT,Charset:"UTF-8"},Body:{Text:{Data:process.env.BODY,Charset:"UTF-8"}}}}}))'
+          ALERT_FROM_EMAIL="$FROM_EMAIL" SUBJECT="$SUBJECT" BODY="$BODY" node -e 'const fs=require("fs");fs.writeFileSync("/tmp/postbox.json",JSON.stringify({FromEmailAddress:process.env.ALERT_FROM_EMAIL,Destination:{ToAddresses:[process.env.ALERT_EMAIL]},Content:{Simple:{Subject:{Data:process.env.SUBJECT,Charset:"UTF-8"},Body:{Text:{Data:process.env.BODY,Charset:"UTF-8"}}}}}))'
           curl --fail-with-body --silent --show-error -X POST https://postbox.cloud.yandex.net/v2/email/outbound-emails -H 'Content-Type: application/json' -H "X-YaCloud-SubjectToken: $IAM_TOKEN" --data-binary @/tmp/postbox.json
 
       - name: Assert production is healthy
@@ -156,7 +156,7 @@ jobs:
           const retention = Number(cluster?.config?.backupRetainPeriodDays ?? cluster?.config?.backup_retain_period_days ?? cluster?.config?.backupRetainPeriod ?? 0);
           if (retention < 30) throw new Error(`Backup retention is ${retention} days.`);
           if (cluster.deletionProtection !== true && cluster.deletion_protection !== true) throw new Error('Deletion protection is disabled.');
-          const own = backups.filter(item => (item.clusterId ?? item.cluster_id) === id);
+          const own = backups.filter(item => (item.sourceClusterId ?? item.source_cluster_id ?? item.clusterId ?? item.cluster_id) === id);
           if (!own.length) throw new Error('No backups found for production PostgreSQL.');
           const newest = own.map(item => Date.parse(item.createdAt ?? item.created_at ?? '')).filter(Number.isFinite).sort((a,b) => b-a)[0];
           if (!newest || Date.now() - newest > 48 * 60 * 60 * 1000) throw new Error('Newest PostgreSQL backup is older than 48 hours.');
@@ -167,11 +167,11 @@ jobs:
         if: ${{ steps.audit.outcome == 'failure' }}
         run: |
           set -euo pipefail
-          test -n "$ALERT_FROM_EMAIL"
+          FROM_EMAIL="${ALERT_FROM_EMAIL:-reports@annword.ru}"
           IAM_TOKEN="$(yc iam create-token)"
           SUBJECT='AnnWord: проблема с резервными копиями'
           BODY="AnnWord PostgreSQL backup audit failed. Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          SUBJECT="$SUBJECT" BODY="$BODY" node -e 'const fs=require("fs");fs.writeFileSync("/tmp/postbox.json",JSON.stringify({FromEmailAddress:process.env.ALERT_FROM_EMAIL,Destination:{ToAddresses:[process.env.ALERT_EMAIL]},Content:{Simple:{Subject:{Data:process.env.SUBJECT,Charset:"UTF-8"},Body:{Text:{Data:process.env.BODY,Charset:"UTF-8"}}}}}))'
+          ALERT_FROM_EMAIL="$FROM_EMAIL" SUBJECT="$SUBJECT" BODY="$BODY" node -e 'const fs=require("fs");fs.writeFileSync("/tmp/postbox.json",JSON.stringify({FromEmailAddress:process.env.ALERT_FROM_EMAIL,Destination:{ToAddresses:[process.env.ALERT_EMAIL]},Content:{Simple:{Subject:{Data:process.env.SUBJECT,Charset:"UTF-8"},Body:{Text:{Data:process.env.BODY,Charset:"UTF-8"}}}}}))'
           curl --fail-with-body --silent --show-error -X POST https://postbox.cloud.yandex.net/v2/email/outbound-emails -H 'Content-Type: application/json' -H "X-YaCloud-SubjectToken: $IAM_TOKEN" --data-binary @/tmp/postbox.json
 
       - name: Assert backup policy is healthy
