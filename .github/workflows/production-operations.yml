@@ -1,3 +1,4 @@
+# Operational checks run independently from application deployments.
 name: Production Operations
 
 on:
