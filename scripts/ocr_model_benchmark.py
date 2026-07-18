@@ -26,13 +26,17 @@ ROW_BOUNDS = [
 
 
 def restore_image() -> Path:
-    parts = sorted(Path("testdata/easyocr").glob("sample.b64.*"))
+    parts = sorted(Path("testdata/easyocr").glob("sample-v2.b64.*"))
+    if not parts:
+        raise RuntimeError("No sample-v2.b64 chunks")
     encoded = "".join(p.read_text(encoding="utf-8") for p in parts)
     encoded = re.sub(r"[^A-Za-z0-9+/=]", "", encoded)
     encoded += "=" * ((-len(encoded)) % 4)
     out = Path("benchmark-output/dictionary.jpg")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(base64.b64decode(encoded, validate=False))
+    with Image.open(out) as image:
+        image.verify()
     with Image.open(out) as image:
         print("restored", image.size, image.mode)
     return out
