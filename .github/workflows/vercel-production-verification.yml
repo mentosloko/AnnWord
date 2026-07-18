@@ -21,23 +21,58 @@ jobs:
   verify:
     name: Verify Vercel production
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
-      - name: Verify deployed Vercel application
+      - name: Verify deployed Vercel application and legal PDFs
         run: |
           set -euo pipefail
-          for attempt in 1 2 3 4; do
-            code="$(curl --silent --show-error --location \
+          APP_BASE='https://ann-word.vercel.app'
+          LEGAL_PATHS=(
+            '/legal/annword-user-agreement.pdf'
+            '/legal/annword-public-offer.pdf'
+            '/legal/annword-privacy-policy.pdf'
+            '/legal/annword-cookie-policy.pdf'
+          )
+
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            release_code="$(curl --silent --show-error --location \
+              --connect-timeout 15 --max-time 45 \
+              --output /tmp/vercel-release.json \
+              --write-out '%{http_code}' \
+              "$APP_BASE/release.json?verification=$GITHUB_RUN_ID" || true)"
+
+            index_code="$(curl --silent --show-error --location \
               --connect-timeout 15 --max-time 45 \
               --output /tmp/vercel-index.html \
               --write-out '%{http_code}' \
-              'https://ann-word.vercel.app/?verification='"$GITHUB_RUN_ID" || true)"
-            if [ "$code" = "200" ] && grep -Fq '<div id="root"></div>' /tmp/vercel-index.html; then
-              echo "Vercel production is reachable and serves the AnnWord application."
+              "$APP_BASE/?verification=$GITHUB_RUN_ID" || true)"
+
+            legal_ok=1
+            for path in "${LEGAL_PATHS[@]}"; do
+              code="$(curl --silent --show-error --location \
+                --connect-timeout 15 --max-time 45 \
+                --output /tmp/legal.pdf \
+                --write-out '%{http_code}' \
+                "$APP_BASE$path?verification=$GITHUB_RUN_ID" || true)"
+              content_type="$(file --brief --mime-type /tmp/legal.pdf 2>/dev/null || true)"
+              if [ "$code" != "200" ] || [ "$content_type" != "application/pdf" ]; then
+                echo "Legal document $path failed: HTTP=$code MIME=$content_type"
+                legal_ok=0
+              fi
+            done
+
+            if [ "$index_code" = "200" ] \
+              && grep -Fq '<div id="root"></div>' /tmp/vercel-index.html \
+              && [ "$release_code" = "200" ] \
+              && grep -Fq "$GITHUB_SHA" /tmp/vercel-release.json \
+              && [ "$legal_ok" = "1" ]; then
+              echo "Vercel production is READY for $GITHUB_SHA and all legal PDFs are reachable."
               exit 0
             fi
-            echo "Attempt $attempt failed with HTTP $code"
-            sleep "$((attempt * 3))"
+
+            echo "Attempt $attempt failed: index=$index_code release=$release_code legal_ok=$legal_ok"
+            cat /tmp/vercel-release.json 2>/dev/null || true
+            sleep 15
           done
           exit 1
 
@@ -45,9 +80,9 @@ jobs:
         if: success()
         env:
           GH_TOKEN: ${{ github.token }}
-          TARGET_URL: https://vercel.com/mentosloko-1417s-projects/ann-word/BN5ruaqYMmU7yt4KN8K6Q5cMnAqh
+          TARGET_URL: https://ann-word.vercel.app
         run: |
-          node -e 'process.stdout.write(JSON.stringify({state:"success",context:"Vercel",description:"Unchanged AnnWord application verified on READY Vercel production",target_url:process.env.TARGET_URL}))' > /tmp/vercel-status.json
+          node -e 'process.stdout.write(JSON.stringify({state:"success",context:"Vercel",description:"Latest AnnWord commit and four legal PDFs verified on READY production",target_url:process.env.TARGET_URL}))' > /tmp/vercel-status.json
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
