@@ -13,7 +13,17 @@ type BackendLearnersResponse = {
   backendReady?: boolean;
 };
 
+type CachedLearnersPayload = {
+  savedAt: number;
+  result: MentorRoomLoadResult;
+};
+
 const SCHEMA_NOT_READY_CODES = new Set(['PGRST202', '42P01', '42703', '42883']);
+const LEARNERS_CACHE_KEY = 'annword_mentor_learners_v1';
+const LEARNERS_CACHE_TTL_MS = 30_000;
+let memoryCache: CachedLearnersPayload | null = null;
+let pendingLoad: Promise<MentorRoomLoadResult> | null = null;
+
 const schemaNotReady = (error: any): boolean => Boolean(error) && (
   SCHEMA_NOT_READY_CODES.has(String(error.code || ''))
   || /does not exist|could not find the function|schema cache|column .* does not exist/i.test(String(error.message || ''))
@@ -39,24 +49,78 @@ const mapLearner = (value: any): ManagedLearner => {
   };
 };
 
+export const normalizeMentorRoomResult = (data: BackendLearnersResponse): MentorRoomLoadResult => ({
+  learners: Array.isArray(data.learners) ? data.learners.map(mapLearner).filter(learner => learner.id) : [],
+  backendReady: data.backendReady !== false,
+});
+
+const isFresh = (payload: CachedLearnersPayload | null): payload is CachedLearnersPayload => Boolean(payload && Date.now() - payload.savedAt < LEARNERS_CACHE_TTL_MS);
+
+const readSessionCache = (): CachedLearnersPayload | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(LEARNERS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedLearnersPayload;
+    return parsed && Number.isFinite(parsed.savedAt) && parsed.result ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeCache = (result: MentorRoomLoadResult): MentorRoomLoadResult => {
+  const payload = { savedAt: Date.now(), result };
+  memoryCache = payload;
+  if (typeof window !== 'undefined') {
+    try { window.sessionStorage.setItem(LEARNERS_CACHE_KEY, JSON.stringify(payload)); } catch { /* cache must not block the room */ }
+  }
+  return result;
+};
+
+const clearCache = (): void => {
+  memoryCache = null;
+  if (typeof window !== 'undefined') {
+    try { window.sessionStorage.removeItem(LEARNERS_CACHE_KEY); } catch { /* ignore */ }
+  }
+};
+
 const writeError = (error: any, fallback: string): never => {
   if (schemaNotReady(error)) throw new Error(fallback);
   throw new Error(String(error?.message || fallback));
 };
 
+const requestLearners = async (): Promise<MentorRoomLoadResult> => {
+  if (isBackendApiConfigured) {
+    const data = await backendApiRequest<BackendLearnersResponse>('/api/mentor/learners');
+    return normalizeMentorRoomResult(data);
+  }
+
+  const { data, error } = await supabase.rpc('get_managed_learner_word_stats');
+  if (error) {
+    if (schemaNotReady(error)) return { learners: [], backendReady: false };
+    throw error;
+  }
+  return normalizeMentorRoomResult({ learners: Array.isArray(data) ? data : [], backendReady: true });
+};
+
 export const mentorRoomService = {
-  async loadLearners(): Promise<MentorRoomLoadResult> {
-    if (isBackendApiConfigured) {
-      const data = await backendApiRequest<BackendLearnersResponse>('/api/mentor/learners');
-      return { learners: Array.isArray(data.learners) ? data.learners.map(mapLearner).filter(learner => learner.id) : [], backendReady: data.backendReady !== false };
+  primeLearners: (result: MentorRoomLoadResult): MentorRoomLoadResult => writeCache(result),
+
+  clearLearnersCache: clearCache,
+
+  async loadLearners(force = false): Promise<MentorRoomLoadResult> {
+    if (!force) {
+      if (isFresh(memoryCache)) return memoryCache.result;
+      const sessionCache = readSessionCache();
+      if (isFresh(sessionCache)) {
+        memoryCache = sessionCache;
+        return sessionCache.result;
+      }
+      if (pendingLoad) return pendingLoad;
     }
 
-    const { data, error } = await supabase.rpc('get_managed_learner_word_stats');
-    if (error) {
-      if (schemaNotReady(error)) return { learners: [], backendReady: false };
-      throw error;
-    }
-    return { learners: Array.isArray(data) ? data.map(mapLearner).filter(learner => learner.id) : [], backendReady: true };
+    pendingLoad = requestLearners().then(writeCache).finally(() => { pendingLoad = null; });
+    return pendingLoad;
   },
 
   async connectByChildCode(code: string): Promise<void> {
@@ -68,11 +132,13 @@ export const mentorRoomService = {
         method: 'POST',
         body: { code: normalized },
       });
+      clearCache();
       return;
     }
 
     const { error } = await supabase.rpc('connect_teacher_to_child_by_code', { p_child_code: normalized });
     if (error) writeError(error, 'Подключение по коду станет доступно после применения новой схемы.');
+    clearCache();
   },
 
   async assignCollection(learnerId: string, collectionId: string): Promise<void> {
@@ -83,6 +149,7 @@ export const mentorRoomService = {
         method: 'POST',
         body: { learnerId, collectionId },
       });
+      clearCache();
       return;
     }
 
@@ -91,5 +158,6 @@ export const mentorRoomService = {
       p_collection_id: collectionId,
     });
     if (error) writeError(error, 'Назначение словаря станет доступно после применения новой схемы.');
+    clearCache();
   },
 };
