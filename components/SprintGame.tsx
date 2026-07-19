@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
-import { hasRussianTranslation } from '../services/dictionaryEngine';
+import { hasRussianTranslation, normalizeWord } from '../services/dictionaryEngine';
 import { buildPlayableGameDictionary, pickAdaptiveSessionWord, updateReviewPriorities, WordPracticeResult } from '../services/gameSessionEngine';
 import { motion, AnimatePresence } from 'motion/react';
 import { GameResultOverlay } from './GameResultOverlay';
@@ -15,10 +15,34 @@ export const buildSprintDictionary = (customDictionaryEn: string[] = [], fallbac
 const hasEnoughSprintOptions = (entries: EnrichedWord[]): boolean => new Set(entries.map(entry => entry.translation).filter(hasRussianTranslation)).size >= 4;
 const getCoinProgress = (score: number) => score >= 10 ? { label: '10+ звёзд: большой бонус 3 монеты', progress: 100 } : score >= 6 ? { label: `6+ звёзд: 1 монета. Ещё ${10 - score} до 3 монет`, progress: Math.round(score / 10 * 100) } : { label: `Звёзды = правильные ответы. Ещё ${6 - score} до 1 монеты`, progress: Math.round(score / 6 * 60) };
 
+export const pickSprintRoundWord = (
+  entries: EnrichedWord[],
+  reviewPriorities: Record<string, number>,
+  usedWords: Set<string>,
+  previousWord?: string,
+  random: () => number = Math.random,
+): EnrichedWord | null => {
+  if (!entries.length) return null;
+
+  let candidates = entries.filter(entry => !usedWords.has(normalizeWord(entry.word)));
+  if (!candidates.length) {
+    usedWords.clear();
+    candidates = entries;
+  }
+
+  const selected = pickAdaptiveSessionWord('sprint', candidates, reviewPriorities, previousWord, random)
+    || candidates[Math.floor(random() * candidates.length)]
+    || null;
+
+  if (selected) usedWords.add(normalizeWord(selected.word));
+  return selected;
+};
+
 export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onGameReward, onWordPractice, paused = false }) => {
   const dictionary = useMemo(() => buildSprintDictionary(userProfile.customDictionaryEn), [userProfile.customDictionaryEn]);
   const activeDictionaryRef = useRef<EnrichedWord[]>(dictionary);
   const latestDictionaryRef = useRef<EnrichedWord[]>(dictionary);
+  const usedWordsRef = useRef<Set<string>>(new Set());
   const nextWordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rewardAppliedRef = useRef(false);
   const questionIdRef = useRef(0);
@@ -36,9 +60,9 @@ export const SprintGame: React.FC<SprintGameProps> = ({ onBack, userProfile, onG
   useEffect(() => setReviewPriorities({ ...(userProfile.stats.wordsToReview || {}) }), [userProfile.stats.wordsToReview]);
   const clearNextWordTimeout = useCallback(() => { if (nextWordTimeoutRef.current) { clearTimeout(nextWordTimeoutRef.current); nextWordTimeoutRef.current = null; } }, []);
   const registerPractice = (word: string, result: WordPracticeResult) => { setReviewPriorities(previous => updateReviewPriorities(previous, word, result)); void Promise.resolve(onWordPractice?.(word, result)).catch(error => console.error('Failed to save sprint practice priority', error)); };
-  const buildQuestion = useCallback((previousWord?: string): SprintQuestion | null => { const activeDictionary = activeDictionaryRef.current; if (!hasEnoughSprintOptions(activeDictionary)) return null; const word = pickAdaptiveSessionWord('sprint', activeDictionary, reviewPriorities, previousWord) || activeDictionary[Math.floor(Math.random() * activeDictionary.length)]; const correctAnswer = word.translation; const wrongOptions = Array.from(new Set(activeDictionary.map(entry => entry.translation).filter(candidate => hasRussianTranslation(candidate) && candidate !== correctAnswer))).sort(() => Math.random() - 0.5).slice(0, 3); questionIdRef.current += 1; return { id: questionIdRef.current, word, correctAnswer, options: [...wrongOptions, correctAnswer].sort(() => Math.random() - 0.5) }; }, [reviewPriorities]);
+  const buildQuestion = useCallback((previousWord?: string): SprintQuestion | null => { const activeDictionary = activeDictionaryRef.current; if (!hasEnoughSprintOptions(activeDictionary)) return null; const word = pickSprintRoundWord(activeDictionary, reviewPriorities, usedWordsRef.current, previousWord); if (!word) return null; const correctAnswer = word.translation; const wrongOptions: string[] = Array.from(new Set<string>(activeDictionary.map(entry => entry.translation).filter((candidate): candidate is string => hasRussianTranslation(candidate) && candidate !== correctAnswer))).sort(() => Math.random() - 0.5).slice(0, 3); questionIdRef.current += 1; return { id: questionIdRef.current, word, correctAnswer, options: [...wrongOptions, correctAnswer].sort(() => Math.random() - 0.5) }; }, [reviewPriorities]);
   const pickNewWord = useCallback(() => { setQuestion(previous => buildQuestion(previous?.word.word) || previous); setFeedback(null); }, [buildQuestion]);
-  const restartGame = () => { clearNextWordTimeout(); activeDictionaryRef.current = latestDictionaryRef.current; rewardAppliedRef.current = false; questionIdRef.current = 0; setQuestion(null); setScore(0); setTimeLeft(60); setFeedback(null); setResultProgress(null); setStatus('playing'); };
+  const restartGame = () => { clearNextWordTimeout(); activeDictionaryRef.current = latestDictionaryRef.current; usedWordsRef.current.clear(); rewardAppliedRef.current = false; questionIdRef.current = 0; setQuestion(null); setScore(0); setTimeLeft(60); setFeedback(null); setResultProgress(null); setStatus('playing'); };
   useEffect(() => { if (dictionaryIsPlayable && status === 'playing' && !question) pickNewWord(); }, [dictionaryIsPlayable, status, question, pickNewWord]);
   useEffect(() => { if (!dictionaryIsPlayable || status !== 'playing' || paused) return; const timer = setInterval(() => { setTimeLeft(previous => { if (previous <= 1) { clearInterval(timer); clearNextWordTimeout(); setStatus('ended'); return 0; } return previous - 1; }); }, 1000); return () => { clearInterval(timer); clearNextWordTimeout(); }; }, [dictionaryIsPlayable, status, paused, clearNextWordTimeout]);
   useEffect(() => {
