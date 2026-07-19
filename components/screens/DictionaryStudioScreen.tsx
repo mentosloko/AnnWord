@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { browserOcrService } from '../../services/browserOcr';
 import { PremiumDictionaryDraft } from '../../services/premiumDictionaryService';
 import { CustomDictionaryCollection, UserProfile } from '../../types';
+import { useProfileFreshness } from '../../hooks/useProfileFreshness';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface DictionaryStudioScreenProps {
@@ -28,6 +29,7 @@ const latestCollection = (collections: CustomDictionaryCollection[] = []): Custo
   [...collections].sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''))[0] || collections[0];
 
 export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ userProfile, onBack, onSaveDictionary }) => {
+  const profileFreshness = useProfileFreshness();
   const isTeacher = userProfile.role === 'teacher' || userProfile.accountMode === 'teacher';
   const isKids = userProfile.role === 'parent' || userProfile.accountMode === 'parent';
   const lockedTitle = isKids ? 'Детские словари — в Kids Premium' : 'Личные словари — в Practice Premium';
@@ -36,6 +38,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
     : 'Practice Premium открывает личные, тематические и специальные словари для ежедневной взрослой практики.';
   const premiumNotExpired = !userProfile.premiumExpiresAt || Date.parse(userProfile.premiumExpiresAt) > Date.now();
   const canCreate = isTeacher || userProfile.role === 'admin' || (userProfile.subscriptionTier === 'premium' && premiumNotExpired);
+  const accessChecking = !canCreate && profileFreshness !== 'fresh';
   const canUseOcr = !isTeacher && canCreate;
   const activeTeacherCollection = isTeacher ? latestCollection(userProfile.dictionaryCollections || []) : undefined;
   const originalDraft = (isTeacher ? activeTeacherCollection?.words || [] : userProfile.customDictionaryEn).join('\n');
@@ -90,6 +93,10 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
   };
 
   const save = async () => {
+    if (accessChecking) {
+      setNotice('Проверяем доступ к словарям. Сохранение станет доступно после ответа сервера.');
+      return;
+    }
     if (!canCreate) {
       setNotice('Создание собственных словарей доступно в Premium.');
       return;
@@ -130,7 +137,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         <div className="text-xs font-black uppercase tracking-widest text-purple-500">{isTeacher ? 'AnnWord Teacher' : 'Premium'}</div>
         <h1 className="text-2xl font-black text-indigo-950 sm:text-3xl">{isTeacher ? 'Словарь преподавателя' : 'Мой словарь'}</h1>
       </div>
-      <div className="rounded-full bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">{canUseOcr ? 'Фото' : isTeacher ? 'Словари' : 'Premium'}</div>
+      <div className="rounded-full bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">{accessChecking ? 'Проверяем' : canUseOcr ? 'Фото' : isTeacher ? 'Словари' : 'Premium'}</div>
     </header>
 
     {notice && <div role="status" aria-live="polite" className="mb-4 flex justify-between rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">
@@ -138,7 +145,12 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
       <button type="button" aria-label="Закрыть сообщение" onClick={() => setNotice(null)}>×</button>
     </div>}
 
-    {!canCreate && <div className="mb-5 rounded-3xl border-2 border-purple-100 bg-purple-50 p-5">
+    {accessChecking && <div role="status" aria-live="polite" className="mb-5 rounded-3xl border-2 border-indigo-100 bg-indigo-50 p-5">
+      <h2 className="text-xl font-black text-indigo-950">Загружаем сохранённый словарь</h2>
+      <p className="mt-2 text-sm font-bold text-indigo-700">Проверяем тариф и актуальные данные. До завершения проверки редактор остаётся только для чтения.</p>
+    </div>}
+
+    {!canCreate && !accessChecking && <div className="mb-5 rounded-3xl border-2 border-purple-100 bg-purple-50 p-5">
       <h2 className="text-xl font-black text-purple-950">{lockedTitle}</h2>
       <p className="mt-2 text-sm font-bold text-purple-700">{lockedBody}</p>
     </div>}
@@ -161,15 +173,15 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
 
       <div className={`grid gap-3 ${isTeacher ? 'sm:grid-cols-3' : ''}`}>
         {isTeacher && <>
-          <input value={title} onChange={event => setTitle(event.target.value)} placeholder="Название словаря" aria-label="Название словаря" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold text-indigo-950 sm:col-span-3" />
-          <input value={classLabel} onChange={event => { setClassLabel(event.target.value); setSource('class'); }} placeholder="Класс: 3А" aria-label="Класс" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
-          <input value={theme} onChange={event => { setTheme(event.target.value); if (!classLabel) setSource('topic'); }} placeholder="Тема: Еда" aria-label="Тема словаря" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
+          <input value={title} onChange={event => setTitle(event.target.value)} placeholder="Название словаря" aria-label="Название словаря" disabled={accessChecking} className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold text-indigo-950 disabled:bg-gray-50 sm:col-span-3" />
+          <input value={classLabel} onChange={event => { setClassLabel(event.target.value); setSource('class'); }} placeholder="Класс: 3А" aria-label="Класс" disabled={accessChecking} className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold disabled:bg-gray-50" />
+          <input value={theme} onChange={event => { setTheme(event.target.value); if (!classLabel) setSource('topic'); }} placeholder="Тема: Еда" aria-label="Тема словаря" disabled={accessChecking} className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold disabled:bg-gray-50" />
         </>}
         {canUseOcr
           ? <label className="cursor-pointer rounded-xl border-2 border-dashed border-purple-200 bg-purple-50 px-3 py-2.5 text-center text-sm font-black text-purple-700">
               <input type="file" accept="image/*" className="hidden" onChange={event => void runOcr(event.target.files?.[0])} />📷 Добавить слова с фото
             </label>
-          : <div aria-disabled="true" className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-3 py-2.5 text-center text-sm font-black text-gray-400" title={isTeacher ? 'OCR для преподавателя появится позднее' : 'OCR доступен в Premium'}>📷 OCR позже</div>}
+          : <div aria-disabled="true" className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-3 py-2.5 text-center text-sm font-black text-gray-400" title={accessChecking ? 'Проверяем доступ' : isTeacher ? 'OCR для преподавателя появится позднее' : 'OCR доступен в Premium'}>{accessChecking ? '⏳ Проверяем доступ' : '📷 OCR позже'}</div>}
       </div>
 
       {ocrProgress !== null && <div className="mt-4 rounded-2xl bg-purple-50 p-3">
@@ -182,7 +194,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         value={draft}
         onChange={event => setDraft(event.target.value)}
         placeholder={'APPLE\nSCHOOL\nFRIEND'}
-        disabled={!canCreate}
+        disabled={!canCreate || accessChecking}
         className="mt-3 h-72 w-full rounded-2xl border-2 border-indigo-100 p-4 font-mono text-sm font-bold uppercase text-indigo-950 disabled:bg-gray-50 disabled:text-gray-400"
       />
       <section className="mt-4 rounded-3xl border-2 border-indigo-50 bg-indigo-50/50 p-4" aria-label="Предпросмотр словаря">
@@ -195,12 +207,12 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         </div>}
       </section>
       <p className="mt-2 text-xs font-bold text-gray-500">Можно вставить слова списком, через пробел или из учебника: приложение само оставит английские слова и уберёт дубликаты.</p>
-      {!canCreate && <p className="mt-2 text-xs font-bold text-gray-500">Сохранение заблокировано до подключения Premium.</p>}
+      {accessChecking ? <p className="mt-2 text-xs font-bold text-indigo-500">Сохранение станет доступно после проверки профиля.</p> : !canCreate && <p className="mt-2 text-xs font-bold text-gray-500">Сохранение заблокировано до подключения Premium.</p>}
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <button type="button" onClick={() => void save()} disabled={!canCreate || isSaving || !words.length} className="rounded-xl bg-indigo-600 px-6 py-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{isSaving ? 'Сохраняю...' : isTeacher ? 'Сохранить словарь преподавателя' : 'Сохранить мой словарь'}</button>
-        <button type="button" onClick={resetDraft} disabled={!canCreate} className="rounded-xl border-2 border-indigo-100 px-5 py-3 font-black text-indigo-700 disabled:text-gray-300">Сбросить изменения</button>
-        <button type="button" onClick={() => { setDraft(''); setSource('manual'); }} disabled={!canCreate} className="rounded-xl border-2 border-indigo-100 px-5 py-3 font-black text-indigo-700 disabled:text-gray-300">Очистить</button>
+        <button type="button" onClick={() => void save()} disabled={!canCreate || accessChecking || isSaving || !words.length} className="rounded-xl bg-indigo-600 px-6 py-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{isSaving ? 'Сохраняю...' : isTeacher ? 'Сохранить словарь преподавателя' : 'Сохранить мой словарь'}</button>
+        <button type="button" onClick={resetDraft} disabled={!canCreate || accessChecking} className="rounded-xl border-2 border-indigo-100 px-5 py-3 font-black text-indigo-700 disabled:text-gray-300">Сбросить изменения</button>
+        <button type="button" onClick={() => { setDraft(''); setSource('manual'); }} disabled={!canCreate || accessChecking} className="rounded-xl border-2 border-indigo-100 px-5 py-3 font-black text-indigo-700 disabled:text-gray-300">Очистить</button>
       </div>
     </main>
   </ScreenContainer>;
