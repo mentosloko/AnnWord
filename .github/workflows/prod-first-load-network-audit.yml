@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - scripts/prod-first-load-network-audit.mjs
+      - scripts/first-load-mock-api.mjs
       - .github/workflows/prod-first-load-network-audit.yml
       - index.html
       - components/AppScreens.tsx
@@ -33,25 +34,27 @@ jobs:
 
       - name: Build optimized frontend
         env:
-          VITE_API_URL: https://api.annword.ru
+          VITE_API_URL: http://127.0.0.1:4174
         run: npx vite build
 
-      - name: Start local preview
+      - name: Start deterministic API and local preview
         run: |
+          nohup node scripts/first-load-mock-api.mjs >/tmp/annword-mock-api.log 2>&1 &
           nohup npx vite preview --host 127.0.0.1 --port 4173 >/tmp/annword-preview.log 2>&1 &
           for attempt in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4174/api/health >/dev/null; then
               exit 0
             fi
             sleep 1
           done
           cat /tmp/annword-preview.log
+          cat /tmp/annword-mock-api.log
           exit 1
 
       - name: Trace optimized first load
         env:
           APP_URL: http://127.0.0.1:4173
-          API_URL: https://api.annword.ru
+          API_URL: http://127.0.0.1:4174
         run: node scripts/prod-first-load-network-audit.mjs
 
       - name: Upload HAR and summaries
