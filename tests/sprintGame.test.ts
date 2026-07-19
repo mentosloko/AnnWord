@@ -53,7 +53,8 @@ describe('SprintGame round selection', () => {
   it('starts a new cycle only after every available word has appeared', () => {
     const usedWords = new Set<string>();
     const firstCycle = entries.map(() => pickSprintRoundWord(entries, {}, usedWords, undefined, () => 0)!.word);
-    const nextWord = pickSprintRoundWord(entries, {}, usedWords, firstCycle.at(-1), () => 0);
+    const previousWord = firstCycle[firstCycle.length - 1];
+    const nextWord = pickSprintRoundWord(entries, {}, usedWords, previousWord, () => 0);
 
     expect(new Set(firstCycle).size).toBe(entries.length);
     expect(nextWord).not.toBeNull();
