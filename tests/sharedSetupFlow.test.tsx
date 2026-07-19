@@ -6,7 +6,7 @@ import { GameSettings, GameState, UserProfile } from '../types';
 
 const profile: UserProfile = {
   username: 'Tester',
-  accountMode: 'practice',
+  accountMode: 'player',
   customDictionaryEn: ['APPLE', 'BERRY'],
   stats: { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} },
   pet: {
