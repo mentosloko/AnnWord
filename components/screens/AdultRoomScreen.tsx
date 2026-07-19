@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { familyAccountService } from '../../services/familyAccountService';
-import { mentorRoomService } from '../../services/mentorRoomService';
+import { mentorRoomService, type MentorRoomLoadResult } from '../../services/mentorRoomService';
 import { isPremiumActive, formatPremiumExpiresAt } from '../../services/premiumAccess';
 import { getRecentFixedWords, getWordLearningSummary } from '../../services/wordLearningStats';
 import { ManagedLearner, UserProfile, WordPerformance } from '../../types';
@@ -48,38 +48,45 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
   const recentFixed = useMemo(() => getRecentFixedWords(learner?.stats || { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} }, 10), [learner]);
   const normalizedCode = code.trim().toUpperCase();
 
-  const load = async () => {
+  const applyLearnersResult = (result: MentorRoomLoadResult) => {
+    setLearners(result.learners);
+    setSelectedId(current => result.learners.some(item => item.id === current) ? current : result.learners[0]?.id || '');
+    setLearnersStatus('success');
+    setLearnersError(null);
+    if (!result.backendReady) setNotice('Данные кабинета пока недоступны.');
+  };
+
+  const load = async (force = false) => {
     setLearnersStatus('loading');
     setLearnersError(null);
     try {
-      const result = await mentorRoomService.loadLearners();
-      setLearners(result.learners);
-      setSelectedId(current => result.learners.some(item => item.id === current) ? current : result.learners[0]?.id || '');
-      setLearnersStatus('success');
-      if (!result.backendReady) setNotice('Данные кабинета пока недоступны.');
+      applyLearnersResult(await mentorRoomService.loadLearners(force));
     } catch (error: unknown) {
       setLearnersError(error instanceof Error ? error.message : 'Не удалось загрузить данные.');
       setLearnersStatus('error');
     }
   };
 
-  useEffect(() => { if (unlocked || isTeacher) void load(); }, [unlocked, isTeacher]);
+  useEffect(() => {
+    if ((unlocked || isTeacher) && learnersStatus === 'idle') void load();
+  }, [unlocked, isTeacher, learnersStatus]);
 
   const unlock = async () => {
     setNotice(null);
+    setLearnersError(null);
     if (!/^\d{4}$/.test(pin)) { setPinError('Введите PIN из 4 цифр.'); return; }
     setBusyAction('unlock');
+    setLearnersStatus('loading');
     try {
-      const ok = await familyAccountService.verifyParentPin(pin);
-      if (ok) {
-        setUnlocked(true);
-        setPinError(null);
-      } else {
-        setPin('');
-        setPinError('Неверный PIN. Проверьте 4 цифры и попробуйте ещё раз.');
-      }
+      const result = await familyAccountService.openAdultRoom(pin);
+      applyLearnersResult(result);
+      setUnlocked(true);
+      setPinError(null);
+      setPin('');
     } catch (error: unknown) {
-      setPinError(error instanceof Error ? error.message : 'Не удалось проверить PIN.');
+      setLearnersStatus('idle');
+      setPin('');
+      setPinError(error instanceof Error ? error.message : 'Не удалось открыть кабинет родителя.');
     } finally {
       setBusyAction(null);
     }
@@ -94,7 +101,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
       await mentorRoomService.connectByChildCode(normalizedCode);
       setCode('');
       setNotice('Ученик подключён.');
-      await load();
+      await load(true);
     } catch (error: unknown) {
       setCodeError(error instanceof Error ? error.message : 'Не удалось подключить ученика.');
     } finally {
@@ -108,7 +115,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
     try {
       await mentorRoomService.assignCollection(learner.id, collectionId);
       setNotice('Словарь назначен ученику.');
-      await load();
+      await load(true);
     } catch (error: unknown) {
       setNotice(error instanceof Error ? error.message : 'Не удалось назначить словарь.');
     } finally {
@@ -136,7 +143,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
       {pinError && <p id="parent-pin-error" role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700">{pinError}</p>}
       <input value={pin} onChange={event => { setPin(event.target.value.replace(/\D/g, '').slice(0, 4)); if (pinError) setPinError(null); }} type="password" inputMode="numeric" autoComplete="off" name="parentPin" aria-label="PIN родителя" aria-invalid={Boolean(pinError)} aria-describedby={pinError ? 'parent-pin-error parent-pin-help' : 'parent-pin-help'} maxLength={4} placeholder="••••" className={`mt-5 w-full rounded-xl border-2 p-3 text-center text-xl font-black ${pinError ? 'border-rose-300 bg-rose-50 text-rose-900' : 'border-indigo-100'}`} />
       <p className="mt-2 text-center text-xs font-bold text-gray-400">4 цифры. Только для этого устройства.</p>
-      <button type="button" disabled={busyAction === 'unlock'} onClick={() => void unlock()} className="mt-4 w-full rounded-xl bg-indigo-600 p-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{busyAction === 'unlock' ? 'Проверяю...' : 'Открыть'}</button>
+      <button type="button" disabled={busyAction === 'unlock'} onClick={() => void unlock()} className="mt-4 w-full rounded-xl bg-indigo-600 p-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{busyAction === 'unlock' ? 'Открываю кабинет...' : 'Открыть'}</button>
     </section>
   </ScreenContainer>;
 
@@ -149,7 +156,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
 
     {!isTeacher && (premiumChecking ? <section className="mb-5 rounded-3xl border-2 border-indigo-100 bg-indigo-50 p-4"><div className="text-xs font-black uppercase tracking-widest text-indigo-500">Проверяем доступ</div><p className="mt-1 text-sm font-bold text-gray-600">Обновляем данные подписки с сервера…</p></section> : <section className={`mb-5 rounded-3xl border-2 p-4 ${premiumActive ? 'border-green-100 bg-green-50' : 'border-amber-100 bg-amber-50'}`}><div className={`text-xs font-black uppercase tracking-widest ${premiumActive ? 'text-green-600' : 'text-amber-600'}`}>{premiumActive ? 'Kids Premium активен' : 'Бесплатный Kids'}</div><p className="mt-1 text-sm font-bold text-gray-600">{premiumActive ? `Доступ открыт до: ${formatPremiumExpiresAt(userProfile.premiumExpiresAt)}.` : 'Игры, питомец, магазин и общий детский словарь доступны бесплатно. Код преподавателя, отчёты и расширенные словари открываются в Premium.'}</p></section>)}
     {notice && <p role="status" aria-live="polite" className="mb-4 rounded-xl bg-indigo-50 p-3 text-sm font-bold text-indigo-700">{notice}</p>}
-    {learnersError && <div role="alert" className="mb-4 flex flex-col gap-3 rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700 sm:flex-row sm:items-center sm:justify-between"><span>{learnersError}</span><button type="button" onClick={() => void load()} className="rounded-xl bg-white px-3 py-2 text-rose-700">Повторить</button></div>}
+    {learnersError && <div role="alert" className="mb-4 flex flex-col gap-3 rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700 sm:flex-row sm:items-center sm:justify-between"><span>{learnersError}</span><button type="button" onClick={() => void load(true)} className="rounded-xl bg-white px-3 py-2 text-rose-700">Повторить</button></div>}
 
     {isTeacher && <section className="mb-5 rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black text-indigo-950">Подключить ученика по коду</h2><p className="mt-1 text-sm font-bold text-gray-500">Введите код, который родитель передал из своего кабинета.</p><div className="mt-3 flex flex-col gap-2 sm:flex-row"><input value={code} onChange={event => { setCode(event.target.value.toUpperCase()); if (codeError) setCodeError(null); }} placeholder="Код ребёнка" aria-label="Код ребёнка" aria-invalid={Boolean(codeError)} aria-describedby={codeError ? 'teacher-code-error' : undefined} name="childCode" className={`min-w-0 flex-1 rounded-xl border-2 px-3 py-2 font-black uppercase ${codeError ? 'border-rose-300 bg-rose-50 text-rose-900' : 'border-indigo-100'}`} /><button type="button" disabled={busyAction === 'connect' || !normalizedCode} onClick={() => void connect()} className="rounded-xl bg-indigo-600 px-4 py-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{busyAction === 'connect' ? 'Подключаю…' : 'Подключить'}</button></div>{codeError && <p id="teacher-code-error" role="alert" className="mt-3 rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700">{codeError}</p>}</section>}
 
