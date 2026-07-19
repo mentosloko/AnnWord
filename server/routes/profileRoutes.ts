@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { applyGameResult, getOrCreateProfile, incrementProfileCoins, updateProfileDictionary, updateProfilePet, updateProfileStats } from "../profileRepository";
+import { getBootstrapProfile } from "../profileBootstrapRepository";
 import { reconcileProfileMood, syncProfileStateServerAuthoritative, useProfileItemServerAuthoritative } from "../petMoodRepository";
 import { getWeeklyReportPreferenceStatus, updateWeeklyReportEmailPreference } from "../weeklyReportProfileRepository";
 import { getParentContactEmail, updateParentContactEmail } from "../parentContactRepository";
@@ -23,8 +24,9 @@ profileRouter.get("/bootstrap", async (req: AuthenticatedRequest, res) => {
       res.status(401).json({ code: "unauthorized", error: "Unauthorized" });
       return;
     }
+    const username = user.name || user.email.split("@")[0] || "Пользователь";
     const [profile, quest] = await Promise.all([
-      getOrCreateProfile(user.id, user.name || user.email.split("@")[0] || "Пользователь"),
+      getBootstrapProfile(user.id, username),
       getOrCreateDailyQuest(user.id),
     ]);
     const completedAt = Date.now();
