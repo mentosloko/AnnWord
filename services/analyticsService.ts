@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import { GameRewardType, ViewState } from '../types';
 import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
+import { loadingTelemetry, type LoadingMetric } from './loadingTelemetry';
 
 const ANALYTICS_SESSION_KEY = 'annword_analytics_session_id';
 const ANALYTICS_QUEUE_KEY = 'annword_analytics_queue_v1';
@@ -8,8 +9,9 @@ const FLUSH_DELAY_MS = 3000;
 const MAX_BATCH_SIZE = 25;
 const MAX_STORED_EVENTS = 200;
 const MAX_FAILURE_BACKOFF_MS = 60_000;
+const IMPORTANT_LOADING_PATHS = new Set(['/api/profile/bootstrap', '/api/family/adult-room', '/api/mentor/learners', '/api/daily-quest/today']);
 
-export type AnalyticsEventType = 'game' | 'reward' | 'economy' | 'inventory' | 'character' | 'dictionary' | 'auth' | 'navigation';
+export type AnalyticsEventType = 'game' | 'reward' | 'economy' | 'inventory' | 'character' | 'dictionary' | 'auth' | 'navigation' | 'performance';
 
 export type AnalyticsEventName =
   | 'game_started'
@@ -22,7 +24,10 @@ export type AnalyticsEventName =
   | 'dictionary_uploaded'
   | 'route_changed'
   | 'login_success'
-  | 'logout';
+  | 'logout'
+  | 'request_completed'
+  | 'request_failed'
+  | 'screen_state_changed';
 
 export type AnalyticsPayload = Record<string, unknown>;
 
@@ -207,6 +212,23 @@ export const analyticsService = {
     }
   },
 };
+
+const shouldForwardLoadingMetric = (metric: LoadingMetric): boolean => {
+  if (metric.kind === 'screen') return true;
+  if (metric.path === '/api/analytics/events') return false;
+  return !metric.ok || metric.durationMs >= 750 || metric.deduplicated || IMPORTANT_LOADING_PATHS.has(metric.path);
+};
+
+loadingTelemetry.subscribe(metric => {
+  if (!shouldForwardLoadingMetric(metric)) return;
+  const route = metric.kind === 'screen' ? metric.screen : typeof window !== 'undefined' ? window.location.pathname : null;
+  analyticsService.trackEvent({
+    eventType: 'performance',
+    eventName: metric.kind === 'screen' ? 'screen_state_changed' : metric.ok ? 'request_completed' : 'request_failed',
+    route,
+    payload: metric as unknown as AnalyticsPayload,
+  });
+});
 
 if (isBrowser()) {
   window.addEventListener('visibilitychange', () => {
