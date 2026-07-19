@@ -1,0 +1,169 @@
+name: Production Speed Quick Benchmark
+
+on:
+  push:
+    branches:
+      - agent/prod-speed-benchmark
+    paths-ignore:
+      - benchmarks/prod-speed-quick/**
+      - benchmarks/prod-speed/**
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/prod-speed-benchmark
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Measure pages and API with curl
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT='benchmarks/prod-speed-quick'
+          mkdir -p "$OUT/raw"
+          cat > "$OUT/targets.tsv" <<'EOF'
+          page_root	https://annword.ru/	200
+          page_practice	https://annword.ru/practice	200
+          page_kids	https://annword.ru/kids	200
+          page_premium	https://annword.ru/premium	200
+          page_profile	https://annword.ru/profile	200
+          api_health	https://api.annword.ru/api/health	200
+          api_health_db	https://api.annword.ru/api/health/db	200
+          api_runtime_config	https://api.annword.ru/api/runtime-config	200
+          api_weekly_status	https://api.annword.ru/api/reports/weekly/status	200
+          api_profile_bootstrap_unauth	https://api.annword.ru/api/profile/bootstrap	401
+          EOF
+          echo 'target,run,expected_status,http_status,dns_s,tcp_s,tls_s,ttfb_s,total_s,size_bytes' > "$OUT/raw/curl.csv"
+          while IFS=$'\t' read -r name url expected; do
+            for run in $(seq 1 10); do
+              values=$(curl -sS -L --max-time 30 \
+                -A 'AnnWord-Quick-Speed-Benchmark/1.0' \
+                -o /tmp/annword-speed-body \
+                -w '%{http_code},%{time_namelookup},%{time_connect},%{time_appconnect},%{time_starttransfer},%{time_total},%{size_download}' \
+                "$url" || printf '000,0,0,0,0,30,0')
+              echo "$name,$run,$expected,$values" >> "$OUT/raw/curl.csv"
+              sleep 0.15
+            done
+          done < "$OUT/targets.tsv"
+
+      - name: Lighthouse root mobile
+        run: |
+          npx --yes lighthouse@12 https://annword.ru/ \
+            --only-categories=performance \
+            --output=json \
+            --output-path=benchmarks/prod-speed-quick/raw/lighthouse-mobile.json \
+            --chrome-flags='--headless --no-sandbox --disable-dev-shm-usage' \
+            --throttling-method=simulate \
+            --quiet
+
+      - name: Lighthouse root desktop
+        run: |
+          npx --yes lighthouse@12 https://annword.ru/ \
+            --only-categories=performance \
+            --output=json \
+            --output-path=benchmarks/prod-speed-quick/raw/lighthouse-desktop.json \
+            --chrome-flags='--headless --no-sandbox --disable-dev-shm-usage' \
+            --throttling-method=simulate \
+            --preset=desktop \
+            --quiet
+
+      - name: Summarize
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import csv, json, math, statistics
+          from collections import defaultdict
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          root = Path('benchmarks/prod-speed-quick')
+          def pct(values, p):
+              values = sorted(values)
+              return values[max(0, min(len(values)-1, math.ceil(len(values)*p)-1))]
+
+          groups = defaultdict(list)
+          with (root/'raw/curl.csv').open(newline='') as fh:
+              for row in csv.DictReader(fh):
+                  groups[row['target']].append({
+                      'run': int(row['run']),
+                      'expected': int(row['expected_status']),
+                      'status': int(row['http_status']),
+                      'dns_ms': float(row['dns_s'])*1000,
+                      'tcp_ms': float(row['tcp_s'])*1000,
+                      'tls_ms': float(row['tls_s'])*1000,
+                      'ttfb_ms': float(row['ttfb_s'])*1000,
+                      'total_ms': float(row['total_s'])*1000,
+                      'size_bytes': int(float(row['size_bytes'])),
+                  })
+
+          curl_summary = {}
+          for name, rows in sorted(groups.items()):
+              total = [r['total_ms'] for r in rows]
+              ttfb = [r['ttfb_ms'] for r in rows]
+              curl_summary[name] = {
+                  'samples': len(rows),
+                  'status_ok': sum(r['status']==r['expected'] for r in rows),
+                  'first_total_ms': round(rows[0]['total_ms'],1),
+                  'median_total_ms': round(statistics.median(total),1),
+                  'p95_total_ms': round(pct(total,.95),1),
+                  'median_ttfb_ms': round(statistics.median(ttfb),1),
+                  'p95_ttfb_ms': round(pct(ttfb,.95),1),
+                  'median_dns_ms': round(statistics.median(r['dns_ms'] for r in rows),1),
+                  'median_tls_ms': round(statistics.median(r['tls_ms'] for r in rows),1),
+                  'median_size_bytes': round(statistics.median(r['size_bytes'] for r in rows)),
+              }
+
+          lighthouse = {}
+          for mode in ('mobile','desktop'):
+              data = json.loads((root/f'raw/lighthouse-{mode}.json').read_text())
+              a = data['audits']
+              lighthouse[mode] = {
+                  'score': round(data['categories']['performance']['score']*100),
+                  'fcp_ms': round(a['first-contentful-paint']['numericValue']),
+                  'lcp_ms': round(a['largest-contentful-paint']['numericValue']),
+                  'speed_index_ms': round(a['speed-index']['numericValue']),
+                  'tbt_ms': round(a['total-blocking-time']['numericValue']),
+                  'cls': round(a['cumulative-layout-shift']['numericValue'],3),
+                  'tti_ms': round(a.get('interactive',{}).get('numericValue',0)),
+                  'server_response_ms': round(a['server-response-time']['numericValue']),
+                  'total_bytes': round(a['total-byte-weight']['numericValue']),
+                  'requests': len(a['network-requests']['details']['items']),
+              }
+
+          result = {
+              'measured_at': datetime.now(timezone.utc).isoformat(),
+              'runner': 'github-actions ubuntu-latest',
+              'curl': curl_summary,
+              'lighthouse_root': lighthouse,
+          }
+          (root/'summary.json').write_text(json.dumps(result, ensure_ascii=False, indent=2))
+          lines = ['# AnnWord quick production benchmark','',f"Measured: {result['measured_at']}",'','## Curl','', '| Target | Median total | p95 total | Median TTFB | p95 TTFB | Size |', '|---|---:|---:|---:|---:|---:|']
+          for name, v in curl_summary.items():
+              lines.append(f"| {name} | {v['median_total_ms']} ms | {v['p95_total_ms']} ms | {v['median_ttfb_ms']} ms | {v['p95_ttfb_ms']} ms | {v['median_size_bytes']} B |")
+          lines += ['', '## Lighthouse root', '', '| Mode | Score | FCP | LCP | Speed Index | TBT | CLS | TTFB | Bytes | Requests |', '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
+          for mode, v in lighthouse.items():
+              lines.append(f"| {mode} | {v['score']} | {v['fcp_ms']} ms | {v['lcp_ms']} ms | {v['speed_index_ms']} ms | {v['tbt_ms']} ms | {v['cls']} | {v['server_response_ms']} ms | {v['total_bytes']} | {v['requests']} |")
+          (root/'REPORT.md').write_text('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
+
+      - name: Commit results
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin agent/prod-speed-benchmark
+          git add benchmarks/prod-speed-quick
+          git commit -m 'chore: save quick production speed benchmark [benchmark results]'
+          git push origin HEAD:agent/prod-speed-benchmark
