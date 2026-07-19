@@ -31,6 +31,7 @@ profileRouter.get("/bootstrap", async (req: AuthenticatedRequest, res) => {
     ]);
     const completedAt = Date.now();
     res.setHeader("Server-Timing", `bootstrap_total;dur=${completedAt - startedAt}`);
+    res.setHeader("Access-Control-Expose-Headers", "Server-Timing");
     res.setHeader("Cache-Control", "private, no-store");
     res.json({
       user: {
