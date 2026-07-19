@@ -7,12 +7,43 @@ import { getWeeklyReportPreferenceStatus, updateWeeklyReportEmailPreference } fr
 import { getParentContactEmail, updateParentContactEmail } from "../parentContactRepository";
 import { listDictionaryCollections, saveDictionaryCollection } from "../dictionaryCollectionRepository";
 import { purchaseProfileItem } from "../purchaseRepository";
+import { getOrCreateDailyQuest } from "../dailyQuestRepository";
 import { assignedWordsRouter } from "./assignedWordsRoutes";
 
 export const profileRouter = Router();
 
 profileRouter.use(requireAuth);
 profileRouter.use(assignedWordsRouter);
+
+profileRouter.get("/bootstrap", async (req: AuthenticatedRequest, res) => {
+  const startedAt = Date.now();
+  try {
+    const user = req.user;
+    if (!user) {
+      res.status(401).json({ code: "unauthorized", error: "Unauthorized" });
+      return;
+    }
+    const [profile, quest] = await Promise.all([
+      getOrCreateProfile(user.id, user.name || user.email.split("@")[0] || "Пользователь"),
+      getOrCreateDailyQuest(user.id),
+    ]);
+    const completedAt = Date.now();
+    res.setHeader("Server-Timing", `bootstrap_total;dur=${completedAt - startedAt}`);
+    res.setHeader("Cache-Control", "private, no-store");
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        passwordResetRequired: user.passwordResetRequired === true,
+      },
+      profile,
+      quest,
+    });
+  } catch (error) {
+    res.status(500).json({ code: "bootstrap_load_failed", error: error instanceof Error ? error.message : "Bootstrap load failed" });
+  }
+});
 
 profileRouter.get("/me", async (req: AuthenticatedRequest, res) => {
   try {
