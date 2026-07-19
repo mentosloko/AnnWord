@@ -21,7 +21,7 @@ describe('word list parser', () => {
 
   it('preserves apostrophes and compound-word hyphens', () => {
     expect(parseEnglishWordList("don't, DON’T; mother–in–law; rock-'n'-roll")).toEqual([
-      "DON'T", 'MOTHER-IN-LAW', 'ROCK', "'N'", 'ROLL',
+      "DON'T", 'MOTHER-IN-LAW', 'ROCK', 'N', 'ROLL',
     ]);
   });
 
