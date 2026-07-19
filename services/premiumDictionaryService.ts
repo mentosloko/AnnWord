@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { CustomDictionaryCollection, UserProfile } from '../types';
+import { normalizeEnglishWordArray } from '../utils/wordListParser';
 import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
 
 export interface PremiumDictionaryDraft {
@@ -27,9 +28,7 @@ const schemaNotReady = (error: any): boolean => Boolean(error) && (
   || /does not exist|could not find the function|schema cache|column .* does not exist/i.test(String(error.message || ''))
 );
 
-const normalizeWords = (words: string[]): string[] => Array.from(new Set(
-  words.map(word => word.trim().toUpperCase()).filter(word => /^[A-Z][A-Z'-]{1,}$/.test(word)),
-));
+const normalizeWords = (words: string[]): string[] => normalizeEnglishWordArray(words);
 const readString = (data: any, camel: string, snake?: string): string | undefined => {
   const value = typeof data?.[camel] === 'string' ? data[camel] : snake && typeof data?.[snake] === 'string' ? data[snake] : undefined;
   return value && value.trim() ? value : undefined;
