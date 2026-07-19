@@ -9,9 +9,12 @@ on:
       - scripts/first-load-mock-api.mjs
       - .github/workflows/prod-first-load-network-audit.yml
       - index.html
+      - index.tsx
+      - AppRuntime.tsx
       - components/AppScreens.tsx
       - components/screens/LandingMixScreen.tsx
       - tests/entryRoutingAndDictionaryUi.test.ts
+      - tests/sharedSetupFlow.test.tsx
 
 permissions:
   contents: read
