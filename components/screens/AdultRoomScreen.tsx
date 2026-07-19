@@ -4,10 +4,13 @@ import { mentorRoomService } from '../../services/mentorRoomService';
 import { isPremiumActive, formatPremiumExpiresAt } from '../../services/premiumAccess';
 import { getRecentFixedWords, getWordLearningSummary } from '../../services/wordLearningStats';
 import { ManagedLearner, UserProfile, WordPerformance } from '../../types';
+import { useProfileFreshness } from '../../hooks/useProfileFreshness';
 import { WeeklyReportSettingsCard } from '../WeeklyReportSettingsCard';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface Props { userProfile: UserProfile; onBackHome: () => void; onOpenDictionaryStudio: () => void; }
+type LearnersStatus = 'idle' | 'loading' | 'success' | 'error';
+type BusyAction = 'unlock' | 'connect' | 'assign' | null;
 const attempts = (word: WordPerformance) => Math.max(0, Math.round(word.attempts || 0));
 const accuracy = (word: WordPerformance) => attempts(word) ? Math.round(word.correct / attempts(word) * 100) : 0;
 const learned = (word: WordPerformance) => word.correct > 0 && accuracy(word) >= 80;
@@ -16,20 +19,25 @@ const byFrequency = (a: WordPerformance, b: WordPerformance) => attempts(b) - at
 const getEncounteredWords = (learner?: ManagedLearner): WordPerformance[] => Object.values(learner?.stats.wordPerformance ?? {}).filter(word => attempts(word) > 0).sort(byFrequency);
 const Metric = ({ label, value }: { label: string; value: number | string }) => <div className="rounded-2xl bg-white p-4 shadow-sm"><div className="text-xs font-black text-indigo-400">{label}</div><div className="text-3xl font-black text-indigo-950">{value}</div></div>;
 const EmptyCard = ({ children }: { children: React.ReactNode }) => <div className="rounded-2xl bg-indigo-50 p-3 text-sm font-bold text-indigo-700">{children}</div>;
+const LoadingCard = ({ children = 'Загружаю данные…' }: { children?: React.ReactNode }) => <div role="status" aria-live="polite" className="animate-pulse rounded-2xl bg-indigo-50 p-3 text-sm font-bold text-indigo-500">{children}</div>;
 
 export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOpenDictionaryStudio }) => {
   const isTeacher = userProfile.role === 'teacher' || userProfile.accountMode === 'teacher';
   const isParent = userProfile.role === 'parent' || userProfile.accountMode === 'parent';
   const premiumActive = isPremiumActive(userProfile);
+  const profileFreshness = useProfileFreshness();
+  const premiumChecking = !premiumActive && profileFreshness !== 'fresh';
   const [unlocked, setUnlocked] = useState(!isParent || isTeacher);
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
   const [learners, setLearners] = useState<ManagedLearner[]>([]);
+  const [learnersStatus, setLearnersStatus] = useState<LearnersStatus>('idle');
+  const [learnersError, setLearnersError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState('');
   const [collectionId, setCollectionId] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<BusyAction>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const learner = learners.find(item => item.id === selectedId) || learners[0];
   const collections = userProfile.dictionaryCollections || [];
@@ -41,16 +49,17 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
   const normalizedCode = code.trim().toUpperCase();
 
   const load = async () => {
-    setBusy(true);
+    setLearnersStatus('loading');
+    setLearnersError(null);
     try {
       const result = await mentorRoomService.loadLearners();
       setLearners(result.learners);
       setSelectedId(current => result.learners.some(item => item.id === current) ? current : result.learners[0]?.id || '');
+      setLearnersStatus('success');
       if (!result.backendReady) setNotice('Данные кабинета пока недоступны.');
     } catch (error: unknown) {
-      setNotice(error instanceof Error ? error.message : 'Не удалось загрузить данные.');
-    } finally {
-      setBusy(false);
+      setLearnersError(error instanceof Error ? error.message : 'Не удалось загрузить данные.');
+      setLearnersStatus('error');
     }
   };
 
@@ -59,7 +68,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
   const unlock = async () => {
     setNotice(null);
     if (!/^\d{4}$/.test(pin)) { setPinError('Введите PIN из 4 цифр.'); return; }
-    setBusy(true);
+    setBusyAction('unlock');
     try {
       const ok = await familyAccountService.verifyParentPin(pin);
       if (ok) {
@@ -72,7 +81,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
     } catch (error: unknown) {
       setPinError(error instanceof Error ? error.message : 'Не удалось проверить PIN.');
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   };
 
@@ -80,7 +89,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
     setNotice(null);
     setCodeError(null);
     if (!normalizedCode) { setCodeError('Введите код ребёнка.'); return; }
-    setBusy(true);
+    setBusyAction('connect');
     try {
       await mentorRoomService.connectByChildCode(normalizedCode);
       setCode('');
@@ -89,13 +98,13 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
     } catch (error: unknown) {
       setCodeError(error instanceof Error ? error.message : 'Не удалось подключить ученика.');
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   };
 
   const assign = async () => {
     if (!learner || !collectionId) return;
-    setBusy(true);
+    setBusyAction('assign');
     try {
       await mentorRoomService.assignCollection(learner.id, collectionId);
       setNotice('Словарь назначен ученику.');
@@ -103,11 +112,12 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
     } catch (error: unknown) {
       setNotice(error instanceof Error ? error.message : 'Не удалось назначить словарь.');
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   };
 
   const copyChildCode = async (childCode: string) => {
+    if (premiumChecking) { setNotice('Проверяем доступ Premium. Повторите действие через несколько секунд.'); return; }
     if (!premiumActive) { setNotice('Код преподавателя доступен в Kids Premium.'); return; }
     try {
       await navigator.clipboard.writeText(childCode);
@@ -126,7 +136,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
       {pinError && <p id="parent-pin-error" role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700">{pinError}</p>}
       <input value={pin} onChange={event => { setPin(event.target.value.replace(/\D/g, '').slice(0, 4)); if (pinError) setPinError(null); }} type="password" inputMode="numeric" autoComplete="off" name="parentPin" aria-label="PIN родителя" aria-invalid={Boolean(pinError)} aria-describedby={pinError ? 'parent-pin-error parent-pin-help' : 'parent-pin-help'} maxLength={4} placeholder="••••" className={`mt-5 w-full rounded-xl border-2 p-3 text-center text-xl font-black ${pinError ? 'border-rose-300 bg-rose-50 text-rose-900' : 'border-indigo-100'}`} />
       <p className="mt-2 text-center text-xs font-bold text-gray-400">4 цифры. Только для этого устройства.</p>
-      <button type="button" disabled={busy} onClick={() => void unlock()} className="mt-4 w-full rounded-xl bg-indigo-600 p-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{busy ? 'Проверяю...' : 'Открыть'}</button>
+      <button type="button" disabled={busyAction === 'unlock'} onClick={() => void unlock()} className="mt-4 w-full rounded-xl bg-indigo-600 p-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{busyAction === 'unlock' ? 'Проверяю...' : 'Открыть'}</button>
     </section>
   </ScreenContainer>;
 
@@ -134,29 +144,30 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
     <header className="mb-5 flex items-center justify-between gap-3">
       <button type="button" onClick={onBackHome} aria-label="Назад" className="rounded-xl border-2 border-indigo-100 px-4 py-2 font-bold text-indigo-700">←</button>
       <div className="text-center"><div className="text-xs font-black uppercase tracking-widest text-indigo-400">{isTeacher ? 'AnnWord Teacher · Ученики' : 'AnnWord Kids'}</div><h1 className="text-xl font-black text-indigo-950 sm:text-3xl">{isTeacher ? 'Ученики преподавателя' : 'Кабинет родителя'}</h1></div>
-      {isTeacher || premiumActive ? <button type="button" onClick={onOpenDictionaryStudio} className="rounded-xl bg-indigo-600 px-4 py-2 font-black text-white">Открыть словари</button> : <button type="button" onClick={onOpenDictionaryStudio} className="rounded-xl bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">Словари · Premium</button>}
+      {isTeacher || premiumActive ? <button type="button" onClick={onOpenDictionaryStudio} className="rounded-xl bg-indigo-600 px-4 py-2 font-black text-white">Открыть словари</button> : premiumChecking ? <button type="button" disabled className="rounded-xl bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-400">Проверяем доступ…</button> : <button type="button" onClick={onOpenDictionaryStudio} className="rounded-xl bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">Словари · Premium</button>}
     </header>
 
-    {!isTeacher && <section className={`mb-5 rounded-3xl border-2 p-4 ${premiumActive ? 'border-green-100 bg-green-50' : 'border-amber-100 bg-amber-50'}`}><div className={`text-xs font-black uppercase tracking-widest ${premiumActive ? 'text-green-600' : 'text-amber-600'}`}>{premiumActive ? 'Kids Premium активен' : 'Бесплатный Kids'}</div><p className="mt-1 text-sm font-bold text-gray-600">{premiumActive ? `Доступ открыт до: ${formatPremiumExpiresAt(userProfile.premiumExpiresAt)}.` : 'Игры, питомец, магазин и общий детский словарь доступны бесплатно. Код преподавателя, отчёты и расширенные словари открываются в Premium.'}</p></section>}
+    {!isTeacher && (premiumChecking ? <section className="mb-5 rounded-3xl border-2 border-indigo-100 bg-indigo-50 p-4"><div className="text-xs font-black uppercase tracking-widest text-indigo-500">Проверяем доступ</div><p className="mt-1 text-sm font-bold text-gray-600">Обновляем данные подписки с сервера…</p></section> : <section className={`mb-5 rounded-3xl border-2 p-4 ${premiumActive ? 'border-green-100 bg-green-50' : 'border-amber-100 bg-amber-50'}`}><div className={`text-xs font-black uppercase tracking-widest ${premiumActive ? 'text-green-600' : 'text-amber-600'}`}>{premiumActive ? 'Kids Premium активен' : 'Бесплатный Kids'}</div><p className="mt-1 text-sm font-bold text-gray-600">{premiumActive ? `Доступ открыт до: ${formatPremiumExpiresAt(userProfile.premiumExpiresAt)}.` : 'Игры, питомец, магазин и общий детский словарь доступны бесплатно. Код преподавателя, отчёты и расширенные словари открываются в Premium.'}</p></section>)}
     {notice && <p role="status" aria-live="polite" className="mb-4 rounded-xl bg-indigo-50 p-3 text-sm font-bold text-indigo-700">{notice}</p>}
+    {learnersError && <div role="alert" className="mb-4 flex flex-col gap-3 rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700 sm:flex-row sm:items-center sm:justify-between"><span>{learnersError}</span><button type="button" onClick={() => void load()} className="rounded-xl bg-white px-3 py-2 text-rose-700">Повторить</button></div>}
 
-    {isTeacher && <section className="mb-5 rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black text-indigo-950">Подключить ученика по коду</h2><p className="mt-1 text-sm font-bold text-gray-500">Введите код, который родитель передал из своего кабинета.</p><div className="mt-3 flex flex-col gap-2 sm:flex-row"><input value={code} onChange={event => { setCode(event.target.value.toUpperCase()); if (codeError) setCodeError(null); }} placeholder="Код ребёнка" aria-label="Код ребёнка" aria-invalid={Boolean(codeError)} aria-describedby={codeError ? 'teacher-code-error' : undefined} name="childCode" className={`min-w-0 flex-1 rounded-xl border-2 px-3 py-2 font-black uppercase ${codeError ? 'border-rose-300 bg-rose-50 text-rose-900' : 'border-indigo-100'}`} /><button type="button" disabled={busy || !normalizedCode} onClick={() => void connect()} className="rounded-xl bg-indigo-600 px-4 py-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">Подключить</button></div>{codeError && <p id="teacher-code-error" role="alert" className="mt-3 rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700">{codeError}</p>}</section>}
+    {isTeacher && <section className="mb-5 rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black text-indigo-950">Подключить ученика по коду</h2><p className="mt-1 text-sm font-bold text-gray-500">Введите код, который родитель передал из своего кабинета.</p><div className="mt-3 flex flex-col gap-2 sm:flex-row"><input value={code} onChange={event => { setCode(event.target.value.toUpperCase()); if (codeError) setCodeError(null); }} placeholder="Код ребёнка" aria-label="Код ребёнка" aria-invalid={Boolean(codeError)} aria-describedby={codeError ? 'teacher-code-error' : undefined} name="childCode" className={`min-w-0 flex-1 rounded-xl border-2 px-3 py-2 font-black uppercase ${codeError ? 'border-rose-300 bg-rose-50 text-rose-900' : 'border-indigo-100'}`} /><button type="button" disabled={busyAction === 'connect' || !normalizedCode} onClick={() => void connect()} className="rounded-xl bg-indigo-600 px-4 py-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{busyAction === 'connect' ? 'Подключаю…' : 'Подключить'}</button></div>{codeError && <p id="teacher-code-error" role="alert" className="mt-3 rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700">{codeError}</p>}</section>}
 
     <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
       <aside className="rounded-3xl bg-white p-4 shadow-sm">
         <h2 className="mb-3 text-xs font-black uppercase text-indigo-400">{isTeacher ? 'Ученики' : 'Ребёнок'}</h2>
-        {busy && !learners.length ? <p>Загружаю...</p> : learners.length ? learners.map(item => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} aria-pressed={selectedId === item.id} className={`mb-2 w-full rounded-xl p-3 text-left font-black ${selectedId === item.id ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-950'}`}>{item.name}</button>) : <EmptyCard>{isTeacher ? 'Пока нет подключённых учеников.' : 'Профиль ребёнка не найден.'}</EmptyCard>}
-        {!isTeacher && learner?.childShareCode && (premiumActive ? <div className="mt-4 rounded-xl bg-purple-50 p-3"><div className="text-xs font-black text-purple-500">КОД ДЛЯ ПРЕПОДАВАТЕЛЯ</div><div className="mt-2 text-center text-xl font-black tracking-widest text-purple-800">{learner.childShareCode}</div><p className="mt-2 text-xs font-bold text-purple-700">Передайте этот код учителю.</p><button type="button" onClick={() => void copyChildCode(learner.childShareCode || '')} className="mt-3 w-full rounded-xl bg-purple-600 px-3 py-2 text-sm font-black text-white">Скопировать код</button></div> : <div className="mt-4 rounded-xl bg-amber-50 p-3"><div className="text-xs font-black text-amber-600">Код преподавателя</div><p className="mt-2 text-sm font-bold text-amber-800">Доступен в Kids Premium.</p></div>)}
+        {learnersStatus === 'loading' && !learners.length ? <LoadingCard /> : learners.length ? <>{learners.map(item => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} aria-pressed={selectedId === item.id} className={`mb-2 w-full rounded-xl p-3 text-left font-black ${selectedId === item.id ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-950'}`}>{item.name}</button>)}{learnersStatus === 'loading' && <p className="mt-2 text-xs font-bold text-indigo-400">Обновляю данные…</p>}</> : learnersStatus === 'success' ? <EmptyCard>{isTeacher ? 'Пока нет подключённых учеников.' : 'Профиль ребёнка не найден.'}</EmptyCard> : learnersStatus === 'error' ? <EmptyCard>Данные не загружены. Нажмите «Повторить» выше.</EmptyCard> : <LoadingCard />}
+        {!isTeacher && learner?.childShareCode && (premiumActive ? <div className="mt-4 rounded-xl bg-purple-50 p-3"><div className="text-xs font-black text-purple-500">КОД ДЛЯ ПРЕПОДАВАТЕЛЯ</div><div className="mt-2 text-center text-xl font-black tracking-widest text-purple-800">{learner.childShareCode}</div><p className="mt-2 text-xs font-bold text-purple-700">Передайте этот код учителю.</p><button type="button" onClick={() => void copyChildCode(learner.childShareCode || '')} className="mt-3 w-full rounded-xl bg-purple-600 px-3 py-2 text-sm font-black text-white">Скопировать код</button></div> : premiumChecking ? <LoadingCard>Проверяем доступ к коду преподавателя…</LoadingCard> : <div className="mt-4 rounded-xl bg-amber-50 p-3"><div className="text-xs font-black text-amber-600">Код преподавателя</div><p className="mt-2 text-sm font-bold text-amber-800">Доступен в Kids Premium.</p></div>)}
         {!isTeacher && <WeeklyReportSettingsCard userProfile={userProfile} premiumActive={premiumActive} />}
       </aside>
 
       {learner ? <main className="space-y-4">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4"><Metric label="ИГР" value={learner.stats.gamesPlayed} /><Metric label="ПОБЕД" value={learner.stats.gamesWon} /><Metric label="СЛОВ ВСТРЕТИЛОСЬ" value={encounteredWords.length} /><Metric label="ОШИБОЧНЫХ" value={errorWords.length} /></div>
         <div className="grid grid-cols-3 gap-3"><Metric label="ВЫУЧЕНО" value={learnedWords.length} /><Metric label="К ПОВТОРЕНИЮ" value={learning.activeReview.length} /><Metric label="ИСПРАВЛЕНО" value={learning.fixedAfterMistake.length} /></div>
-        {isTeacher && <section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Назначить сохранённый словарь</h2><p className="mt-1 text-sm font-bold text-gray-500">Словарь появится у ребёнка, если у семьи активен Premium.</p><div className="mt-3 flex gap-2"><select value={collectionId} onChange={event => setCollectionId(event.target.value)} className="min-w-0 flex-1 rounded-xl border-2 border-indigo-100 p-2 font-bold"><option value="">Выберите подборку</option>{collections.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select><button type="button" disabled={!collectionId || busy} onClick={() => void assign()} className="rounded-xl bg-indigo-600 px-4 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">Назначить</button></div>{!collections.length && <p className="mt-3 text-xs font-bold text-gray-500">Сначала создайте словарь в разделе «Словари».</p>}</section>}
+        {isTeacher && <section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Назначить сохранённый словарь</h2><p className="mt-1 text-sm font-bold text-gray-500">Словарь появится у ребёнка, если у семьи активен Premium.</p><div className="mt-3 flex gap-2"><select value={collectionId} onChange={event => setCollectionId(event.target.value)} className="min-w-0 flex-1 rounded-xl border-2 border-indigo-100 p-2 font-bold"><option value="">Выберите подборку</option>{collections.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select><button type="button" disabled={!collectionId || busyAction === 'assign'} onClick={() => void assign()} className="rounded-xl bg-indigo-600 px-4 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{busyAction === 'assign' ? 'Назначаю…' : 'Назначить'}</button></div>{!collections.length && <p className="mt-3 text-xs font-bold text-gray-500">Сначала создайте словарь в разделе «Словари».</p>}</section>}
         <section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Ошибки и исправления</h2><p className="mt-1 text-sm font-bold text-gray-500">Сложные слова и исправления по истории тренировок.</p><div className="mt-4 grid gap-3 md:grid-cols-2"><div className="rounded-2xl bg-rose-50 p-3"><div className="text-xs font-black uppercase text-rose-500">К повторению</div>{learning.activeReview.length ? learning.activeReview.slice(0, 8).map(item => <div key={item.word} className="mt-2 font-black text-rose-900">{item.word}</div>) : <p className="mt-2 text-sm font-bold text-rose-700">Нет активных повторений.</p>}</div><div className="rounded-2xl bg-green-50 p-3"><div className="text-xs font-black uppercase text-green-600">Недавно исправлено</div>{recentFixed.length ? recentFixed.map(item => <div key={item.word} className="mt-2 font-black text-green-900">{item.word}</div>) : <p className="mt-2 text-sm font-bold text-green-700">Пока нет исправленных слов.</p>}</div></div></section>
         <section className="rounded-3xl bg-white p-5 shadow-sm"><h2 className="font-black">Частые слова</h2>{encounteredWords.length ? <div className="mt-3 grid gap-2 sm:grid-cols-2">{encounteredWords.slice(0, 12).map(word => <div key={word.word} className="rounded-2xl bg-indigo-50 p-3"><div className="font-black text-indigo-950">{word.word}</div><div className="text-xs font-bold text-indigo-500">попыток: {attempts(word)} · точность: {accuracy(word)}% · ошибок: {word.mistakes}</div></div>)}</div> : <EmptyCard>После игр здесь появится статистика слов.</EmptyCard>}</section>
-      </main> : <main className="rounded-3xl bg-white p-6 shadow-sm"><EmptyCard>{isTeacher ? 'Подключите ученика по коду, чтобы видеть прогресс.' : 'Профиль ребёнка ещё не создан.'}</EmptyCard></main>}
+      </main> : learnersStatus === 'loading' || learnersStatus === 'idle' ? <main className="rounded-3xl bg-white p-6 shadow-sm"><LoadingCard>Загружаю профиль и статистику…</LoadingCard></main> : learnersStatus === 'error' ? <main className="rounded-3xl bg-white p-6 shadow-sm"><EmptyCard>Не удалось подтвердить наличие профиля. Повторите загрузку.</EmptyCard></main> : <main className="rounded-3xl bg-white p-6 shadow-sm"><EmptyCard>{isTeacher ? 'Подключите ученика по коду, чтобы видеть прогресс.' : 'Профиль ребёнка ещё не создан.'}</EmptyCard></main>}
     </div>
   </ScreenContainer>;
 };
