@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { query } from "../db";
+import { loadManagedLearners } from "../mentorRepository";
 
 export const mentorRouter = Router();
 
@@ -11,57 +12,13 @@ const wordsOf = (value: unknown): string[] => Array.isArray(value) ? Array.from(
 mentorRouter.use(requireAuth);
 
 mentorRouter.get("/learners", async (req: AuthenticatedRequest, res) => {
+  const startedAt = Date.now();
   try {
-    const result = await query(
-      `with linked_learners as (
-         select p.id,
-                coalesce(p.child_display_name, p.username, 'Ученик') as name,
-                l.class_label,
-                p.child_share_code,
-                p.stats,
-                latest_set.created_at as last_assigned_at,
-                coalesce(latest_set.words, '{}'::text[]) as assigned_words
-           from adult_learner_links l
-           join profiles p on p.id = l.learner_user_id
-           left join lateral (
-             select s.words, s.created_at
-               from assigned_word_sets s
-              where s.adult_user_id = l.adult_user_id
-                and s.learner_user_id = l.learner_user_id
-                and s.archived_at is null
-              order by s.created_at desc
-              limit 1
-           ) latest_set on true
-          where l.adult_user_id = $1
-       ), self_child as (
-         select p.id,
-                coalesce(p.child_display_name, p.username, 'Ребёнок') as name,
-                null::text as class_label,
-                p.child_share_code,
-                p.stats,
-                latest_set.created_at as last_assigned_at,
-                coalesce(latest_set.words, '{}'::text[]) as assigned_words
-           from profiles p
-           left join lateral (
-             select s.words, s.created_at
-               from assigned_word_sets s
-              where s.learner_user_id = p.id
-                and s.archived_at is null
-              order by s.created_at desc
-              limit 1
-           ) latest_set on true
-          where p.id = $1
-            and p.account_mode = 'parent'
-            and p.child_display_name is not null
-       )
-       select * from linked_learners
-       union all
-       select * from self_child
-        where not exists (select 1 from linked_learners where linked_learners.id = self_child.id)
-       order by name`,
-      [req.user!.id],
-    );
-    res.json({ learners: result.rows, backendReady: true });
+    const learners = await loadManagedLearners(req.user!.id);
+    res.setHeader("Server-Timing", `learners_total;dur=${Date.now() - startedAt}`);
+    res.setHeader("Access-Control-Expose-Headers", "Server-Timing");
+    res.setHeader("Cache-Control", "private, no-store");
+    res.json({ learners, backendReady: true });
   } catch (error) {
     console.error("Learners load failed", error);
     res.status(500).json({ code: "learners_load_failed", error: "Не удалось загрузить данные учеников. Попробуйте ещё раз." });

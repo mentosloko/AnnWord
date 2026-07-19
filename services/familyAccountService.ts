@@ -2,6 +2,7 @@ import { supabase } from '../supabase';
 import { AccountMode } from '../types';
 import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
 import { legalConsentService } from './legalConsentService';
+import { mentorRoomService, normalizeMentorRoomResult, type MentorRoomLoadResult } from './mentorRoomService';
 
 export interface ChildSetupResult {
   childName: string;
@@ -20,6 +21,12 @@ type ChildRpcResponse = {
 
 type AccessCheckResponse = {
   ok?: boolean;
+};
+
+type AdultRoomResponse = {
+  ok?: boolean;
+  learners?: unknown[];
+  backendReady?: boolean;
 };
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -133,6 +140,23 @@ export const familyAccountService = {
     }
 
     return normalizeChildSetupResult(data as ChildRpcResponse | null);
+  },
+
+  async openAdultRoom(pin: string): Promise<MentorRoomLoadResult> {
+    const normalizedPin = validateParentPin(pin);
+
+    if (isBackendApiConfigured) {
+      const data = await backendApiRequest<AdultRoomResponse>('/api/family/adult-room', {
+        method: 'POST',
+        body: { accessCode: normalizedPin },
+      });
+      const result = normalizeMentorRoomResult(data);
+      return mentorRoomService.primeLearners(result);
+    }
+
+    const ok = await familyAccountService.verifyParentPin(normalizedPin);
+    if (!ok) throw new Error('Неверный PIN. Проверьте 4 цифры и попробуйте ещё раз.');
+    return mentorRoomService.loadLearners(true);
   },
 
   async verifyParentPin(pin: string): Promise<boolean> {

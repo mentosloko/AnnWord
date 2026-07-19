@@ -2,7 +2,8 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
 import { BackendApiError, backendApiBaseUrl, backendApiRequest, isBackendApiConfigured, writeBackendAccessToken } from './backendApiClient';
 import type { RegistrationConsentSnapshot } from './legalConsentService';
-import type { UserProfile } from '../types';
+import type { DailyQuestState, UserProfile } from '../types';
+import { dailyQuestService } from './dailyQuestService';
 
 export interface AuthBootstrapResult {
   session: Session | null;
@@ -24,10 +25,13 @@ type BackendSessionPayload = {
   expires_in?: number;
   user?: BackendUserPayload | null;
   profile?: UserProfile | null;
+  quest?: DailyQuestState | null;
 };
 
-type BackendMePayload = {
+type BackendBootstrapPayload = {
   user?: BackendUserPayload | null;
+  profile?: UserProfile | null;
+  quest?: DailyQuestState | null;
 };
 
 type AuthSubscriber = (event: AuthEventName, session: Session | null, user: User | null) => void;
@@ -41,6 +45,18 @@ export const consumePendingRegisteredProfile = (userId: string): UserProfile | n
   const profile = pendingRegisteredProfile.profile;
   pendingRegisteredProfile = null;
   return profile;
+};
+
+const primeBackendPayload = (payload: BackendSessionPayload | BackendBootstrapPayload): void => {
+  if (payload.user && payload.profile) {
+    pendingRegisteredProfile = { userId: payload.user.id, profile: payload.profile };
+  }
+  if ('quest' in payload) dailyQuestService.primeTodayQuest(payload.quest);
+};
+
+const clearPrimedBootstrap = (): void => {
+  pendingRegisteredProfile = null;
+  dailyQuestService.primeTodayQuest(undefined);
 };
 
 const readExplicitLogout = (): boolean => {
@@ -115,15 +131,18 @@ export const authService = {
   getInitialSession: async (): Promise<AuthBootstrapResult> => {
     if (isBackendApiConfigured) {
       if (readExplicitLogout()) {
+        clearPrimedBootstrap();
         currentBackendAuth = { session: null, user: null };
         return currentBackendAuth;
       }
       try {
-        const data = await withTransientRetry(() => backendApiRequest<BackendMePayload>('/api/auth/me'));
+        const data = await withTransientRetry(() => backendApiRequest<BackendBootstrapPayload>('/api/profile/bootstrap'));
+        primeBackendPayload(data);
         currentBackendAuth = data.user ? toAuthBootstrap({ user: data.user }) : { session: null, user: null };
         return currentBackendAuth;
       } catch (error) {
         if (error instanceof BackendApiError && error.status === 401) {
+          clearPrimedBootstrap();
           currentBackendAuth = { session: null, user: null };
           return currentBackendAuth;
         }
@@ -161,12 +180,13 @@ export const authService = {
 
   signInWithEmail: async (email: string, password: string): Promise<void> => {
     if (isBackendApiConfigured) {
-      pendingRegisteredProfile = null;
+      clearPrimedBootstrap();
       const payload = await withTransientRetry(() => backendApiRequest<BackendSessionPayload>('/api/auth/email/session', {
         method: 'POST',
         body: { email, credential: password },
       }));
       writeExplicitLogout(false);
+      primeBackendPayload(payload);
       currentBackendAuth = toAuthBootstrap(payload);
       emitBackendAuth('SIGNED_IN', currentBackendAuth);
       return;
@@ -183,7 +203,7 @@ export const authService = {
         body: { email, credential: password, name: email.split('@')[0], consents },
       }));
       writeExplicitLogout(false);
-      if (payload.user && payload.profile) pendingRegisteredProfile = { userId: payload.user.id, profile: payload.profile };
+      primeBackendPayload(payload);
       currentBackendAuth = toAuthBootstrap(payload);
       emitBackendAuth('SIGNED_IN', currentBackendAuth);
       return { needsEmailConfirmation: false };
@@ -200,7 +220,7 @@ export const authService = {
 
   signOut: async (): Promise<void> => {
     if (isBackendApiConfigured) {
-      pendingRegisteredProfile = null;
+      clearPrimedBootstrap();
       writeExplicitLogout(true);
       writeBackendAccessToken(null);
       currentBackendAuth = { session: null, user: null };
