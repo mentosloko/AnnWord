@@ -3,6 +3,7 @@ import { DailyQuestState, DictionarySource, GameSettings, UserProfile } from '..
 import { isKidsMode } from '../../services/modeFlags';
 import { getKidsDictionaryCatalog } from '../../services/kidsDictionaryCatalog';
 import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
+import { useDictionaryPools } from '../../hooks/useDictionaryPools';
 import { QuestContextBanner } from '../QuestContextBanner';
 import { ScreenContainer } from '../layout/ScreenContainer';
 import { PlayableModeRoute } from '../AppScreens';
@@ -22,7 +23,7 @@ interface SetupScreenProps {
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onOpenDictionaryStudio: () => void;
   onOpenPremium: () => void;
-  onStartGame: () => void;
+  onStartGame: () => void | Promise<void>;
   onBack: () => void;
   onLogin: () => void;
 }
@@ -58,7 +59,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   const parentMode = isKidsMode(userProfile, isAuthenticated);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
   const source = settings.dictionarySource;
-  const canStart = source !== 'custom' || (hasPremium && customDictionaryWords.length > 0);
+  const dictionaryRuntime = useDictionaryPools({ settings, userProfile, enabled: true });
+  const [isStarting, setIsStarting] = React.useState(false);
+  const sourceReady = source !== 'custom' || (hasPremium && customDictionaryWords.length > 0);
+  const canStart = sourceReady && dictionaryRuntime.status === 'ready' && !isStarting;
   const premiumCatalog = parentMode ? getKidsDictionaryCatalog() : getPremiumDictionaryCatalog();
 
   const selectSource = (nextSource: DictionarySource) => {
@@ -74,6 +78,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     onSettingsChange({ ...settings, dictionarySource: nextSource, useCustomDictionary: nextSource === 'custom', activePremiumDictionaryId: nextPremiumId });
   };
 
+  const startGame = async () => {
+    if (!sourceReady || isStarting) return;
+    setIsStarting(true);
+    try {
+      await dictionaryRuntime.ensureReady();
+      await onStartGame();
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  const loadingLabel = dictionaryRuntime.status === 'error'
+    ? 'Повторить загрузку словаря'
+    : isStarting || dictionaryRuntime.status === 'loading'
+      ? 'Загружаю словарь…'
+      : `${hasActiveClassicGame && selectedPlayMode === 'game' ? 'Начать новую: ' : 'Начать: '}${MODE_LABELS[selectedPlayMode]}${questContext ? ' · задание' : ''}`;
+
   return <ScreenContainer className="max-w-3xl px-3 pb-20 pt-3 sm:px-4">
     <div className="mb-3 flex items-center justify-between gap-3">
       <button type="button" onClick={onBack} aria-label="Назад" className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button>
@@ -88,6 +109,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
 
     <div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:p-6">
       {setupError && <div role="alert" aria-live="assertive" className="mb-4 rounded-2xl border-2 border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{setupError}</div>}
+      {dictionaryRuntime.error && <div role="alert" aria-live="assertive" className="mb-4 rounded-2xl border-2 border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">Не удалось загрузить словарь. Проверьте соединение и повторите.</div>}
 
       <section className="mt-2" aria-labelledby="dictionary-source-title">
         <h2 id="dictionary-source-title" className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Слова для игры</h2>
@@ -137,8 +159,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
       {hasActiveClassicGame && selectedPlayMode === 'game' && onResumeClassicGame && <button type="button" onClick={onResumeClassicGame} className="mt-5 w-full rounded-2xl border-2 border-green-100 bg-green-50 py-3 font-black text-green-700">
         Продолжить сохранённую игру
       </button>}
-      <button type="button" onClick={onStartGame} disabled={!canStart} className={`mt-3 w-full rounded-2xl py-4 font-black ${canStart ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-        {canStart ? `${hasActiveClassicGame && selectedPlayMode === 'game' ? 'Начать новую: ' : 'Начать: '}${MODE_LABELS[selectedPlayMode]}${questContext ? ' · задание' : ''}` : source === 'custom' && !hasPremium ? 'Нужен Premium' : 'Нет слов для игры'}
+      <button type="button" onClick={() => void (dictionaryRuntime.status === 'error' ? dictionaryRuntime.ensureReady() : startGame())} disabled={!sourceReady || isStarting || dictionaryRuntime.status === 'loading'} className={`mt-3 w-full rounded-2xl py-4 font-black ${sourceReady && dictionaryRuntime.status !== 'loading' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+        {!sourceReady ? source === 'custom' && !hasPremium ? 'Нужен Premium' : 'Нет слов для игры' : loadingLabel}
       </button>
     </div>
   </ScreenContainer>;
