@@ -7,6 +7,9 @@ on:
     paths:
       - scripts/prod-first-load-network-audit.mjs
       - .github/workflows/prod-first-load-network-audit.yml
+      - index.html
+      - components/AppScreens.tsx
+      - components/screens/LandingMixScreen.tsx
 
 permissions:
   contents: read
@@ -14,7 +17,7 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -28,9 +31,26 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Trace production first load
+      - name: Build optimized frontend
         env:
-          APP_URL: https://annword.ru
+          VITE_API_URL: https://api.annword.ru
+        run: npx vite build
+
+      - name: Start local preview
+        run: |
+          nohup npx vite preview --host 127.0.0.1 --port 4173 >/tmp/annword-preview.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/annword-preview.log
+          exit 1
+
+      - name: Trace optimized first load
+        env:
+          APP_URL: http://127.0.0.1:4173
           API_URL: https://api.annword.ru
         run: node scripts/prod-first-load-network-audit.mjs
 
