@@ -62,7 +62,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
   const dictionaryRuntime = useDictionaryPools({ settings, userProfile, enabled: true });
   const [isStarting, setIsStarting] = React.useState(false);
   const sourceReady = source !== 'custom' || (hasPremium && customDictionaryWords.length > 0);
-  const canStart = sourceReady && dictionaryRuntime.status === 'ready' && !isStarting;
   const premiumCatalog = parentMode ? getKidsDictionaryCatalog() : getPremiumDictionaryCatalog();
 
   const selectSource = (nextSource: DictionarySource) => {
@@ -84,8 +83,18 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     try {
       await dictionaryRuntime.ensureReady();
       await onStartGame();
+    } catch {
+      // The hook exposes the user-facing error and keeps the setup screen interactive.
     } finally {
       setIsStarting(false);
+    }
+  };
+
+  const retryDictionaryLoad = async () => {
+    try {
+      await dictionaryRuntime.ensureReady();
+    } catch {
+      // The hook exposes the user-facing error.
     }
   };
 
@@ -159,7 +168,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
       {hasActiveClassicGame && selectedPlayMode === 'game' && onResumeClassicGame && <button type="button" onClick={onResumeClassicGame} className="mt-5 w-full rounded-2xl border-2 border-green-100 bg-green-50 py-3 font-black text-green-700">
         Продолжить сохранённую игру
       </button>}
-      <button type="button" onClick={() => void (dictionaryRuntime.status === 'error' ? dictionaryRuntime.ensureReady() : startGame())} disabled={!sourceReady || isStarting || dictionaryRuntime.status === 'loading'} className={`mt-3 w-full rounded-2xl py-4 font-black ${sourceReady && dictionaryRuntime.status !== 'loading' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+      <button type="button" onClick={() => void (dictionaryRuntime.status === 'error' ? retryDictionaryLoad() : startGame())} disabled={!sourceReady || isStarting || dictionaryRuntime.status === 'loading'} className={`mt-3 w-full rounded-2xl py-4 font-black ${sourceReady && dictionaryRuntime.status !== 'loading' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
         {!sourceReady ? source === 'custom' && !hasPremium ? 'Нужен Premium' : 'Нет слов для игры' : loadingLabel}
       </button>
     </div>
