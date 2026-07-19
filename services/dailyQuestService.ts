@@ -15,9 +15,19 @@ interface DailyQuestGameResult {
 const WORLD_IDS: PetWorldId[] = ['theatre', 'amusement_park', 'ice_rink', 'opera', 'sausage_fridge'];
 const normalizeWorldId = (value: unknown): PetWorldId | null =>
   WORLD_IDS.includes(value as PetWorldId) ? value as PetWorldId : null;
+let primedTodayQuest: DailyQuestState | null | undefined;
 
 export const dailyQuestService = {
+  primeTodayQuest: (quest: DailyQuestState | null | undefined): void => {
+    primedTodayQuest = normalizeDailyQuest(quest);
+  },
+
   getTodayQuest: async (): Promise<DailyQuestState | null> => {
+    if (primedTodayQuest !== undefined) {
+      const quest = primedTodayQuest;
+      primedTodayQuest = undefined;
+      return quest;
+    }
     if (isBackendApiConfigured) {
       const data = await backendApiRequest<{ quest: DailyQuestState }>('/api/daily-quest/today');
       return normalizeDailyQuest(data.quest);
