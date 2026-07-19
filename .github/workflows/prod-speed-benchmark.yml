@@ -1,0 +1,235 @@
+name: Production Speed Benchmark
+
+on:
+  push:
+    branches:
+      - agent/prod-speed-benchmark
+    paths-ignore:
+      - benchmarks/prod-speed/**
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout benchmark branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/prod-speed-benchmark
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Measure production API
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="benchmarks/prod-speed"
+          mkdir -p "$OUT/raw/lighthouse"
+          cat > "$OUT/endpoints.tsv" <<'EOF'
+          health	https://api.annword.ru/api/health	200
+          health_db	https://api.annword.ru/api/health/db	200
+          runtime_config	https://api.annword.ru/api/runtime-config	200
+          weekly_status	https://api.annword.ru/api/reports/weekly/status	200
+          prodamus_notify	https://api.annword.ru/api/payments/prodamus/notify	200
+          auth_me	https://api.annword.ru/api/auth/me	401
+          profile_me	https://api.annword.ru/api/profile/me	401
+          profile_bootstrap	https://api.annword.ru/api/profile/bootstrap	401
+          mentor_learners	https://api.annword.ru/api/mentor/learners	401
+          EOF
+
+          echo 'endpoint,run,expected_status,http_status,dns_s,tcp_s,tls_s,ttfb_s,total_s,size_bytes' > "$OUT/api-raw.csv"
+          while IFS=$'\t' read -r name url expected; do
+            for run in $(seq 1 20); do
+              values=$(curl --silent --show-error --location \
+                --max-time 30 \
+                --user-agent 'AnnWord-Production-Speed-Benchmark/1.0' \
+                --output /tmp/annword-benchmark-body \
+                --write-out '%{http_code},%{time_namelookup},%{time_connect},%{time_appconnect},%{time_starttransfer},%{time_total},%{size_download}' \
+                "$url" || printf '000,0,0,0,0,30,0')
+              echo "$name,$run,$expected,$values" >> "$OUT/api-raw.csv"
+              sleep 0.20
+            done
+          done < "$OUT/endpoints.tsv"
+
+      - name: Measure production pages with Lighthouse
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="benchmarks/prod-speed/raw/lighthouse"
+          declare -A ROUTES=(
+            [root]='https://annword.ru/'
+            [practice]='https://annword.ru/practice'
+            [kids]='https://annword.ru/kids'
+            [premium]='https://annword.ru/premium'
+          )
+
+          for strategy in mobile desktop; do
+            for route in root practice kids premium; do
+              for run in 1 2; do
+                extra=()
+                if [ "$strategy" = desktop ]; then
+                  extra+=(--preset=desktop)
+                fi
+                npx --yes lighthouse@12 "${ROUTES[$route]}" \
+                  --only-categories=performance \
+                  --output=json \
+                  --output-path="$OUT/${route}-${strategy}-${run}.json" \
+                  --chrome-flags='--headless --no-sandbox --disable-dev-shm-usage' \
+                  --throttling-method=simulate \
+                  --quiet \
+                  "${extra[@]}"
+              done
+            done
+          done
+
+      - name: Build benchmark summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv, json, math, statistics
+          from collections import defaultdict
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          root = Path('benchmarks/prod-speed')
+
+          def percentile(values, p):
+              values = sorted(values)
+              if not values:
+                  return None
+              return values[max(0, min(len(values) - 1, math.ceil(p * len(values)) - 1))]
+
+          api_groups = defaultdict(list)
+          with (root / 'api-raw.csv').open(newline='') as fh:
+              for row in csv.DictReader(fh):
+                  item = {
+                      'run': int(row['run']),
+                      'expected_status': int(row['expected_status']),
+                      'http_status': int(row['http_status']),
+                      'dns_ms': float(row['dns_s']) * 1000,
+                      'tcp_ms': float(row['tcp_s']) * 1000,
+                      'tls_ms': float(row['tls_s']) * 1000,
+                      'ttfb_ms': float(row['ttfb_s']) * 1000,
+                      'total_ms': float(row['total_s']) * 1000,
+                      'size_bytes': int(float(row['size_bytes'])),
+                  }
+                  api_groups[row['endpoint']].append(item)
+
+          api_summary = {}
+          for name, rows in sorted(api_groups.items()):
+              totals = [r['total_ms'] for r in rows]
+              ttfb = [r['ttfb_ms'] for r in rows]
+              warm = [r['total_ms'] for r in rows if r['run'] > 1]
+              expected = rows[0]['expected_status']
+              api_summary[name] = {
+                  'samples': len(rows),
+                  'expected_status': expected,
+                  'matching_status': sum(r['http_status'] == expected for r in rows),
+                  'first_total_ms': round(rows[0]['total_ms'], 1),
+                  'total_median_ms': round(statistics.median(totals), 1),
+                  'total_p95_ms': round(percentile(totals, .95), 1),
+                  'total_mean_ms': round(statistics.mean(totals), 1),
+                  'total_min_ms': round(min(totals), 1),
+                  'total_max_ms': round(max(totals), 1),
+                  'warm_median_ms': round(statistics.median(warm), 1),
+                  'ttfb_median_ms': round(statistics.median(ttfb), 1),
+                  'ttfb_p95_ms': round(percentile(ttfb, .95), 1),
+                  'dns_median_ms': round(statistics.median(r['dns_ms'] for r in rows), 1),
+                  'tls_median_ms': round(statistics.median(r['tls_ms'] for r in rows), 1),
+                  'size_bytes_median': round(statistics.median(r['size_bytes'] for r in rows)),
+              }
+
+          lighthouse_runs = []
+          for path in sorted((root / 'raw/lighthouse').glob('*.json')):
+              route, strategy, run_with_ext = path.stem.rsplit('-', 2)
+              data = json.loads(path.read_text())
+              audits = data['audits']
+              lighthouse_runs.append({
+                  'route': route,
+                  'strategy': strategy,
+                  'run': int(run_with_ext),
+                  'performance_score': round(data['categories']['performance']['score'] * 100),
+                  'fcp_ms': audits['first-contentful-paint']['numericValue'],
+                  'lcp_ms': audits['largest-contentful-paint']['numericValue'],
+                  'speed_index_ms': audits['speed-index']['numericValue'],
+                  'tbt_ms': audits['total-blocking-time']['numericValue'],
+                  'cls': audits['cumulative-layout-shift']['numericValue'],
+                  'tti_ms': audits.get('interactive', {}).get('numericValue'),
+                  'server_response_ms': audits['server-response-time']['numericValue'],
+                  'total_bytes': audits['total-byte-weight']['numericValue'],
+              })
+
+          lh_groups = defaultdict(list)
+          for row in lighthouse_runs:
+              lh_groups[(row['route'], row['strategy'])].append(row)
+
+          lh_summary = {}
+          for (route, strategy), rows in sorted(lh_groups.items()):
+              def med(key):
+                  vals = [r[key] for r in rows if r.get(key) is not None]
+                  return round(statistics.median(vals), 2) if vals else None
+              lh_summary[f'{route}:{strategy}'] = {
+                  'route': route,
+                  'strategy': strategy,
+                  'samples': len(rows),
+                  'performance_score': med('performance_score'),
+                  'fcp_ms': med('fcp_ms'),
+                  'lcp_ms': med('lcp_ms'),
+                  'speed_index_ms': med('speed_index_ms'),
+                  'tbt_ms': med('tbt_ms'),
+                  'cls': med('cls'),
+                  'tti_ms': med('tti_ms'),
+                  'server_response_ms': med('server_response_ms'),
+                  'total_bytes': round(med('total_bytes')),
+              }
+
+          summary = {
+              'measured_at': datetime.now(timezone.utc).isoformat(),
+              'runner': 'github-actions ubuntu-latest',
+              'api': api_summary,
+              'lighthouse': lh_summary,
+              'lighthouse_runs': lighthouse_runs,
+          }
+          (root / 'summary.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2))
+
+          with (root / 'api-summary.csv').open('w', newline='') as fh:
+              fields = ['endpoint','samples','expected_status','matching_status','first_total_ms','total_median_ms','total_p95_ms','total_mean_ms','total_min_ms','total_max_ms','warm_median_ms','ttfb_median_ms','ttfb_p95_ms','dns_median_ms','tls_median_ms','size_bytes_median']
+              writer = csv.DictWriter(fh, fieldnames=fields)
+              writer.writeheader()
+              for endpoint, values in api_summary.items():
+                  writer.writerow({'endpoint': endpoint, **values})
+
+          with (root / 'lighthouse-summary.csv').open('w', newline='') as fh:
+              fields = ['route','strategy','samples','performance_score','fcp_ms','lcp_ms','speed_index_ms','tbt_ms','cls','tti_ms','server_response_ms','total_bytes']
+              writer = csv.DictWriter(fh, fieldnames=fields)
+              writer.writeheader()
+              for values in lh_summary.values():
+                  writer.writerow(values)
+
+          md = ['# AnnWord production speed benchmark', '', f"Measured: {summary['measured_at']}", '', '## API', '', '| Endpoint | Median total | p95 total | Median TTFB | p95 TTFB | Status |', '|---|---:|---:|---:|---:|---:|']
+          for endpoint, values in api_summary.items():
+              md.append(f"| {endpoint} | {values['total_median_ms']} ms | {values['total_p95_ms']} ms | {values['ttfb_median_ms']} ms | {values['ttfb_p95_ms']} ms | {values['matching_status']}/{values['samples']} |")
+          md += ['', '## Lighthouse', '', '| Route | Mode | Score | FCP | LCP | TBT | CLS | TTFB | Transfer |', '|---|---|---:|---:|---:|---:|---:|---:|---:|']
+          for values in lh_summary.values():
+              md.append(f"| {values['route']} | {values['strategy']} | {values['performance_score']} | {values['fcp_ms']} ms | {values['lcp_ms']} ms | {values['tbt_ms']} ms | {values['cls']} | {values['server_response_ms']} ms | {values['total_bytes']} B |")
+          (root / 'REPORT.md').write_text('\n'.join(md) + '\n')
+          print('\n'.join(md))
+          PY
+
+      - name: Commit benchmark results
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add benchmarks/prod-speed
+          git commit -m 'chore: save production speed benchmark [benchmark results]'
+          git push origin HEAD:agent/prod-speed-benchmark
