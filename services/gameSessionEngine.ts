@@ -1,11 +1,14 @@
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { EnrichedWord } from '../types';
-import { hasRussianTranslation, normalizeWord } from './dictionaryEngine';
+import { hasRussianTranslation, normalizeWord } from './wordNormalization';
 import { getUnusedSessionWord, resetSessionWordBucket } from './sessionWordHistory';
+import { updateReviewPriorities, type WordPracticeResult } from './wordPracticeProgress';
+
+export { updateReviewPriorities } from './wordPracticeProgress';
+export type { WordPracticeResult } from './wordPracticeProgress';
 
 export type GameSessionMode = 'anagram' | 'sprint' | 'memory' | 'hangman' | 'translation' | 'letterSquare';
 export type AdaptiveGameSessionMode = 'anagram' | 'sprint' | 'translation' | 'letterSquare';
-export type WordPracticeResult = 'failed' | 'mastered';
 
 const translatedEntries = (entries: EnrichedWord[]): EnrichedWord[] => entries
   .filter(entry => hasRussianTranslation(entry.translation))
@@ -49,21 +52,7 @@ export const pickNextSessionWord = <T extends { word: string; isTransliterated?:
  * Records unresolved difficulty for Sprint, Anagrams and Translation Choice only.
  * One correct answer means the user has handled this word, so its priority is removed.
  */
-export const updateReviewPriorities = (
-  current: Record<string, number> = {},
-  word: string,
-  result: WordPracticeResult,
-): Record<string, number> => {
-  const normalized = normalizeWord(word);
-  if (!normalized) return { ...current };
-  const next = { ...current };
-  if (result === 'mastered') {
-    delete next[normalized];
-    return next;
-  }
-  next[normalized] = Math.min(4, Math.max(0, Math.round(next[normalized] || 0)) + 1);
-  return next;
-};
+export { type WordPracticeResult };
 
 /**
  * In adaptive modes, words with unresolved mistakes appear more often.
