@@ -31,6 +31,9 @@ const setFreshness = (next: ProfileFreshness): void => {
   freshness = next;
   notifyFreshness();
 };
+const markCachedIfNeeded = (): void => {
+  if (freshness === 'loading' || freshness === 'none') setFreshness('cached');
+};
 
 const normalizeStringArray = (value: unknown): string[] => Array.isArray(value)
   ? Array.from(new Set(value.filter((item): item is string => typeof item === 'string').map(item => item.trim()).filter(Boolean)))
@@ -91,7 +94,7 @@ const clearLegacyCache = (): void => {
 export const profileCache = {
   read: (): UserProfile | null => {
     const payload = readPayload();
-    if (payload) setFreshness('cached');
+    if (payload) markCachedIfNeeded();
     return payload ? normalizeProfile(payload.profile) : null;
   },
 
@@ -99,7 +102,7 @@ export const profileCache = {
     clearLegacyCache();
     const payload = readPayload();
     if (!payload) return null;
-    setFreshness('cached');
+    markCachedIfNeeded();
     return {
       profile: normalizeProfile(payload.profile),
       userId: payload.userId || null,
