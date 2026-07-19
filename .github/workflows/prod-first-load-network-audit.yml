@@ -11,6 +11,7 @@ on:
       - index.html
       - components/AppScreens.tsx
       - components/screens/LandingMixScreen.tsx
+      - tests/entryRoutingAndDictionaryUi.test.ts
 
 permissions:
   contents: read
@@ -18,7 +19,7 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -56,6 +57,49 @@ jobs:
           APP_URL: http://127.0.0.1:4173
           API_URL: http://127.0.0.1:4174
         run: node scripts/prod-first-load-network-audit.mjs
+
+      - name: Lighthouse mobile
+        run: |
+          npx --yes lighthouse@12 http://127.0.0.1:4173/ \
+            --only-categories=performance \
+            --output=json \
+            --output-path=artifacts/first-load-network/lighthouse-mobile.json \
+            --chrome-flags='--headless --no-sandbox --disable-dev-shm-usage' \
+            --throttling-method=simulate \
+            --quiet
+
+      - name: Lighthouse desktop
+        run: |
+          npx --yes lighthouse@12 http://127.0.0.1:4173/ \
+            --only-categories=performance \
+            --output=json \
+            --output-path=artifacts/first-load-network/lighthouse-desktop.json \
+            --chrome-flags='--headless --no-sandbox --disable-dev-shm-usage' \
+            --throttling-method=simulate \
+            --preset=desktop \
+            --quiet
+
+      - name: Print Lighthouse comparison
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          for (const mode of ['mobile', 'desktop']) {
+            const report = JSON.parse(fs.readFileSync(`artifacts/first-load-network/lighthouse-${mode}.json`, 'utf8'));
+            const audits = report.audits;
+            const row = {
+              mode,
+              score: Math.round(report.categories.performance.score * 100),
+              fcpMs: Math.round(audits['first-contentful-paint'].numericValue),
+              lcpMs: Math.round(audits['largest-contentful-paint'].numericValue),
+              speedIndexMs: Math.round(audits['speed-index'].numericValue),
+              tbtMs: Math.round(audits['total-blocking-time'].numericValue),
+              cls: Number(audits['cumulative-layout-shift'].numericValue.toFixed(3)),
+              bytes: Math.round(audits['total-byte-weight'].numericValue),
+              requests: audits['network-requests'].details.items.length,
+            };
+            console.log(JSON.stringify(row));
+          }
+          NODE
 
       - name: Upload HAR and summaries
         if: always()
