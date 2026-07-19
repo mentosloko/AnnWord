@@ -1,15 +1,14 @@
 import { query, transaction } from "./db";
 import type { CustomDictionaryCollection } from "../types";
+import { normalizeEnglishWordArray } from "../utils/wordListParser";
 import { getProfileById } from "./profileRepository";
 
 const SOURCES = new Set(["manual", "ocr", "class", "topic"]);
 
-const wordsOf = (input: unknown): string[] => Array.from(new Set(
+const wordsOf = (input: unknown): string[] => normalizeEnglishWordArray(
   (Array.isArray(input) ? input : [])
-    .filter((item): item is string => typeof item === "string")
-    .map((word) => word.trim().toUpperCase())
-    .filter((word) => /^[A-Z][A-Z'-]{1,}$/.test(word)),
-));
+    .filter((item): item is string => typeof item === "string"),
+);
 
 const readText = (value: unknown): string | undefined => typeof value === "string" && value.trim() ? value.trim() : undefined;
 const sameWords = (left: string[], right: string[]): boolean => left.length === right.length && left.every((word, index) => word === right[index]);

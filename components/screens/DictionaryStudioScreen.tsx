@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { browserOcrService } from '../../services/browserOcr';
 import { PremiumDictionaryDraft } from '../../services/premiumDictionaryService';
 import { CustomDictionaryCollection, UserProfile } from '../../types';
+import { analyzeEnglishWordList, formatEnglishWordList } from '../../utils/wordListParser';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 interface DictionaryStudioScreenProps {
@@ -10,20 +10,6 @@ interface DictionaryStudioScreenProps {
   onSaveDictionary: (draft: PremiumDictionaryDraft) => Promise<void>;
 }
 
-const wordRegex = /[A-Za-z][A-Za-z'-]{1,}/g;
-const parseWords = (value: string): string[] => Array.from(new Set(
-  (value.match(wordRegex) || []).map(word => word.toUpperCase()),
-));
-const parsePreview = (value: string) => {
-  const tokens = value.split(/[^A-Za-z'-]+/).map(item => item.trim()).filter(Boolean);
-  const valid = tokens.filter(token => /^[A-Za-z][A-Za-z'-]{1,}$/.test(token)).map(token => token.toUpperCase());
-  const unique = Array.from(new Set(valid));
-  return {
-    hasDuplicates: valid.length !== unique.length,
-    rejected: tokens.filter(token => !/^[A-Za-z][A-Za-z'-]{1,}$/.test(token)).slice(0, 20),
-    outsideLength: unique.filter(word => word.length < 4 || word.length > 6),
-  };
-};
 const latestCollection = (collections: CustomDictionaryCollection[] = []): CustomDictionaryCollection | undefined =>
   [...collections].sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''))[0] || collections[0];
 
@@ -36,7 +22,6 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
     : 'Practice Premium открывает личные, тематические и специальные словари для ежедневной взрослой практики.';
   const premiumNotExpired = !userProfile.premiumExpiresAt || Date.parse(userProfile.premiumExpiresAt) > Date.now();
   const canCreate = isTeacher || userProfile.role === 'admin' || (userProfile.subscriptionTier === 'premium' && premiumNotExpired);
-  const canUseOcr = !isTeacher && canCreate;
   const activeTeacherCollection = isTeacher ? latestCollection(userProfile.dictionaryCollections || []) : undefined;
   const originalDraft = (isTeacher ? activeTeacherCollection?.words || [] : userProfile.customDictionaryEn).join('\n');
   const editorSourceKey = isTeacher ? activeTeacherCollection?.id || 'teacher-empty' : 'custom-dictionary';
@@ -46,8 +31,6 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
   const [theme, setTheme] = useState(activeTeacherCollection?.theme || '');
   const [source, setSource] = useState<PremiumDictionaryDraft['source']>(activeTeacherCollection?.source || 'manual');
   const [draft, setDraft] = useState(originalDraft);
-  const [ocrProgress, setOcrProgress] = useState<number | null>(null);
-  const [ocrMessage, setOcrMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -59,34 +42,12 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
     setDraft(originalDraft);
   }, [activeTeacherCollection?.classLabel, activeTeacherCollection?.source, activeTeacherCollection?.theme, activeTeacherCollection?.title, editorSourceKey, isTeacher, originalDraft]);
 
-  const words = useMemo(() => parseWords(draft), [draft]);
-  const preview = useMemo(() => parsePreview(draft), [draft]);
+  const preview = useMemo(() => analyzeEnglishWordList(draft), [draft]);
+  const words = preview.words;
 
-  const runOcr = async (file: File | undefined) => {
-    if (!file || !canUseOcr) return;
-    setNotice(null);
-    setOcrProgress(0);
-    setOcrMessage('Подготавливаю распознавание...');
-    try {
-      const recognizedWords = await browserOcrService.recognizeWords(file, (percent, status) => {
-        setOcrProgress(percent);
-        setOcrMessage(status);
-      });
-      if (!recognizedWords.length) {
-        setNotice('На фотографии не найдено английских слов. Попробуйте более чёткое изображение.');
-        return;
-      }
-      const mergedWords = Array.from(new Set([...words, ...recognizedWords.map(word => word.toUpperCase())]));
-      setDraft(mergedWords.join('\n'));
-      setTitle(isTeacher ? 'Словарь для ученика' : 'Мой словарь');
-      setSource('ocr');
-      setNotice('Слова с фотографии добавлены. Проверьте список перед сохранением.');
-    } catch (error: unknown) {
-      setNotice(error instanceof Error ? error.message : 'Не удалось распознать изображение.');
-    } finally {
-      setOcrProgress(null);
-      setOcrMessage(null);
-    }
+  const normalizeDraft = () => {
+    const normalized = formatEnglishWordList(draft);
+    if (normalized !== draft) setDraft(normalized);
   };
 
   const save = async () => {
@@ -98,6 +59,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
       setNotice('Добавьте хотя бы одно английское слово.');
       return;
     }
+    setDraft(words.join('\n'));
     setIsSaving(true);
     try {
       await onSaveDictionary({
@@ -109,7 +71,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
       });
       setNotice(isTeacher
         ? `Словарь «${title.trim() || 'Словарь для ученика'}» сохранён.`
-        : 'Мой словарь сохранён и автоматически выбран для игр.');
+        : 'Список очищен, сохранён и автоматически выбран для игр.');
     } catch (error: unknown) {
       setNotice(error instanceof Error ? error.message : 'Не удалось сохранить словарь.');
     } finally {
@@ -130,7 +92,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         <div className="text-xs font-black uppercase tracking-widest text-purple-500">{isTeacher ? 'AnnWord Teacher' : 'Premium'}</div>
         <h1 className="text-2xl font-black text-indigo-950 sm:text-3xl">{isTeacher ? 'Словарь преподавателя' : 'Мой словарь'}</h1>
       </div>
-      <div className="rounded-full bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">{canUseOcr ? 'Фото' : isTeacher ? 'Словари' : 'Premium'}</div>
+      <div className="rounded-full bg-purple-50 px-3 py-2 text-xs font-black text-purple-700">Слова</div>
     </header>
 
     {notice && <div role="status" aria-live="polite" className="mb-4 flex justify-between rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">
@@ -154,51 +116,45 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         <h2 className="text-xl font-black text-indigo-950">{isTeacher ? 'Соберите словарь для ученика' : 'Дополните текущий “Мой словарь”'}</h2>
         <p className="mt-2 text-sm font-bold text-indigo-700">
           {isTeacher
-            ? 'Добавьте слова в редактор, по одному слову в строке. После сохранения словарь можно будет назначить ученику.'
-            : 'В редакторе уже открыт текущий список. Добавьте новые слова, удалите лишние и сохраните — этот список будет использоваться в играх как “Мой словарь”.'}
+            ? 'Введите слова или вставьте готовый текст. Регистр, нумерация и разделители не важны — AnnWord сам очистит список.'
+            : 'Введите слова вручную или вставьте текст, распознанный Алисой. AnnWord приведёт регистр к единому виду, уберёт разделители и дубликаты.'}
         </p>
       </div>
 
-      <div className={`grid gap-3 ${isTeacher ? 'sm:grid-cols-3' : ''}`}>
-        {isTeacher && <>
-          <input value={title} onChange={event => setTitle(event.target.value)} placeholder="Название словаря" aria-label="Название словаря" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold text-indigo-950 sm:col-span-3" />
-          <input value={classLabel} onChange={event => { setClassLabel(event.target.value); setSource('class'); }} placeholder="Класс: 3А" aria-label="Класс" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
-          <input value={theme} onChange={event => { setTheme(event.target.value); if (!classLabel) setSource('topic'); }} placeholder="Тема: Еда" aria-label="Тема словаря" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
-        </>}
-        {canUseOcr
-          ? <label className="cursor-pointer rounded-xl border-2 border-dashed border-purple-200 bg-purple-50 px-3 py-2.5 text-center text-sm font-black text-purple-700">
-              <input type="file" accept="image/*" className="hidden" onChange={event => void runOcr(event.target.files?.[0])} />📷 Добавить слова с фото
-            </label>
-          : <div aria-disabled="true" className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-3 py-2.5 text-center text-sm font-black text-gray-400" title={isTeacher ? 'OCR для преподавателя появится позднее' : 'OCR доступен в Premium'}>📷 OCR позже</div>}
-      </div>
-
-      {ocrProgress !== null && <div className="mt-4 rounded-2xl bg-purple-50 p-3">
-        <div className="mb-2 flex justify-between text-xs font-black text-purple-700"><span>{ocrMessage}</span><span>{ocrProgress}%</span></div>
-        <div className="h-2 overflow-hidden rounded-full bg-purple-100"><div className="h-full bg-purple-600" style={{ width: `${ocrProgress}%` }} /></div>
+      {isTeacher && <div className="grid gap-3 sm:grid-cols-3">
+        <input value={title} onChange={event => setTitle(event.target.value)} placeholder="Название словаря" aria-label="Название словаря" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold text-indigo-950 sm:col-span-3" />
+        <input value={classLabel} onChange={event => { setClassLabel(event.target.value); setSource('class'); }} placeholder="Класс: 3А" aria-label="Класс" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
+        <input value={theme} onChange={event => { setTheme(event.target.value); if (!classLabel) setSource('topic'); }} placeholder="Тема: Еда" aria-label="Тема словаря" className="rounded-xl border-2 border-indigo-100 px-3 py-2.5 font-bold" />
       </div>}
 
-      <div className="mt-5"><h2 className="text-sm font-black uppercase tracking-widest text-indigo-400">Список слов</h2></div>
+      {!isTeacher && <div className="rounded-2xl border border-purple-100 bg-purple-50 p-4 text-sm font-bold text-purple-800">
+        <div className="font-black">Как перенести слова с фотографии</div>
+        <p className="mt-1">Отправьте фото Алисе и попросите: «Распознай английские слова. Выведи только слова без перевода и пояснений». Затем вставьте ответ в поле ниже.</p>
+      </div>}
+
+      <div className="mt-5"><h2 className="text-sm font-black uppercase tracking-widest text-indigo-400">Добавьте слова</h2></div>
       <textarea
         value={draft}
-        onChange={event => setDraft(event.target.value)}
-        placeholder={'APPLE\nSCHOOL\nFRIEND'}
+        onChange={event => { setDraft(event.target.value); if (!isTeacher) setSource('manual'); }}
+        onBlur={normalizeDraft}
+        placeholder={'Hi, KITE; fine / ride\nDRIVE | home • tree\nhouse, chair, table'}
         disabled={!canCreate}
-        className="mt-3 h-72 w-full rounded-2xl border-2 border-indigo-100 p-4 font-mono text-sm font-bold uppercase text-indigo-950 disabled:bg-gray-50 disabled:text-gray-400"
+        aria-label="Слова для словаря"
+        className="mt-3 h-72 w-full rounded-2xl border-2 border-indigo-100 p-4 font-mono text-sm font-bold text-indigo-950 disabled:bg-gray-50 disabled:text-gray-400"
       />
       <section className="mt-4 rounded-3xl border-2 border-indigo-50 bg-indigo-50/50 p-4" aria-label="Предпросмотр словаря">
         <div className="text-xs font-black uppercase tracking-widest text-indigo-400">Проверка перед сохранением</div>
-        <p className="mt-2 text-sm font-bold text-indigo-800">Слова из 4–6 букв будут использоваться во всех игровых режимах с ограничением длины. Остальные останутся доступны в режимах без ограничения.</p>
-        {(preview.hasDuplicates || preview.rejected.length > 0 || preview.outsideLength.length > 0) && <div className="mt-3 grid gap-2 text-xs font-bold text-gray-600 sm:grid-cols-3">
+        <p className="mt-2 text-sm font-bold text-indigo-800">Подойдут пробелы, переносы строк, запятые, точки с запятой, слеши, тире, маркеры и нумерация. Сохранятся только английские слова.</p>
+        {(preview.hasDuplicates || preview.outsideLength.length > 0) && <div className="mt-3 grid gap-2 text-xs font-bold text-gray-600 sm:grid-cols-2">
           {preview.hasDuplicates && <div className="rounded-2xl bg-white p-3">Дубликаты будут удалены автоматически.</div>}
-          {preview.rejected.length > 0 && <div className="rounded-2xl bg-white p-3">Некорректные элементы: <b>{preview.rejected.join(', ')}</b></div>}
           {preview.outsideLength.length > 0 && <div className="rounded-2xl bg-white p-3">Не подходят для игр 4–6 букв: <b>{preview.outsideLength.slice(0, 8).join(', ')}</b></div>}
         </div>}
       </section>
-      <p className="mt-2 text-xs font-bold text-gray-500">Можно вставить слова списком, через пробел или из учебника: приложение само оставит английские слова и уберёт дубликаты.</p>
+      <p className="mt-2 text-xs font-bold text-gray-500">При выходе из поля и при сохранении список автоматически преобразуется: одно слово — одна строка.</p>
       {!canCreate && <p className="mt-2 text-xs font-bold text-gray-500">Сохранение заблокировано до подключения Premium.</p>}
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <button type="button" onClick={() => void save()} disabled={!canCreate || isSaving || !words.length} className="rounded-xl bg-indigo-600 px-6 py-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{isSaving ? 'Сохраняю...' : isTeacher ? 'Сохранить словарь преподавателя' : 'Сохранить мой словарь'}</button>
+        <button type="button" onClick={() => void save()} disabled={!canCreate || isSaving || !words.length} className="rounded-xl bg-indigo-600 px-6 py-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{isSaving ? 'Сохраняю...' : isTeacher ? 'Сохранить словарь преподавателя' : 'Сохранить слова'}</button>
         <button type="button" onClick={resetDraft} disabled={!canCreate} className="rounded-xl border-2 border-indigo-100 px-5 py-3 font-black text-indigo-700 disabled:text-gray-300">Сбросить изменения</button>
         <button type="button" onClick={() => { setDraft(''); setSource('manual'); }} disabled={!canCreate} className="rounded-xl border-2 border-indigo-100 px-5 py-3 font-black text-indigo-700 disabled:text-gray-300">Очистить</button>
       </div>
