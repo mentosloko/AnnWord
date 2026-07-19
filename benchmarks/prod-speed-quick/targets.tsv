@@ -1,0 +1,10 @@
+page_root	https://annword.ru/	200
+page_practice	https://annword.ru/practice	200
+page_kids	https://annword.ru/kids	200
+page_premium	https://annword.ru/premium	200
+page_profile	https://annword.ru/profile	200
+api_health	https://api.annword.ru/api/health	200
+api_health_db	https://api.annword.ru/api/health/db	200
+api_runtime_config	https://api.annword.ru/api/runtime-config	200
+api_weekly_status	https://api.annword.ru/api/reports/weekly/status	200
+api_profile_bootstrap_unauth	https://api.annword.ru/api/profile/bootstrap	401

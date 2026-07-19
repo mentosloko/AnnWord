@@ -1,0 +1,152 @@
+{
+  "measured_at": "2026-07-19T17:43:51.987725+00:00",
+  "runner": "github-actions ubuntu-latest",
+  "curl": {
+    "api_health": {
+      "samples": 10,
+      "status_ok": 10,
+      "first_total_ms": 977.8,
+      "median_total_ms": 883.3,
+      "p95_total_ms": 1018.8,
+      "median_ttfb_ms": 883.2,
+      "p95_ttfb_ms": 1018.7,
+      "median_dns_ms": 265.3,
+      "median_tls_ms": 645.3,
+      "median_size_bytes": 122
+    },
+    "api_health_db": {
+      "samples": 10,
+      "status_ok": 10,
+      "first_total_ms": 826.7,
+      "median_total_ms": 630.1,
+      "p95_total_ms": 948.4,
+      "median_ttfb_ms": 630.0,
+      "p95_ttfb_ms": 948.3,
+      "median_dns_ms": 2.3,
+      "median_tls_ms": 383.7,
+      "median_size_bytes": 133
+    },
+    "api_profile_bootstrap_unauth": {
+      "samples": 10,
+      "status_ok": 10,
+      "first_total_ms": 898.9,
+      "median_total_ms": 879.5,
+      "p95_total_ms": 982.8,
+      "median_ttfb_ms": 879.3,
+      "p95_ttfb_ms": 982.6,
+      "median_dns_ms": 269.6,
+      "median_tls_ms": 644.9,
+      "median_size_bytes": 24
+    },
+    "api_runtime_config": {
+      "samples": 10,
+      "status_ok": 10,
+      "first_total_ms": 612.7,
+      "median_total_ms": 616.2,
+      "p95_total_ms": 787.5,
+      "median_ttfb_ms": 616.1,
+      "p95_ttfb_ms": 787.4,
+      "median_dns_ms": 2.4,
+      "median_tls_ms": 380.9,
+      "median_size_bytes": 187
+    },
+    "api_weekly_status": {
+      "samples": 10,
+      "status_ok": 10,
+      "first_total_ms": 667.2,
+      "median_total_ms": 670.7,
+      "p95_total_ms": 994.3,
+      "median_ttfb_ms": 670.5,
+      "p95_ttfb_ms": 994.2,
+      "median_dns_ms": 2.5,
+      "median_tls_ms": 384.4,
+      "median_size_bytes": 173
+    },
+    "page_kids": {
+      "samples": 10,
+      "status_ok": 10,
+      "first_total_ms": 1188.6,
+      "median_total_ms": 830.7,
+      "p95_total_ms": 1188.6,
+      "median_ttfb_ms": 830.6,
+      "p95_ttfb_ms": 1188.4,
+      "median_dns_ms": 0.8,
+      "median_tls_ms": 386.8,
+      "median_size_bytes": 2396
+    },
+    "page_practice": {
+      "samples": 10,
+      "status_ok": 10,
+      "first_total_ms": 814.9,
+      "median_total_ms": 828.9,
+      "p95_total_ms": 897.8,
+      "median_ttfb_ms": 828.8,
+      "p95_ttfb_ms": 897.7,
+      "median_dns_ms": 0.8,
+      "median_tls_ms": 389.3,
+      "median_size_bytes": 2396
+    },
+    "page_premium": {
+      "samples": 10,
+      "status_ok": 10,
+      "first_total_ms": 816.5,
+      "median_total_ms": 811.0,
+      "p95_total_ms": 929.6,
+      "median_ttfb_ms": 810.8,
+      "p95_ttfb_ms": 929.5,
+      "median_dns_ms": 0.8,
+      "median_tls_ms": 388.5,
+      "median_size_bytes": 2396
+    },
+    "page_profile": {
+      "samples": 10,
+      "status_ok": 10,
+      "first_total_ms": 841.8,
+      "median_total_ms": 833.5,
+      "p95_total_ms": 893.0,
+      "median_ttfb_ms": 833.3,
+      "p95_ttfb_ms": 892.9,
+      "median_dns_ms": 0.8,
+      "median_tls_ms": 387.1,
+      "median_size_bytes": 2396
+    },
+    "page_root": {
+      "samples": 10,
+      "status_ok": 10,
+      "first_total_ms": 1018.9,
+      "median_total_ms": 618.3,
+      "p95_total_ms": 1018.9,
+      "median_ttfb_ms": 618.2,
+      "p95_ttfb_ms": 1018.8,
+      "median_dns_ms": 0.8,
+      "median_tls_ms": 387.7,
+      "median_size_bytes": 2396
+    }
+  },
+  "lighthouse_root": {
+    "mobile": {
+      "score": 66,
+      "fcp_ms": 5033,
+      "lcp_ms": 5033,
+      "speed_index_ms": 6444,
+      "tbt_ms": 70,
+      "cls": 0,
+      "tti_ms": 5252,
+      "server_response_ms": 231,
+      "total_bytes": 1808007,
+      "requests": 30
+    },
+    "desktop": {
+      "score": 70,
+      "fcp_ms": 2074,
+      "lcp_ms": 2074,
+      "speed_index_ms": 2346,
+      "tbt_ms": 0,
+      "cls": 0.166,
+      "tti_ms": 2074,
+      "server_response_ms": 218,
+      "total_bytes": 1808008,
+      "requests": 30
+    }
+  }
+}
