@@ -19,7 +19,7 @@ let primedTodayQuest: DailyQuestState | null | undefined;
 
 export const dailyQuestService = {
   primeTodayQuest: (quest: DailyQuestState | null | undefined): void => {
-    primedTodayQuest = normalizeDailyQuest(quest);
+    primedTodayQuest = quest === undefined ? undefined : normalizeDailyQuest(quest);
   },
 
   getTodayQuest: async (): Promise<DailyQuestState | null> => {
