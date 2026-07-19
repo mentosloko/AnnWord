@@ -3,6 +3,8 @@
 const viteEnv = ((import.meta as any).env || {}) as Record<string, string | undefined>;
 const BACKEND_TOKEN_STORAGE_KEY = "annword_backend_access_token_v1";
 const BACKEND_COOKIE_SYNC_STORAGE_KEY = "annword_backend_cookie_synced_v1";
+const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
+const pendingGetRequests = new Map<string, Promise<unknown>>();
 
 const normalizeBaseUrl = (value: string | undefined): string => (value || "").trim().replace(/\/+$/, "");
 
@@ -80,33 +82,55 @@ export class BackendApiError extends Error {
   }
 }
 
-type RequestOptions = {
+export type BackendRequestOptions = {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
+  signal?: AbortSignal;
+  timeoutMs?: number;
+  dedupe?: boolean;
 };
 
-async function doFetch<T>(path: string, options: RequestOptions, useHeaderToken: boolean): Promise<{ response: Response; payload: ({ error?: string } | T | null) }> {
+const abortError = (path: string, timedOut: boolean): BackendApiError => new BackendApiError(
+  timedOut ? `Сервер слишком долго отвечает (${path}). Попробуйте ещё раз.` : "Запрос отменён.",
+  0,
+);
+
+async function doFetch<T>(path: string, options: BackendRequestOptions, useHeaderToken: boolean): Promise<{ response: Response; payload: ({ error?: string } | T | null) }> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
   const token = readBackendAccessToken();
   if (token && useHeaderToken) headers["X-AnnWord-Session"] = token;
 
-  const response = await fetch(`${backendApiBaseUrl}${path}`, {
-    method: options.method || "GET",
-    headers,
-    credentials: "include",
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  });
+  const controller = new AbortController();
+  const timeoutMs = Math.max(1_000, options.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS);
+  let timedOut = false;
+  const timeoutId = globalThis.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+  const abortFromCaller = () => controller.abort();
+  options.signal?.addEventListener("abort", abortFromCaller, { once: true });
 
-  const payload = await response.json().catch(() => null) as { error?: string } | T | null;
-  return { response, payload };
+  try {
+    const response = await fetch(`${backendApiBaseUrl}${path}`, {
+      method: options.method || "GET",
+      headers,
+      credentials: "include",
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => null) as { error?: string } | T | null;
+    return { response, payload };
+  } catch (error) {
+    if (controller.signal.aborted) throw abortError(path, timedOut);
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+    options.signal?.removeEventListener("abort", abortFromCaller);
+  }
 }
 
-export async function backendApiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  if (!backendApiBaseUrl) {
-    throw new BackendApiError("Backend API is not configured", 0);
-  }
-
+async function executeBackendRequest<T>(path: string, options: BackendRequestOptions): Promise<T> {
   const method = options.method || "GET";
   const token = readBackendAccessToken();
   const canTryCookieOnly = method === "GET" && Boolean(token) && readBackendCookieSynced();
@@ -134,4 +158,24 @@ export async function backendApiRequest<T>(path: string, options: RequestOptions
   }
 
   throw new BackendApiError("Backend API request failed", 0);
+}
+
+export async function backendApiRequest<T>(path: string, options: BackendRequestOptions = {}): Promise<T> {
+  if (!backendApiBaseUrl) {
+    throw new BackendApiError("Backend API is not configured", 0);
+  }
+
+  const method = options.method || "GET";
+  const shouldDedupe = method === "GET" && options.dedupe !== false && !options.signal;
+  if (!shouldDedupe) return executeBackendRequest<T>(path, options);
+
+  const key = `${method}:${path}`;
+  const existing = pendingGetRequests.get(key);
+  if (existing) return existing as Promise<T>;
+
+  const pending = executeBackendRequest<T>(path, options).finally(() => {
+    pendingGetRequests.delete(key);
+  });
+  pendingGetRequests.set(key, pending);
+  return pending;
 }
