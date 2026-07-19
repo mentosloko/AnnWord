@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAX_GUESSES } from '../constants';
+import { getTranslationForWord } from '../services/dictionaryEngine';
 import { getBestEliminationHint } from '../services/hintService';
 import { getUnusedSessionWord } from '../services/sessionWordHistory';
 import { CharStatus, EnrichedWord, GameSettings, GameState, ViewState, WordLength } from '../types';
@@ -31,7 +32,7 @@ const getTargetWordLength = (state: GameState, fallback: WordLength): WordLength
 export const getGuessLetterStatuses = (guess: string, secretWord: string): CharStatus[] => { const status: CharStatus[] = Array(guess.length).fill('absent'), secret = secretWord.split(''); guess.split('').forEach((char, i) => { if (char === secret[i]) { status[i] = 'correct'; secret[i] = '#'; } }); guess.split('').forEach((char, i) => { if (status[i] === 'correct') return; const found = secret.indexOf(char); if (found >= 0) { status[i] = 'present'; secret[found] = '#'; } }); return status; };
 export const getUpdatedKeyStatuses = (previous: Record<string, CharStatus>, guess: string, secretWord: string) => { const next = { ...previous }, rows = getGuessLetterStatuses(guess, secretWord); guess.split('').forEach((char, i) => { if (rows[i] === 'correct') next[char] = 'correct'; else if (rows[i] === 'present' && next[char] !== 'correct') next[char] = 'present'; else if (!next[char]) next[char] = 'absent'; }); return next; };
 
-export const useClassicGameController = ({ route, settings, sessionOwnerId, getSecretWordPool, getValidationPool, getModeWords, getWordTranslation, onRouteChange, onStatsUpdate, onDailyQuestResult, availableCoins = Number.POSITIVE_INFINITY, onHintCharge }: Args) => {
+export const useClassicGameController = ({ route, settings, sessionOwnerId, getSecretWordPool, getValidationPool, getModeWords, getWordTranslation = getTranslationForWord, onRouteChange, onStatsUpdate, onDailyQuestResult, availableCoins = Number.POSITIVE_INFINITY, onHintCharge }: Args) => {
   const storageKey = sessionOwnerId ? activeGameKey(sessionOwnerId) : null;
   const restored = loadActiveGame(storageKey);
   const [setupError, setSetupError] = useState<string | null>(null);
@@ -77,7 +78,7 @@ export const useClassicGameController = ({ route, settings, sessionOwnerId, getS
     if (!getValidationPool(targetLength).includes(gameState.currentGuess)) { setGameState(prev => ({ ...prev, error: 'Такого слова нет в словаре' })); shake(); return; }
 
     const word = gameState.currentGuess;
-    const translation = getWordTranslation?.(word) || null;
+    const translation = getWordTranslation(word);
     const guesses = [...gameState.guesses, word];
     const terminalStatus: GameState['gameStatus'] = word === gameState.secretWord ? 'won' : guesses.length >= MAX_GUESSES ? 'lost' : 'playing';
     setKeyStatuses(prev => getUpdatedKeyStatuses(prev, word, gameState.secretWord));
