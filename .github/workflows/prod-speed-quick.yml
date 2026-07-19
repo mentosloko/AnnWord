@@ -7,6 +7,9 @@ on:
     paths-ignore:
       - benchmarks/prod-speed-quick/**
       - benchmarks/prod-speed/**
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
