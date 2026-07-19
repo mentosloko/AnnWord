@@ -9,10 +9,21 @@ describe('entry route UX', () => {
     const landing = read('components/screens/LandingMixScreen.tsx');
     expect(appScreens).not.toContain('ModeEntryScreen');
     expect(appScreens).not.toContain("if (entryPath === 'practice' || entryPath === 'kids' || entryPath === 'teacher') onOpenRegister()");
-    expect(appScreens).toContain('const homeScreen = isAuthenticated ? roleHomeScreen : landingMix;');
+    expect(appScreens).toContain('hasChosenAccountMode ? roleHomeScreen : accountModeSetup');
+    expect(appScreens).toContain('account_mode_setup: hasChosenAccountMode ? homeScreen : accountModeSetup');
     expect(landing).toContain('Кто будет пользоваться AnnWord?');
     expect(landing).toContain('Создать Teacher-аккаунт');
     expect(landing).toContain('Ребёнок возвращается к словам ради игры');
+  });
+
+  it('keeps oversized and external assets out of the anonymous first load', () => {
+    const landing = read('components/screens/LandingMixScreen.tsx');
+    const indexHtml = read('index.html');
+    expect(landing).not.toContain('/assets/games/line_game.webp');
+    expect(landing).toContain("{ icon: '🐍', title: 'Змейка' }");
+    expect(landing).toContain('loading="lazy"');
+    expect(indexHtml).not.toContain('fonts.googleapis.com');
+    expect(indexHtml).toContain('ui-sans-serif, system-ui');
   });
 });
 

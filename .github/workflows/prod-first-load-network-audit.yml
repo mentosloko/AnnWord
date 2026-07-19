@@ -1,0 +1,112 @@
+name: Production First Load Network Audit
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/prod-first-load-network-audit.mjs
+      - scripts/first-load-mock-api.mjs
+      - .github/workflows/prod-first-load-network-audit.yml
+      - index.html
+      - components/AppScreens.tsx
+      - components/screens/LandingMixScreen.tsx
+      - tests/entryRoutingAndDictionaryUi.test.ts
+      - tests/sharedSetupFlow.test.tsx
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build optimized frontend
+        env:
+          VITE_API_URL: http://127.0.0.1:4174
+        run: npx vite build
+
+      - name: Start deterministic API and local preview
+        run: |
+          nohup node scripts/first-load-mock-api.mjs >/tmp/annword-mock-api.log 2>&1 &
+          nohup npx vite preview --host 127.0.0.1 --port 4173 >/tmp/annword-preview.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4174/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/annword-preview.log
+          cat /tmp/annword-mock-api.log
+          exit 1
+
+      - name: Trace optimized first load
+        env:
+          APP_URL: http://127.0.0.1:4173
+          API_URL: http://127.0.0.1:4174
+        run: node scripts/prod-first-load-network-audit.mjs
+
+      - name: Lighthouse mobile
+        run: |
+          npx --yes lighthouse@12 http://127.0.0.1:4173/ \
+            --only-categories=performance \
+            --output=json \
+            --output-path=artifacts/first-load-network/lighthouse-mobile.json \
+            --chrome-flags='--headless --no-sandbox --disable-dev-shm-usage' \
+            --throttling-method=simulate \
+            --quiet
+
+      - name: Lighthouse desktop
+        run: |
+          npx --yes lighthouse@12 http://127.0.0.1:4173/ \
+            --only-categories=performance \
+            --output=json \
+            --output-path=artifacts/first-load-network/lighthouse-desktop.json \
+            --chrome-flags='--headless --no-sandbox --disable-dev-shm-usage' \
+            --throttling-method=simulate \
+            --preset=desktop \
+            --quiet
+
+      - name: Print Lighthouse comparison
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          for (const mode of ['mobile', 'desktop']) {
+            const report = JSON.parse(fs.readFileSync(`artifacts/first-load-network/lighthouse-${mode}.json`, 'utf8'));
+            const audits = report.audits;
+            const row = {
+              mode,
+              score: Math.round(report.categories.performance.score * 100),
+              fcpMs: Math.round(audits['first-contentful-paint'].numericValue),
+              lcpMs: Math.round(audits['largest-contentful-paint'].numericValue),
+              speedIndexMs: Math.round(audits['speed-index'].numericValue),
+              tbtMs: Math.round(audits['total-blocking-time'].numericValue),
+              cls: Number(audits['cumulative-layout-shift'].numericValue.toFixed(3)),
+              bytes: Math.round(audits['total-byte-weight'].numericValue),
+              requests: audits['network-requests'].details.items.length,
+            };
+            console.log(JSON.stringify(row));
+          }
+          NODE
+
+      - name: Upload HAR and summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: annword-first-load-network-audit
+          path: artifacts/first-load-network
+          if-no-files-found: warn
+          retention-days: 7

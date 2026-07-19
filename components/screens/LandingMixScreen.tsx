@@ -11,6 +11,7 @@ interface LandingMixScreenProps {
 }
 
 const HERO_IMAGE = '/assets/landing/landing_right_corner.webp';
+const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
 type Audience = 'practice' | 'kids' | 'teacher';
 type AudienceCopy = {
   eyebrow: string;
@@ -21,6 +22,7 @@ type AudienceCopy = {
   note: string;
   accent: string;
 };
+type GamePreview = { iconSrc?: string; icon?: string; title: string };
 
 const audienceCopy: Record<Audience, AudienceCopy> = {
   practice: {
@@ -59,13 +61,13 @@ const benefits = [
   { icon: '📈', title: 'Виден результат', text: 'Статистика показывает реальный прогресс.' },
 ];
 
-const games = [
+const games: GamePreview[] = [
   { iconSrc: '/assets/games/game_classic.webp', title: 'Классика' },
   { iconSrc: '/assets/games/game_anagrams.webp', title: 'Анаграммы' },
   { iconSrc: '/assets/games/game_sprint.webp', title: 'Спринт' },
   { iconSrc: '/assets/games/game_one_of_two.webp', title: '1 из 2' },
   { iconSrc: '/assets/games/game_memory.webp', title: 'Память' },
-  { iconSrc: '/assets/games/line_game.webp', title: 'Змейка' },
+  { icon: '🐍', title: 'Змейка' },
 ];
 
 const ModalShell: React.FC<{ title: string; children: React.ReactNode; onClose: () => void }> = ({ title, children, onClose }) => (
@@ -114,13 +116,16 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
             {targeted && <p className="mt-3 max-w-2xl text-xs font-bold leading-relaxed text-slate-500 sm:mt-4 sm:text-sm">{targeted.note}</p>}
           </div>
           <div className="relative mx-auto hidden max-w-[36rem] overflow-hidden rounded-[2.25rem] bg-gradient-to-br from-sky-100 via-white to-indigo-50 p-2 shadow-2xl shadow-indigo-900/10 md:block">
-            <img src={HERO_IMAGE} alt="AnnWord: игровые тренировки английских слов" className="block aspect-[4/3] w-full rounded-[1.9rem] object-cover object-center" draggable={false} />
+            <picture>
+              <source media="(min-width: 768px)" srcSet={HERO_IMAGE} />
+              <img src={TRANSPARENT_PIXEL} alt="AnnWord: игровые тренировки английских слов" className="block aspect-[4/3] w-full rounded-[1.9rem] object-cover object-center" loading="lazy" decoding="async" draggable={false} />
+            </picture>
           </div>
         </div>
 
         <div className="border-y border-indigo-50 bg-gradient-to-b from-white to-indigo-50/60 px-4 py-4 sm:px-8 sm:py-7">
           <div className="flex items-end justify-between gap-3"><div><div className="text-[10px] font-black uppercase tracking-widest text-indigo-400 sm:text-xs">Сразу после входа</div><h2 className="mt-1 text-xl font-black text-indigo-950 sm:text-3xl">Выберите игру</h2></div><span className="hidden text-sm font-bold text-slate-500 sm:block">6 способов закрепить слово</span></div>
-          <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-5 sm:grid-cols-6 sm:gap-3">{games.map(game => <article key={game.title} className="rounded-2xl border-2 border-white bg-white p-2 text-center shadow-sm sm:rounded-[1.5rem] sm:p-4"><img src={game.iconSrc} alt="" aria-hidden="true" className="mx-auto h-11 w-11 object-contain sm:h-14 sm:w-14" draggable={false} /><div className="mt-1.5 truncate text-[11px] font-black text-indigo-950 sm:mt-3 sm:text-sm">{game.title}</div></article>)}</div>
+          <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-5 sm:grid-cols-6 sm:gap-3">{games.map(game => <article key={game.title} className="rounded-2xl border-2 border-white bg-white p-2 text-center shadow-sm sm:rounded-[1.5rem] sm:p-4">{game.iconSrc ? <img src={game.iconSrc} alt="" aria-hidden="true" className="mx-auto h-11 w-11 object-contain sm:h-14 sm:w-14" loading="lazy" decoding="async" draggable={false} /> : <span aria-hidden="true" className="mx-auto flex h-11 w-11 items-center justify-center text-4xl sm:h-14 sm:w-14 sm:text-5xl">{game.icon}</span>}<div className="mt-1.5 truncate text-[11px] font-black text-indigo-950 sm:mt-3 sm:text-sm">{game.title}</div></article>)}</div>
         </div>
 
         <div className="hidden gap-3 bg-slate-50/70 p-5 sm:grid sm:grid-cols-4">
