@@ -9,10 +9,21 @@ on:
       - scripts/first-load-mock-api.mjs
       - .github/workflows/prod-first-load-network-audit.yml
       - index.html
+      - hooks/useDictionaryPools.ts
+      - hooks/useClassicGameController.ts
+      - services/dictionaryEngine.ts
+      - services/dictionaryRuntime.ts
+      - services/gameSessionEngine.ts
+      - services/premiumDictionaryCatalog.ts
+      - services/wordNormalization.ts
+      - services/wordPracticeProgress.ts
       - components/AppScreens.tsx
       - components/screens/LandingMixScreen.tsx
+      - components/screens/SetupScreenSafe.tsx
       - tests/entryRoutingAndDictionaryUi.test.ts
+      - tests/lazyDictionaryCriticalPath.test.ts
       - tests/sharedSetupFlow.test.tsx
+      - tests/useDictionaryPools.test.ts
 
 permissions:
   contents: read
@@ -38,6 +49,17 @@ jobs:
         env:
           VITE_API_URL: http://127.0.0.1:4174
         run: npx vite build
+
+      - name: Assert dictionaries are outside entry preload
+        run: |
+          if grep -E 'modulepreload[^>]+dictionary-(general|premium)' dist/index.html; then
+            echo 'Dictionary chunks must not be modulepreloaded on first load.'
+            exit 1
+          fi
+          if grep -E 'src="[^"]*dictionary-(general|premium)' dist/index.html; then
+            echo 'Dictionary chunks must not be entry scripts.'
+            exit 1
+          fi
 
       - name: Start deterministic API and local preview
         run: |
