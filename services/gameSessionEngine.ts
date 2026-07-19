@@ -2,7 +2,6 @@ import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { EnrichedWord } from '../types';
 import { hasRussianTranslation, normalizeWord } from './wordNormalization';
 import { getUnusedSessionWord, resetSessionWordBucket } from './sessionWordHistory';
-import { updateReviewPriorities, type WordPracticeResult } from './wordPracticeProgress';
 
 export { updateReviewPriorities } from './wordPracticeProgress';
 export type { WordPracticeResult } from './wordPracticeProgress';
@@ -47,12 +46,6 @@ const preferNonTransliterated = <T extends { word: string; isTransliterated?: bo
 
 export const pickNextSessionWord = <T extends { word: string; isTransliterated?: boolean }>(mode: GameSessionMode, pool: T[]): T | null =>
   getUnusedSessionWord(mode, preferNonTransliterated(pool));
-
-/**
- * Records unresolved difficulty for Sprint, Anagrams and Translation Choice only.
- * One correct answer means the user has handled this word, so its priority is removed.
- */
-export { type WordPracticeResult };
 
 /**
  * In adaptive modes, words with unresolved mistakes appear more often.
