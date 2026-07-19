@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { familyAccountService } from '../../services/familyAccountService';
 import { mentorRoomService, type MentorRoomLoadResult } from '../../services/mentorRoomService';
 import { isPremiumActive, formatPremiumExpiresAt } from '../../services/premiumAccess';
 import { getRecentFixedWords, getWordLearningSummary } from '../../services/wordLearningStats';
+import { loadingNow, loadingTelemetry } from '../../services/loadingTelemetry';
 import { ManagedLearner, UserProfile, WordPerformance } from '../../types';
 import { useProfileFreshness } from '../../hooks/useProfileFreshness';
 import { WeeklyReportSettingsCard } from '../WeeklyReportSettingsCard';
@@ -27,6 +28,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
   const premiumActive = isPremiumActive(userProfile);
   const profileFreshness = useProfileFreshness();
   const premiumChecking = !premiumActive && profileFreshness !== 'fresh';
+  const loadStartedAtRef = useRef(loadingNow());
   const [unlocked, setUnlocked] = useState(!isParent || isTeacher);
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
@@ -48,22 +50,44 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
   const recentFixed = useMemo(() => getRecentFixedWords(learner?.stats || { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} }, 10), [learner]);
   const normalizedCode = code.trim().toUpperCase();
 
+  useEffect(() => {
+    if (profileFreshness === 'cached') loadingTelemetry.recordScreen({ screen: 'adult_room', state: 'stale', detail: 'cached_profile' });
+  }, [profileFreshness]);
+
+  const beginLoadTelemetry = (detail: string) => {
+    loadStartedAtRef.current = loadingNow();
+    loadingTelemetry.recordScreen({ screen: 'adult_room', state: 'loading', detail });
+  };
+
+  const finishLoadTelemetry = (state: 'ready' | 'empty' | 'error', detail?: string) => {
+    loadingTelemetry.recordScreen({
+      screen: 'adult_room',
+      state,
+      durationMs: Math.round(loadingNow() - loadStartedAtRef.current),
+      detail,
+    });
+  };
+
   const applyLearnersResult = (result: MentorRoomLoadResult) => {
     setLearners(result.learners);
     setSelectedId(current => result.learners.some(item => item.id === current) ? current : result.learners[0]?.id || '');
     setLearnersStatus('success');
     setLearnersError(null);
+    finishLoadTelemetry(result.learners.length ? 'ready' : 'empty', result.backendReady ? undefined : 'backend_not_ready');
     if (!result.backendReady) setNotice('Данные кабинета пока недоступны.');
   };
 
   const load = async (force = false) => {
+    beginLoadTelemetry(force ? 'refresh' : 'initial');
     setLearnersStatus('loading');
     setLearnersError(null);
     try {
       applyLearnersResult(await mentorRoomService.loadLearners(force));
     } catch (error: unknown) {
-      setLearnersError(error instanceof Error ? error.message : 'Не удалось загрузить данные.');
+      const message = error instanceof Error ? error.message : 'Не удалось загрузить данные.';
+      setLearnersError(message);
       setLearnersStatus('error');
+      finishLoadTelemetry('error', message);
     }
   };
 
@@ -75,6 +99,7 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
     setNotice(null);
     setLearnersError(null);
     if (!/^\d{4}$/.test(pin)) { setPinError('Введите PIN из 4 цифр.'); return; }
+    beginLoadTelemetry('pin_unlock');
     setBusyAction('unlock');
     setLearnersStatus('loading');
     try {
@@ -84,9 +109,11 @@ export const AdultRoomScreen: React.FC<Props> = ({ userProfile, onBackHome, onOp
       setPinError(null);
       setPin('');
     } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Не удалось открыть кабинет родителя.';
       setLearnersStatus('idle');
       setPin('');
-      setPinError(error instanceof Error ? error.message : 'Не удалось открыть кабинет родителя.');
+      setPinError(message);
+      finishLoadTelemetry('error', message);
     } finally {
       setBusyAction(null);
     }
