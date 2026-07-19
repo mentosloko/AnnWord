@@ -80,7 +80,7 @@ analyticsRouter.post("/events", optionalAuth, async (req: AuthenticatedRequest, 
 
 analyticsRouter.get("/admin", requireAdmin, async (_req: AuthenticatedRequest, res) => {
   try {
-    const [gameStats, economyStats, eventSummary, dictionaries] = await Promise.all([
+    const [gameStats, economyStats, eventSummary, dictionaries, loadingPerformance] = await Promise.all([
       query<{
         day: string;
         game_type: string | null;
@@ -165,6 +165,38 @@ analyticsRouter.get("/admin", requireAdmin, async (_req: AuthenticatedRequest, r
           order by username nulls last
           limit 2000`,
       ),
+      query<{
+        path: string;
+        requests: number;
+        errors: number;
+        avg_duration_ms: number;
+        p95_duration_ms: number;
+        deduplicated: number;
+        timeouts: number;
+      }>(
+        `with request_metrics as (
+           select coalesce(nullif(payload->>'path', ''), 'unknown') as path,
+                  event_name,
+                  case when payload->>'durationMs' ~ '^[0-9]+(\\.[0-9]+)?$' then (payload->>'durationMs')::numeric else null end as duration_ms,
+                  payload->>'deduplicated' = 'true' as was_deduplicated,
+                  payload->>'timedOut' = 'true' as was_timeout
+             from analytics_events
+            where event_type = 'performance'
+              and event_name in ('request_completed', 'request_failed')
+              and occurred_at >= now() - interval '7 days'
+         )
+         select path,
+                count(*)::int as requests,
+                count(*) filter (where event_name = 'request_failed')::int as errors,
+                coalesce(round(avg(duration_ms)), 0)::int as avg_duration_ms,
+                coalesce(round(percentile_cont(0.95) within group (order by duration_ms)), 0)::int as p95_duration_ms,
+                count(*) filter (where was_deduplicated)::int as deduplicated,
+                count(*) filter (where was_timeout)::int as timeouts
+           from request_metrics
+          group by path
+          order by p95_duration_ms desc, requests desc
+          limit 30`,
+      ),
     ]);
 
     const unsupportedDictionaryWords = dictionaries.rows
@@ -186,6 +218,7 @@ analyticsRouter.get("/admin", requireAdmin, async (_req: AuthenticatedRequest, r
       economyStats: economyStats.rows,
       eventSummary: eventSummary.rows,
       unsupportedDictionaryWords,
+      loadingPerformance: loadingPerformance.rows,
     });
   } catch (error) {
     console.error("Admin analytics load failed", error);
