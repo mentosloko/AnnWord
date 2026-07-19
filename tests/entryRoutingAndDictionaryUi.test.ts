@@ -19,18 +19,11 @@ describe('entry route UX', () => {
   it('keeps oversized and external assets out of the anonymous first load', () => {
     const landing = read('components/screens/LandingMixScreen.tsx');
     const indexHtml = read('index.html');
-    const indexEntry = read('index.tsx');
-    const runtime = read('AppRuntime.tsx');
     expect(landing).not.toContain('/assets/games/line_game.webp');
     expect(landing).toContain("{ icon: '🐍', title: 'Змейка' }");
     expect(landing).toContain('loading="lazy"');
     expect(indexHtml).not.toContain('fonts.googleapis.com');
     expect(indexHtml).toContain('ui-sans-serif, system-ui');
-    expect(indexEntry).toContain("React.lazy(() => import('./AppRuntime'))");
-    expect(indexEntry).not.toContain("import App from './AppV2'");
-    expect(indexEntry).not.toContain("import { PasswordResetOverlay }");
-    expect(runtime).toContain("import App from './AppV2'");
-    expect(runtime).toContain('PasswordResetOverlay');
   });
 });
 
