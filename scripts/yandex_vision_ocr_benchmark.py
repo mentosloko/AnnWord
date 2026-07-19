@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64, json, os, re, time, urllib.error, urllib.request
 from pathlib import Path
 from typing import Any
+from PIL import Image
 
 API_URL='https://ocr.api.cloud.yandex.net/ocr/v1/recognizeText'
 EXPECTED=['HI','KITE','FINE','RIDE','DRIVE','HOME','TREE','HOUSE','CHAIR','TABLE','RADIO','LOOK','NICE','BED','LEG','DESK','FLY','SKY','BYE','BONE','ROSE','GO','RUN','JUMP']
@@ -12,16 +13,26 @@ def restore_image():
     parts=sorted(Path('testdata/easyocr').glob('sample-v2.b64.*'))
     if not parts: raise RuntimeError('sample-v2 image chunks not found')
     encoded=re.sub(r'[^A-Za-z0-9+/=]','', ''.join(p.read_text() for p in parts)); encoded+='='*((-len(encoded))%4)
-    OUT.mkdir(parents=True,exist_ok=True); path=OUT/'cropped-word-column.jpg'; path.write_bytes(base64.b64decode(encoded,validate=False)); return path
+    OUT.mkdir(parents=True,exist_ok=True)
+    raw=OUT/'raw-input.jpg'; raw.write_bytes(base64.b64decode(encoded,validate=False))
+    path=OUT/'cropped-word-column.jpg'
+    with Image.open(raw) as im:
+        im.convert('RGB').save(path,'JPEG',quality=92,optimize=True)
+    return path
 
 def call(path,token,folder,model):
     payload={'mimeType':'JPEG','languageCodes':['en'],'model':model,'content':base64.b64encode(path.read_bytes()).decode()}
     req=urllib.request.Request(API_URL,data=json.dumps(payload).encode(),method='POST',headers={'Authorization':f'Bearer {token}','Content-Type':'application/json','x-folder-id':folder,'x-data-logging-enabled':'false'})
-    started=time.perf_counter()
-    try:
-        with urllib.request.urlopen(req,timeout=120) as r: return json.loads(r.read().decode()),time.perf_counter()-started
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(f'HTTP {e.code}: {e.read().decode(errors="replace")}')
+    started=time.perf_counter(); last=None
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req,timeout=120) as r: return json.loads(r.read().decode()),time.perf_counter()-started
+        except urllib.error.HTTPError as e:
+            body=e.read().decode(errors='replace'); last=RuntimeError(f'HTTP {e.code}: {body}')
+            if e.code==429 and attempt<3:
+                time.sleep(3*(attempt+1)); continue
+            raise last
+    raise last or RuntimeError('OCR request failed')
 
 def lines_from(x:Any):
     out=[]
@@ -62,6 +73,7 @@ def main():
             r=evaluate(lines_from(raw)); r.update({'model':model,'seconds':round(seconds,3)}); report['results'].append(r); print(json.dumps(r,ensure_ascii=False,indent=2))
         except Exception as e:
             err={'model':model,'error':str(e)}; report['errors'].append(err); print(json.dumps(err,ensure_ascii=False))
+        time.sleep(2)
     (OUT/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
 
 if __name__=='__main__': main()
