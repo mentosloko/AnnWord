@@ -1,0 +1,45 @@
+name: Production First Load Network Audit
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/prod-first-load-network-audit.mjs
+      - .github/workflows/prod-first-load-network-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Trace production first load
+        env:
+          APP_URL: https://annword.ru
+          API_URL: https://api.annword.ru
+        run: node scripts/prod-first-load-network-audit.mjs
+
+      - name: Upload HAR and summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: annword-first-load-network-audit
+          path: artifacts/first-load-network
+          if-no-files-found: warn
+          retention-days: 7
