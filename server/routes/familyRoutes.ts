@@ -95,6 +95,7 @@ familyRouter.post("/adult-room", async (req: AuthenticatedRequest, res) => {
     const learners = await loadManagedLearners(req.user!.id);
     const completedAt = Date.now();
     res.setHeader("Server-Timing", `pin_verify;dur=${learnersStartedAt - verifiedAt}, learners;dur=${completedAt - learnersStartedAt}, adult_room_total;dur=${completedAt - startedAt}`);
+    res.setHeader("Access-Control-Expose-Headers", "Server-Timing");
     res.setHeader("Cache-Control", "private, no-store");
     res.json({ ok: true, learners, backendReady: true });
   } catch (error) {
