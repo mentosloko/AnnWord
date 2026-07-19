@@ -27,6 +27,8 @@ type LoadState = {
 
 const VALID_PREMIUM_LEVELS = new Set<Exclude<DifficultyLevel, 'ALL'>>(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
 const PREMIUM_WORD_PATTERN = /^[A-Z]{4,18}$/;
+const DICTIONARY_ROUTE_PATTERN = /^\/play\/(setup|classic|anagrams|one-of-two|sprint|hangman|memory|snake)\/?$/;
+const shouldLoadForCurrentRoute = (): boolean => typeof window !== 'undefined' && DICTIONARY_ROUTE_PATTERN.test(window.location.pathname);
 
 const normalizePremiumEntry = (item: PremiumDictionaryWord, builtinTranslationByWord: Map<string, string>): EnrichedWord | null => {
   const rawWord = typeof item === 'string' ? item : item.word;
@@ -58,17 +60,18 @@ const getLoadedPremiumEntries = (id?: string, difficulty: DifficultyLevel = 'ALL
   return entries;
 };
 
-export const useDictionaryPools = ({ settings, userProfile, enabled = true }: UseDictionaryPoolsArgs) => {
+export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictionaryPoolsArgs) => {
+  const runtimeEnabled = enabled ?? shouldLoadForCurrentRoute();
   const kidsMode = isKidsMode(userProfile);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
   const premiumDictionaryId = !kidsMode && settings.dictionarySource === 'premium' && hasPremium
     ? resolvePremiumDictionaryId(settings.activePremiumDictionaryId)
     : null;
-  const loadKey = enabled ? `general:${premiumDictionaryId || 'none'}` : 'disabled';
+  const loadKey = runtimeEnabled ? `general:${premiumDictionaryId || 'none'}` : 'disabled';
   const [loadState, setLoadState] = useState<LoadState>({ key: 'disabled', status: 'idle', error: null });
 
   const ensureReady = useCallback(async (): Promise<void> => {
-    if (!enabled) return;
+    if (!runtimeEnabled) return;
     setLoadState(previous => previous.key === loadKey && previous.status === 'ready'
       ? previous
       : { key: loadKey, status: 'loading', error: null });
@@ -80,17 +83,17 @@ export const useDictionaryPools = ({ settings, userProfile, enabled = true }: Us
       setLoadState({ key: loadKey, status: 'error', error: message });
       throw error;
     }
-  }, [enabled, loadKey, premiumDictionaryId]);
+  }, [loadKey, premiumDictionaryId, runtimeEnabled]);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!runtimeEnabled) {
       setLoadState({ key: 'disabled', status: 'idle', error: null });
       return;
     }
     void ensureReady().catch(() => undefined);
-  }, [enabled, ensureReady]);
+  }, [ensureReady, runtimeEnabled]);
 
-  const status: DictionaryRuntimeStatus = !enabled
+  const status: DictionaryRuntimeStatus = !runtimeEnabled
     ? 'idle'
     : loadState.key === loadKey
       ? loadState.status
