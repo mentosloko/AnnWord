@@ -31,11 +31,22 @@ export interface AdminUnsupportedDictionaryRow {
   words: string[];
 }
 
+export interface AdminLoadingPerformanceRow {
+  path: string;
+  requests: number;
+  errors: number;
+  avg_duration_ms: number;
+  p95_duration_ms: number;
+  deduplicated: number;
+  timeouts: number;
+}
+
 export interface AdminAnalyticsSnapshot {
   gameStats: AdminDailyGameStat[];
   economyStats: AdminEconomyStat[];
   eventSummary: AdminEventSummary[];
   unsupportedDictionaryWords: AdminUnsupportedDictionaryRow[];
+  loadingPerformance: AdminLoadingPerformanceRow[];
 }
 
 interface AdminCustomDictionaryRow {
@@ -79,6 +90,15 @@ const normalizeSnapshot = (value: Partial<AdminAnalyticsSnapshot> | null | undef
         words: Array.isArray(row.words) ? row.words.filter((word): word is string => typeof word === 'string') : [],
       }))
     : [],
+  loadingPerformance: Array.isArray(value?.loadingPerformance) ? value!.loadingPerformance.map(row => ({
+    path: String(row.path || 'unknown'),
+    requests: parseNumber(row.requests),
+    errors: parseNumber(row.errors),
+    avg_duration_ms: parseNumber(row.avg_duration_ms),
+    p95_duration_ms: parseNumber(row.p95_duration_ms),
+    deduplicated: parseNumber(row.deduplicated),
+    timeouts: parseNumber(row.timeouts),
+  })) : [],
 });
 
 export const adminAnalyticsService = {
@@ -122,6 +142,7 @@ export const adminAnalyticsService = {
       economyStats: economyStatsResult.data || [],
       eventSummary: Array.from(summaryMap.values()).sort((a, b) => b.count - a.count),
       unsupportedDictionaryWords,
+      loadingPerformance: [],
     });
   },
 };
