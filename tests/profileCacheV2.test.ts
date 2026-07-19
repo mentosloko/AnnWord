@@ -46,6 +46,18 @@ describe('profileCache v2', () => {
     });
     expect(snapshot?.profile.dictionaryCollections).toHaveLength(1);
     expect(snapshot?.profile.managedLearners).toHaveLength(1);
+    expect(profileCache.getFreshness()).toBe('fresh');
+  });
+
+  it('marks a persisted snapshot as cached before server confirmation', () => {
+    window.localStorage.setItem('annword_cached_profile_v2', JSON.stringify({
+      version: 2,
+      savedAt: Date.now(),
+      userId: 'user-1',
+      profile: fullProfile(),
+    }));
+
+    expect(profileCache.readSnapshot()?.profile.childDisplayName).toBe('Катя');
     expect(profileCache.getFreshness()).toBe('cached');
   });
 
