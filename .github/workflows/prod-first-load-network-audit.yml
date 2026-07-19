@@ -81,6 +81,9 @@ jobs:
           API_URL: http://127.0.0.1:4174
         run: node scripts/prod-first-load-network-audit.mjs
 
+      - name: Reset benchmark to anonymous session
+        run: curl -fsS -X POST http://127.0.0.1:4174/api/test/reset
+
       - name: Lighthouse mobile
         run: |
           npx --yes lighthouse@12 http://127.0.0.1:4173/ \
