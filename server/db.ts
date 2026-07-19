@@ -2,6 +2,8 @@ import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg
 import { runtimeConfig } from "./config";
 
 let pool: Pool | undefined;
+const SLOW_QUERY_MS = Number.parseInt(process.env.DB_SLOW_QUERY_MS || "500", 10);
+const SLOW_POOL_WAIT_MS = Number.parseInt(process.env.DB_SLOW_POOL_WAIT_MS || "250", 10);
 
 export type DatabaseHealth = {
   configured: boolean;
@@ -21,6 +23,21 @@ function normalizeDatabaseConnectionString(connectionString: string): string {
   } catch {
     return connectionString;
   }
+}
+
+function queryLabel(text: string): { operation: string; relation: string | null } {
+  const compact = text.replace(/\s+/g, " ").trim();
+  const operation = compact.split(" ")[0]?.toUpperCase() || "QUERY";
+  const relationMatch = compact.match(/\b(?:from|into|update|join)\s+([a-zA-Z0-9_."]+)/i);
+  return { operation, relation: relationMatch?.[1]?.replace(/"/g, "") || null };
+}
+
+function logSlowDatabaseEvent(event: string, durationMs: number, details: Record<string, unknown> = {}): void {
+  console.warn("AnnWord database performance", {
+    event,
+    durationMs,
+    ...details,
+  });
 }
 
 function isRetryableConnectionError(error: unknown): boolean {
@@ -48,6 +65,10 @@ async function withPoolRetry<T>(operation: () => Promise<T>): Promise<T> {
       throw error;
     }
 
+    console.warn("AnnWord database connection retry", {
+      event: "db_connection_retry",
+      message: error instanceof Error ? error.message : String(error || "unknown"),
+    });
     await resetPoolAfterConnectionError();
     return operation();
   }
@@ -63,8 +84,8 @@ function getPool(): Pool | undefined {
       connectionString: normalizeDatabaseConnectionString(runtimeConfig.databaseUrl),
       ssl: { rejectUnauthorized: false },
       max: Number.parseInt(process.env.PGPOOL_MAX || "5", 10),
-      idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 5_000,
+      idleTimeoutMillis: Number.parseInt(process.env.PGPOOL_IDLE_TIMEOUT_MS || "120000", 10),
+      connectionTimeoutMillis: Number.parseInt(process.env.PGPOOL_CONNECTION_TIMEOUT_MS || "5000", 10),
     });
   }
 
@@ -81,12 +102,26 @@ export function requirePool(): Pool {
 }
 
 export async function query<T extends QueryResultRow = QueryResultRow>(text: string, params: unknown[] = []): Promise<QueryResult<T>> {
-  return withPoolRetry(() => requirePool().query<T>(text, params));
+  const startedAt = Date.now();
+  try {
+    return await withPoolRetry(() => requirePool().query<T>(text, params));
+  } finally {
+    const durationMs = Date.now() - startedAt;
+    if (durationMs >= SLOW_QUERY_MS) {
+      logSlowDatabaseEvent("db_query_slow", durationMs, queryLabel(text));
+    }
+  }
 }
 
 export async function transaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
+  const transactionStartedAt = Date.now();
   return withPoolRetry(async () => {
+    const poolWaitStartedAt = Date.now();
     const client = await requirePool().connect();
+    const poolWaitMs = Date.now() - poolWaitStartedAt;
+    if (poolWaitMs >= SLOW_POOL_WAIT_MS) {
+      logSlowDatabaseEvent("db_pool_wait_slow", poolWaitMs);
+    }
 
     try {
       await client.query("begin");
@@ -98,6 +133,10 @@ export async function transaction<T>(callback: (client: PoolClient) => Promise<T
       throw error;
     } finally {
       client.release();
+      const durationMs = Date.now() - transactionStartedAt;
+      if (durationMs >= SLOW_QUERY_MS) {
+        logSlowDatabaseEvent("db_transaction_slow", durationMs, { poolWaitMs });
+      }
     }
   });
 }
