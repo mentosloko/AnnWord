@@ -1,5 +1,5 @@
-import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { EnrichedWord } from '../types';
+import { readGeneralDictionary } from './dictionaryRuntime';
 import { hasRussianTranslation, normalizeWord } from './wordNormalization';
 import { getUnusedSessionWord, resetSessionWordBucket } from './sessionWordHistory';
 
@@ -20,9 +20,9 @@ const translatedEntries = (entries: EnrichedWord[]): EnrichedWord[] => entries
  */
 export const buildPlayableGameDictionary = (
   words: string[] = [],
-  fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN,
+  fallbackDictionary?: EnrichedWord[],
 ): EnrichedWord[] => {
-  const available = translatedEntries(fallbackDictionary);
+  const available = translatedEntries(fallbackDictionary || readGeneralDictionary()?.COMMON_WORDS_EN || []);
   if (words.length === 0) return available;
 
   const byWord = new Map(available.map(entry => [entry.word, entry]));
