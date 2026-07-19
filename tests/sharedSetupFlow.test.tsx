@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { AppScreens, ClassicGameScreenBindings } from '../components/AppScreens';
 import { GameSettings, GameState, UserProfile } from '../types';
 
@@ -111,9 +111,9 @@ describe('shared setup flow for all game modes', () => {
 
     expect(await screen.findByText('Спринт')).toBeInTheDocument();
     expect(screen.getByText('Перед стартом')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Начать: Спринт' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Начать: Спринт' }));
 
-    expect(onRouteChange).toHaveBeenCalledWith('sprint');
+    await waitFor(() => expect(onRouteChange).toHaveBeenCalledWith('sprint'));
   });
 
   it('keeps Wordle start using the classic game initializer', async () => {
@@ -126,6 +126,6 @@ describe('shared setup flow for all game modes', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Начать: Классика' }));
 
-    expect(startNewGame).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(startNewGame).toHaveBeenCalledTimes(1));
   });
 });

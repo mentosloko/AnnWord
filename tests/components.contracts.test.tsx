@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { LandingScreen } from '../components/screens/LandingScreen';
 import { SetupScreen } from '../components/screens/SetupScreen';
 import { Shop } from '../components/Shop';
@@ -81,7 +81,7 @@ describe('component contracts', () => {
     expect(onOpenProfile).toHaveBeenCalledTimes(1);
   });
 
-  it('SetupScreen exposes selected-mode start-game contracts for authenticated custom dictionary users', () => {
+  it('SetupScreen exposes selected-mode start-game contracts for authenticated custom dictionary users', async () => {
     const onFileUpload = vi.fn();
     const onStartGame = vi.fn();
 
@@ -107,10 +107,10 @@ describe('component contracts', () => {
     expect(screen.getByText('Ошибка словаря')).toBeInTheDocument();
     expect(screen.getByText('Память')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Начать: Память' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Начать: Память' }));
 
     expect(onFileUpload).not.toHaveBeenCalled();
-    expect(onStartGame).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onStartGame).toHaveBeenCalledTimes(1));
   });
 
   it('SetupScreen routes guests to login for custom dictionary', () => {

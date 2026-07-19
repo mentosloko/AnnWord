@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   buildDictionaryPools,
   getBuiltinSecretWordPool,
@@ -10,9 +10,14 @@ import {
   normalizeWord,
   pickRandomSecretWord,
 } from '../services/dictionaryEngine';
+import { ensureGeneralDictionaryLoaded } from '../services/dictionaryRuntime';
 import { prepareGameDictionary, isValidGuessForGame, pickSecretForGame } from '../services/gameDictionaryAdapter';
 
 describe('dictionaryEngine', () => {
+  beforeAll(async () => {
+    await ensureGeneralDictionaryLoaded();
+  });
+
   it('normalizes and deduplicates custom dictionaries', () => {
     expect(normalizeWord(' stone! ')).toBe('STONE');
     expect(normalizeCustomDictionary([' apple ', 'APPLE', 'fox!', 'мир'])).toEqual(['APPLE', 'FOX']);

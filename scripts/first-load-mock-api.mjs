@@ -76,6 +76,11 @@ const server = http.createServer((req, res) => {
     json(res, 200, { status: 'ok', runtime: 'benchmark-mock' });
     return;
   }
+  if (req.method === 'POST' && url.pathname === '/api/test/reset') {
+    registeredPayload = null;
+    json(res, 200, { reset: true });
+    return;
+  }
   if (req.method === 'POST' && url.pathname === '/api/auth/email/account') {
     let raw = '';
     req.on('data', chunk => { raw += chunk; });
