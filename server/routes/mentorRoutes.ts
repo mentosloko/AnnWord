@@ -16,6 +16,7 @@ mentorRouter.get("/learners", async (req: AuthenticatedRequest, res) => {
   try {
     const learners = await loadManagedLearners(req.user!.id);
     res.setHeader("Server-Timing", `learners_total;dur=${Date.now() - startedAt}`);
+    res.setHeader("Access-Control-Expose-Headers", "Server-Timing");
     res.setHeader("Cache-Control", "private, no-store");
     res.json({ learners, backendReady: true });
   } catch (error) {
