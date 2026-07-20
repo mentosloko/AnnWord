@@ -134,7 +134,7 @@ export const useAuthProfile = () => {
   const openLoginMode = useCallback(() => { setAuthMode('login'); setAuthError(null); setTempPassword(''); }, []);
   const openRegisterMode = useCallback(() => { setAuthMode('register'); setAuthError(null); setTempPassword(''); }, []);
   const submitEmailAuth = useCallback(async () => {
-    if (!tempUsername.trim() || !tempPassword.trim()) { setAuthError('Заполните все поля'); return false; }
+    if (!tempUsername.trim() || (authMode === 'login' && !tempPassword.trim())) { setAuthError(authMode === 'login' ? 'Заполните email и пароль' : 'Введите email'); return false; }
     const registrationConsents = authMode === 'register' ? legalConsentService.consumeRegistrationConsents() : null;
     if (authMode === 'register' && (!registrationConsents?.termsAccepted || !registrationConsents.personalDataAccepted)) {
       setAuthError('Для регистрации необходимо принять пользовательское соглашение и дать согласие на обработку персональных данных.');

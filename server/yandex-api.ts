@@ -10,9 +10,11 @@ import { ensureConsentSchema } from "./consentSchema";
 import { ensureWeeklyReportSchema } from "./weeklyReportSchema";
 import { createSessionToken, makeSessionPayload, writeSessionCookie, type BackendUser } from "./auth";
 import { appBack, completeYa } from "./ya";
+import { magicLinkRouter } from "./routes/magicLinkRoutes";
 import { authRouter } from "./routes/authRoutes";
 import { profileRouter } from "./routes/profileRoutes";
 import { paymentRouter } from "./routes/paymentRoutes";
+import { parentPinRecoveryRouter } from "./routes/parentPinRecoveryRoutes";
 import { familyRouter } from "./routes/familyRoutes";
 import { mentorRouter } from "./routes/mentorRoutes";
 import { dailyQuestRouter } from "./routes/dailyQuestRoutes";
@@ -217,9 +219,11 @@ app.post("/api/auth/yandex/exchange", async (req: Request, res: Response) => {
   }
 });
 
+app.use("/api/auth", magicLinkRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api/payments/prodamus", paymentRouter);
+app.use("/api/family", parentPinRecoveryRouter);
 app.use("/api/family", familyRouter);
 app.use("/api/mentor", mentorRouter);
 app.use("/api/daily-quest", dailyQuestRouter);

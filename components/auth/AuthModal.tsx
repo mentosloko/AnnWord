@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { legalConsentService } from '../../services/legalConsentService';
 import { LEGAL_DOCUMENTS, LEGAL_LINK_PROPS } from '../../services/legalDocuments';
 import { passwordResetService } from '../../services/passwordResetService';
+import { magicLinkService } from '../../services/magicLinkService';
+import { StableStatusSlot } from '../ui/StatusNotice';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -98,6 +100,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const emailHasDomain = email.includes('@') && email.split('@').pop()!.includes('.');
   const invalidRegistrationDomain = mode === 'register' && emailHasDomain && !isRussianEmailDomain(email);
   const requiredConsentsMissing = mode === 'register' && (!termsAccepted || !personalDataAccepted);
+  const authMessageIsInfo = Boolean(error && /magic link|отправлено письмо|подтверд/i.test(error));
+  const visibleMessage = recoveryError || recoveryMessage || (!recoveryMode ? error : null);
+  const visibleTone = recoveryError ? 'error' : recoveryMessage || authMessageIsInfo ? 'info' : 'error';
 
   const submit = () => {
     if (invalidRegistrationDomain || requiredConsentsMissing) return;
@@ -125,6 +130,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  const requestMagicLogin = async () => {
+    setRecoveryError(null);
+    setRecoveryMessage(null);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setRecoveryError('Введите email, чтобы получить magic link.');
+      return;
+    }
+    setRecoveryBusy(true);
+    try {
+      setRecoveryMessage(await magicLinkService.request(email));
+    } catch (problem) {
+      setRecoveryError(problem instanceof Error ? problem.message : 'Не удалось отправить magic link.');
+    } finally {
+      setRecoveryBusy(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" role="presentation">
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-describedby={error || recoveryError ? 'auth-modal-error' : undefined} tabIndex={-1} className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl outline-none animate-fade-in">
@@ -133,7 +155,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button type="button" onClick={onClose} aria-label="Закрыть окно входа" className="flex h-10 w-10 items-center justify-center rounded-xl text-xl text-gray-400 hover:bg-gray-50 hover:text-gray-600">×</button>
         </div>
 
-        {(recoveryError || (!recoveryMode && error)) && <div id="auth-modal-error" className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-600" role="alert">⚠️ {recoveryError || error}</div>}
+        <StableStatusSlot message={visibleMessage} tone={visibleTone} role={visibleTone === 'error' ? 'alert' : 'status'} className="mb-1" />
 
         {recoveryMode ? (
           <form onSubmit={requestRecovery} className="space-y-4">
@@ -142,7 +164,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <label htmlFor="recovery-email" className="mb-1 block text-xs font-bold uppercase text-gray-500">Электронная почта</label>
               <input ref={emailRef} id="recovery-email" required type="email" autoComplete="email" value={email} onChange={(event) => { onEmailChange(event.target.value); setRecoveryError(null); setRecoveryMessage(null); }} placeholder="user@example.ru" className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none" />
             </div>
-            {recoveryMessage && <p role="status" className="rounded-2xl bg-green-50 p-3 text-sm font-bold leading-relaxed text-green-800">{recoveryMessage}</p>}
             <button type="submit" disabled={recoveryBusy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 p-3 font-bold text-white transition hover:bg-indigo-700 disabled:opacity-60">{recoveryBusy && <LoaderIcon />}{recoveryBusy ? 'Отправляю…' : 'Отправить ссылку'}</button>
             <button type="button" disabled={recoveryBusy} onClick={() => { setRecoveryMode(false); setRecoveryMessage(null); setRecoveryError(null); }} className="w-full text-sm font-bold text-indigo-600">← Вернуться ко входу</button>
           </form>
@@ -152,13 +173,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div>
                 <label htmlFor="auth-email" className="mb-1 block text-xs font-bold uppercase text-gray-500">Электронная почта</label>
                 <input ref={emailRef} id="auth-email" required type="email" autoComplete="email" value={email} onChange={(event) => onEmailChange(event.target.value)} placeholder="user@example.ru" aria-invalid={invalidRegistrationDomain || undefined} aria-describedby={mode === 'register' ? 'registration-domain-hint' : undefined} className={`w-full rounded-lg border-2 p-3 transition focus:outline-none ${invalidRegistrationDomain ? 'border-rose-300 bg-rose-50 focus:border-rose-500' : 'border-gray-200 focus:border-indigo-500'}`} />
-                {mode === 'register' && <p id="registration-domain-hint" className={`mt-2 text-xs font-bold leading-relaxed ${invalidRegistrationDomain ? 'text-rose-600' : 'text-gray-500'}`}>Для регистрации используйте адрес в зоне <b>.ru</b> или <b>.рф</b>. Ограничение связано с требованиями к хранению и обработке данных пользователей в России.</p>}
+                {mode === 'register' && <p id="registration-domain-hint" className={`mt-2 text-xs font-bold leading-relaxed ${invalidRegistrationDomain ? 'text-rose-600' : 'text-gray-500'}`}>Для регистрации используйте адрес в зоне <b>.ru</b> или <b>.рф</b>. Пароль не нужен: аккаунт создаётся только после подтверждения обязательного magic link из письма.</p>}
               </div>
-              <div>
+              {mode === 'login' && <div>
                 <label htmlFor="auth-password" className="mb-1 block text-xs font-bold uppercase text-gray-500">Пароль</label>
-                <input id="auth-password" required type="password" minLength={mode === 'register' ? 8 : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => onPasswordChange(event.target.value)} placeholder={mode === 'login' ? 'ваш пароль' : 'минимум 8 символов'} className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none" />
-                {mode === 'login' && <button type="button" disabled={isLoading} onClick={() => { setRecoveryMode(true); setRecoveryError(null); setRecoveryMessage(null); }} className="mt-2 text-sm font-bold text-indigo-600 hover:text-indigo-800">Забыли пароль?</button>}
-              </div>
+                <input id="auth-password" required type="password" autoComplete="current-password" value={password} onChange={(event) => onPasswordChange(event.target.value)} placeholder="ваш пароль" className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none" />
+                <button type="button" disabled={isLoading} onClick={() => { setRecoveryMode(true); setRecoveryError(null); setRecoveryMessage(null); }} className="mt-2 text-sm font-bold text-indigo-600 hover:text-indigo-800">Забыли пароль?</button>
+              </div>}
 
               {mode === 'register' && (
                 <fieldset className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
@@ -180,7 +201,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <button type="submit" disabled={isLoading || invalidRegistrationDomain || requiredConsentsMissing} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 p-3 font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60">{isLoading && <LoaderIcon />}{mode === 'login' ? 'Войти' : 'Создать аккаунт'}</button>
             </form>
-            {mode === 'login' && <button type="button" disabled={isLoading} onClick={onYandexLogin} className="mt-3 w-full rounded-xl border-2 border-indigo-100 bg-white p-3 font-bold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-wait disabled:opacity-70">Войти через Яндекс</button>}
+            {mode === 'login' && <><button type="button" disabled={isLoading || recoveryBusy} onClick={() => void requestMagicLogin()} className="mt-3 w-full rounded-xl border-2 border-purple-100 bg-purple-50 p-3 font-bold text-purple-700 transition hover:bg-purple-100 disabled:cursor-wait disabled:opacity-70">{recoveryBusy ? 'Отправляю ссылку…' : 'Войти по magic link'}</button><button type="button" disabled={isLoading} onClick={onYandexLogin} className="mt-3 w-full rounded-xl border-2 border-indigo-100 bg-white p-3 font-bold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-wait disabled:opacity-70">Войти через Яндекс</button></>}
             <button type="button" disabled={isLoading} onClick={() => onModeChange(mode === 'login' ? 'register' : 'login')} className="mt-4 w-full text-sm font-bold text-indigo-600 hover:text-indigo-800">{mode === 'login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}</button>
           </>
         )}

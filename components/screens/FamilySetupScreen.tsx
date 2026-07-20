@@ -4,6 +4,7 @@ import { legalConsentService } from '../../services/legalConsentService';
 import { LEGAL_DOCUMENTS, LEGAL_LINK_PROPS } from '../../services/legalDocuments';
 import { profileApiService } from '../../services/profileApiService';
 import { ScreenContainer } from '../layout/ScreenContainer';
+import { StableStatusSlot } from '../ui/StatusNotice';
 
 interface FamilySetupScreenProps {
   onCreateChild: (childName: string, pin: string) => Promise<ChildSetupResult>;
@@ -119,8 +120,7 @@ export const FamilySetupScreen: React.FC<FamilySetupScreenProps> = ({ onCreateCh
             <label htmlFor="child-data-consent" className="cursor-pointer">Я подтверждаю, что являюсь родителем или иным законным представителем ребёнка, и принимаю <a href={LEGAL_DOCUMENTS.childDataConsent} {...LEGAL_LINK_PROPS} className="font-black text-indigo-700 underline decoration-indigo-200 underline-offset-2 transition hover:text-indigo-900 hover:decoration-indigo-500">Согласие на обработку персональных данных ребёнка</a>.</label>
           </div>
 
-          {pinHint && <div id="pin-format-hint" role="status" aria-live="polite" className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{pinHint}</div>}
-          {error && <div id="family-setup-error" role="alert" aria-live="assertive" className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</div>}
+          <div id={error ? 'family-setup-error' : pinHint ? 'pin-format-hint' : undefined}><StableStatusSlot message={error || pinHint} tone={error ? 'error' : 'warning'} role={error ? 'alert' : 'status'} /></div>
 
           <button type="submit" disabled={isSaving || !legalRepresentativeConsent} className="rounded-2xl bg-indigo-600 px-5 py-4 text-base font-black text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
             {isSaving ? 'Сохраняем настройки...' : 'Продолжить к выбору питомца'}

@@ -28,6 +28,12 @@ type BackendSessionPayload = {
   quest?: DailyQuestState | null;
 };
 
+type BackendRegistrationPayload = BackendSessionPayload & {
+  ok?: boolean;
+  needsEmailConfirmation?: boolean;
+  message?: string;
+};
+
 type BackendBootstrapPayload = {
   user?: BackendUserPayload | null;
   profile?: UserProfile | null;
@@ -198,11 +204,16 @@ export const authService = {
 
   signUpWithEmail: async (email: string, password: string, consents: RegistrationConsentSnapshot): Promise<{ needsEmailConfirmation: boolean }> => {
     if (isBackendApiConfigured) {
-      const payload = await withTransientRetry(() => backendApiRequest<BackendSessionPayload>('/api/auth/email/account', {
+      const payload = await withTransientRetry(() => backendApiRequest<BackendRegistrationPayload>('/api/auth/email/account', {
         method: 'POST',
         body: { email, credential: password, name: email.split('@')[0], consents },
       }));
       writeExplicitLogout(false);
+      if (payload.needsEmailConfirmation !== false || !payload.user) {
+        clearPrimedBootstrap();
+        currentBackendAuth = { session: null, user: null };
+        return { needsEmailConfirmation: true };
+      }
       primeBackendPayload(payload);
       currentBackendAuth = toAuthBootstrap(payload);
       emitBackendAuth('SIGNED_IN', currentBackendAuth);
