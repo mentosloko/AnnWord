@@ -26,7 +26,17 @@ jobs:
           ref: agent/magic-link-recovery-stable-notices
           fetch-depth: 0
       - name: Apply source patches
-        run: python3 scripts/agent_apply_magic_recovery.py
+        run: |
+          set -o pipefail
+          python3 scripts/agent_apply_magic_recovery.py 2>&1 | tee /tmp/agent-magic-patch.log
+      - name: Upload patch diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-magic-patch-log
+          path: /tmp/agent-magic-patch.log
+          if-no-files-found: warn
+          retention-days: 1
       - name: Commit patched sources
         run: |
           set -euo pipefail
