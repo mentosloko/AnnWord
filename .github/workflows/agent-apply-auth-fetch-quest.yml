@@ -30,7 +30,17 @@ jobs:
           fi
       - name: Apply guarded patch
         if: steps.detect.outputs.apply == 'true'
-        run: python3 scripts/agent_restore_auth_fetch_quest.py
+        run: |
+          set -o pipefail
+          python3 scripts/agent_restore_auth_fetch_quest.py 2>&1 | tee /tmp/auth-fetch-quest-patch.log
+      - name: Upload patch diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-fetch-quest-patch-log
+          path: /tmp/auth-fetch-quest-patch.log
+          if-no-files-found: warn
+          retention-days: 1
       - name: Commit product changes
         if: steps.detect.outputs.apply == 'true'
         run: |
