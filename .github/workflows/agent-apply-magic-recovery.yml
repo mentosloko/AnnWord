@@ -1,6 +1,12 @@
 name: Apply magic recovery patch
 
 on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
   push:
     branches:
       - agent/magic-link-recovery-stable-notices
@@ -12,11 +18,12 @@ permissions:
 
 jobs:
   apply:
-    if: github.event.head_commit.message == 'Trigger agent magic recovery patch'
+    if: github.event_name == 'pull_request' || github.event.head_commit.message == 'Trigger agent magic recovery patch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: agent/magic-link-recovery-stable-notices
           fetch-depth: 0
       - name: Apply source patches
         run: python3 scripts/agent_apply_magic_recovery.py
