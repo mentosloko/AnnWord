@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   apply:
-    if: (github.event_name == 'pull_request' || github.event.head_commit.message == 'Trigger agent magic recovery patch') && hashFiles('.agent-apply-magic-recovery') != ''
+    if: github.event_name == 'pull_request' || github.event.head_commit.message == 'Trigger agent magic recovery patch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
