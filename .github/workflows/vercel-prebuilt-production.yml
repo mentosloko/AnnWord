@@ -24,7 +24,7 @@ jobs:
     env:
       VERCEL_ORG_ID: team_f6p6zecR5jGHCXTV1kZVSIux
       VERCEL_PROJECT_ID: prj_FXkostulT2hFcfu2Y4ffPFXHJ96q
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN || secrets.VERCEL_ACCESS_TOKEN || secrets.VERCEL_API_TOKEN }}
     steps:
       - name: Mark Vercel production pending
         env:
@@ -48,7 +48,7 @@ jobs:
       - name: Validate deployment credentials
         run: |
           set -euo pipefail
-          test -n "$VERCEL_TOKEN" || { echo 'VERCEL_TOKEN is not configured'; exit 1; }
+          test -n "$VERCEL_TOKEN" || { echo 'No supported Vercel token secret is configured'; exit 1; }
 
       - name: Install dependencies and Vercel CLI
         run: |
