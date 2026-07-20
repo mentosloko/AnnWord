@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { DailyQuestCompletionReward, DailyQuestState, UserProfile } from '../../types';
-import { getCharacterProgressPercent, getCharacterStageLabel, getNextLevelThreshold, normalizeMoodScore } from '../../services/gamificationRules';
+import { getCharacterProgressPercent, normalizeMoodScore } from '../../services/gamificationRules';
 import { getMoodDisplay } from '../../services/moodDisplay';
 import { getPetCharacterAssetUrl } from '../../services/petAssets';
 import { hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
 import { CoinIcon } from '../CoinIcon';
-import { DailyQuestCard, DailyQuestRewardModal } from '../DailyQuestCard';
 import { ScreenContainer } from '../layout/ScreenContainer';
+import { SectionCard, experienceUi } from '../ui/ExperiencePrimitives';
 
 type Props = {
   userProfile: UserProfile;
@@ -30,115 +30,42 @@ type Props = {
   onOpenPremium?: () => void;
 };
 
-const games = [
-  ['Классика', '/assets/games/game_classic.webp'],
-  ['Анаграммы', '/assets/games/game_anagrams.webp'],
-  ['1 из 2', '/assets/games/game_one_of_two.webp'],
-  ['Спринт', '/assets/games/game_sprint.webp'],
-  ['Виселица', '/assets/games/game_hangman.webp'],
-  ['Память', '/assets/games/game_memory.webp'],
-  ['Змейка', '/assets/games/line_game.webp'],
-] as const;
+type Game = { title: string; image: string; note: string; action: () => void; badge?: string };
+const dayWord = (days: number) => { const mod100 = days % 100, mod10 = days % 10; return mod100 >= 11 && mod100 <= 14 ? 'дней' : mod10 === 1 ? 'день' : mod10 >= 2 && mod10 <= 4 ? 'дня' : 'дней'; };
+const GameTile: React.FC<Game> = ({ title, image, note, action, badge }) => <button type="button" onClick={action} className="relative flex min-h-[8.5rem] flex-col rounded-2xl bg-indigo-50/60 p-3 text-left transition hover:-translate-y-0.5 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-100 sm:min-h-[10rem] sm:p-4">{badge && <span className="absolute right-2 top-2 rounded-full bg-white px-2 py-1 text-[10px] font-bold text-indigo-600 shadow-sm">{badge}</span>}<img src={image} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-12 w-12 object-contain sm:h-16 sm:w-16" draggable={false} /><div className="mt-2 text-lg font-bold text-indigo-950">{title}</div><div className="mt-1 text-xs font-medium leading-relaxed text-slate-500">{note}</div></button>;
 
-const PetImageSkeleton = () => <div className="flex h-64 w-64 scale-125 flex-col items-center justify-center rounded-[2rem] bg-indigo-50/80 p-8" aria-hidden="true">
-  <div className="h-28 w-28 animate-pulse rounded-full bg-indigo-100" />
-  <div className="mt-5 h-4 w-36 animate-pulse rounded-full bg-indigo-100" />
-  <div className="mt-2 h-3 w-24 animate-pulse rounded-full bg-indigo-100/80" />
-</div>;
-
-export const KidsHomeScreen: React.FC<Props> = ({
-  userProfile,
-  dailyQuest,
-  dailyQuestReward,
-  onCloseDailyQuestReward,
-  onStartDailyQuest,
-  hasActiveClassicGame,
-  hasActiveAnagramGame,
-  onStartClassic,
-  onStartAnagrams,
-  onStartTranslation,
-  onStartSprint,
-  onStartHangman,
-  onStartMemory,
-  onStartLetterSquare,
-  onOpenShop,
-  onOpenProfile,
-  onOpenPetRoom,
-  onOpenAdultRoom,
-  onOpenPremium,
-}) => {
-  const actions = [onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare];
+export const KidsHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, onStartDailyQuest, hasActiveClassicGame, hasActiveAnagramGame, onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare, onOpenShop, onOpenProfile, onOpenPetRoom, onOpenAdultRoom, onOpenPremium }) => {
   const petUrl = getPetCharacterAssetUrl(userProfile.pet);
-  const [petImageReady, setPetImageReady] = useState(false);
-  const [petImageError, setPetImageError] = useState(false);
-  useEffect(() => { setPetImageReady(false); setPetImageError(false); }, [petUrl]);
-  const showPetSkeleton = !petUrl || petImageError || !petImageReady;
+  const [petReady, setPetReady] = useState(false);
+  useEffect(() => setPetReady(false), [petUrl]);
   const mood = getMoodDisplay(normalizeMoodScore(userProfile.pet));
-  const xpPercent = getCharacterProgressPercent(userProfile.pet);
-  const nextLevelXp = getNextLevelThreshold(userProfile.pet.level || 1);
-  const lastInventoryItem = userProfile.inventory.find(item => item.quantity > 0);
+  const streak = dailyQuest?.completed ? Math.max(1, Math.round(userProfile.pet.dailyStreak || 0)) : Math.max(0, Math.round(userProfile.pet.dailyStreak || 0));
+  const xp = getCharacterProgressPercent(userProfile.pet);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
-  const streakDays = Math.max(0, Math.round(userProfile.pet.dailyStreak || 0));
+  const continueAction = hasActiveClassicGame ? onStartClassic : hasActiveAnagramGame ? onStartAnagrams : null;
+  const startQuest = () => dailyQuest && onStartDailyQuest ? onStartDailyQuest(dailyQuest) : onStartClassic();
+  const games: Game[] = [
+    { title: 'Классика', image: '/assets/games/game_classic.webp', note: 'Угадайте слово за шесть попыток.', action: onStartClassic, badge: hasActiveClassicGame ? 'Продолжить' : undefined },
+    { title: 'Анаграммы', image: '/assets/games/game_anagrams.webp', note: 'Соберите слово из букв.', action: onStartAnagrams, badge: hasActiveAnagramGame ? 'Продолжить' : undefined },
+    { title: '1 из 2', image: '/assets/games/game_one_of_two.webp', note: 'Выберите правильный перевод.', action: onStartTranslation },
+    { title: 'Спринт', image: '/assets/games/game_sprint.webp', note: 'Отвечайте быстро и собирайте звёзды.', action: onStartSprint },
+    { title: 'Виселица', image: '/assets/games/game_hangman.webp', note: 'Открывайте слово по буквам.', action: onStartHangman },
+    { title: 'Память', image: '/assets/games/game_memory.webp', note: 'Найдите пары слово–перевод.', action: onStartMemory },
+    { title: 'Змейка', image: '/assets/games/line_game.webp', note: 'Соединяйте соседние буквы.', action: onStartLetterSquare },
+  ];
 
-  return <ScreenContainer className="max-w-6xl pb-20 pt-4">
-    <section className="grid gap-5 lg:grid-cols-[0.88fr_1.12fr]">
-      <main className="order-1 lg:order-2">
-        <div className="overflow-hidden rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:p-6">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-center">
-            <div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-widest text-indigo-400">AnnWord Kids</div>
-                  <h1 className="mt-1 text-3xl font-black leading-tight text-indigo-950 sm:text-4xl">Во что сыграем?</h1>
-                  <p className="mt-2 text-sm font-bold text-gray-500">Выбери игру, собери слова и порадуй питомца.</p>
-                </div>
-                <button type="button" onClick={onOpenProfile} className="rounded-2xl bg-indigo-50 px-4 py-2 text-sm font-black text-indigo-700">Профиль</button>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <div className="rounded-2xl bg-yellow-50 px-3 py-2 text-center"><CoinIcon className="text-xl" /><div className="text-lg font-black text-yellow-700">{userProfile.coins}</div><div className="text-[10px] font-black uppercase tracking-widest text-yellow-600/70">монет</div></div>
-                <div className="rounded-2xl bg-purple-50 px-3 py-2 text-center"><div className="text-lg font-black text-purple-700">{mood.label}</div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-purple-100"><div className={`h-full ${mood.barClass}`} style={{ width: `${normalizeMoodScore(userProfile.pet)}%` }} /></div><div className="mt-1 text-[10px] font-black uppercase tracking-widest text-purple-600/70">настроение</div></div>
-                <div className="rounded-2xl bg-indigo-50 px-3 py-2 text-center"><div className="text-lg font-black text-indigo-700">ур. {userProfile.pet.level}</div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-indigo-100"><div className="h-full rounded-full bg-indigo-600" style={{ width: `${xpPercent}%` }} /></div><div className="mt-1 text-[10px] font-black uppercase tracking-widest text-indigo-600/70">XP</div></div>
-              </div>
-              {!hasPremium && onOpenPremium && <button type="button" onClick={onOpenPremium} className="mt-4 flex w-full flex-col gap-2 rounded-3xl border-2 border-amber-100 bg-amber-50 px-4 py-3 text-left transition hover:-translate-y-0.5 hover:bg-amber-100/70 sm:flex-row sm:items-center sm:justify-between">
-                <span><span className="block text-sm font-black text-amber-900">🎒 Повторяйте школьные слова в играх</span><span className="mt-1 block text-xs font-bold leading-relaxed text-amber-800/80">Добавьте слова из школы, курса или учебника — ребёнок будет тренировать их в знакомых играх.</span></span>
-                <span className="shrink-0 rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-black text-white">Подобрать слова</span>
-              </button>}
-            </div>
-            <div className="relative hidden h-56 overflow-hidden xl:block" aria-hidden="true"><img src="/assets/kids-mascot.webp" alt="" className="h-full w-full object-contain object-right-bottom" draggable={false} loading="eager" /></div>
-          </div>
-          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-            {games.map(([label, src], index) => <button key={label} type="button" onClick={actions[index]} className="relative min-h-[7.5rem] rounded-3xl border-2 border-indigo-50 bg-white p-2 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-100 hover:shadow-md">
-              <img src={src} alt="" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" draggable={false} />
-              <div className="mt-2 truncate text-xs font-black text-indigo-950 sm:text-sm">{label}</div>
-              {((index === 0 && hasActiveClassicGame) || (index === 1 && hasActiveAnagramGame)) && <div className="absolute right-1 top-1 hidden rounded-full bg-green-100 px-2 py-1 text-[10px] font-black text-green-700 sm:block">сохранено</div>}
-              {(index === 2 || index === 6) && <div className="absolute right-1 top-1 hidden rounded-full bg-pink-100 px-2 py-1 text-[10px] font-black text-pink-700 sm:block">новая</div>}
-            </button>)}
-          </div>
-        </div>
-        {dailyQuest && <DailyQuestCard quest={dailyQuest} streakDays={streakDays} onStart={onStartDailyQuest} onOpenPetRoom={onOpenPetRoom} onOpenShop={onOpenShop} />}
-      </main>
-
-      <aside className="order-2 rounded-[2rem] bg-gradient-to-br from-purple-700 to-indigo-700 p-5 text-white shadow-xl sm:p-7 lg:order-1">
-        <div className="flex items-start justify-between gap-3">
-          <div><div className="text-xs font-black uppercase tracking-widest text-white/65">Питомец</div><h2 className="mt-1 text-3xl font-black">{userProfile.pet.name}</h2><div className="mt-1 text-sm font-bold text-white/70">{getCharacterStageLabel(userProfile.pet.stage)}</div></div>
-          <button type="button" onClick={onOpenPetRoom} className="rounded-2xl bg-white px-4 py-2 text-sm font-black text-indigo-700">Комната</button>
-        </div>
-        <button type="button" onClick={onOpenPetRoom} className="mx-auto mt-5 flex h-52 w-full max-w-[16rem] items-center justify-center overflow-hidden rounded-[2rem] bg-white/95 shadow-inner sm:h-56">
-          <span className="sr-only">Комната питомца</span>
-          <span className="sr-only" aria-live="polite">{showPetSkeleton ? 'Загружаем питомца' : 'Питомец загружен'}</span>
-          {showPetSkeleton && <PetImageSkeleton />}
-          {petUrl && !petImageError && <img src={petUrl} alt="" className={`h-64 w-64 scale-125 object-cover transition-opacity duration-300 ${petImageReady ? 'opacity-100' : 'absolute opacity-0'}`} draggable={false} onLoad={() => setPetImageReady(true)} onError={() => setPetImageError(true)} />}
-        </button>
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <button type="button" onClick={onOpenShop} aria-label={`Монеты: ${userProfile.coins}. Открыть магазин`} className="rounded-3xl bg-white/10 p-4 text-left"><CoinIcon className="text-3xl" /><div className="mt-3 text-3xl font-black">{userProfile.coins}</div><div className="text-xs font-black uppercase tracking-widest text-white/60">монет</div></button>
-          <div className="rounded-3xl bg-white/10 p-4"><div className={`text-xs font-black uppercase tracking-widest ${mood.textOnDarkClass}`}>{mood.label}</div><div className="mt-4 h-2 rounded-full bg-white/15"><div className={`h-2 rounded-full ${mood.barClass}`} style={{ width: `${normalizeMoodScore(userProfile.pet)}%` }} /></div><div className="mt-5 text-xs font-black uppercase tracking-widest text-white/60">XP</div><div className="mt-1 text-sm font-black text-white">{userProfile.pet.xp} / {nextLevelXp}</div><div className="mt-2 h-2 rounded-full bg-white/15"><div className="h-2 rounded-full bg-white" style={{ width: `${xpPercent}%` }} /></div></div>
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-          <button type="button" onClick={onOpenAdultRoom} className="rounded-3xl border border-white/15 bg-white/10 p-4 text-left transition hover:bg-white/15"><div className="text-xs font-black uppercase tracking-widest text-white/60">Для взрослого</div><div className="mt-1 text-sm font-black text-white">Кабинет родителя</div><div className="mt-1 text-xs font-bold text-white/65">Откроется через PIN.</div></button>
-          {lastInventoryItem && <button type="button" onClick={onOpenPetRoom} className="rounded-3xl bg-white/10 p-4 text-left"><div className="text-xs font-black uppercase tracking-widest text-white/60">В предметах</div><div className="mt-1 text-sm font-black text-white">{lastInventoryItem.name} ×{lastInventoryItem.quantity}</div><div className="mt-1 text-xs font-bold text-white/65">Открыть комнату</div></button>}
-        </div>
-      </aside>
+  return <ScreenContainer className="max-w-6xl pb-24 pt-4 sm:pb-20 sm:pt-6">
+    <section className="grid overflow-hidden rounded-[2rem] bg-gradient-to-br from-purple-700 to-indigo-700 text-white shadow-xl lg:grid-cols-[1fr_21rem]">
+      <div className="p-5 sm:p-8"><div className="text-xs font-bold uppercase tracking-wider text-white/65">Задание на сегодня</div><h1 className="mt-2 text-3xl font-bold leading-tight sm:text-5xl">{dailyQuest?.completed ? `Серия: ${streak} ${dayWord(streak)}` : dailyQuest?.title || 'Поиграем со словами?'}</h1><p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-white/80 sm:text-base">{dailyQuest?.completed ? 'Задание выполнено. Питомец получил награду, а теперь можно выбрать любую игру.' : dailyQuest?.description || 'Короткая игра поможет продлить серию и порадовать питомца.'}</p><div className="mt-6 flex flex-col gap-2 sm:flex-row"><button type="button" onClick={dailyQuest?.completed ? (continueAction || onStartClassic) : startQuest} className="rounded-2xl bg-white px-6 py-3.5 font-bold text-indigo-700 shadow-sm">{dailyQuest?.completed ? continueAction ? 'Продолжить игру' : 'Играть ещё' : 'Начать задание'}</button>{!dailyQuest?.completed && continueAction && <button type="button" onClick={continueAction} className="rounded-2xl bg-white/10 px-6 py-3.5 font-bold text-white ring-1 ring-white/25">Продолжить сохранённую</button>}</div></div>
+      <button type="button" onClick={onOpenPetRoom} className="relative hidden min-h-[17rem] items-end justify-center overflow-hidden bg-white/10 lg:flex"><span className="sr-only">Открыть комнату питомца</span>{!petReady && <div className="absolute inset-6 animate-pulse rounded-[2rem] bg-white/10" />}{petUrl && <img src={petUrl} alt="" onLoad={() => setPetReady(true)} className={`h-72 w-72 object-cover object-center transition-opacity ${petReady ? 'opacity-100' : 'opacity-0'}`} draggable={false} />}</button>
     </section>
-    {dailyQuestReward && onCloseDailyQuestReward && <DailyQuestRewardModal reward={dailyQuestReward} streakDays={streakDays} onClose={onCloseDailyQuestReward} onOpenPetRoom={onOpenPetRoom} onOpenShop={onOpenShop} />}
+
+    <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <SectionCard><div className={experienceUi.eyebrow}>Другие игры</div><h2 className={`mt-1 ${experienceUi.sectionTitle}`}>Выберите игру</h2><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{games.map(game => <GameTile key={game.title} {...game} />)}</div></SectionCard>
+      <aside className="space-y-4"><SectionCard><div className="flex items-center justify-between gap-3"><div><div className={experienceUi.eyebrow}>Питомец</div><h2 className="mt-1 text-xl font-bold text-indigo-950">{userProfile.pet.name}</h2></div><button type="button" onClick={onOpenPetRoom} className="rounded-xl bg-purple-50 px-3 py-2 text-sm font-bold text-purple-700">Комната</button></div><div className="mt-4 grid grid-cols-2 gap-2"><div className="rounded-2xl bg-yellow-50 p-3"><CoinIcon className="text-xl" /><div className="mt-1 text-2xl font-bold text-yellow-700">{userProfile.coins}</div><div className="text-xs font-medium text-yellow-700/70">монет</div></div><div className="rounded-2xl bg-purple-50 p-3"><div className="text-sm font-bold text-purple-700">{mood.label}</div><div className="mt-3 h-2 overflow-hidden rounded-full bg-purple-100"><div className={`h-full ${mood.barClass}`} style={{ width: `${normalizeMoodScore(userProfile.pet)}%` }} /></div><div className="mt-2 text-xs font-medium text-purple-600">ур. {userProfile.pet.level} · XP {Math.round(xp)}%</div></div></div></SectionCard>
+        <SectionCard><div className={experienceUi.eyebrow}>Быстрые действия</div><div className="mt-3 grid gap-2"><button type="button" onClick={onOpenShop} className={experienceUi.secondaryButton}>Магазин</button><button type="button" onClick={onOpenProfile} className={experienceUi.secondaryButton}>Прогресс ребёнка</button><button type="button" onClick={onOpenAdultRoom} className={experienceUi.secondaryButton}>Кабинет родителя</button></div></SectionCard>
+        {!hasPremium && onOpenPremium && <button type="button" onClick={onOpenPremium} className="w-full rounded-3xl bg-amber-50 p-5 text-left ring-1 ring-amber-100"><div className="text-xs font-bold uppercase tracking-wider text-amber-600">Kids Premium</div><div className="mt-2 text-lg font-bold text-indigo-950">Школьные слова и отчёты</div><div className="mt-1 text-sm font-medium text-slate-600">Добавляйте свои подборки и подключайте преподавателя.</div></button>}
+      </aside>
+    </div>
   </ScreenContainer>;
 };
