@@ -57,9 +57,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, mode, email, passw
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onCloseRef.current();
       if (event.key !== 'Tab' || !dialogRef.current) return;
-      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href]'));
+      const focusable: HTMLElement[] = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href]'));
       if (!focusable.length) return;
-      const first = focusable[0], last = focusable[focusable.length - 1];
+      const first: HTMLElement = focusable[0];
+      const last: HTMLElement = focusable[focusable.length - 1];
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
