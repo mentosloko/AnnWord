@@ -110,7 +110,7 @@ describe('shared setup flow for all game modes', () => {
     const { onRouteChange } = renderScreens({ route: 'setup', selectedPlayMode: 'sprint' });
 
     expect(await screen.findByText('Спринт')).toBeInTheDocument();
-    expect(screen.getByText('Перед стартом')).toBeInTheDocument();
+    expect(screen.getByText('Настройки игры')).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: 'Начать: Спринт' }));
 
     await waitFor(() => expect(onRouteChange).toHaveBeenCalledWith('sprint'));
