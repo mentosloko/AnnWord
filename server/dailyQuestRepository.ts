@@ -4,6 +4,7 @@ import { normalizeInventory } from "../services/profileMapper";
 import type { DailyQuestCompletionReward, DailyQuestKind, DailyQuestState, InventoryItem, ShopItem, UserProfile } from "../types";
 import type { GameRewardInput } from "../services/gamificationRules";
 import { DAILY_QUEST_DEFINITIONS } from "../services/dailyQuest";
+import { pickDailyQuestTreat } from "../services/dailyQuestRewardCatalog";
 
  type DailyQuestRow = {
   user_id: string;
@@ -41,14 +42,6 @@ const QUEST_VARIANTS: Array<{ kind: DailyQuestKind; variantKey: string }> = [
   { kind: "all_five_games", variantKey: "all_five_games" },
 ];
 
-const DAILY_TREATS: Array<{ item: ShopItem; weight: number }> = [
-  { item: { id: "apple", name: "Энерго-яблоко", price: 4, type: "food", minLevel: 1, description: "Простое лакомство. Настроение +8.", effect: { mood: 8 } }, weight: 40 },
-  { item: { id: "cookie", name: "Хрустик", price: 7, type: "food", minLevel: 1, description: "Вкусное лакомство. Настроение +12.", effect: { mood: 12 } }, weight: 30 },
-  { item: { id: "berry", name: "Сияющая ягодка", price: 11, type: "food", minLevel: 2, description: "Особое лакомство. Настроение +16.", effect: { mood: 16 } }, weight: 20 },
-  { item: { id: "icecream", name: "Ледяной десерт", price: 17, type: "food", minLevel: 3, description: "Праздничное лакомство. Настроение +22.", effect: { mood: 22 } }, weight: 8 },
-  { item: { id: "star_treat", name: "Звёздный кристалл", price: 25, type: "food", minLevel: 5, description: "Редкое лакомство. Настроение +30.", effect: { mood: 30 } }, weight: 2 },
-];
-
 const modeLabels: Record<string, string> = { wordle: "Классика", sprint: "Спринт", anagram: "Анаграммы", memory: "Память", hangman: "Виселица", letter_square: "Змейка", letterSquare: "Змейка" };
 const MOSCOW_DATE_FORMAT = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Moscow", year: "numeric", month: "2-digit", day: "2-digit" });
 
@@ -79,16 +72,6 @@ function stableIndex(input: string, modulo: number): number {
 
 function pickVariant(userId: string, questDate: string) {
   return QUEST_VARIANTS[stableIndex(`${userId}:${questDate}:daily-quest-v4`, QUEST_VARIANTS.length)];
-}
-
-function pickDailyTreat(userId: string, questDate: string): ShopItem {
-  const totalWeight = DAILY_TREATS.reduce((sum, entry) => sum + entry.weight, 0);
-  let point = stableIndex(`${userId}:${questDate}:daily-treat-v1`, totalWeight);
-  for (const entry of DAILY_TREATS) {
-    if (point < entry.weight) return entry.item;
-    point -= entry.weight;
-  }
-  return DAILY_TREATS[0].item;
 }
 
 function getVariantKey(progress: Record<string, unknown>, kind: DailyQuestKind): string {
@@ -215,7 +198,7 @@ export async function applyDailyQuestResult(userId: string, input: GameRewardInp
   if (!completed) return { quest: await getOrCreateDailyQuest(userId), reward: null, profile: null };
   if (quest.completed) return { quest, reward: null, profile: await getProfileById(userId) };
 
-  const treat = pickDailyTreat(userId, questDate);
+  const treat = pickDailyQuestTreat(userId, questDate);
   const result = await transaction(async client => {
     const lockedQuest = await client.query<DailyQuestRow>(
       `select user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id

@@ -1,4 +1,5 @@
 import { DailyQuestKind, DailyQuestState, PetWorldId } from '../types';
+import type { GameRewardInput } from './gamificationRules';
 
 type QuestCopy = Pick<DailyQuestState, 'title' | 'description'>;
 export type DailyQuestTargetMode = 'game' | 'anagrams' | 'sprint' | 'memory' | 'hangman' | 'letter_square';
@@ -86,4 +87,27 @@ export const normalizeDailyQuest = (value: any): DailyQuestState | null => {
     rewardItemId: stringOrNull(firstDefined(value.rewardItemId, value.reward_item_id)),
     rewardWorldId,
   };
+};
+
+const numeric = (value: unknown): number => Number.isFinite(Number(value)) ? Number(value) : 0;
+const truthy = (value: unknown): boolean => value === true || value === 'true';
+const completedModeLabel = (input: GameRewardInput): string | null => input.type === 'wordle' && truthy(input.won) ? 'Классика' : input.type === 'sprint' && numeric(input.guessedWords) > 0 ? 'Спринт' : input.type === 'anagram' && numeric(input.guessedWords) > 0 ? 'Анаграммы' : input.type === 'memory' ? 'Память' : input.type === 'hangman' && truthy(input.won) ? 'Виселица' : null;
+
+export const doesGameResultCompleteDailyQuest = (quest: DailyQuestState | null | undefined, input: GameRewardInput): boolean => {
+  if (!quest || quest.completed) return false;
+  const text = `${quest.title} ${quest.description}`.toLowerCase();
+  if (quest.kind === 'wordle_four') return input.type === 'wordle' && truthy(input.won);
+  if (quest.kind === 'sprint_twelve') {
+    const match = text.match(/(?:не менее|отгадай)\s+(\d+)/i);
+    const target = match ? Number(match[1]) : 12;
+    return input.type === 'sprint' && numeric(input.guessedWords) >= target;
+  }
+  if (quest.kind === 'memory_sixteen') return input.type === 'memory' && numeric(input.clicks) > 0;
+  if (quest.kind === 'hangman_clean') return input.type === 'hangman' && truthy(input.won);
+  if (quest.kind === 'all_five_games') {
+    const mode = completedModeLabel(input);
+    const completedCount = Number(quest.progressLabel.match(/^(\d+)\/5/)?.[1] || 0);
+    return Boolean(mode && completedCount >= 4 && !quest.progressLabel.toLowerCase().includes(mode.toLowerCase()));
+  }
+  return false;
 };

@@ -7,13 +7,13 @@ describe('account recovery and stable transient UI', () => {
   it('requires email confirmation and exposes magic-link login', () => {
     const router = read('server/routes/magicLinkRoutes.ts');
     const authModal = read('components/auth/AuthModal.tsx');
-    expect(router).toContain("email_confirmed_at = coalesce(email_confirmed_at, now())");
+    expect(router).toContain('pending_email_registrations');
     expect(router).toContain("code: 'email_not_confirmed'");
     expect(router).toContain("email_confirmed_at, password_reset_required");
-    expect(router).toContain("null, true");
+    expect(router).toContain("'email', now(), false");
     expect(authModal).toContain('Войти по magic link');
-    expect(authModal).toContain("mode === 'login' && <div>");
-    expect(authModal).toContain('Пароль не нужен');
+    expect(authModal).toContain("minLength={mode === 'register' ? 8 : undefined}");
+    expect(authModal).toContain('подтвердите адрес');
   });
 
   it('supports email-based parent PIN recovery', () => {

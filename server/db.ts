@@ -80,13 +80,27 @@ function getPool(): Pool | undefined {
   }
 
   if (!pool) {
-    pool = new Pool({
+    const createdPool = new Pool({
       connectionString: normalizeDatabaseConnectionString(runtimeConfig.databaseUrl),
       ssl: { rejectUnauthorized: false },
       max: Number.parseInt(process.env.PGPOOL_MAX || "5", 10),
-      idleTimeoutMillis: Number.parseInt(process.env.PGPOOL_IDLE_TIMEOUT_MS || "120000", 10),
+      idleTimeoutMillis: Number.parseInt(process.env.PGPOOL_IDLE_TIMEOUT_MS || "30000", 10),
       connectionTimeoutMillis: Number.parseInt(process.env.PGPOOL_CONNECTION_TIMEOUT_MS || "5000", 10),
+      keepAlive: true,
+      keepAliveInitialDelayMillis: Number.parseInt(process.env.PGPOOL_KEEPALIVE_DELAY_MS || "10000", 10),
     });
+    createdPool.on("error", (error) => {
+      console.error(JSON.stringify({
+        level: "ERROR",
+        message: "PostgreSQL idle client error",
+        event: "db_pool_idle_error",
+        code: (error as NodeJS.ErrnoException).code || null,
+        detail: error.message,
+      }));
+      if (pool === createdPool) pool = undefined;
+      void createdPool.end().catch(() => undefined);
+    });
+    pool = createdPool;
   }
 
   return pool;

@@ -14,6 +14,8 @@ import { updateReviewPriorities, WordPracticeResult } from './services/gameSessi
 import { preloadAppAssetsForProfile } from './services/assetPreloader';
 import { WORDLE_HINT_COST, getWordleHintBalanceDelta } from './services/wordleEconomy';
 import { dailyQuestService } from './services/dailyQuestService';
+import { doesGameResultCompleteDailyQuest } from './services/dailyQuest';
+import { pickDailyQuestTreat } from './services/dailyQuestRewardCatalog';
 import { premiumDictionaryService, PremiumDictionaryDraft } from './services/premiumDictionaryService';
 import { ChildSetupResult, familyAccountService } from './services/familyAccountService';
 import { getDefaultPremiumDictionaryId } from './services/premiumDictionaryCatalog';
@@ -267,13 +269,22 @@ const AppV2: React.FC = () => {
   }, [currentUserId, logout, route, setEntryPath, setRoute]);
   const submitDailyQuestResult = useCallback(async (input: GameRewardInput) => {
     if (!canUseDailyQuest) return;
+    const optimistic = isKids && doesGameResultCompleteDailyQuest(dailyQuest, input);
+    if (optimistic && dailyQuest) {
+      const item = currentUserId ? pickDailyQuestTreat(currentUserId, dailyQuest.questDate) : null;
+      const optimisticQuest = { ...dailyQuest, completed: true, completedAt: new Date().toISOString(), rewardItemId: item?.id || dailyQuest.rewardItemId || null };
+      setDailyQuestReward({ quest: optimisticQuest, item, worldId: dailyQuest.rewardWorldId || null, pending: true });
+    }
     try {
       const result = await dailyQuestService.submitGameResult(input);
       setDailyQuest(result.quest);
       if (result.profile) setUserProfile(result.profile);
-      if (isKids && result.reward) setDailyQuestReward(result.reward);
-    } catch (error) { console.error('Failed to apply daily quest result', error); }
-  }, [canUseDailyQuest, isKids, setUserProfile]);
+      if (isKids) setDailyQuestReward(result.reward ? { ...result.reward, pending: false } : null);
+    } catch (error) {
+      if (optimistic) setDailyQuestReward(null);
+      console.error('Failed to apply daily quest result', error);
+    }
+  }, [canUseDailyQuest, currentUserId, dailyQuest, isKids, setUserProfile]);
   const sendWordLedgerEvent = useCallback((word: string, result: WordPracticeResult, mode: string, routeName: string = route) => {
     if (!currentUserId) return;
     const event = gameEventLedgerService.createWordPracticeEvent(currentUserId, word, result, { gameMode: mode, wordLength: mode === 'sprint' || mode === 'translation' || mode === 'letterSquare' || mode === 'anagram' ? 'any' : settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty, route: routeName });
@@ -335,8 +346,9 @@ const AppV2: React.FC = () => {
       if (!input.statsOnly) await submitDailyQuestResult(input);
       return;
     }
+    const questPromise = !input.statsOnly ? submitDailyQuestResult(input) : Promise.resolve();
     await profileEconomy.applyGameReward(input, { stats: nextStats, analyticsEvents: [event] });
-    if (!input.statsOnly) await submitDailyQuestResult(input);
+    await questPromise;
   }, [currentUserId, isKids, profileEconomy, route, settings.dictionarySource, settings.difficulty, settings.wordLength, submitDailyQuestResult, userProfile.stats]);
   const handleWordPractice = useCallback(async (word: string, result: WordPracticeResult) => {
     const previousStats = wordReviewStatsRef.current;

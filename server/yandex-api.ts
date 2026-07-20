@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import cors from "cors";
 import dotenv from "dotenv";
 import express, { type Request, type Response } from "express";
@@ -27,6 +27,7 @@ import { weeklyReportRouter } from "./routes/weeklyReportRoutes";
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1);
 let server: ReturnType<typeof app.listen> | null = null;
 const distDir = path.join(process.cwd(), "dist");
 const indexHtmlPath = path.join(distDir, "index.html");
@@ -48,9 +49,15 @@ const addAllowedOrigin = (origins: Set<string>, value: unknown): void => {
 
   try {
     const url = new URL(normalized);
-    if (url.protocol === "https:" && url.hostname === "annword.ru") {
-      url.protocol = "http:";
-      origins.add(normalizeOrigin(url.toString()));
+    if (url.hostname === "annword.ru" || url.hostname === "www.annword.ru") {
+      for (const protocol of ["https:", "http:"]) {
+        for (const hostname of ["annword.ru", "www.annword.ru"]) {
+          const sibling = new URL(url.toString());
+          sibling.protocol = protocol;
+          sibling.hostname = hostname;
+          origins.add(normalizeOrigin(sibling.toString()));
+        }
+      }
     }
   } catch {
     // Ignore malformed optional CORS values and keep the explicitly normalized value above.
@@ -122,6 +129,31 @@ app.use((req, _res, next) => {
   }
   next();
 });
+app.use((req, res, next) => {
+  const startedAt = Date.now();
+  const requestId = readText(req.headers["x-request-id"]) || randomUUID();
+  res.setHeader("X-Request-Id", requestId);
+  let logged = false;
+  const log = (aborted: boolean) => {
+    if (logged) return;
+    logged = true;
+    console.log(JSON.stringify({
+      level: res.statusCode >= 500 ? "ERROR" : res.statusCode >= 400 ? "WARN" : "INFO",
+      message: "HTTP request completed",
+      event: "http_request",
+      request_id: requestId,
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      duration_ms: Date.now() - startedAt,
+      aborted,
+      origin: readText(req.headers.origin) || null,
+    }));
+  };
+  res.once("finish", () => log(false));
+  res.once("close", () => log(!res.writableEnded));
+  next();
+});
 app.use(
   cors({
     origin(origin, callback) {
@@ -129,12 +161,13 @@ app.use(
         callback(null, true);
         return;
       }
-
       const allowedOrigins = new Set<string>();
       [runtimeConfig.appUrl, runtimeConfig.apiUrl, process.env.CORS_ORIGIN].forEach((value) => addAllowedOrigin(allowedOrigins, value));
-
       const normalizedOrigin = normalizeOrigin(origin);
-      callback(null, allowedOrigins.size === 0 || allowedOrigins.has(normalizedOrigin));
+      const isAnnWordVercel = /^https:\/\/ann-word(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(normalizedOrigin);
+      const allowed = allowedOrigins.size === 0 || allowedOrigins.has(normalizedOrigin) || isAnnWordVercel;
+      if (!allowed) console.warn(JSON.stringify({ level: "WARN", message: "CORS origin rejected", event: "cors_rejected", origin: normalizedOrigin }));
+      callback(null, allowed);
     },
     credentials: true,
   }),
