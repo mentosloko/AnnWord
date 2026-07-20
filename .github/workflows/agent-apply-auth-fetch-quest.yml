@@ -32,22 +32,23 @@ jobs:
         if: steps.detect.outputs.apply == 'true'
         run: |
           python3 - <<'PY'
+          import re
           from pathlib import Path
           path = Path('scripts/agent_restore_auth_fetch_quest.py')
           text = path.read_text()
-          old = '''replace_once(
+          pattern = re.compile(
+              r"replace_once\(\n\s*'components/DailyQuestCard\.tsx',\n\s*\"  const safeStreakDays = Math\.max\(0, Math\.round\(streakDays \|\| 0\)\);\",\n\s*\"  const safeStreakDays = Math\.max\(0, Math\.round\(streakDays \|\| 0\)\);\\n  const pending = reward\.pending === true;\",\n\s*\)",
+              re.MULTILINE,
+          )
+          replacement = '''replace_once(
               'components/DailyQuestCard.tsx',
-              "  const safeStreakDays = Math.max(0, Math.round(streakDays || 0));",
-              "  const safeStreakDays = Math.max(0, Math.round(streakDays || 0));\n  const pending = reward.pending === true;",
+              "  const imageUrl = reward.item ? getShopImageUrl(reward.item) : null;\\n  const safeStreakDays = Math.max(0, Math.round(streakDays || 0));",
+              "  const imageUrl = reward.item ? getShopImageUrl(reward.item) : null;\\n  const safeStreakDays = Math.max(0, Math.round(streakDays || 0));\\n  const pending = reward.pending === true;",
           )'''
-          new = '''replace_once(
-              'components/DailyQuestCard.tsx',
-              "  const imageUrl = reward.item ? getShopImageUrl(reward.item) : null;\n  const safeStreakDays = Math.max(0, Math.round(streakDays || 0));",
-              "  const imageUrl = reward.item ? getShopImageUrl(reward.item) : null;\n  const safeStreakDays = Math.max(0, Math.round(streakDays || 0));\n  const pending = reward.pending === true;",
-          )'''
-          if old not in text:
-              raise SystemExit('Reward modal patch block not found')
-          path.write_text(text.replace(old, new, 1))
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit(f'Reward modal patch block matches: {count}')
+          path.write_text(text)
           PY
       - name: Apply guarded patch
         if: steps.detect.outputs.apply == 'true'
