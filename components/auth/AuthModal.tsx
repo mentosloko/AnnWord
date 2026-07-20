@@ -173,13 +173,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div>
                 <label htmlFor="auth-email" className="mb-1 block text-xs font-bold uppercase text-gray-500">Электронная почта</label>
                 <input ref={emailRef} id="auth-email" required type="email" autoComplete="email" value={email} onChange={(event) => onEmailChange(event.target.value)} placeholder="user@example.ru" aria-invalid={invalidRegistrationDomain || undefined} aria-describedby={mode === 'register' ? 'registration-domain-hint' : undefined} className={`w-full rounded-lg border-2 p-3 transition focus:outline-none ${invalidRegistrationDomain ? 'border-rose-300 bg-rose-50 focus:border-rose-500' : 'border-gray-200 focus:border-indigo-500'}`} />
-                {mode === 'register' && <p id="registration-domain-hint" className={`mt-2 text-xs font-bold leading-relaxed ${invalidRegistrationDomain ? 'text-rose-600' : 'text-gray-500'}`}>Для регистрации используйте адрес в зоне <b>.ru</b> или <b>.рф</b>. После создания аккаунта потребуется открыть обязательный magic link из письма.</p>}
+                {mode === 'register' && <p id="registration-domain-hint" className={`mt-2 text-xs font-bold leading-relaxed ${invalidRegistrationDomain ? 'text-rose-600' : 'text-gray-500'}`}>Для регистрации используйте адрес в зоне <b>.ru</b> или <b>.рф</b>. Пароль не нужен: аккаунт создаётся только после подтверждения обязательного magic link из письма.</p>}
               </div>
-              <div>
+              {mode === 'login' && <div>
                 <label htmlFor="auth-password" className="mb-1 block text-xs font-bold uppercase text-gray-500">Пароль</label>
-                <input id="auth-password" required type="password" minLength={mode === 'register' ? 8 : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => onPasswordChange(event.target.value)} placeholder={mode === 'login' ? 'ваш пароль' : 'минимум 8 символов'} className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none" />
-                {mode === 'login' && <button type="button" disabled={isLoading} onClick={() => { setRecoveryMode(true); setRecoveryError(null); setRecoveryMessage(null); }} className="mt-2 text-sm font-bold text-indigo-600 hover:text-indigo-800">Забыли пароль?</button>}
-              </div>
+                <input id="auth-password" required type="password" autoComplete="current-password" value={password} onChange={(event) => onPasswordChange(event.target.value)} placeholder="ваш пароль" className="w-full rounded-lg border-2 border-gray-200 p-3 transition focus:border-indigo-500 focus:outline-none" />
+                <button type="button" disabled={isLoading} onClick={() => { setRecoveryMode(true); setRecoveryError(null); setRecoveryMessage(null); }} className="mt-2 text-sm font-bold text-indigo-600 hover:text-indigo-800">Забыли пароль?</button>
+              </div>}
 
               {mode === 'register' && (
                 <fieldset className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">

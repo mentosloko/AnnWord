@@ -82,7 +82,7 @@ magicLinkRouter.post('/email/account', async (req, res) => {
     const rawEmail = readText(body.email);
     assertRussianRegistrationEmail(rawEmail);
     const consents = readRegistrationConsents(body.consents);
-    const input = validateNewUserInput(rawEmail, readText(body[field]), readText(body.name));
+    const input = validateNewUserInput(rawEmail, randomBytes(24).toString('base64url'), readText(body.name));
 
     const existing = await query<{ id: string; email: string; full_name: string | null; password_reset_required: boolean; email_confirmed_at: Date | string | null }>(
       'select id, email, full_name, password_reset_required, email_confirmed_at from app_users where email = $1',
@@ -102,8 +102,8 @@ magicLinkRouter.post('/email/account', async (req, res) => {
     const created = await transaction(async client => {
       const id = newUserId();
       const result = await client.query<{ id: string; email: string; full_name: string | null; password_reset_required: boolean }>(
-        `insert into app_users (id, email, password_hash, full_name, provider, email_confirmed_at)
-         values ($1, $2, $3, $4, 'email', null)
+        `insert into app_users (id, email, password_hash, full_name, provider, email_confirmed_at, password_reset_required)
+         values ($1, $2, $3, $4, 'email', null, true)
          returning id, email, full_name, password_reset_required`,
         [id, input.email, input.passwordHash, input.name],
       );

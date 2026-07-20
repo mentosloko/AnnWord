@@ -223,6 +223,7 @@ authRouter.post("/password/reset/confirm", async (req, res) => {
         `update app_users
             set password_hash = $2,
                 password_reset_required = false,
+                email_confirmed_at = coalesce(email_confirmed_at, now()),
                 updated_at = now()
           where id = $1`,
         [row.user_id, passwordHash],
