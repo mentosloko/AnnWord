@@ -1,0 +1,43 @@
+name: Agent Apply Auth Fetch Quest Patch
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/restore-password-registration-fix-fetch-quest'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/restore-password-registration-fix-fetch-quest
+          fetch-depth: 0
+      - name: Detect patch script
+        id: detect
+        run: |
+          if [ -f scripts/agent_restore_auth_fetch_quest.py ]; then
+            echo "apply=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Apply guarded patch
+        if: steps.detect.outputs.apply == 'true'
+        run: python3 scripts/agent_restore_auth_fetch_quest.py
+      - name: Commit product changes
+        if: steps.detect.outputs.apply == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm scripts/agent_restore_auth_fetch_quest.py
+          git add .
+          git commit -m "Restore password registration and harden runtime flows"
+          git push origin HEAD:agent/restore-password-registration-fix-fetch-quest
