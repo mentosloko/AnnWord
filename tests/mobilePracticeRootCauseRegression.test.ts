@@ -17,13 +17,13 @@ describe('mobile Practice root-cause regressions', () => {
     expect(header).toContain('Монеты:');
   });
 
-  it('uses one mobile viewport model for Classic instead of mixing dvh and svh', () => {
+  it('sizes Classic from the visible viewport and the actual remaining board container', () => {
     const grid = read('components/Grid.tsx');
     const screen = read('components/screens/ClassicGameScreen.tsx');
-    expect(screen).toContain('h-[100svh]');
-    expect(grid).toContain('calc((100svh - 10.25rem) / 6)');
-    expect(grid).not.toContain('calc((100dvh - 10.25rem) / 6)');
-    expect(grid).toContain('six rows overflowed their actual parent');
+    expect(screen).toContain('h-[100dvh] min-h-[100svh]');
+    expect(grid).toContain('100cqh');
+    expect(grid).toContain("containerType: 'size'");
+    expect(grid).not.toContain('calc((100svh - 10.25rem) / 6)');
   });
 
   it('shows first-play rules per account and mode, with rules still available through question mark', () => {
