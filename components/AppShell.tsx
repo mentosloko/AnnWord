@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppHeader } from './layout/AppHeader';
 import { LegalFooter } from './layout/LegalFooter';
+import { MobileBottomNav } from './layout/MobileBottomNav';
 import { AppModals } from './AppModals';
 import { UserProfile, ViewState } from '../types';
 
@@ -37,6 +38,7 @@ const GAME_ROUTES: ViewState[] = ['game', 'anagrams', 'translation', 'sprint', '
 
 export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onHomeClick, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onAdminClick, onAdultRoomClick, onDictionaryStudioClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => {
   const isGameRoute = GAME_ROUTES.includes(route);
+  const showMobileNav = isAuthenticated && !isGameRoute;
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
@@ -55,8 +57,9 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
           onDictionaryStudioClick={onDictionaryStudioClick}
         />
       )}
-      <div className="flex-1">{children}</div>
+      <div className={`flex-1 ${showMobileNav ? 'pb-20 lg:pb-0' : ''}`}>{children}</div>
       {!isGameRoute && <LegalFooter />}
+      {!isGameRoute && <MobileBottomNav route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} onHomeClick={onHomeClick} onProfileClick={onProfileClick} onShopClick={onShopClick} onAdultRoomClick={onAdultRoomClick} onDictionaryStudioClick={onDictionaryStudioClick} />}
       <AppModals
         showLoginModal={showLoginModal}
         showRulesModal={showRulesModal}

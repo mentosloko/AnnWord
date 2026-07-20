@@ -4,6 +4,7 @@ import { getDailyQuestTargetModes } from '../../services/dailyQuest';
 import { hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
 import { StreakBadge } from '../StreakBadge';
 import { ScreenContainer } from '../layout/ScreenContainer';
+import { SectionCard, experienceUi } from '../ui/ExperiencePrimitives';
 
 type Props = {
   userProfile: UserProfile;
@@ -26,58 +27,49 @@ type Props = {
   onOpenPremium?: () => void;
 };
 
-type Card = { title: string; subtitle: string; description: string; imageSrc: string; badge?: string; accent: string; onStart: () => void };
-const CardTile: React.FC<Card> = ({ title, subtitle, description, imageSrc, badge, accent, onStart }) => <button type="button" onClick={onStart} className="group relative flex min-h-[6.9rem] flex-col overflow-hidden rounded-[1.25rem] border-2 border-indigo-50 bg-white p-2.5 text-left shadow-sm transition hover:-translate-y-1 hover:border-indigo-100 hover:shadow-xl sm:min-h-[11rem] sm:rounded-[1.75rem] sm:p-4"><div className={`absolute inset-x-0 top-0 h-1.5 ${accent}`} />{badge && <span className="absolute right-2 top-2 hidden rounded-full bg-indigo-50 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-indigo-700 sm:inline-flex">{badge}</span>}<img src={imageSrc} alt="" aria-hidden="true" className="h-11 w-11 object-contain transition group-hover:scale-110 sm:h-16 sm:w-16" draggable={false} /><div className="mt-1.5 text-[15px] font-black leading-tight text-indigo-950 sm:mt-2 sm:text-xl">{title}</div><div className="mt-0.5 hidden text-xs font-black text-indigo-600 sm:block sm:text-sm">{subtitle}</div><p className="mt-1.5 hidden flex-1 text-xs font-bold leading-relaxed text-gray-500 sm:block">{description}</p><span className="mt-auto inline-flex w-max rounded-xl bg-indigo-600 px-3 py-1.5 text-[11px] font-black text-white transition group-hover:bg-indigo-700 sm:mt-3 sm:rounded-2xl sm:px-4 sm:py-2 sm:text-sm">Играть</span></button>;
+type GameCard = { title: string; note: string; image: string; badge?: string; action: () => void };
+const dayWord = (days: number) => { const mod100 = days % 100, mod10 = days % 10; return mod100 >= 11 && mod100 <= 14 ? 'дней' : mod10 === 1 ? 'день' : mod10 >= 2 && mod10 <= 4 ? 'дня' : 'дней'; };
 
-const daysLabel = (days: number): string => {
-  const mod100 = days % 100;
-  const mod10 = days % 10;
-  if (mod100 >= 11 && mod100 <= 14) return 'дней';
-  if (mod10 === 1) return 'день';
-  if (mod10 >= 2 && mod10 <= 4) return 'дня';
-  return 'дней';
-};
+const GameTile: React.FC<GameCard> = ({ title, note, image, badge, action }) => <button type="button" onClick={action} className="group relative flex min-h-[8.5rem] flex-col rounded-2xl bg-indigo-50/55 p-3 text-left transition hover:-translate-y-0.5 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-100 sm:min-h-[10rem] sm:p-4">
+  {badge && <span className="absolute right-2 top-2 max-w-[7.5rem] truncate rounded-full bg-white px-2 py-1 text-[10px] font-bold text-indigo-600 shadow-sm">{badge}</span>}
+  <img src={image} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-12 w-12 object-contain transition group-hover:scale-105 sm:h-16 sm:w-16" draggable={false} />
+  <div className="mt-2 text-lg font-bold text-indigo-950">{title}</div><div className="mt-1 text-xs font-medium leading-relaxed text-slate-500">{note}</div>
+</button>;
 
-export const PracticeHomeScreenWithLetterSquare: React.FC<Props> = ({ userProfile, dailyQuest, hasActiveClassicGame, hasActiveAnagramGame, activeDictionaryName, onStartDailyQuest, onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare, onOpenDictionaryStudio, onOpenPremium }) => {
+export const PracticeHomeScreenWithLetterSquare: React.FC<Props> = ({ userProfile, dailyQuest, hasActiveClassicGame, hasActiveAnagramGame, activeDictionaryName, onStartDailyQuest, onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare, onOpenProfile, onOpenDictionaryStudio, onOpenPremium }) => {
   const questCompleted = dailyQuest?.completed === true;
   const storedStreak = Math.max(0, Math.round(userProfile.pet.dailyStreak || 0));
-  const daysInRow = questCompleted ? Math.max(1, storedStreak) : storedStreak;
+  const streak = questCompleted ? Math.max(1, storedStreak) : storedStreak;
   const dictionaryName = activeDictionaryName || (userProfile.customDictionaryEn.length ? 'Слова из вашего списка' : 'General English');
-  const dailyQuestModes = new Set(getDailyQuestTargetModes(!questCompleted ? dailyQuest : null));
-  const questBadge = (mode: Parameters<typeof dailyQuestModes.has>[0], fallback?: string) => dailyQuestModes.has(mode) ? 'задание дня' : fallback;
+  const questModes = new Set(getDailyQuestTargetModes(!questCompleted ? dailyQuest : null));
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
-  const cards: Card[] = [
-    { title: 'Классика', subtitle: 'угадать слово', description: 'Угадайте слово за 6 попыток.', imageSrc: '/assets/games/game_classic.webp', badge: questBadge('game', hasActiveClassicGame ? 'продолжить' : undefined), accent: 'bg-indigo-500', onStart: onStartClassic },
-    { title: 'Анаграммы', subtitle: 'собрать слово', description: 'Тренирует написание и форму слова.', imageSrc: '/assets/games/game_anagrams.webp', badge: questBadge('anagrams', hasActiveAnagramGame ? 'сохранено' : undefined), accent: 'bg-purple-500', onStart: onStartAnagrams },
-    { title: 'Змейка', subtitle: 'путь по буквам', description: 'Собирайте слово цепочкой. Только вверх, вниз, влево и вправо.', imageSrc: '/assets/games/line_game.webp', badge: 'новая', accent: 'bg-blue-500', onStart: onStartLetterSquare },
-    { title: '1 из 2', subtitle: 'выбор перевода', description: 'Выберите правильный английский вариант.', imageSrc: '/assets/games/game_one_of_two.webp', badge: 'новая', accent: 'bg-pink-500', onStart: onStartTranslation },
-    { title: 'Спринт', subtitle: 'на скорость', description: 'Короткая тренировка на скорость.', imageSrc: '/assets/games/game_sprint.webp', badge: questBadge('sprint', 'быстро'), accent: 'bg-green-500', onStart: onStartSprint },
-    { title: 'Виселица', subtitle: 'по буквам', description: 'Вспоминайте слово постепенно.', imageSrc: '/assets/games/game_hangman.webp', badge: questBadge('hangman', 'без спешки'), accent: 'bg-amber-500', onStart: onStartHangman },
-    { title: 'Память', subtitle: 'пары', description: 'Закрепляйте пары слово–перевод.', imageSrc: '/assets/games/game_memory.webp', badge: questBadge('memory', 'повторение'), accent: 'bg-cyan-500', onStart: onStartMemory },
+  const continueAction = hasActiveClassicGame ? onStartClassic : hasActiveAnagramGame ? onStartAnagrams : null;
+  const runQuest = () => dailyQuest && onStartDailyQuest ? onStartDailyQuest(dailyQuest) : onStartClassic();
+  const badge = (mode: Parameters<typeof questModes.has>[0], fallback?: string) => questModes.has(mode) ? 'Задание дня' : fallback;
+  const games: GameCard[] = [
+    { title: 'Классика', note: 'Угадайте слово за шесть попыток.', image: '/assets/games/game_classic.webp', badge: badge('game', hasActiveClassicGame ? 'Есть сохранение' : undefined), action: onStartClassic },
+    { title: 'Анаграммы', note: 'Соберите слово из перемешанных букв.', image: '/assets/games/game_anagrams.webp', badge: badge('anagrams', hasActiveAnagramGame ? 'Есть сохранение' : undefined), action: onStartAnagrams },
+    { title: '1 из 2', note: 'Выберите правильный английский вариант.', image: '/assets/games/game_one_of_two.webp', action: onStartTranslation },
+    { title: 'Спринт', note: 'Быстрые ответы в течение минуты.', image: '/assets/games/game_sprint.webp', badge: badge('sprint'), action: onStartSprint },
+    { title: 'Виселица', note: 'Вспоминайте слово по одной букве.', image: '/assets/games/game_hangman.webp', badge: badge('hangman'), action: onStartHangman },
+    { title: 'Память', note: 'Найдите пары «слово — перевод».', image: '/assets/games/game_memory.webp', badge: badge('memory'), action: onStartMemory },
+    { title: 'Змейка', note: 'Соберите слово цепочкой соседних букв.', image: '/assets/games/line_game.webp', action: onStartLetterSquare },
   ];
-  const runDailyQuest = () => dailyQuest && onStartDailyQuest ? onStartDailyQuest(dailyQuest) : onStartClassic();
-  const scrollToGames = () => document.getElementById('practice-games-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  const completedTitle = `Серия: ${daysInRow} ${daysLabel(daysInRow)}`;
 
-  return <ScreenContainer className="max-w-7xl pb-16 pt-3 sm:pb-20 sm:pt-5">
-    <section className="overflow-hidden rounded-[1.5rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:rounded-[2rem] sm:p-6">
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_28rem] xl:items-center">
-        <div>
-          <div className="hidden text-xs font-black uppercase tracking-widest text-indigo-400 sm:block">AnnWord Practice</div>
-          <div className="flex items-start justify-between gap-3"><h1 className="text-2xl font-black leading-tight text-indigo-950 sm:mt-2 sm:text-5xl">{questCompleted ? completedTitle : 'Ежедневная практика'}</h1>{questCompleted && <StreakBadge days={daysInRow} />}</div>
-          <p className="mt-2 max-w-2xl text-sm font-bold leading-relaxed text-gray-600 sm:mt-3 sm:text-base">{questCompleted ? 'Ежедневное задание выполнено. Выберите другой режим для дополнительной тренировки.' : dailyQuest?.description || 'Одна короткая игра продлит серию ежедневных занятий.'}</p>
-          <div className="mt-3 flex gap-2 sm:mt-5 sm:flex-row sm:gap-3"><button type="button" onClick={questCompleted ? scrollToGames : runDailyQuest} className="flex-1 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-indigo-700 sm:flex-none sm:px-6 sm:py-4 sm:text-base">{questCompleted ? 'Другие игры' : 'Начать задание'}</button><button type="button" onClick={onOpenDictionaryStudio} className="rounded-2xl border-2 border-indigo-100 bg-white px-4 py-3 text-sm font-black text-indigo-700">Словарь</button></div>
-        </div>
-        <div className="relative hidden h-64 xl:block" aria-hidden="true"><img src="/assets/practice-mascot.webp" alt="" className="absolute bottom-[-2.25rem] right-[-1.5rem] h-[19rem] w-[34rem] max-w-none object-contain object-right-bottom" draggable={false} loading="eager" /></div>
+  return <ScreenContainer className="max-w-6xl pb-24 pt-4 sm:pb-20 sm:pt-6">
+    <section className="grid overflow-hidden rounded-[2rem] bg-gradient-to-br from-indigo-700 to-purple-700 text-white shadow-xl lg:grid-cols-[1fr_22rem]">
+      <div className="p-5 sm:p-8"><div className="text-xs font-bold uppercase tracking-wider text-white/65">Следующее действие</div><div className="mt-3 flex items-start justify-between gap-3"><h1 className="text-3xl font-bold leading-tight sm:text-5xl">{questCompleted ? `Серия: ${streak} ${dayWord(streak)}` : dailyQuest?.title || 'Ежедневная практика'}</h1>{questCompleted && <StreakBadge days={streak} />}</div><p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-white/80 sm:text-base">{questCompleted ? 'Главное задание выполнено. Можно закрепить сложные слова в любом режиме.' : dailyQuest?.description || 'Одна короткая тренировка продлит серию и обновит список повторения.'}</p>
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row"><button type="button" onClick={questCompleted ? (continueAction || onStartClassic) : runQuest} className="rounded-2xl bg-white px-6 py-3.5 font-bold text-indigo-700 shadow-sm transition hover:bg-indigo-50">{questCompleted ? continueAction ? 'Продолжить игру' : 'Сыграть ещё' : 'Начать задание'}</button>{!questCompleted && continueAction && <button type="button" onClick={continueAction} className="rounded-2xl bg-white/10 px-6 py-3.5 font-bold text-white ring-1 ring-white/25 hover:bg-white/15">Продолжить сохранённую</button>}</div>
       </div>
+      <div className="hidden items-end justify-center overflow-hidden lg:flex" aria-hidden="true"><img src="/assets/practice-mascot.webp" alt="" className="h-72 w-full object-contain object-bottom" draggable={false} /></div>
     </section>
 
-    <section id="practice-games-section" className="mt-3 grid gap-4 sm:mt-6 sm:gap-6 xl:grid-cols-[1fr_24rem]">
-      <div className="rounded-[1.5rem] border-2 border-indigo-50 bg-white p-3 shadow-sm sm:rounded-[2rem] sm:p-6">
-        <div className="mb-3 flex items-end justify-between sm:mb-4"><div><div className="hidden text-xs font-black uppercase tracking-widest text-indigo-400 sm:block">Игры</div><h2 className="text-xl font-black text-indigo-950 sm:mt-1 sm:text-2xl">Выберите режим</h2></div></div>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">{cards.map(card => <CardTile key={card.title} {...card} />)}</div>
-      </div>
-      <aside className="space-y-4"><section className="rounded-[1.5rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:rounded-[2rem] sm:p-5"><div className="text-xs font-black uppercase tracking-widest text-indigo-400">Активный словарь</div><h2 className="mt-2 text-xl font-black text-indigo-950 sm:text-2xl">{dictionaryName}</h2><button type="button" onClick={onOpenDictionaryStudio} className="mt-3 w-full rounded-2xl bg-indigo-600 px-5 py-3 font-black text-white sm:mt-4">Сменить словарь</button></section>{!hasPremium && onOpenPremium && <button type="button" onClick={onOpenPremium} className="w-full rounded-[1.5rem] border-2 border-amber-100 bg-amber-50 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-100/70 sm:rounded-[2rem] sm:p-5"><div className="text-xs font-black uppercase tracking-widest text-amber-600">Premium</div><h2 className="mt-2 text-xl font-black text-indigo-950">Слова под вашу цель</h2><p className="mt-2 text-sm font-bold leading-relaxed text-gray-600">Работа, экзамен, медицина, поездка или свой список.</p><span className="mt-4 inline-flex rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-black text-white">Посмотреть темы</span></button>}</aside>
-    </section>
+    <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <SectionCard><div className="flex items-end justify-between gap-3"><div><div className={experienceUi.eyebrow}>Другие игры</div><h2 className={`mt-1 ${experienceUi.sectionTitle}`}>Выберите способ повторения</h2></div></div><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{games.map(game => <GameTile key={game.title} {...game} />)}</div></SectionCard>
+      <aside className="space-y-4"><SectionCard><div className={experienceUi.eyebrow}>Активный словарь</div><h2 className="mt-2 text-xl font-bold text-indigo-950">{dictionaryName}</h2><p className="mt-2 text-sm font-medium text-slate-500">Игры запускаются сразу с последними выбранными настройками.</p><button type="button" onClick={onOpenDictionaryStudio} className={`mt-4 w-full ${experienceUi.secondaryButton}`}>Изменить слова</button></SectionCard>
+        <SectionCard><div className={experienceUi.eyebrow}>Прогресс</div><p className="mt-2 text-sm font-medium text-slate-600">Посмотрите слова, которые требуют повторения, и результаты тренировок.</p><button type="button" onClick={onOpenProfile} className={`mt-4 w-full ${experienceUi.secondaryButton}`}>Открыть прогресс</button></SectionCard>
+        {!hasPremium && onOpenPremium && <button type="button" onClick={onOpenPremium} className="w-full rounded-3xl bg-amber-50 p-5 text-left ring-1 ring-amber-100 transition hover:bg-amber-100/70"><div className="text-xs font-bold uppercase tracking-wider text-amber-600">Premium</div><div className="mt-2 text-lg font-bold text-indigo-950">Свои темы и списки</div><div className="mt-1 text-sm font-medium text-slate-600">Подключайте слова для работы, учёбы или поездки.</div></button>}
+      </aside>
+    </div>
   </ScreenContainer>;
 };

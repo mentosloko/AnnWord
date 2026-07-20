@@ -10,11 +10,15 @@ describe('mobile Practice root-cause regressions', () => {
     expect(gate).toContain('Keep only blocking flows');
   });
 
-  it('does not duplicate the burger navigation below the mobile header', () => {
+  it('uses one explicit role-aware mobile navigation', () => {
     const header = read('components/layout/AppHeader.tsx');
+    const shell = read('components/AppShell.tsx');
+    const mobileNav = read('components/layout/MobileBottomNav.tsx');
     expect(header).not.toContain('aria-label="Быстрая навигация"');
-    expect(header).toContain('Серия ежедневных заданий');
-    expect(header).toContain('Монеты:');
+    expect(shell).toContain('<MobileBottomNav');
+    expect(mobileNav).toContain('Основная мобильная навигация');
+    expect(mobileNav).toContain("label: 'Прогресс'");
+    expect(mobileNav).toContain("label: 'Родителю'");
   });
 
   it('sizes Classic from the visible viewport and the actual remaining board container', () => {
@@ -32,6 +36,7 @@ describe('mobile Practice root-cause regressions', () => {
     const screens = read('components/AppScreens.tsx');
     expect(shell).toContain('annword:game-intro:v1:${viewerKey}:${gameId}');
     expect(shell).toContain('Правила всегда можно открыть снова кнопкой «?»');
+    expect(shell).toContain('data-testid="game-chrome"');
     expect(classic).toContain('annword:game-intro:v1:${rulesViewerKey}:classic');
     expect(screens).toContain('rulesViewerKey={rulesViewerKey}');
   });
@@ -79,7 +84,7 @@ describe('mobile Practice root-cause regressions', () => {
     expect(dictionary).not.toContain('В бесплатном режиме доступен базовый набор');
     expect(practice).not.toContain('Практика на сегодня выполнена');
     expect(practice).not.toContain('Можно сыграть ещё в любую игру или вернуться завтра');
-    expect(practice).toContain('Серия: ${daysInRow} ${daysLabel(daysInRow)}');
+    expect(practice).toContain('Серия: ${streak} ${dayWord(streak)}');
     expect(anagram).not.toContain('Ошибок: {wrongAttempts}');
     expect(anagram).toContain('На это слово — 2 попытки');
   });

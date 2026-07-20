@@ -4,23 +4,26 @@ import { describe, expect, it } from 'vitest';
 const read = (path: string) => fs.readFileSync(path, 'utf8');
 
 describe('account recovery and stable transient UI', () => {
-  it('requires email confirmation and exposes magic-link login', () => {
+  it('requires email confirmation without exposing passwordless login', () => {
     const router = read('server/routes/magicLinkRoutes.ts');
     const authModal = read('components/auth/AuthModal.tsx');
     expect(router).toContain('pending_email_registrations');
     expect(router).toContain("code: 'email_not_confirmed'");
-    expect(router).toContain("email_confirmed_at, password_reset_required");
+    expect(router).toContain('email_confirmed_at, password_reset_required');
     expect(router).toContain("'email', now(), false");
-    expect(authModal).toContain('Войти по magic link');
+    expect(authModal).not.toContain('magicLinkService');
+    expect(authModal.toLowerCase()).not.toContain('magic link');
+    expect(authModal).not.toContain('Войти по ссылке');
     expect(authModal).toContain("minLength={mode === 'register' ? 8 : undefined}");
-    expect(authModal).toContain('подтвердите адрес');
+    expect(authModal).toContain('аккаунт активируется после перехода по ссылке');
+    expect(authModal).toContain('Продолжить через Яндекс');
   });
 
   it('supports email-based parent PIN recovery', () => {
     const router = read('server/routes/parentPinRecoveryRoutes.ts');
-    const adultRoom = read('components/screens/AdultRoomScreen.tsx');
+    const parentRoom = read('components/screens/ParentDashboardScreen.tsx');
     expect(router).toContain("purpose = 'parent_pin_reset'");
-    expect(adultRoom).toContain('Забыли PIN? Восстановить по email');
+    expect(parentRoom).toContain('Забыли PIN? Восстановить по email');
   });
 
   it('does not render duplicate petting labels or inline transient setup banners', () => {
@@ -36,6 +39,6 @@ describe('account recovery and stable transient UI', () => {
     expect(read('components/auth/AuthModal.tsx')).toContain('StableStatusSlot');
     expect(read('components/auth/PasswordResetOverlay.tsx')).toContain('StableStatusSlot');
     expect(read('components/screens/FamilySetupScreen.tsx')).toContain('StableStatusSlot');
-    expect(read('components/screens/AdultRoomScreen.tsx')).toContain('StableStatusSlot');
+    expect(read('components/screens/ParentDashboardScreen.tsx')).toContain('StableStatusSlot');
   });
 });
