@@ -129,7 +129,7 @@ async function doFetch<T>(path: string, options: BackendRequestOptions, useHeade
       try {
         const response = await fetch(`${backendApiBaseUrl}${path}`, {
           method,
-          headers: { ...headers, "X-Request-Id": globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}` },
+          headers,
           credentials: "include",
           body: options.body === undefined ? undefined : JSON.stringify(options.body),
           signal: controller.signal,
