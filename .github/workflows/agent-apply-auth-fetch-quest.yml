@@ -28,6 +28,27 @@ jobs:
           else
             echo "apply=false" >> "$GITHUB_OUTPUT"
           fi
+      - name: Correct reward modal patch target
+        if: steps.detect.outputs.apply == 'true'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/agent_restore_auth_fetch_quest.py')
+          text = path.read_text()
+          old = '''replace_once(
+              'components/DailyQuestCard.tsx',
+              "  const safeStreakDays = Math.max(0, Math.round(streakDays || 0));",
+              "  const safeStreakDays = Math.max(0, Math.round(streakDays || 0));\n  const pending = reward.pending === true;",
+          )'''
+          new = '''replace_once(
+              'components/DailyQuestCard.tsx',
+              "  const imageUrl = reward.item ? getShopImageUrl(reward.item) : null;\n  const safeStreakDays = Math.max(0, Math.round(streakDays || 0));",
+              "  const imageUrl = reward.item ? getShopImageUrl(reward.item) : null;\n  const safeStreakDays = Math.max(0, Math.round(streakDays || 0));\n  const pending = reward.pending === true;",
+          )'''
+          if old not in text:
+              raise SystemExit('Reward modal patch block not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
       - name: Apply guarded patch
         if: steps.detect.outputs.apply == 'true'
         run: |
@@ -47,7 +68,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm scripts/agent_restore_auth_fetch_quest.py
+          git rm -f scripts/agent_restore_auth_fetch_quest.py
           git add .
           git commit -m "Restore password registration and harden runtime flows"
           git push origin HEAD:agent/restore-password-registration-fix-fetch-quest
