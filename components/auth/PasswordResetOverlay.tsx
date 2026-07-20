@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { passwordResetService } from '../../services/passwordResetService';
+import { StableStatusSlot } from '../ui/StatusNotice';
 
 const readResetToken = (): string => {
   if (typeof window === 'undefined') return '';
@@ -66,7 +67,7 @@ export const PasswordResetOverlay: React.FC = () => {
               <label htmlFor="reset-password-confirm" className="mb-1 block text-xs font-black uppercase text-slate-500">Повторите пароль</label>
               <input id="reset-password-confirm" type="password" minLength={8} required autoComplete="new-password" value={confirmation} onChange={event => { setConfirmation(event.target.value); setError(null); }} className="w-full rounded-xl border-2 border-slate-200 p-3 outline-none focus:border-indigo-500" />
             </div>
-            {error && <p role="alert" className="rounded-2xl bg-rose-50 p-3 text-sm font-bold text-rose-700">{error}</p>}
+            <StableStatusSlot message={error} tone="error" role="alert" />
             <button type="submit" disabled={busy} className="w-full rounded-2xl bg-indigo-600 px-4 py-3 font-black text-white disabled:opacity-60">{busy ? 'Сохраняю…' : 'Сохранить новый пароль'}</button>
           </form>
         )}

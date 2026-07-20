@@ -6,6 +6,7 @@ import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../s
 import { useDictionaryPools } from '../../hooks/useDictionaryPools';
 import { QuestContextBanner } from '../QuestContextBanner';
 import { ScreenContainer } from '../layout/ScreenContainer';
+import { FloatingNotice } from '../ui/StatusNotice';
 import { PlayableModeRoute } from '../AppScreens';
 
 interface SetupScreenProps {
@@ -104,7 +105,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
       ? 'Загружаю словарь…'
       : `${hasActiveClassicGame && selectedPlayMode === 'game' ? 'Начать новую: ' : 'Начать: '}${MODE_LABELS[selectedPlayMode]}${questContext ? ' · задание' : ''}`;
 
+  const visibleError = setupError || (dictionaryRuntime.error ? 'Не удалось загрузить словарь. Проверьте соединение и повторите.' : null);
+
   return <ScreenContainer className="max-w-3xl px-3 pb-20 pt-3 sm:px-4">
+    <FloatingNotice message={visibleError} tone="error" role="alert" />
     <div className="mb-3 flex items-center justify-between gap-3">
       <button type="button" onClick={onBack} aria-label="Назад" className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button>
       <div className="min-w-0 text-center">
@@ -117,9 +121,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     {questContext && <div className="mb-4"><QuestContextBanner quest={questContext} /></div>}
 
     <div className="rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:p-6">
-      {setupError && <div role="alert" aria-live="assertive" className="mb-4 rounded-2xl border-2 border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{setupError}</div>}
-      {dictionaryRuntime.error && <div role="alert" aria-live="assertive" className="mb-4 rounded-2xl border-2 border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">Не удалось загрузить словарь. Проверьте соединение и повторите.</div>}
-
       <section className="mt-2" aria-labelledby="dictionary-source-title">
         <h2 id="dictionary-source-title" className="mb-2 text-xs font-black uppercase tracking-widest text-indigo-400">Слова для игры</h2>
         <div className="grid grid-cols-3 gap-2" role="group" aria-label="Источник слов">
