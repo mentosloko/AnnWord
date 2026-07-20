@@ -44,7 +44,7 @@ jobs:
           {
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git rm .agent-apply-magic-recovery scripts/agent_apply_magic_recovery.py
+            git rm -f .agent-apply-magic-recovery scripts/agent_apply_magic_recovery.py
             git add .
             git status --short
             git commit -m "Require magic-link confirmation and add account recovery"
