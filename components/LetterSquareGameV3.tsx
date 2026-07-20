@@ -18,7 +18,21 @@ const random = <T,>(items: T[]) => items[Math.floor(Math.random() * items.length
 const shuffle = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5);
 const neighbours = (coord: Coord) => [{ row: coord.row - 1, col: coord.col }, { row: coord.row + 1, col: coord.col }, { row: coord.row, col: coord.col - 1 }, { row: coord.row, col: coord.col + 1 }].filter(item => item.row >= 0 && item.row < SIZE && item.col >= 0 && item.col < SIZE);
 export const buildLetterSquareDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN) => buildPlayableGameDictionary(customDictionaryEn, fallbackDictionary).map(item => ({ ...item, word: item.word.toUpperCase() })).filter(item => /^[A-Z]{3,10}$/.test(item.word));
-const pathFor = (length: number) => { const cells = Array.from({ length: SIZE * SIZE }, (_, index) => ({ row: Math.floor(index / SIZE), col: index % SIZE })); for (let attempt = 0; attempt < 900; attempt += 1) { const path = [random(cells) || { row: 0, col: 0 }], used = new Set([keyOf(path[0])]); while (path.length < length) { const next = shuffle(neighbours(path[path.length - 1])).find(coord => !used.has(keyOf(coord)); if (!next) break; path.push(next); used.add(keyOf(next)); } if (path.length === length) return path; } return Array.from({ length }, (_, index) => ({ row: Math.floor(index / SIZE), col: index % SIZE })); };
+const pathFor = (length: number) => {
+  const cells = Array.from({ length: SIZE * SIZE }, (_, index) => ({ row: Math.floor(index / SIZE), col: index % SIZE }));
+  for (let attempt = 0; attempt < 900; attempt += 1) {
+    const path = [random(cells) || { row: 0, col: 0 }];
+    const used = new Set([keyOf(path[0])]);
+    while (path.length < length) {
+      const next = shuffle(neighbours(path[path.length - 1])).find(coord => !used.has(keyOf(coord)));
+      if (!next) break;
+      path.push(next);
+      used.add(keyOf(next));
+    }
+    if (path.length === length) return path;
+  }
+  return Array.from({ length }, (_, index) => ({ row: Math.floor(index / SIZE), col: index % SIZE }));
+};
 const makeRound = (pool: EnrichedWord[], previous?: string | null, review: Record<string, number> = {}): Round | null => { const word = pickAdaptiveSessionWord('letterSquare', pool, review, previous) || random(pool); if (!word) return null; const path = pathFor(word.word.length); const grid = Array.from({ length: SIZE }, (_, row) => Array.from({ length: SIZE }, (_, col) => ({ row, col, letter: random(ABC.split('')) || 'A' }))); path.forEach((coord, index) => { grid[coord.row][coord.col] = { ...coord, letter: word.word[index] || 'A' }; }); return { word, grid, path }; };
 
 export const LetterSquareGameV3: React.FC<Props> = ({ onBack, userProfile, onGameReward, onWordPractice }) => {
