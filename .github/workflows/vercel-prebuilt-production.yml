@@ -2,6 +2,11 @@ name: Deploy Prebuilt to Vercel Production
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/vercel-prebuilt-production.yml'
 
 permissions:
   contents: read
@@ -83,7 +88,6 @@ jobs:
               && grep -Fq "$deployment_asset" /tmp/production.html \
               && ! grep -Eq 'modulepreload[^>]+dictionary-(general|premium)' /tmp/production.html; then
               echo "Verified production asset: $deployment_asset"
-              echo "asset=$deployment_asset" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             echo "Attempt $attempt: deployment=$deployment_code production=$production_code asset=$deployment_asset"
