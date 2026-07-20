@@ -26,7 +26,7 @@ export interface CustomDictionaryCollection { id: string; title: string; source:
 export interface UserProfile { username: string; role?: AccountRole; accountMode?: AccountMode; subscriptionTier?: SubscriptionTier; premiumExpiresAt?: string; childDisplayName?: string; childShareCode?: string; childSlotsLimit?: number; featureFlags?: FeatureFlags; customDictionaryEn: string[]; assignedWords?: string[]; dictionaryCollections?: CustomDictionaryCollection[]; managedLearners?: ManagedLearner[]; weeklyReportEmail?: string; stats: UserStats; pet: PetState; coins: number; inventory: InventoryItem[]; }
 export type DailyQuestKind = 'wordle_four' | 'sprint_twelve' | 'memory_sixteen' | 'hangman_clean' | 'all_five_games';
 export interface DailyQuestState { questDate: string; kind: DailyQuestKind; title: string; description: string; progressLabel: string; completed: boolean; completedAt?: string | null; rewardItemId?: string | null; rewardWorldId?: PetWorldId | null; }
-export interface DailyQuestCompletionReward { quest: DailyQuestState; item?: ShopItem | null; worldId?: PetWorldId | null; }
+export interface DailyQuestCompletionReward { quest: DailyQuestState; item?: ShopItem | null; worldId?: PetWorldId | null; pending?: boolean; }
 export interface ShopRandomRewardOption { itemId: string; weight: number; }
 export interface ShopItem { id: string; name: string; price: number; type: InventoryItemType; minLevel: number; description: string; imageUrl?: string; effect?: { mood?: number; moodCap?: number; }; characterType?: string; randomReward?: { pool: ShopRandomRewardOption[]; }; }
 export interface CellData { letter: string; status: CharStatus; }

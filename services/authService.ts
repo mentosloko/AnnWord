@@ -181,7 +181,7 @@ export const authService = {
       return;
     }
 
-    window.location.href = '/api/auth/yandex';
+    window.location.href = `${backendApiBaseUrl}/api/auth/yandex`;
   },
 
   signInWithEmail: async (email: string, password: string): Promise<void> => {

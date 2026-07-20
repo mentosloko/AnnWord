@@ -123,22 +123,31 @@ async function doFetch<T>(path: string, options: BackendRequestOptions, useHeade
   options.signal?.addEventListener("abort", abortFromCaller, { once: true });
 
   try {
-    const response = await fetch(`${backendApiBaseUrl}${path}`, {
-      method: options.method || "GET",
-      headers,
-      credentials: "include",
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
-      signal: controller.signal,
-    });
-    const payload = await response.json().catch(() => null) as { error?: string } | T | null;
-    return {
-      response,
-      payload,
-      serverTiming: parseServerTiming(response.headers.get('Server-Timing')),
-    };
-  } catch (error) {
-    if (controller.signal.aborted) throw abortError(path, timedOut);
-    throw error;
+    const method = options.method || "GET";
+    const maxAttempts = method === "GET" ? 2 : 1;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        const response = await fetch(`${backendApiBaseUrl}${path}`, {
+          method,
+          headers: { ...headers, "X-Request-Id": globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}` },
+          credentials: "include",
+          body: options.body === undefined ? undefined : JSON.stringify(options.body),
+          signal: controller.signal,
+        });
+        const payload = await response.json().catch(() => null) as { error?: string } | T | null;
+        return { response, payload, serverTiming: parseServerTiming(response.headers.get('Server-Timing')) };
+      } catch (error) {
+        if (controller.signal.aborted) throw abortError(path, timedOut);
+        const networkFailure = error instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(error instanceof Error ? error.message : String(error));
+        if (networkFailure && attempt + 1 < maxAttempts) {
+          await new Promise(resolve => globalThis.setTimeout(resolve, 250));
+          continue;
+        }
+        if (networkFailure) throw new BackendApiError("Не удалось связаться с сервером AnnWord. Проверьте соединение и повторите действие.", 0);
+        throw error;
+      }
+    }
+    throw new BackendApiError("Не удалось связаться с сервером AnnWord.", 0);
   } finally {
     globalThis.clearTimeout(timeoutId);
     options.signal?.removeEventListener("abort", abortFromCaller);

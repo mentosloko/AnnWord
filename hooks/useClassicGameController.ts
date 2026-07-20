@@ -90,10 +90,9 @@ export const useClassicGameController = ({ route, settings, sessionOwnerId, getS
 
     finishingRef.current = true;
     setGameState(prev => ({ ...prev, guesses, history: [...prev.history, { word, translation }], currentGuess: '', gameStatus: 'playing', rowIndex: prev.rowIndex + 1, hint: null, error: 'Сохраняем результат…' }));
-    try { await onStatsUpdate(terminalStatus === 'won', gameState.secretWord); }
-    catch (error) { console.error('Failed to save Classic result', error); }
-    try { if (onDailyQuestResult) await onDailyQuestResult(terminalStatus === 'won', gameState.secretWord, guesses.length); }
-    catch (error) { console.error('Failed to reconcile Classic daily quest', error); }
+    const statsPromise = onStatsUpdate(terminalStatus === 'won', gameState.secretWord).catch(error => console.error('Failed to save Classic result', error));
+    const questPromise = onDailyQuestResult ? onDailyQuestResult(terminalStatus === 'won', gameState.secretWord, guesses.length).catch(error => console.error('Failed to reconcile Classic daily quest', error)) : Promise.resolve();
+    try { await Promise.all([statsPromise, questPromise]); }
     finally {
       finishingRef.current = false;
       setGameState(prev => ({ ...prev, gameStatus: terminalStatus, error: null }));
