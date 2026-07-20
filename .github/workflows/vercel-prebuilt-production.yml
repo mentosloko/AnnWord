@@ -1,0 +1,107 @@
+name: Deploy Prebuilt to Vercel Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: vercel-prebuilt-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Vercel Prebuilt Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      VERCEL_ORG_ID: team_f6p6zecR5jGHCXTV1kZVSIux
+      VERCEL_PROJECT_ID: prj_FXkostulT2hFcfu2Y4ffPFXHJ96q
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Mark Vercel production pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Vercel",description:"Building verified production artifact in GitHub Actions",target_url:process.env.TARGET_URL}))' > /tmp/vercel-status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/vercel-status.json
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Validate deployment credentials
+        run: |
+          set -euo pipefail
+          test -n "$VERCEL_TOKEN" || { echo 'VERCEL_TOKEN is not configured'; exit 1; }
+
+      - name: Install dependencies and Vercel CLI
+        run: |
+          npm install
+          npm install --global vercel@50.1.6
+
+      - name: Pull Vercel production settings
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build production artifact locally
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy prebuilt artifact to production
+        id: deploy
+        run: |
+          set -euo pipefail
+          url="$(vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" \
+            --meta githubCommitSha="$GITHUB_SHA" \
+            --meta githubCommitRef="main" \
+            --meta githubCommitRepo="AnnWord" | tail -n 1)"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "$url"
+
+      - name: Verify production alias and entry artifact
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            deployment_code="$(curl --silent --show-error --location --connect-timeout 15 --max-time 45 --output /tmp/deployment.html --write-out '%{http_code}' "$DEPLOYMENT_URL/?verify=$GITHUB_RUN_ID-$attempt" || true)"
+            production_code="$(curl --silent --show-error --location --connect-timeout 15 --max-time 45 --output /tmp/production.html --write-out '%{http_code}' "https://ann-word.vercel.app/?verify=$GITHUB_RUN_ID-$attempt" || true)"
+            deployment_asset="$(grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' /tmp/deployment.html | head -n 1 || true)"
+            if [ "$deployment_code" = '200' ] \
+              && [ "$production_code" = '200' ] \
+              && [ -n "$deployment_asset" ] \
+              && grep -Fq "$deployment_asset" /tmp/production.html \
+              && ! grep -Eq 'modulepreload[^>]+dictionary-(general|premium)' /tmp/production.html; then
+              echo "Verified production asset: $deployment_asset"
+              echo "asset=$deployment_asset" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Attempt $attempt: deployment=$deployment_code production=$production_code asset=$deployment_asset"
+            sleep 10
+          done
+          cat /tmp/deployment.html || true
+          cat /tmp/production.html || true
+          exit 1
+
+      - name: Publish green Vercel status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          node -e 'process.stdout.write(JSON.stringify({state:"success",context:"Vercel",description:"Verified prebuilt production deployment is READY",target_url:process.env.TARGET_URL}))' > /tmp/vercel-status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/vercel-status.json
