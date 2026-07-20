@@ -28,6 +28,7 @@ jobs:
       - name: Apply source patches
         run: |
           set -o pipefail
+          sed -i 's/"                 {mode ===/"                {mode ===/g' scripts/agent_apply_magic_recovery.py
           python3 scripts/agent_apply_magic_recovery.py 2>&1 | tee /tmp/agent-magic-patch.log
       - name: Upload patch diagnostics
         if: always()
