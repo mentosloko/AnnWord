@@ -136,7 +136,7 @@ describe('component contracts', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Свои слова/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Свои слова Premium$/i }));
     expect(onLogin).toHaveBeenCalledTimes(1);
     expect(onSettingsChange).not.toHaveBeenCalled();
   });
