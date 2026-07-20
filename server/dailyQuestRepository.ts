@@ -1,5 +1,5 @@
 import { query, transaction } from "./db";
-import { getProfileById } from "./profileRepository";
+import { reconcileProfileMood } from "./petMoodRepository";
 import { normalizeInventory } from "../services/profileMapper";
 import type { DailyQuestCompletionReward, DailyQuestKind, DailyQuestState, InventoryItem, ShopItem, UserProfile } from "../types";
 import type { GameRewardInput } from "../services/gamificationRules";
@@ -196,7 +196,7 @@ export async function applyDailyQuestResult(userId: string, input: GameRewardInp
   }
 
   if (!completed) return { quest: await getOrCreateDailyQuest(userId), reward: null, profile: null };
-  if (quest.completed) return { quest, reward: null, profile: await getProfileById(userId) };
+  if (quest.completed) return { quest, reward: null, profile: await reconcileProfileMood(userId, true) };
 
   const treat = pickDailyQuestTreat(userId, questDate);
   const result = await transaction(async client => {
@@ -238,6 +238,6 @@ export async function applyDailyQuestResult(userId: string, input: GameRewardInp
   return {
     quest: completedQuest,
     reward: result.awarded ? { quest: completedQuest, item: treat, worldId: null } : null,
-    profile: await getProfileById(userId),
+    profile: await reconcileProfileMood(userId, true),
   };
 }
