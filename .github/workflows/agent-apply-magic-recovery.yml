@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   apply:
-    if: github.event_name == 'pull_request' || github.event.head_commit.message == 'Trigger agent magic recovery patch'
+    if: (github.event_name == 'pull_request' || github.event.head_commit.message == 'Trigger agent magic recovery patch') && hashFiles('.agent-apply-magic-recovery') != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,7 +43,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .agent-apply-magic-recovery .github/workflows/agent-apply-magic-recovery.yml scripts/agent_apply_magic_recovery.py
+          git rm .agent-apply-magic-recovery scripts/agent_apply_magic_recovery.py
           git add .
           git commit -m "Require magic-link confirmation and add account recovery"
           git push origin HEAD:agent/magic-link-recovery-stable-notices
