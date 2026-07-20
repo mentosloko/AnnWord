@@ -45,7 +45,7 @@ jobs:
               "  const imageUrl = reward.item ? getShopImageUrl(reward.item) : null;\\n  const safeStreakDays = Math.max(0, Math.round(streakDays || 0));",
               "  const imageUrl = reward.item ? getShopImageUrl(reward.item) : null;\\n  const safeStreakDays = Math.max(0, Math.round(streakDays || 0));\\n  const pending = reward.pending === true;",
           )'''
-          text, count = pattern.subn(replacement, text, count=1)
+          text, count = pattern.subn(lambda _match: replacement, text, count=1)
           if count != 1:
               raise SystemExit(f'Reward modal patch block matches: {count}')
           path.write_text(text)
