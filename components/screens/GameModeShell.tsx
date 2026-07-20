@@ -40,13 +40,13 @@ export const GameModeShell: React.FC<GameModeShellProps> = ({ gameId, viewerKey 
   const child = isValidElement(children) ? React.cloneElement(children as React.ReactElement<{ paused?: boolean }>, { paused: showRules }) : children;
 
   return (
-    <ScreenContainer compact className="h-[100svh] max-w-none overflow-hidden px-2 py-2 sm:px-4 sm:py-4 lg:px-6">
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-[88rem] flex-col gap-2 sm:gap-3 lg:gap-4">
+    <ScreenContainer compact className="h-[100dvh] min-h-[100svh] max-w-none overflow-hidden px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-4 lg:px-6">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-[88rem] flex-col gap-[clamp(0.4rem,1dvh,0.9rem)]">
         <header className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
-          <button type="button" onClick={onBackHome} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700 shadow-sm transition hover:bg-indigo-50 sm:h-11 sm:w-11" aria-label="Назад" title="Назад">←</button>
+          <button type="button" onClick={onBackHome} className="flex h-[clamp(2.35rem,6dvh,2.75rem)] w-[clamp(2.35rem,6dvh,2.75rem)] shrink-0 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700 shadow-sm transition hover:bg-indigo-50" aria-label="Назад" title="Назад">←</button>
           <div className="min-w-0 text-center">
-            {subtitle && <div className="mb-0.5 text-[10px] font-black uppercase tracking-widest text-indigo-300 sm:text-xs">{subtitle}</div>}
-            <h1 className="truncate text-xl font-black text-indigo-950 sm:text-3xl">{title}</h1>
+            {subtitle && <div className="mb-0.5 truncate text-[10px] font-black uppercase tracking-widest text-indigo-300 sm:text-xs">{subtitle}</div>}
+            <h1 className="truncate text-[clamp(1.2rem,4dvh,1.875rem)] font-black leading-tight text-indigo-950">{title}</h1>
           </div>
           <div className="flex items-center justify-end gap-1.5">
             {showDictionary && <DictionaryPeek words={dictionaryWords} wordLength={wordLength} compact label={dictionaryLabel} icon={dictionaryIcon} onBeforeOpen={onDictionaryPeek} chargeLabel="Просмотр словаря стоит как подсказка." />}
@@ -56,14 +56,14 @@ export const GameModeShell: React.FC<GameModeShellProps> = ({ gameId, viewerKey 
           </div>
         </header>
 
-        <section className="flex min-h-0 flex-1 items-start justify-center overflow-hidden rounded-[1.5rem] border-2 border-indigo-50 bg-white/80 p-1.5 shadow-sm sm:rounded-[2rem] sm:p-5 lg:flex-none lg:items-center lg:rounded-[2.5rem] lg:p-6">
-          <div className="flex h-full min-h-0 w-full justify-center overflow-hidden">{child}</div>
+        <section className="flex min-h-0 flex-1 items-start justify-center overflow-hidden rounded-[1.5rem] border-2 border-indigo-50 bg-white/80 p-1.5 shadow-sm sm:items-center sm:rounded-[2rem] sm:p-4 lg:rounded-[2.5rem] lg:p-6">
+          <div className="flex h-full min-h-0 w-full justify-center overflow-y-auto overscroll-contain pb-[max(0.25rem,env(safe-area-inset-bottom))]">{child}</div>
         </section>
       </div>
 
       {showRules && rules.length > 0 && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-indigo-950/55 p-4 backdrop-blur-sm" role="presentation">
-          <div role="dialog" aria-modal="true" aria-labelledby={`${gameId}-intro-title`} className="w-full max-w-md rounded-[2rem] border-2 border-indigo-100 bg-white p-5 shadow-2xl sm:p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-indigo-950/55 p-3 backdrop-blur-sm" role="presentation">
+          <div role="dialog" aria-modal="true" aria-labelledby={`${gameId}-intro-title`} className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-[2rem] border-2 border-indigo-100 bg-white p-5 shadow-2xl sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div><div className="text-xs font-black uppercase tracking-widest text-indigo-400">Первый запуск</div><h2 id={`${gameId}-intro-title`} className="mt-1 text-2xl font-black text-indigo-950">Как играть в «{title}»</h2></div>
               <button type="button" aria-label="Закрыть правила" onClick={closeRules} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xl font-black text-indigo-500">×</button>
