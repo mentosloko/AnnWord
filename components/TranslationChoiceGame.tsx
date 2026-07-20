@@ -52,23 +52,9 @@ export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ on
   const [finished, setFinished] = useState(false);
   const [resultProgress, setResultProgress] = useState<CharacterProgressResult | null>(null);
   const rewardAppliedRef = useRef(false);
-  const timersRef = useRef<Array<ReturnType<typeof window.setTimeout>>>([]);
   const showKidsRewards = isKidsMode(userProfile);
 
-  const clearTimers = useCallback(() => {
-    timersRef.current.forEach(id => window.clearTimeout(id));
-    timersRef.current = [];
-  }, []);
-  const schedule = useCallback((action: () => void, delay: number) => {
-    const id = window.setTimeout(() => {
-      timersRef.current = timersRef.current.filter(timer => timer !== id);
-      action();
-    }, delay);
-    timersRef.current.push(id);
-  }, []);
-  useEffect(() => clearTimers, [clearTimers]);
-
-  const finish = () => { clearTimers(); setFinished(true); };
+  const finish = () => setFinished(true);
   const next = useCallback((previous?: string) => {
     setQuestion(makeQuestion(dictionary, previous, reviewPriorities));
     setFeedback(null);
@@ -78,8 +64,8 @@ export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ on
     setReviewPriorities(previous => updateReviewPriorities(previous, word, result));
     void Promise.resolve(onWordPractice?.(word, result)).catch(error => console.error('Failed to save translation choice practice', error));
   };
-  const goNextAfterWrong = () => {
-    if (!question) return;
+  const continueAfterAnswer = () => {
+    if (!question || !feedback) return;
     if (answered >= 10) finish(); else next(question.correct);
   };
   const choose = (option: string) => {
@@ -91,10 +77,8 @@ export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ on
     setAnswered(nextAnswered);
     if (correct) setScore(value => value + 1);
     registerPractice(question.correct, correct ? 'mastered' : 'failed');
-    if (correct) schedule(() => { if (nextAnswered >= 10) finish(); else next(question.correct); }, 650);
   };
   const restart = () => {
-    clearTimers();
     rewardAppliedRef.current = false;
     setScore(0);
     setAnswered(0);
@@ -104,7 +88,7 @@ export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ on
     setResultProgress(null);
     setQuestion(makeQuestion(dictionary, null, reviewPriorities));
   };
-  const leave = () => { clearTimers(); onBack(); };
+  const leave = () => onBack();
   const reward = useMemo(() => calculateGameReward({ type: 'translation', guessedWords: score }), [score]);
 
   useEffect(() => {
@@ -115,12 +99,12 @@ export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ on
   }, [finished, onGameReward, reward, score, showKidsRewards, userProfile.pet]);
 
   if (dictionary.length < 1 || !question) return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-xl"><div className="mb-4 text-6xl">📚</div><h2 className="mb-2 text-2xl font-bold">Нет доступных слов</h2><p className="mb-6 text-gray-500">Для этой игры нужны слова с русским переводом.</p><button onClick={leave} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
-  return <div className="mx-auto flex w-full max-w-xl flex-col rounded-3xl bg-white p-4 shadow-xl sm:p-6">
-    <div className="mb-5 flex items-center justify-between gap-3"><button onClick={leave} className="rounded-xl bg-indigo-50 px-3 py-2 text-sm font-black text-indigo-700">← Меню</button><div className="rounded-full bg-indigo-50 px-3 py-2 text-sm font-black text-indigo-700">{answered}/10 · ⭐ {score}</div></div>
-    <div className="text-center"><div className="text-xs font-black uppercase tracking-widest text-indigo-300">1 из 2 · выбери английский перевод</div><div className="mt-3 rounded-[2rem] bg-indigo-50 px-5 py-8 text-3xl font-black text-indigo-950">{question.word.translation}</div><p className="mt-3 text-xs font-bold text-gray-500">Неправильный вариант специально похож на правильный.</p></div>
-    <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">{question.options.map(option => <motion.button key={option} whileTap={{ scale: 0.98 }} disabled={Boolean(feedback)} onClick={() => choose(option)} className={`rounded-3xl border-2 px-5 py-5 text-3xl font-black tracking-wide transition disabled:opacity-100 ${feedback && option === question.correct ? 'border-green-300 bg-green-50 text-green-700' : feedback && selected === option && option !== question.correct ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-indigo-100 bg-white text-indigo-900 hover:bg-indigo-50'}`}>{option}</motion.button>)}</div>
-    {feedback && <div aria-live="polite" className={`mt-4 rounded-2xl px-4 py-3 text-center text-sm font-black ${feedback === 'correct' ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}`}>{feedback === 'correct' ? 'Верно!' : `Нужно: ${question.correct}`}</div>}
-    {feedback === 'wrong' && <button type="button" onClick={goNextAfterWrong} className="mt-3 w-full rounded-2xl bg-indigo-600 px-5 py-3 font-black text-white">{answered >= 10 ? 'Завершить раунд' : 'Следующее слово'}</button>}
+  return <div className="mx-auto flex h-full min-h-0 w-full max-w-xl flex-col overflow-y-auto overscroll-contain rounded-3xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:h-auto sm:p-6">
+    <div className="mb-4 flex shrink-0 items-center justify-between gap-3 sm:mb-5"><button onClick={leave} className="rounded-xl bg-indigo-50 px-3 py-2 text-sm font-black text-indigo-700">← Меню</button><div className="rounded-full bg-indigo-50 px-3 py-2 text-sm font-black text-indigo-700">{answered}/10 · ⭐ {score}</div></div>
+    <div className="shrink-0 text-center"><div className="text-xs font-black uppercase tracking-widest text-indigo-300">1 из 2 · выбери английский перевод</div><div className="mt-3 rounded-[2rem] bg-indigo-50 px-5 py-[clamp(1.5rem,5dvh,2rem)] text-3xl font-black text-indigo-950">{question.word.translation}</div><p className="mt-3 text-xs font-bold text-gray-500">Неправильный вариант специально похож на правильный.</p></div>
+    <div className="mt-5 grid min-h-0 grid-cols-1 gap-3 sm:mt-6 sm:grid-cols-2">{question.options.map(option => <motion.button key={option} whileTap={{ scale: 0.98 }} disabled={Boolean(feedback)} onClick={() => choose(option)} className={`min-h-[5.5rem] rounded-3xl border-2 px-5 py-4 text-[clamp(1.7rem,7vw,2.25rem)] font-black tracking-wide transition disabled:opacity-100 sm:min-h-0 sm:py-5 ${feedback && option === question.correct ? 'border-green-300 bg-green-50 text-green-700' : feedback && selected === option && option !== question.correct ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-indigo-100 bg-white text-indigo-900 hover:bg-indigo-50'}`}>{option}</motion.button>)}</div>
+    {feedback && <div className="sr-only" role="status" aria-live="polite">{feedback === 'correct' ? 'Ответ верный.' : 'Ответ неверный. Правильный вариант выделен зелёным.'}</div>}
+    {feedback && <button type="button" onClick={continueAfterAnswer} className="mt-4 w-full shrink-0 rounded-2xl bg-indigo-600 px-5 py-3 font-black text-white">{answered >= 10 ? 'Завершить раунд' : 'Продолжить'}</button>}
     <GameResultOverlay isOpen={finished} status="completed" title="Раунд завершён" subtitle={`Правильных ответов: ${score} из ${answered}`} emoji="🎯" pet={resultProgress?.pet} xpGained={showKidsRewards ? reward.xp : 0} coinsGained={showKidsRewards ? reward.coins : 0} primaryLabel="Играть снова" secondaryLabel="В меню" onPrimary={restart} onSecondary={leave} />
   </div>;
 };

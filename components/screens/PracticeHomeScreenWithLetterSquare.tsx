@@ -39,8 +39,9 @@ const daysLabel = (days: number): string => {
 };
 
 export const PracticeHomeScreenWithLetterSquare: React.FC<Props> = ({ userProfile, dailyQuest, hasActiveClassicGame, hasActiveAnagramGame, activeDictionaryName, onStartDailyQuest, onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare, onOpenDictionaryStudio, onOpenPremium }) => {
-  const daysInRow = userProfile.pet.dailyStreak || 0;
   const questCompleted = dailyQuest?.completed === true;
+  const storedStreak = Math.max(0, Math.round(userProfile.pet.dailyStreak || 0));
+  const daysInRow = questCompleted ? Math.max(1, storedStreak) : storedStreak;
   const dictionaryName = activeDictionaryName || (userProfile.customDictionaryEn.length ? 'Слова из вашего списка' : 'General English');
   const dailyQuestModes = new Set(getDailyQuestTargetModes(!questCompleted ? dailyQuest : null));
   const questBadge = (mode: Parameters<typeof dailyQuestModes.has>[0], fallback?: string) => dailyQuestModes.has(mode) ? 'задание дня' : fallback;
