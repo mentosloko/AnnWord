@@ -27,7 +27,10 @@ export const ParentDashboardScreen: React.FC<Props> = ({ userProfile, onBackHome
   const [loadError, setLoadError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
   const learner = learners.find(item => item.id === selectedId) || learners[0];
-  const encountered = useMemo(() => Object.values(learner?.stats.wordPerformance || {}).filter(item => attempts(item) > 0).sort((a, b) => attempts(b) - attempts(a)), [learner]);
+  const encountered = useMemo<WordPerformance[]>(() => {
+    const performance = (learner?.stats.wordPerformance || {}) as Record<string, WordPerformance>;
+    return Object.values(performance).filter(item => attempts(item) > 0).sort((a, b) => attempts(b) - attempts(a));
+  }, [learner]);
   const learning = useMemo(() => getWordLearningSummary(learner?.stats || { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} }), [learner]);
   const fixed = useMemo(() => getRecentFixedWords(learner?.stats || { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} }, 12), [learner]);
   const learnedCount = encountered.filter(word => word.correct > 0 && accuracy(word) >= 80).length;
