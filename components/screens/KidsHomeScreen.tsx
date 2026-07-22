@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { DailyQuestCompletionReward, DailyQuestState, UserProfile } from '../../types';
-import { getCharacterProgressPercent, normalizeMoodScore } from '../../services/gamificationRules';
+import { getCharacterXpProgress, normalizeMoodScore } from '../../services/gamificationRules';
 import { getMoodDisplay } from '../../services/moodDisplay';
 import { getPetCharacterAssetUrl } from '../../services/petAssets';
 import { hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
@@ -40,7 +40,7 @@ export const KidsHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, onSta
   useEffect(() => setPetReady(false), [petUrl]);
   const mood = getMoodDisplay(normalizeMoodScore(userProfile.pet));
   const streak = dailyQuest?.completed ? Math.max(1, Math.round(userProfile.pet.dailyStreak || 0)) : Math.max(0, Math.round(userProfile.pet.dailyStreak || 0));
-  const xp = getCharacterProgressPercent(userProfile.pet);
+  const xp = getCharacterXpProgress(userProfile.pet);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
   const continueAction = hasActiveClassicGame ? onStartClassic : hasActiveAnagramGame ? onStartAnagrams : null;
   const startQuest = () => dailyQuest && onStartDailyQuest ? onStartDailyQuest(dailyQuest) : onStartClassic();
@@ -62,7 +62,7 @@ export const KidsHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, onSta
 
     <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <SectionCard><div className={experienceUi.eyebrow}>Другие игры</div><h2 className={`mt-1 ${experienceUi.sectionTitle}`}>Выберите игру</h2><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{games.map(game => <GameTile key={game.title} {...game} />)}</div></SectionCard>
-      <aside className="space-y-4"><SectionCard><div className="flex items-center justify-between gap-3"><div><div className={experienceUi.eyebrow}>Питомец</div><h2 className="mt-1 text-xl font-bold text-indigo-950">{userProfile.pet.name}</h2></div><button type="button" onClick={onOpenPetRoom} className="rounded-xl bg-purple-50 px-3 py-2 text-sm font-bold text-purple-700">Комната</button></div><div className="mt-4 grid grid-cols-2 gap-2"><div className="rounded-2xl bg-yellow-50 p-3"><CoinIcon className="text-xl" /><div className="mt-1 text-2xl font-bold text-yellow-700">{userProfile.coins}</div><div className="text-xs font-medium text-yellow-700/70">монет</div></div><div className="rounded-2xl bg-purple-50 p-3"><div className="text-sm font-bold text-purple-700">{mood.label}</div><div className="mt-3 h-2 overflow-hidden rounded-full bg-purple-100"><div className={`h-full ${mood.barClass}`} style={{ width: `${normalizeMoodScore(userProfile.pet)}%` }} /></div><div className="mt-2 text-xs font-medium text-purple-600">ур. {userProfile.pet.level} · XP {Math.round(xp)}%</div></div></div></SectionCard>
+      <aside className="space-y-4"><SectionCard><div className="flex items-center justify-between gap-3"><div><div className={experienceUi.eyebrow}>Питомец</div><h2 className="mt-1 text-xl font-bold text-indigo-950">{userProfile.pet.name}</h2></div><button type="button" onClick={onOpenPetRoom} className="rounded-xl bg-purple-50 px-3 py-2 text-sm font-bold text-purple-700">Комната</button></div><div className="mt-4 grid grid-cols-2 gap-2"><div className="rounded-2xl bg-yellow-50 p-3"><CoinIcon className="text-xl" /><div className="mt-1 text-2xl font-bold text-yellow-700">{userProfile.coins}</div><div className="text-xs font-medium text-yellow-700/70">монет</div></div><div className="rounded-2xl bg-purple-50 p-3"><div className="text-sm font-bold text-purple-700">{mood.label}</div><div className="mt-3 h-2 overflow-hidden rounded-full bg-purple-100"><div className={`h-full ${mood.barClass}`} style={{ width: `${normalizeMoodScore(userProfile.pet)}%` }} /></div><div className="mt-2 text-xs font-medium text-purple-600">ур. {xp.level} · XP {xp.currentLevelXp}/{xp.xpForNextLevel}</div></div></div></SectionCard>
         <SectionCard><div className={experienceUi.eyebrow}>Быстрые действия</div><div className="mt-3 grid gap-2"><button type="button" onClick={onOpenShop} className={experienceUi.secondaryButton}>Магазин</button><button type="button" onClick={onOpenProfile} className={experienceUi.secondaryButton}>Прогресс ребёнка</button><button type="button" onClick={onOpenAdultRoom} className={experienceUi.secondaryButton}>Кабинет родителя</button></div></SectionCard>
         {!hasPremium && onOpenPremium && <button type="button" onClick={onOpenPremium} className="w-full rounded-3xl bg-amber-50 p-5 text-left ring-1 ring-amber-100"><div className="text-xs font-bold uppercase tracking-wider text-amber-600">Kids Premium</div><div className="mt-2 text-lg font-bold text-indigo-950">Школьные слова и отчёты</div><div className="mt-1 text-sm font-medium text-slate-600">Добавляйте свои подборки и подключайте преподавателя.</div></button>}
       </aside>

@@ -18,7 +18,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ route, userProfile, isAuth
   const premium = isAuthenticated && !isTeacher && isPremiumActive(userProfile);
   const streak = Math.max(0, Math.round(userProfile.pet.dailyStreak || 0));
   const modeLabel = isSetupStage || !isAuthenticated ? 'AnnWord' : isAdmin ? 'Admin' : isTeacher ? 'Teacher' : isParent ? 'Kids' : isPractice ? 'Practice' : 'AnnWord';
-  const profileLabel = isTeacher ? 'Профиль преподавателя' : isParent ? 'Профиль ребёнка' : isAdmin ? 'Профиль администратора' : 'Статистика';
+  const profileLabel = isTeacher ? 'Профиль преподавателя' : isParent ? 'Прогресс ребёнка' : isAdmin ? 'Профиль администратора' : 'Прогресс';
   const cabinetLabel = isTeacher ? 'Ученики' : 'Кабинет родителя';
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -37,7 +37,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ route, userProfile, isAuth
     const items: Array<{ label: string; onClick?: () => void; active?: boolean }> = [{ label: 'Главная', onClick: onHomeClick, active: route === 'landing' }];
     if (isPractice) {
       if (onDictionaryStudioClick) items.push({ label: 'Словари', onClick: onDictionaryStudioClick, active: route === 'dictionary_settings' || route === 'dictionary_studio' || route === 'setup' });
-      if (onProfileClick) items.push({ label: 'Статистика', onClick: onProfileClick, active: route === 'profile' });
+      if (onProfileClick) items.push({ label: 'Прогресс', onClick: onProfileClick, active: route === 'profile' });
     }
     if (isParent) {
       if (onShopClick) items.push({ label: 'Магазин', onClick: onShopClick, active: route === 'shop' });

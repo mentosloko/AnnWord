@@ -3,6 +3,7 @@ import { getRecentFixedWords, getWordLearningSummary } from '../../services/word
 import { prodamusPaymentService, PremiumPaymentHistoryItem } from '../../services/prodamusPaymentService';
 import { formatPremiumExpiresAt, isPremiumActive } from '../../services/premiumAccess';
 import { UserProfile } from '../../types';
+import { ReviewWordList } from '../ReviewWordList';
 import { ScreenContainer } from '../layout/ScreenContainer';
 import { ExperienceState, MetricCard, SectionCard, SegmentedTabs, experienceUi } from '../ui/ExperiencePrimitives';
 
@@ -51,7 +52,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userProfile, isAut
     </div>}
 
     {tab === 'words' && <div className="mt-5 grid gap-5 lg:grid-cols-2">
-      <SectionCard><div className="flex items-center justify-between gap-3"><div><div className="text-xs font-bold uppercase tracking-wider text-rose-500">Нужно закрепить</div><h2 className="mt-1 text-xl font-bold text-indigo-950">Слова для повторения</h2></div><span className="rounded-full bg-rose-50 px-3 py-1 text-sm font-bold text-rose-700">{learning.activeReview.length}</span></div><p className="mt-2 text-sm font-medium text-slate-500">Эти слова будут появляться в играх чаще. Технический приоритет скрыт — достаточно просто продолжать тренировки.</p><div className="mt-4 flex flex-wrap gap-2">{learning.activeReview.length ? learning.activeReview.slice(0, 40).map(item => <span key={item.word} className="rounded-full bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">{item.word}</span>) : <ExperienceState compact kind="success" title="Сейчас нет сложных слов" description="Все активные ошибки уже закрыты правильными ответами." />}</div></SectionCard>
+      <SectionCard><div className="flex items-center justify-between gap-3"><div><div className="text-xs font-bold uppercase tracking-wider text-rose-500">Нужно закрепить</div><h2 className="mt-1 text-xl font-bold text-indigo-950">Слова для повторения</h2></div><span className="rounded-full bg-rose-50 px-3 py-1 text-sm font-bold text-rose-700">{learning.activeReview.length}</span></div><p className="mt-2 text-sm font-medium text-slate-500">Нажмите на слово, чтобы увидеть перевод. Эти слова будут появляться в играх чаще.</p>{learning.activeReview.length ? <ReviewWordList words={learning.activeReview.map(item => item.word)} className="mt-4" /> : <div className="mt-4"><ExperienceState compact kind="success" title="Сейчас нет сложных слов" description="Все активные ошибки уже закрыты правильными ответами." /></div>}</SectionCard>
       <SectionCard><div className="text-xs font-bold uppercase tracking-wider text-emerald-600">Уже получается</div><h2 className="mt-1 text-xl font-bold text-indigo-950">Исправленные слова</h2><p className="mt-2 text-sm font-medium text-slate-500">Слова, в которых раньше были ошибки, а затем появился правильный ответ.</p><div className="mt-4 flex flex-wrap gap-2">{recentFixed.length ? recentFixed.map(item => <span key={item.word} className="rounded-full bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">{item.word}</span>) : <ExperienceState compact title="Пока пусто" description="После исправленных ошибок здесь появятся первые слова." />}</div></SectionCard>
     </div>}
 
