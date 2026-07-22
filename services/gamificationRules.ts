@@ -24,6 +24,14 @@ export type GameRewardInput = ({
 
 export interface GameRewardResult { xp: number; coins: number; mood: number; label: string; }
 export interface CharacterProgressResult { pet: PetState; previousLevel: number; newLevel: number; previousStage: CharacterStage; newStage: CharacterStage; leveledUp: boolean; stagedUp: boolean; }
+export interface CharacterXpProgress {
+  level: number;
+  totalXp: number;
+  currentLevelXp: number;
+  xpForNextLevel: number;
+  remainingXp: number;
+  percent: number;
+}
 
 const T = [0, 120, 300, 600, 1000, 1500, 2200, 3000, 4000, 5200, 6800, 8600];
 const cl = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, Math.round(value)));
@@ -38,6 +46,24 @@ export const deriveMoodFromScore = (score: number): CharacterMood => { const val
 export const normalizeMoodScore = (pet: PetState) => typeof pet.moodScore === 'number' ? cl(pet.moodScore) : ({ sad: 15, neutral: 40, calm: 40, happy: 60, excited: 80, joyful: 80, super_happy: 95 }[pet.mood] || 50);
 export const getNextLevelThreshold = (level: number) => getTotalXpForLevel(level + 1);
 export const getCurrentLevelThreshold = (level: number) => getTotalXpForLevel(level);
+
+export const getCharacterXpProgress = (pet: PetState): CharacterXpProgress => {
+  const totalXp = Math.max(0, Math.round(pet.xp || 0));
+  const level = deriveCharacterLevel(totalXp);
+  const currentThreshold = getCurrentLevelThreshold(level);
+  const nextThreshold = getNextLevelThreshold(level);
+  const xpForNextLevel = Math.max(1, nextThreshold - currentThreshold);
+  const currentLevelXp = Math.max(0, totalXp - currentThreshold);
+  const remainingXp = Math.max(0, xpForNextLevel - currentLevelXp);
+  return {
+    level,
+    totalXp,
+    currentLevelXp,
+    xpForNextLevel,
+    remainingXp,
+    percent: cl(currentLevelXp / xpForNextLevel * 100),
+  };
+};
 
 export const calculateGameReward = (input: GameRewardInput): GameRewardResult => {
   if (input.statsOnly) return { xp: 0, coins: 0, mood: 0, label: 'Stats only' };
@@ -55,5 +81,5 @@ export const calculateGameReward = (input: GameRewardInput): GameRewardResult =>
 
 export const applyGameRewardToCharacter = (pet: PetState, reward: GameRewardResult): CharacterProgressResult => { const previousLevel = deriveCharacterLevel(pet.xp || 0); const xp = Math.max(0, Math.round(pet.xp || 0)) + Math.max(0, Math.round(reward.xp || 0)); const newLevel = deriveCharacterLevel(xp); const moodScore = normalizeMoodScore(pet); const updatedPet = { ...pet, xp, level: newLevel, stage: st(newLevel), moodScore, mood: deriveMoodFromScore(moodScore) }; return { pet: updatedPet, previousLevel, newLevel, previousStage: st(previousLevel), newStage: st(newLevel), leveledUp: newLevel > previousLevel, stagedUp: st(newLevel) !== st(previousLevel) }; };
 export const applyTreatMood = (pet: PetState, delta: number, _cap?: number): PetState => { const moodScore = Math.min(100, normalizeMoodScore(pet) + Math.max(0, Math.round(delta || 0))); return { ...pet, moodScore, mood: deriveMoodFromScore(moodScore) }; };
-export const getCharacterProgressText = (pet: PetState) => `До следующего уровня: ${Math.max(0, getNextLevelThreshold(deriveCharacterLevel(pet.xp || 0)) - (pet.xp || 0))} очков опыта`;
-export const getCharacterProgressPercent = (pet: PetState) => { const level = deriveCharacterLevel(pet.xp || 0), current = getCurrentLevelThreshold(level), next = getNextLevelThreshold(level); return next <= current ? 100 : cl(((pet.xp || 0) - current) / (next - current) * 100); };
+export const getCharacterProgressText = (pet: PetState) => `До следующего уровня: ${getCharacterXpProgress(pet).remainingXp} очков опыта`;
+export const getCharacterProgressPercent = (pet: PetState) => getCharacterXpProgress(pet).percent;
