@@ -10,6 +10,7 @@ import { ensureConsentSchema } from "./consentSchema";
 import { ensureWeeklyReportSchema } from "./weeklyReportSchema";
 import { createSessionToken, makeSessionPayload, writeSessionCookie, type BackendUser } from "./auth";
 import { appBack, completeYa } from "./ya";
+import { pendingEmailSessionRouter } from "./routes/pendingEmailSessionRoutes";
 import { magicLinkRouter } from "./routes/magicLinkRoutes";
 import { authRouter } from "./routes/authRoutes";
 import { profileRouter } from "./routes/profileRoutes";
@@ -252,6 +253,7 @@ app.post("/api/auth/yandex/exchange", async (req: Request, res: Response) => {
   }
 });
 
+app.use("/api/auth", pendingEmailSessionRouter);
 app.use("/api/auth", magicLinkRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/profile", profileRouter);

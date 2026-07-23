@@ -3,7 +3,7 @@ import { UserProfile } from '../../types';
 import { getKidsDictionaryCatalog } from '../../services/kidsDictionaryCatalog';
 import { LEGAL_DOCUMENTS, LEGAL_LINK_PROPS } from '../../services/legalDocuments';
 import { isKidsMode } from '../../services/modeFlags';
-import { formatPremiumExpiresAt } from '../../services/premiumAccess';
+import { formatPremiumAccessPeriod } from '../../services/premiumAccess';
 import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
 import { getProdamusPlansForMode, prodamusPaymentService, ProdamusPlanCode } from '../../services/prodamusPaymentService';
 import { useProfileFreshness } from '../../hooks/useProfileFreshness';
@@ -71,7 +71,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
             <button type="button" onClick={onBack} className="mt-3 rounded-2xl border-2 border-indigo-100 bg-white px-6 py-4 font-black text-indigo-700 transition hover:bg-indigo-50">Вернуться</button>
           </div>
           {paymentError && <p role="alert" className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{paymentError}</p>}
-          {hasPremium ? <p className="mt-3 text-xs font-bold leading-relaxed text-gray-400">Premium активен до: {formatPremiumExpiresAt(userProfile.premiumExpiresAt)}.</p> : accessChecking ? <p className="mt-3 text-xs font-bold leading-relaxed text-indigo-500">Обновляем сведения об аккаунте…</p> : <p className="mt-3 text-xs font-bold leading-relaxed text-gray-400">Оплата проходит через Prodamus. Premium включается только после серверного подтверждения оплаты.</p>}
+          {hasPremium ? <p className="mt-3 text-xs font-bold leading-relaxed text-gray-400">Premium активен {formatPremiumAccessPeriod(userProfile.premiumExpiresAt)}.</p> : accessChecking ? <p className="mt-3 text-xs font-bold leading-relaxed text-indigo-500">Обновляем сведения об аккаунте…</p> : <p className="mt-3 text-xs font-bold leading-relaxed text-gray-400">Оплата проходит через Prodamus. Premium включается только после серверного подтверждения оплаты.</p>}
         </div>
         <div className="rounded-[2rem] border-2 border-amber-100 bg-amber-50/60 p-4">
           <div className="grid grid-cols-2 gap-3">

@@ -6,6 +6,7 @@ const readProfile = async (request: Promise<{ profile: UserProfile }>): Promise<
 export interface WeeklyReportPreferenceStatus {
   enabled: boolean;
   email: string | null;
+  accountEmail: string;
   latestDelivery: null | {
     weekKey: string;
     status: "processing" | "sent" | "failed";

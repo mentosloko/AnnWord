@@ -104,6 +104,7 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
     let pool: EnrichedWord[] = [];
     const currentKidsMode = isKidsMode(userProfile);
     const currentHasPremium = hasPremiumDictionaryAccess(userProfile);
+    const assignedWords = userProfile.assignedWords || [];
     const isPracticeCustomDictionary = !currentKidsMode && settings.dictionarySource === 'custom';
 
     if (currentKidsMode) {
@@ -111,6 +112,8 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
         pool = getKidsPremiumDictionaryEntries(settings.activePremiumDictionaryId, settings.difficulty);
       } else if (settings.dictionarySource === 'custom' && currentHasPremium) {
         pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
+      } else if (assignedWords.length > 0 && currentHasPremium) {
+        pool = toCustomEnrichedWords(assignedWords);
       } else {
         pool = getFreeKidsDictionaryEntries(settings.difficulty);
       }
@@ -138,11 +141,13 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
       : (settings.dictionarySource === 'premium' && currentHasPremium ? getLoadedPremiumEntries(settings.activePremiumDictionaryId, settings.difficulty).map(entry => entry.word) : []);
     const kidsWords = currentKidsMode ? getAllKidsDictionaryWords() : [];
     const customWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.customDictionaryEn || []);
+    const assignedWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.assignedWords || []);
     const combinedPool = [
       ...(readGeneralDictionary()?.ALL_WORDS_EN || []),
       ...kidsWords,
       ...premiumWords,
       ...customWords,
+      ...assignedWords,
     ]
       .filter(word => word.length === validationWordLength)
       .map(word => word.toUpperCase())

@@ -1,11 +1,11 @@
 import { query } from './db';
-import { isRussianRegistrationEmail } from './emailPolicy';
 import { getProfileById } from './profileRepository';
 import type { UserProfile } from '../types';
 
 export interface WeeklyReportPreferenceStatus {
   enabled: boolean;
   email: string | null;
+  accountEmail: string;
   latestDelivery: null | {
     weekKey: string;
     status: 'processing' | 'sent' | 'failed';
@@ -19,9 +19,6 @@ export async function updateWeeklyReportEmailPreference(userId: string, rawEmail
   const normalized = rawEmail.trim().toLowerCase();
   if (normalized && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
     throw new Error('Введите корректный email для отчёта.');
-  }
-  if (normalized && !isRussianRegistrationEmail(normalized)) {
-    throw new Error('Отчёт можно отправлять только на адрес в зоне .ru или .рф.');
   }
 
   const result = await query(
@@ -39,8 +36,11 @@ export async function updateWeeklyReportEmailPreference(userId: string, rawEmail
 }
 
 export async function getWeeklyReportPreferenceStatus(userId: string): Promise<WeeklyReportPreferenceStatus> {
-  const profileResult = await query<{ weekly_report_email: string | null }>(
-    `select weekly_report_email from public.profiles where id = $1`,
+  const profileResult = await query<{ weekly_report_email: string | null; account_email: string }>(
+    `select p.weekly_report_email, u.email as account_email
+       from public.profiles p
+       join public.app_users u on u.id = p.id
+      where p.id = $1`,
     [userId],
   );
   const profile = profileResult.rows[0];
@@ -64,6 +64,7 @@ export async function getWeeklyReportPreferenceStatus(userId: string): Promise<W
   return {
     enabled: Boolean(profile.weekly_report_email?.trim()),
     email: profile.weekly_report_email || null,
+    accountEmail: profile.account_email,
     latestDelivery: delivery ? {
       weekKey: delivery.week_key,
       status: delivery.status,

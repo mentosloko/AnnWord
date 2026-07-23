@@ -21,3 +21,8 @@ export const formatPremiumExpiresAt = (expiresAt?: string): string => {
   if (Number.isNaN(date.getTime())) return 'без ограничения срока';
   return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' }).format(date);
 };
+
+export const formatPremiumAccessPeriod = (expiresAt?: string): string => {
+  if (!expiresAt || Number.isNaN(new Date(expiresAt).getTime())) return 'без ограничения срока';
+  return `до ${formatPremiumExpiresAt(expiresAt)}`;
+};
