@@ -15,19 +15,19 @@ export interface WeeklyReportPreferenceStatus {
   };
 }
 
-export async function updateWeeklyReportEmailPreference(userId: string, enabled: boolean, accountEmail: string): Promise<UserProfile> {
-  const normalized = accountEmail.trim().toLowerCase();
-  if (enabled && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
-    throw new Error('В аккаунте не указан корректный email для отчёта.');
+export async function updateWeeklyReportEmailPreference(userId: string, rawEmail: string): Promise<UserProfile> {
+  const normalized = rawEmail.trim().toLowerCase();
+  if (normalized && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    throw new Error('Введите корректный email для отчёта.');
   }
 
   const result = await query(
     `update public.profiles
-        set weekly_report_email = case when $2::boolean then $3 else null end,
+        set weekly_report_email = nullif($2, ''),
             updated_at = now()
       where id = $1
       returning id`,
-    [userId, enabled, normalized],
+    [userId, normalized],
   );
   if (!result.rows[0]) throw new Error('Профиль не найден.');
   const profile = await getProfileById(userId);
