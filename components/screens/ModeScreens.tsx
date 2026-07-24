@@ -13,7 +13,7 @@ import { isKidsMode } from '../../services/modeFlags';
 
 interface ModeScreenProps {
   words: string[];
-  wordLength: WordLength;
+  wordLength?: WordLength;
   dictionaryLabel?: string;
   dictionaryIcon?: string;
   rulesViewerKey?: string;
@@ -70,7 +70,8 @@ export const MemoryScreen: React.FC<ModeScreenProps> = ({ words, dictionaryLabel
 };
 
 export const HangmanScreen: React.FC<ModeScreenProps> = ({ words, wordLength, dictionaryLabel, dictionaryIcon, rulesViewerKey, userProfile, onGameReward, onWordPractice, onBackHome, onDictionaryPeek }) => {
-  const snapshot = normalizedWords(words).filter(word => word.length === wordLength);
+  const snapshot = normalizedWords(words).filter(word => !wordLength || word.length === wordLength);
   const profile = buildModeProfile(userProfile, snapshot);
-  return <GameModeShell gameId="hangman" viewerKey={rulesViewerKey} title="Виселица" subtitle={`Угадай по буквам · ${wordLength} букв`} rules={rulesFor('hangman', profile)} dictionaryWords={snapshot} dictionaryLabel={dictionaryLabel} dictionaryIcon={dictionaryIcon} wordLength={wordLength} onBackHome={onBackHome} onDictionaryPeek={dictionaryPeekFor(profile, onDictionaryPeek)}><HangmanGame key={`${wordLength}:${dictionaryKey(snapshot)}`} userProfile={profile} onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={onBackHome} /></GameModeShell>;
+  const subtitle = wordLength ? `Угадай по буквам · ${wordLength} букв` : 'Угадай по буквам';
+  return <GameModeShell gameId="hangman" viewerKey={rulesViewerKey} title="Виселица" subtitle={subtitle} rules={rulesFor('hangman', profile)} dictionaryWords={snapshot} dictionaryLabel={dictionaryLabel} dictionaryIcon={dictionaryIcon} wordLength={wordLength} onBackHome={onBackHome} onDictionaryPeek={dictionaryPeekFor(profile, onDictionaryPeek)}><HangmanGame key={`${wordLength || 'any'}:${dictionaryKey(snapshot)}`} userProfile={profile} onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={onBackHome} /></GameModeShell>;
 };
