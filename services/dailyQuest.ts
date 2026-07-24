@@ -15,11 +15,11 @@ export const DAILY_QUEST_DEFINITIONS: Record<string, QuestCopy> = {
   sprint_ten: { title: 'Скоростной забег', description: 'Отгадай не менее 10 слов за одну игру в Спринте.' },
   sprint_twelve: { title: 'Молниеносный спринт', description: 'Отгадай не менее 12 слов за одну игру в Спринте.' },
   sprint_fourteen: { title: 'Спринтер дня', description: 'Отгадай не менее 14 слов за одну игру в Спринте.' },
-  memory_twelve: { title: 'Память дня', description: 'Заверши игру Память.' },
-  memory_fourteen: { title: 'Память дня', description: 'Найди все пары в Памяти.' },
-  memory_sixteen: { title: 'Острая память', description: 'Найди все пары в Памяти. Главное — завершить игру.' },
-  memory_eighteen: { title: 'Крепкая память', description: 'Заверши игру Память и получи награду.' },
-  memory_twenty: { title: 'Игра памяти', description: 'Найди все пары в Памяти.' },
+  memory_twelve: { title: 'Память дня', description: 'Найди все пары не более чем за 6 ходов.' },
+  memory_fourteen: { title: 'Память дня', description: 'Найди все пары не более чем за 7 ходов.' },
+  memory_sixteen: { title: 'Острая память', description: 'Найди все пары не более чем за 8 ходов.' },
+  memory_eighteen: { title: 'Крепкая память', description: 'Найди все пары не более чем за 9 ходов.' },
+  memory_twenty: { title: 'Игра памяти', description: 'Найди все пары не более чем за 10 ходов.' },
   hangman_perfect: { title: 'Победа в Виселице', description: 'Победи в Виселице.' },
   hangman_one: { title: 'Победа в Виселице', description: 'Победи в Виселице.' },
   hangman_clean: { title: 'Победа в Виселице', description: 'Победи в Виселице.' },
@@ -91,7 +91,10 @@ export const normalizeDailyQuest = (value: any): DailyQuestState | null => {
 
 const numeric = (value: unknown): number => Number.isFinite(Number(value)) ? Number(value) : 0;
 const truthy = (value: unknown): boolean => value === true || value === 'true';
-const completedModeLabel = (input: GameRewardInput): string | null => input.type === 'wordle' && truthy(input.won) ? 'Классика' : input.type === 'sprint' && numeric(input.guessedWords) > 0 ? 'Спринт' : input.type === 'anagram' && numeric(input.guessedWords) > 0 ? 'Анаграммы' : input.type === 'memory' ? 'Память' : input.type === 'hangman' && truthy(input.won) ? 'Виселица' : null;
+export const getMemoryMovesFromResult = (input: Pick<GameRewardInput, 'moves' | 'clicks'>): number => typeof input.moves === 'number'
+  ? Math.max(0, Math.round(input.moves))
+  : Math.max(0, Math.ceil(numeric(input.clicks) / 2));
+const completedModeLabel = (input: GameRewardInput): string | null => input.type === 'wordle' && truthy(input.won) ? 'Классика' : input.type === 'sprint' && numeric(input.guessedWords) > 0 ? 'Спринт' : input.type === 'anagram' && numeric(input.guessedWords) > 0 ? 'Анаграммы' : input.type === 'memory' && getMemoryMovesFromResult(input) > 0 ? 'Память' : input.type === 'hangman' && truthy(input.won) ? 'Виселица' : null;
 
 export const doesGameResultCompleteDailyQuest = (quest: DailyQuestState | null | undefined, input: GameRewardInput): boolean => {
   if (!quest || quest.completed) return false;
@@ -102,7 +105,12 @@ export const doesGameResultCompleteDailyQuest = (quest: DailyQuestState | null |
     const target = match ? Number(match[1]) : 12;
     return input.type === 'sprint' && numeric(input.guessedWords) >= target;
   }
-  if (quest.kind === 'memory_sixteen') return input.type === 'memory' && numeric(input.clicks) > 0;
+  if (quest.kind === 'memory_sixteen') {
+    const match = text.match(/не более чем за\s+(\d+)\s+ход/i);
+    const target = match ? Number(match[1]) : 8;
+    const moves = getMemoryMovesFromResult(input);
+    return input.type === 'memory' && moves > 0 && moves <= target;
+  }
   if (quest.kind === 'hangman_clean') return input.type === 'hangman' && truthy(input.won);
   if (quest.kind === 'all_five_games') {
     const mode = completedModeLabel(input);

@@ -5,6 +5,7 @@ import { applyServerMoodIncrease, applyServerPetMoodClock, markServerPetActivity
 import { transaction } from './db';
 import { PROFILE_COLUMNS } from './profileRepository';
 import { getServerShopItem } from './shopCatalog';
+import { hydrateProfileAssignments } from './profileHydration';
 
 const MAX_EQUIPPED_ACCESSORIES = 2;
 const MOSCOW_DATE_FORMAT = new Intl.DateTimeFormat('en-GB', {
@@ -48,13 +49,15 @@ const serverNowMs = (row: LockedProfileRow): number => {
   return parsed;
 };
 
+const mapHydratedProfile = (userId: string, row: unknown): Promise<UserProfile> => hydrateProfileAssignments(userId, mapProfileFromDB(row));
+
 const persistPet = async (client: PoolClient, userId: string, pet: PetState): Promise<UserProfile> => {
   const updated = await client.query(
     `update profiles set pet = $2::jsonb, updated_at = now() where id = $1 returning ${PROFILE_COLUMNS}`,
     [userId, JSON.stringify(pet)],
   );
   if (!updated.rows[0]) throw new Error('Профиль не найден.');
-  return mapProfileFromDB(updated.rows[0]);
+  return mapHydratedProfile(userId, updated.rows[0]);
 };
 
 const persistPetAndInventory = async (
@@ -73,7 +76,7 @@ const persistPetAndInventory = async (
     [userId, JSON.stringify(pet), JSON.stringify(inventory)],
   );
   if (!updated.rows[0]) throw new Error('Профиль не найден.');
-  return mapProfileFromDB(updated.rows[0]);
+  return mapHydratedProfile(userId, updated.rows[0]);
 };
 
 const withServerMood = (row: LockedProfileRow) => {
@@ -91,7 +94,7 @@ export const reconcileProfileMood = async (userId: string, markActivity = false)
     ? markServerPetActivity(clock.pet, today, previousMoscowDateKey(nowMs))
     : clock.pet;
   const changed = clock.changed || nextPet.lastDailyActivityDate !== clock.pet.lastDailyActivityDate || nextPet.dailyStreak !== clock.pet.dailyStreak;
-  return changed ? persistPet(client, userId, nextPet) : mapProfileFromDB(row);
+  return changed ? persistPet(client, userId, nextPet) : mapHydratedProfile(userId, row);
 });
 
 const inventoryQuantity = (inventory: InventoryItem[], itemId: string): number => inventory.find(item => item.id === itemId)?.quantity || 0;

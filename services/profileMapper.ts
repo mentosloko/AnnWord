@@ -12,6 +12,12 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> => type
 const flagEnabledByDefault = (value: Record<string, unknown>, key: keyof FeatureFlags): boolean => value[key] !== false;
 const normalizeStringArray = (value: unknown): string[] => Array.isArray(value) ? Array.from(new Set(value.filter((item): item is string => typeof item === 'string').map(item => item.trim()).filter(Boolean))) : [];
 const normalizeWordCounters = (value: unknown): Record<string, number> => isPlainObject(value) ? Object.fromEntries(Object.entries(value).filter((entry): entry is [string, number] => typeof entry[0] === 'string' && typeof entry[1] === 'number')) : {};
+const normalizeDateTime = (value: unknown): string | undefined => {
+  if (value instanceof Date && Number.isFinite(value.getTime())) return value.toISOString();
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : undefined;
+};
 const normalizeFeatureFlags = (value: unknown): FeatureFlags => !isPlainObject(value) ? { ...DEFAULT_PET_FEATURE_FLAGS } : ({
   adultRoom: value.adultRoom === true,
   premiumDictionaries: value.premiumDictionaries === true,
@@ -110,7 +116,7 @@ export const mapProfileFromDB = (data: any): UserProfile => {
     role: ['admin', 'parent', 'teacher'].includes(String(data?.role)) ? data.role : 'user',
     accountMode: ['player', 'parent', 'teacher'].includes(String(data?.account_mode)) ? data.account_mode : undefined,
     subscriptionTier: data?.subscription_tier === 'premium' ? 'premium' : 'free',
-    premiumExpiresAt: typeof data?.premium_expires_at === 'string' ? data.premium_expires_at : undefined,
+    premiumExpiresAt: normalizeDateTime(data?.premium_expires_at),
     childDisplayName: typeof data?.child_display_name === 'string' ? data.child_display_name : undefined,
     childShareCode: typeof data?.child_share_code === 'string' ? data.child_share_code : undefined,
     childSlotsLimit: typeof data?.child_slots_limit === 'number' ? data.child_slots_limit : 1,

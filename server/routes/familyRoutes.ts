@@ -5,6 +5,7 @@ import { requireAuth } from "../auth";
 import { query, transaction } from "../db";
 import { readRequiredEnv } from "../config";
 import { loadManagedLearners } from "../mentorRepository";
+import { writeParentAccessCookie } from "../parentAccess";
 
 export const familyRouter = Router();
 
@@ -53,6 +54,17 @@ familyRouter.post("/child", async (req: AuthenticatedRequest, res) => {
     }
 
     const shareCode = await transaction(async (client) => {
+      const existing = await client.query<{ child_display_name: string | null; child_share_code: string | null }>(
+        "select child_display_name, child_share_code from profiles where id = $1 for update",
+        [req.user!.id],
+      );
+      const current = existing.rows[0];
+      if (current?.child_display_name || current?.child_share_code) {
+        const error = new Error("Детский профиль уже создан. Изменяйте его только из кабинета родителя.") as Error & { code?: string };
+        error.code = "child_profile_already_configured";
+        throw error;
+      }
+
       let nextShareCode = randomCode();
       for (let i = 0; i < 5; i += 1) {
         const exists = await client.query("select 1 from profiles where child_share_code = $1 limit 1", [nextShareCode]);
@@ -73,6 +85,11 @@ familyRouter.post("/child", async (req: AuthenticatedRequest, res) => {
 
     res.json({ childName, childShareCode: shareCode, childSlotsLimit: 1 });
   } catch (error) {
+    const code = typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code || "") : "";
+    if (code === "child_profile_already_configured") {
+      res.status(409).json({ code, error: error instanceof Error ? error.message : "Детский профиль уже создан." });
+      return;
+    }
     res.status(400).json({ error: error instanceof Error ? error.message : "Child setup failed" });
   }
 });
@@ -91,13 +108,14 @@ familyRouter.post("/adult-room", async (req: AuthenticatedRequest, res) => {
       res.status(403).json({ code: "invalid_parent_pin", error: "Неверный PIN. Проверьте 4 цифры и попробуйте ещё раз." });
       return;
     }
+    writeParentAccessCookie(res, req.user!.id);
     const learnersStartedAt = Date.now();
     const learners = await loadManagedLearners(req.user!.id);
     const completedAt = Date.now();
     res.setHeader("Server-Timing", `pin_verify;dur=${learnersStartedAt - verifiedAt}, learners;dur=${completedAt - learnersStartedAt}, adult_room_total;dur=${completedAt - startedAt}`);
     res.setHeader("Access-Control-Expose-Headers", "Server-Timing");
     res.setHeader("Cache-Control", "private, no-store");
-    res.json({ ok: true, learners, backendReady: true });
+    res.json({ ok: true, learners, backendReady: true, parentAccessExpiresIn: 15 * 60 });
   } catch (error) {
     res.status(400).json({ code: "adult_room_load_failed", error: error instanceof Error ? error.message : "Не удалось открыть кабинет родителя." });
   }
@@ -106,7 +124,9 @@ familyRouter.post("/adult-room", async (req: AuthenticatedRequest, res) => {
 familyRouter.post("/access-check", async (req: AuthenticatedRequest, res) => {
   try {
     const accessCode = text(req.body?.accessCode);
-    res.json({ ok: await verifyAccessCode(req.user!.id, accessCode) });
+    const ok = await verifyAccessCode(req.user!.id, accessCode);
+    if (ok) writeParentAccessCookie(res, req.user!.id);
+    res.json({ ok, parentAccessExpiresIn: ok ? 15 * 60 : 0 });
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : "Access check failed" });
   }

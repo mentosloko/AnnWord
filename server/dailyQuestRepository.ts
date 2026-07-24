@@ -3,7 +3,7 @@ import { reconcileProfileMood } from "./petMoodRepository";
 import { normalizeInventory } from "../services/profileMapper";
 import type { DailyQuestCompletionReward, DailyQuestKind, DailyQuestState, InventoryItem, ShopItem, UserProfile } from "../types";
 import type { GameRewardInput } from "../services/gamificationRules";
-import { DAILY_QUEST_DEFINITIONS } from "../services/dailyQuest";
+import { DAILY_QUEST_DEFINITIONS, getMemoryMovesFromResult } from "../services/dailyQuest";
 import { pickDailyQuestTreat } from "../services/dailyQuestRewardCatalog";
 
  type DailyQuestRow = {
@@ -142,10 +142,16 @@ function completedModeFromInput(input: GameRewardInput): string | null {
   if (input.type === "wordle" && boolFrom(input.won)) return "wordle";
   if (input.type === "sprint" && numberFrom(input.guessedWords) > 0) return "sprint";
   if (input.type === "anagram" && numberFrom(input.guessedWords) > 0) return "anagram";
-  if (input.type === "memory") return "memory";
+  if (input.type === "memory" && getMemoryMovesFromResult(input) > 0) return "memory";
   if (input.type === "hangman" && boolFrom(input.won)) return "hangman";
   return null;
 }
+
+const memoryMoveTarget = (variantKey: string): number => variantKey === "memory_twelve" ? 6
+  : variantKey === "memory_fourteen" ? 7
+    : variantKey === "memory_eighteen" ? 9
+      : variantKey === "memory_twenty" ? 10
+        : 8;
 
 function qualifies(quest: DailyQuestWithVariant, input: GameRewardInput): boolean {
   const variantKey = quest.variantKey || quest.kind;
@@ -155,7 +161,10 @@ function qualifies(quest: DailyQuestWithVariant, input: GameRewardInput): boolea
     const target = variantKey === "sprint_four" ? 4 : variantKey === "sprint_six" ? 6 : variantKey === "sprint_eight" ? 8 : variantKey === "sprint_ten" ? 10 : variantKey === "sprint_fourteen" ? 14 : 12;
     return input.type === "sprint" && numberFrom(input.guessedWords) >= target;
   }
-  if (quest.kind === "memory_sixteen") return input.type === "memory" && numberFrom(input.clicks) > 0;
+  if (quest.kind === "memory_sixteen") {
+    const moves = getMemoryMovesFromResult(input);
+    return input.type === "memory" && moves > 0 && moves <= memoryMoveTarget(variantKey);
+  }
   if (quest.kind === "hangman_clean") return input.type === "hangman" && boolFrom(input.won);
   return false;
 }

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
+import { requireParentAccessForKids } from "../parentAccess";
 import { applyGameResult, getOrCreateProfile, incrementProfileCoins, updateProfileDictionary, updateProfilePet, updateProfileStats } from "../profileRepository";
 import { getBootstrapProfile } from "../profileBootstrapRepository";
 import { reconcileProfileMood, syncProfileStateServerAuthoritative, useProfileItemServerAuthoritative } from "../petMoodRepository";
@@ -63,7 +64,7 @@ profileRouter.get("/me", async (req: AuthenticatedRequest, res) => {
   }
 });
 
-profileRouter.get("/parent-contact-email", async (req: AuthenticatedRequest, res) => {
+profileRouter.get("/parent-contact-email", requireParentAccessForKids, async (req: AuthenticatedRequest, res) => {
   try {
     const email = await getParentContactEmail(req.user!.id);
     res.json({ email });
@@ -72,7 +73,7 @@ profileRouter.get("/parent-contact-email", async (req: AuthenticatedRequest, res
   }
 });
 
-profileRouter.patch("/parent-contact-email", async (req: AuthenticatedRequest, res) => {
+profileRouter.patch("/parent-contact-email", requireParentAccessForKids, async (req: AuthenticatedRequest, res) => {
   try {
     const email = await updateParentContactEmail(req.user!.id, req.body?.email);
     res.json({ email });
@@ -81,7 +82,7 @@ profileRouter.patch("/parent-contact-email", async (req: AuthenticatedRequest, r
   }
 });
 
-profileRouter.get("/dictionary-collections", async (req: AuthenticatedRequest, res) => {
+profileRouter.get("/dictionary-collections", requireParentAccessForKids, async (req: AuthenticatedRequest, res) => {
   try {
     const collections = await listDictionaryCollections(req.user!.id);
     res.json({ collections });
@@ -90,7 +91,7 @@ profileRouter.get("/dictionary-collections", async (req: AuthenticatedRequest, r
   }
 });
 
-profileRouter.post("/dictionary-collections", async (req: AuthenticatedRequest, res) => {
+profileRouter.post("/dictionary-collections", requireParentAccessForKids, async (req: AuthenticatedRequest, res) => {
   try {
     const result = await saveDictionaryCollection(req.user!.id, req.body || {});
     res.status(201).json(result);
@@ -99,7 +100,7 @@ profileRouter.post("/dictionary-collections", async (req: AuthenticatedRequest, 
   }
 });
 
-profileRouter.patch("/dictionary", async (req: AuthenticatedRequest, res) => {
+profileRouter.patch("/dictionary", requireParentAccessForKids, async (req: AuthenticatedRequest, res) => {
   try {
     const words = Array.isArray(req.body?.words) ? req.body.words.filter((item: unknown): item is string => typeof item === "string") : [];
     await updateProfileDictionary(req.user!.id, words);
@@ -169,7 +170,7 @@ profileRouter.post("/use-item", async (req: AuthenticatedRequest, res) => {
   }
 });
 
-profileRouter.get("/weekly-report-email/status", async (req: AuthenticatedRequest, res) => {
+profileRouter.get("/weekly-report-email/status", requireParentAccessForKids, async (req: AuthenticatedRequest, res) => {
   try {
     const status = await getWeeklyReportPreferenceStatus(req.user!.id);
     res.json(status);
@@ -178,7 +179,7 @@ profileRouter.get("/weekly-report-email/status", async (req: AuthenticatedReques
   }
 });
 
-profileRouter.patch("/weekly-report-email", async (req: AuthenticatedRequest, res) => {
+profileRouter.patch("/weekly-report-email", requireParentAccessForKids, async (req: AuthenticatedRequest, res) => {
   try {
     const email = typeof req.body?.email === "string" ? req.body.email : "";
     await updateWeeklyReportEmailPreference(req.user!.id, email);
