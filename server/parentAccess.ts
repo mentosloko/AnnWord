@@ -15,6 +15,13 @@ type ParentAccessPayload = {
 
 const encode = (value: unknown): string => Buffer.from(JSON.stringify(value)).toString('base64url');
 const signature = (value: string): string => createHmac('sha256', readRequiredEnv('COOKIE_SECRET')).update(value).digest('base64url');
+const productionCookie = process.env.NODE_ENV === 'production';
+const parentCookieOptions = {
+  httpOnly: true,
+  sameSite: productionCookie ? 'none' as const : 'lax' as const,
+  secure: productionCookie,
+  path: '/',
+};
 
 const readCookie = (req: Request, name: string): string | null => {
   const header = req.headers.cookie;
@@ -48,21 +55,13 @@ const verifyParentAccessToken = (token: string, userId: string): boolean => {
 
 export const writeParentAccessCookie = (res: Response, userId: string): void => {
   res.cookie(PARENT_ACCESS_COOKIE, createParentAccessToken(userId), {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    ...parentCookieOptions,
     maxAge: PARENT_ACCESS_TTL_SECONDS * 1000,
-    path: '/',
   });
 };
 
 export const clearParentAccessCookie = (res: Response): void => {
-  res.clearCookie(PARENT_ACCESS_COOKIE, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-  });
+  res.clearCookie(PARENT_ACCESS_COOKIE, parentCookieOptions);
 };
 
 export const hasParentAccess = (req: AuthenticatedRequest): boolean => {
