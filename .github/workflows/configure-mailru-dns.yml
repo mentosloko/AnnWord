@@ -1,0 +1,139 @@
+name: Configure Mail.ru DNS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/configure-mailru-dns.yml'
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  configure:
+    name: Mail.ru DNS Setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Mark DNS setup pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Mail.ru DNS",description:"Configuring MX and SPF records",target_url:process.env.TARGET_URL}))' > /tmp/mailru-dns-status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/mailru-dns-status.json
+
+      - name: Install Yandex Cloud CLI
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+
+      - name: Configure Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > yc-sa-key.json
+          yc config profile create annword-mailru-dns
+          yc config set service-account-key yc-sa-key.json
+          yc config set cloud-id "$YC_CLOUD_ID"
+          yc config set folder-id "$YC_FOLDER_ID"
+
+      - name: Configure Mail.ru MX and SPF
+        run: |
+          set -euo pipefail
+          yc dns zone list --format json > /tmp/dns-zones.json
+          ZONE_ID="$(jq -r '.[] | select(.zone == "annword.ru.") | .id' /tmp/dns-zones.json | head -n 1)"
+          if [ -z "$ZONE_ID" ]; then
+            echo "::error::Public DNS zone annword.ru. was not found in the configured Yandex Cloud folder."
+            exit 2
+          fi
+          export ZONE_ID
+          yc dns zone list-records "$ZONE_ID" --format json > /tmp/dns-records-before.json
+
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+
+          zone_id = os.environ['ZONE_ID']
+          domain = 'annword.ru.'
+          records = json.load(open('/tmp/dns-records-before.json', encoding='utf-8'))
+
+          root_txt = next((record for record in records if record.get('name') == domain and record.get('type') == 'TXT'), None)
+          ttl = int((root_txt or {}).get('ttl') or 600)
+          original_values = list((root_txt or {}).get('data') or [])
+
+          def plain(value: str) -> str:
+              value = value.strip()
+              if len(value) >= 2 and value[0] == value[-1] == '"':
+                  return value[1:-1]
+              return value
+
+          spf_values = [plain(value) for value in original_values if plain(value).lower().startswith('v=spf1')]
+          if len(spf_values) > 1:
+              raise SystemExit('More than one SPF value already exists; refusing an unsafe automatic replacement.')
+
+          if spf_values:
+              spf = spf_values[0].strip()
+              if 'redirect=_spf.mail.ru' not in spf.lower():
+                  spf = re.sub(r'\s+[+?~-]?all\s*$', '', spf, flags=re.IGNORECASE).strip()
+                  spf = f'{spf} redirect=_spf.mail.ru'
+          else:
+              spf = 'v=spf1 redirect=_spf.mail.ru'
+
+          retained_txt = [value for value in original_values if not plain(value).lower().startswith('v=spf1')]
+          txt_values = retained_txt + [spf]
+
+          txt_command = ['yc', 'dns', 'zone', 'replace-records', zone_id]
+          for value in txt_values:
+              txt_command.extend(['--record', f'{domain} {ttl} TXT {value}'])
+          subprocess.run(txt_command, check=True)
+
+          subprocess.run([
+              'yc', 'dns', 'zone', 'replace-records', zone_id,
+              '--record', f'{domain} 600 MX 10 emx.mail.ru.'
+          ], check=True)
+
+          print(f'MX configured: 10 emx.mail.ru.')
+          print(f'SPF configured: {spf}')
+          PY
+
+          yc dns zone list-records "$ZONE_ID" --record-name annword.ru. --format json > /tmp/dns-records-after.json
+          cat /tmp/dns-records-after.json
+          jq -e '.[] | select(.name == "annword.ru." and .type == "MX") | .data[] | select(. == "10 emx.mail.ru.")' /tmp/dns-records-after.json >/dev/null
+          jq -e '.[] | select(.name == "annword.ru." and .type == "TXT") | .data[] | select(test("redirect=_spf.mail.ru"; "i"))' /tmp/dns-records-after.json >/dev/null
+
+      - name: Publish DNS setup status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then
+            STATE="success"
+            DESCRIPTION="Mail.ru MX and SPF records configured"
+          else
+            STATE="failure"
+            DESCRIPTION="Mail.ru DNS setup failed; see workflow logs"
+          fi
+          export STATE DESCRIPTION
+          node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Mail.ru DNS",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/mailru-dns-status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            --data-binary @/tmp/mailru-dns-status.json
