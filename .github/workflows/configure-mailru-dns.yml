@@ -23,7 +23,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Mail.ru DNS",description:"Checking DNS management access",target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Mail.ru DNS",description:"Checking and configuring MX/SPF",target_url:process.env.TARGET_URL}))' > /tmp/status.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" --data-binary @/tmp/status.json >/dev/null
 
       - name: Install Yandex Cloud CLI
@@ -37,7 +37,6 @@ jobs:
           YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
           YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
         run: |
-          set -euo pipefail
           printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > yc-sa-key.json
           yc config profile create annword-mailru-dns >/dev/null
           yc config set service-account-key yc-sa-key.json >/dev/null
@@ -45,77 +44,21 @@ jobs:
           yc config set folder-id "$YC_FOLDER_ID" >/dev/null
 
       - name: Configure Mail.ru MX and SPF
+        id: configure
         run: |
-          set -euo pipefail
-          if ! yc dns zone list --format json > /tmp/dns-zones.json 2>/tmp/dns-error.txt; then
-            ERROR="$(tr '\n' ' ' < /tmp/dns-error.txt | cut -c1-105)"
-            printf 'Cloud DNS access failed: %s' "$ERROR" > /tmp/dns-result.txt
-            echo "::error::$(cat /tmp/dns-result.txt)"
-            exit 3
-          fi
-
-          ZONE_ID="$(jq -r '.[] | select(.zone == "annword.ru.") | .id' /tmp/dns-zones.json | head -n 1)"
-          if [ -z "$ZONE_ID" ]; then
-            printf 'DNS zone annword.ru is not in Yandex Cloud' > /tmp/dns-result.txt
-            echo "::error::$(cat /tmp/dns-result.txt)"
-            exit 2
-          fi
-
-          export ZONE_ID
-          yc dns zone list-records "$ZONE_ID" --format json > /tmp/dns-records-before.json
-
-          python3 - <<'PY'
-          import json
-          import os
-          import re
-          import subprocess
-
-          zone_id = os.environ['ZONE_ID']
-          domain = 'annword.ru.'
-          records = json.load(open('/tmp/dns-records-before.json', encoding='utf-8'))
-          root_txt = next((record for record in records if record.get('name') == domain and record.get('type') == 'TXT'), None)
-          ttl = int((root_txt or {}).get('ttl') or 600)
-          original_values = list((root_txt or {}).get('data') or [])
-
-          def plain(value: str) -> str:
-              value = value.strip()
-              return value[1:-1] if len(value) >= 2 and value[0] == value[-1] == '"' else value
-
-          spf_values = [plain(value) for value in original_values if plain(value).lower().startswith('v=spf1')]
-          if len(spf_values) > 1:
-              raise SystemExit('Multiple SPF records found; refusing automatic change.')
-
-          if spf_values:
-              spf = spf_values[0].strip()
-              if 'redirect=_spf.mail.ru' not in spf.lower():
-                  spf = re.sub(r'\s+[+?~-]?all\s*$', '', spf, flags=re.IGNORECASE).strip()
-                  spf = f'{spf} redirect=_spf.mail.ru'
-          else:
-              spf = 'v=spf1 redirect=_spf.mail.ru'
-
-          txt_values = [value for value in original_values if not plain(value).lower().startswith('v=spf1')] + [spf]
-          txt_command = ['yc', 'dns', 'zone', 'replace-records', zone_id]
-          for value in txt_values:
-              txt_command.extend(['--record', f'{domain} {ttl} TXT {value}'])
-          subprocess.run(txt_command, check=True)
-          subprocess.run(['yc', 'dns', 'zone', 'replace-records', zone_id, '--record', f'{domain} 600 MX 10 emx.mail.ru.'], check=True)
-          open('/tmp/dns-result.txt', 'w', encoding='utf-8').write('Mail.ru MX and SPF configured in Yandex Cloud')
-          PY
-
-          yc dns zone list-records "$ZONE_ID" --record-name annword.ru. --format json > /tmp/dns-records-after.json
-          jq -e '.[] | select(.name == "annword.ru." and .type == "MX") | .data[] | select(. == "10 emx.mail.ru.")' /tmp/dns-records-after.json >/dev/null
-          jq -e '.[] | select(.name == "annword.ru." and .type == "TXT") | .data[] | select(test("redirect=_spf.mail.ru"; "i"))' /tmp/dns-records-after.json >/dev/null
+          set -o pipefail
+          printf '%s' 'CmltcG9ydCBqc29uCmltcG9ydCByZQppbXBvcnQgc3VicHJvY2VzcwppbXBvcnQgc3lzCgpET01BSU4gPSAiYW5ud29yZC5ydS4iCgpkZWYgcnVuKGFyZ3MpOgogICAgcmVzdWx0ID0gc3VicHJvY2Vzcy5ydW4oYXJncywgdGV4dD1UcnVlLCBjYXB0dXJlX291dHB1dD1UcnVlKQogICAgaWYgcmVzdWx0LnJldHVybmNvZGUgIT0gMDoKICAgICAgICBtZXNzYWdlID0gKHJlc3VsdC5zdGRlcnIgb3IgcmVzdWx0LnN0ZG91dCkuc3RyaXAoKS5yZXBsYWNlKCJcbiIsICIgIikKICAgICAgICByYWlzZSBSdW50aW1lRXJyb3IoZiJ7JyAnLmpvaW4oYXJnc1s6NF0pfToge21lc3NhZ2VbOjQwMF19IikKICAgIHJldHVybiByZXN1bHQuc3Rkb3V0CgpkZWYgcGxhaW4odmFsdWUpOgogICAgdmFsdWUgPSBzdHIodmFsdWUpLnN0cmlwKCkKICAgIGlmIGxlbih2YWx1ZSkgPj0gMiBhbmQgdmFsdWVbMF0gPT0gdmFsdWVbLTFdID09ICciJzoKICAgICAgICByZXR1cm4gdmFsdWVbMTotMV0KICAgIHJldHVybiB2YWx1ZQoKdHJ5OgogICAgem9uZXMgPSBqc29uLmxvYWRzKHJ1bihbInljIiwgImRucyIsICJ6b25lIiwgImxpc3QiLCAiLS1mb3JtYXQiLCAianNvbiJdKSkKICAgIHpvbmUgPSBuZXh0KChpdGVtIGZvciBpdGVtIGluIHpvbmVzIGlmIGl0ZW0uZ2V0KCJ6b25lIikgPT0gRE9NQUlOKSwgTm9uZSkKICAgIGlmIG5vdCB6b25lOgogICAgICAgIHByaW50KCJSRVNVTFQ9Wk9ORV9OT1RfRk9VTkQ6IGFubndvcmQucnUgRE5TIGlzIG5vdCBtYW5hZ2VkIGluIHRoaXMgWWFuZGV4IENsb3VkIGZvbGRlciIpCiAgICAgICAgc3lzLmV4aXQoMikKCiAgICB6b25lX2lkID0gem9uZVsiaWQiXQogICAgcmVjb3JkcyA9IGpzb24ubG9hZHMocnVuKFsieWMiLCAiZG5zIiwgInpvbmUiLCAibGlzdC1yZWNvcmRzIiwgem9uZV9pZCwgIi0tZm9ybWF0IiwgImpzb24iXSkpCiAgICByb290X3JlY29yZHMgPSBbaXRlbSBmb3IgaXRlbSBpbiByZWNvcmRzIGlmIGl0ZW0uZ2V0KCJuYW1lIikgPT0gRE9NQUlOIGFuZCBpdGVtLmdldCgidHlwZSIpIGluIHsiTVgiLCAiVFhUIn1dCiAgICBwcmludCgiQkVGT1JFPSIgKyBqc29uLmR1bXBzKHJvb3RfcmVjb3JkcywgZW5zdXJlX2FzY2lpPUZhbHNlLCBzZXBhcmF0b3JzPSgiLCIsICI6IikpKQoKICAgIHJvb3RfdHh0ID0gbmV4dCgoaXRlbSBmb3IgaXRlbSBpbiByb290X3JlY29yZHMgaWYgaXRlbS5nZXQoInR5cGUiKSA9PSAiVFhUIiksIE5vbmUpCiAgICB0dGwgPSBpbnQoKHJvb3RfdHh0IG9yIHt9KS5nZXQoInR0bCIpIG9yIDYwMCkKICAgIG9yaWdpbmFsX3ZhbHVlcyA9IGxpc3QoKHJvb3RfdHh0IG9yIHt9KS5nZXQoImRhdGEiKSBvciBbXSkKICAgIHNwZl92YWx1ZXMgPSBbcGxhaW4odmFsdWUpIGZvciB2YWx1ZSBpbiBvcmlnaW5hbF92YWx1ZXMgaWYgcGxhaW4odmFsdWUpLmxvd2VyKCkuc3RhcnRzd2l0aCgidj1zcGYxIildCiAgICBpZiBsZW4oc3BmX3ZhbHVlcykgPiAxOgogICAgICAgIHJhaXNlIFJ1bnRpbWVFcnJvcigibXVsdGlwbGUgU1BGIHZhbHVlcyBhbHJlYWR5IGV4aXN0OyByZWZ1c2luZyB1bnNhZmUgcmVwbGFjZW1lbnQiKQoKICAgIGlmIHNwZl92YWx1ZXM6CiAgICAgICAgc3BmID0gc3BmX3ZhbHVlc1swXS5zdHJpcCgpCiAgICAgICAgaWYgInJlZGlyZWN0PV9zcGYubWFpbC5ydSIgbm90IGluIHNwZi5sb3dlcigpOgogICAgICAgICAgICBzcGYgPSByZS5zdWIociJccytbKz9+LV0/YWxsXHMqJCIsICIiLCBzcGYsIGZsYWdzPXJlLkkpLnN0cmlwKCkKICAgICAgICAgICAgc3BmID0gZiJ7c3BmfSByZWRpcmVjdD1fc3BmLm1haWwucnUiCiAgICBlbHNlOgogICAgICAgIHNwZiA9ICJ2PXNwZjEgcmVkaXJlY3Q9X3NwZi5tYWlsLnJ1IgoKICAgIHJldGFpbmVkID0gW3ZhbHVlIGZvciB2YWx1ZSBpbiBvcmlnaW5hbF92YWx1ZXMgaWYgbm90IHBsYWluKHZhbHVlKS5sb3dlcigpLnN0YXJ0c3dpdGgoInY9c3BmMSIpXQogICAgdHh0X2FyZ3MgPSBbInljIiwgImRucyIsICJ6b25lIiwgInJlcGxhY2UtcmVjb3JkcyIsIHpvbmVfaWRdCiAgICBmb3IgdmFsdWUgaW4gcmV0YWluZWQgKyBbc3BmXToKICAgICAgICB0eHRfYXJncyArPSBbIi0tcmVjb3JkIiwgZiJ7RE9NQUlOfSB7dHRsfSBUWFQge3ZhbHVlfSJdCiAgICBydW4odHh0X2FyZ3MpCiAgICBydW4oWyJ5YyIsICJkbnMiLCAiem9uZSIsICJyZXBsYWNlLXJlY29yZHMiLCB6b25lX2lkLCAiLS1yZWNvcmQiLCBmIntET01BSU59IDYwMCBNWCAxMCBlbXgubWFpbC5ydS4iXSkKCiAgICBhZnRlciA9IGpzb24ubG9hZHMocnVuKFsieWMiLCAiZG5zIiwgInpvbmUiLCAibGlzdC1yZWNvcmRzIiwgem9uZV9pZCwgIi0tcmVjb3JkLW5hbWUiLCBET01BSU4sICItLWZvcm1hdCIsICJqc29uIl0pKQogICAgcm9vdF9hZnRlciA9IFtpdGVtIGZvciBpdGVtIGluIGFmdGVyIGlmIGl0ZW0uZ2V0KCJuYW1lIikgPT0gRE9NQUlOIGFuZCBpdGVtLmdldCgidHlwZSIpIGluIHsiTVgiLCAiVFhUIn1dCiAgICBwcmludCgiQUZURVI9IiArIGpzb24uZHVtcHMocm9vdF9hZnRlciwgZW5zdXJlX2FzY2lpPUZhbHNlLCBzZXBhcmF0b3JzPSgiLCIsICI6IikpKQoKICAgIG14X3ZhbHVlcyA9IFtwbGFpbih2KSBmb3IgaXRlbSBpbiByb290X2FmdGVyIGlmIGl0ZW0uZ2V0KCJ0eXBlIikgPT0gIk1YIiBmb3IgdiBpbiBpdGVtLmdldCgiZGF0YSIsIFtdKV0KICAgIHR4dF92YWx1ZXMgPSBbcGxhaW4odikgZm9yIGl0ZW0gaW4gcm9vdF9hZnRlciBpZiBpdGVtLmdldCgidHlwZSIpID09ICJUWFQiIGZvciB2IGluIGl0ZW0uZ2V0KCJkYXRhIiwgW10pXQogICAgaWYgIjEwIGVteC5tYWlsLnJ1LiIgbm90IGluIG14X3ZhbHVlczoKICAgICAgICByYWlzZSBSdW50aW1lRXJyb3IoZiJNWCB2ZXJpZmljYXRpb24gZmFpbGVkOiB7bXhfdmFsdWVzfSIpCiAgICBpZiBub3QgYW55KCJyZWRpcmVjdD1fc3BmLm1haWwucnUiIGluIHZhbHVlLmxvd2VyKCkgZm9yIHZhbHVlIGluIHR4dF92YWx1ZXMpOgogICAgICAgIHJhaXNlIFJ1bnRpbWVFcnJvcihmIlNQRiB2ZXJpZmljYXRpb24gZmFpbGVkOiB7dHh0X3ZhbHVlc30iKQogICAgcHJpbnQoZiJSRVNVTFQ9U1VDQ0VTUzsgU1BGPXtzcGZ9IikKZXhjZXB0IEV4Y2VwdGlvbiBhcyBlcnJvcjoKICAgIHByaW50KGYiUkVTVUxUPUVSUk9SOiB7ZXJyb3J9IikKICAgIHN5cy5leGl0KDEpCg==' | base64 -d > /tmp/configure-mailru-dns.py
+          python3 /tmp/configure-mailru-dns.py | tee /tmp/dns-output.txt
 
       - name: Publish DNS setup status
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
-          JOB_STATUS: ${{ job.status }}
           TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          DESCRIPTION="$(cat /tmp/dns-result.txt 2>/dev/null || printf 'Mail.ru DNS setup failed')"
-          DESCRIPTION="$(printf '%s' "$DESCRIPTION" | cut -c1-130)"
-          if [ "$JOB_STATUS" = "success" ]; then STATE="success"; else STATE="failure"; fi
+          DESCRIPTION="$(grep '^RESULT=' /tmp/dns-output.txt 2>/dev/null | tail -n 1 | sed 's/^RESULT=//' | cut -c1-130)"
+          [ -n "$DESCRIPTION" ] || DESCRIPTION="Mail.ru DNS setup failed"
+          if printf '%s' "$DESCRIPTION" | grep -q '^SUCCESS'; then STATE="success"; else STATE="failure"; fi
           export STATE DESCRIPTION
           node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Mail.ru DNS",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/status.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" --data-binary @/tmp/status.json >/dev/null
