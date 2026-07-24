@@ -85,6 +85,6 @@ describe('parent and dictionary regression contracts', () => {
     expect(appScreens).toContain('overflow-y-auto overscroll-contain');
     expect(memory).toContain('Ходов: {moves}');
     expect(memory).not.toContain('Кликов:');
-    expect(memory).not.toContain('clicks')).toBeUndefined();
+    expect(memory).not.toContain('clicks');
   });
 });
