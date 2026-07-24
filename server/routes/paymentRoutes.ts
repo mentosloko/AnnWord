@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
+import { requireParentAccessForKids } from "../parentAccess";
 import { query } from "../db";
 import { runtimeConfig, readPublicHostEnv, readPublicUrlEnv } from "../config";
 import { prodamusNotifyRouter } from "./prodamusNotifyRoutes";
@@ -70,7 +71,7 @@ const redirectToApp = (res: { redirect: (status: number, url: string) => void },
 
 paymentRouter.use(prodamusNotifyRouter);
 
-paymentRouter.post("/create", requireAuth, async (req: AuthenticatedRequest, res) => {
+paymentRouter.post("/create", requireAuth, requireParentAccessForKids, async (req: AuthenticatedRequest, res) => {
   try {
     if (!runtimeConfig.prodamusSecret) {
       res.status(503).json({ code: "payments_not_configured", error: "Оплата Premium временно не настроена. Нужно добавить PRODAMUS_SECRET в окружение backend и повторить попытку." });
