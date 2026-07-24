@@ -49,9 +49,23 @@ jobs:
 
       - name: Configure Mail.ru MX and SPF
         id: configure
+        continue-on-error: true
         run: |
           set -o pipefail
           python3 scripts/configure_mailru_dns.py | tee /tmp/dns-output.txt
+
+      - name: Upload DNS diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mailru-dns-result
+          path: /tmp/dns-output.txt
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Fail when DNS setup failed
+        if: steps.configure.outcome != 'success'
+        run: exit 1
 
       - name: Publish DNS setup status
         if: always()
