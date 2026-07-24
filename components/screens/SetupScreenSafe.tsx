@@ -25,7 +25,7 @@ interface SetupScreenProps {
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onOpenDictionaryStudio: () => void;
   onOpenPremium: () => void;
-  onStartGame: () => void | Promise<void>;
+  onStartGame: (dictionarySnapshot?: string[]) => void | Promise<void>;
   onBack: () => void;
   onLogin: () => void;
   autoStart?: boolean;
@@ -33,6 +33,7 @@ interface SetupScreenProps {
 }
 
 const MODE_LABELS: Record<PlayableModeRoute, string> = { game: 'Классика', anagrams: 'Анаграммы', translation: '1 из 2', sprint: 'Спринт', memory: 'Память', hangman: 'Виселица', letter_square: 'Змейка' };
+const LENGTH_AGNOSTIC_MODES = new Set<PlayableModeRoute>(['anagrams', 'translation', 'sprint', 'memory', 'letter_square']);
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, settings, customDictionaryWords, setupError, isUploadingDictionary, isAuthenticated, userProfile, questContext, hasActiveClassicGame = false, onResumeClassicGame, onOpenDictionaryStudio, onOpenPremium, onSettingsChange, onStartGame, onBack, onLogin, autoStart = false, onAutoStartComplete }) => {
   const parentMode = isKidsMode(userProfile, isAuthenticated);
@@ -54,10 +55,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
   const startGame = React.useCallback(async () => {
     if (!sourceReady || isStarting) return;
     setIsStarting(true);
-    try { await dictionaryRuntime.ensureReady(); await onStartGame(); }
-    catch { /* The hook exposes the user-facing error. */ }
+    try {
+      await dictionaryRuntime.ensureReady();
+      const dictionarySnapshot = dictionaryRuntime.getModeWords({ respectWordLength: !LENGTH_AGNOSTIC_MODES.has(selectedPlayMode) });
+      if (!dictionarySnapshot.length) throw new Error('В выбранном словаре нет слов для этой игры.');
+      await onStartGame(dictionarySnapshot);
+    } catch { /* The hook exposes the user-facing error. */ }
     finally { setIsStarting(false); }
-  }, [dictionaryRuntime, isStarting, onStartGame, sourceReady]);
+  }, [dictionaryRuntime, isStarting, onStartGame, selectedPlayMode, sourceReady]);
 
   React.useEffect(() => {
     if (!autoStart) { autoStartedRef.current = false; return; }
