@@ -2,6 +2,7 @@ import json
 import re
 import subprocess
 import sys
+from typing import Any
 
 DOMAIN = "annword.ru."
 
@@ -14,6 +15,17 @@ def run(args: list[str]) -> str:
     return result.stdout
 
 
+def unpack_list(payload: Any, keys: tuple[str, ...]) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    if isinstance(payload, dict):
+        for key in keys:
+            value = payload.get(key)
+            if isinstance(value, list):
+                return [item for item in value if isinstance(item, dict)]
+    raise RuntimeError(f"unexpected Yandex CLI JSON shape: {type(payload).__name__}")
+
+
 def plain(value: object) -> str:
     text = str(value).strip()
     if len(text) >= 2 and text[0] == text[-1] == '"':
@@ -22,14 +34,16 @@ def plain(value: object) -> str:
 
 
 try:
-    zones = json.loads(run(["yc", "dns", "zone", "list", "--format", "json"]))
+    zones_payload = json.loads(run(["yc", "dns", "zone", "list", "--format", "json"]))
+    zones = unpack_list(zones_payload, ("dns_zones", "zones"))
     zone = next((item for item in zones if item.get("zone") == DOMAIN), None)
     if not zone:
         print("RESULT=ZONE_NOT_FOUND: annword.ru DNS is not managed in this Yandex Cloud folder")
         sys.exit(2)
 
-    zone_id = zone["id"]
-    records = json.loads(run(["yc", "dns", "zone", "list-records", zone_id, "--format", "json"]))
+    zone_id = str(zone["id"])
+    records_payload = json.loads(run(["yc", "dns", "zone", "list-records", zone_id, "--format", "json"]))
+    records = unpack_list(records_payload, ("record_sets", "recordsets", "records"))
     root_records = [
         item for item in records
         if item.get("name") == DOMAIN and item.get("type") in {"MX", "TXT"}
@@ -61,10 +75,11 @@ try:
         "--record", f"{DOMAIN} 600 MX 10 emx.mail.ru.",
     ])
 
-    after = json.loads(run([
+    after_payload = json.loads(run([
         "yc", "dns", "zone", "list-records", zone_id,
         "--record-name", DOMAIN, "--format", "json",
     ]))
+    after = unpack_list(after_payload, ("record_sets", "recordsets", "records"))
     root_after = [
         item for item in after
         if item.get("name") == DOMAIN and item.get("type") in {"MX", "TXT"}
