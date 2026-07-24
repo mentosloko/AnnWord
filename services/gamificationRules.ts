@@ -17,6 +17,8 @@ export type GameRewardInput = ({
   won?: boolean;
   attempts?: number;
   guessedWords?: number;
+  moves?: number;
+  /** Backward compatibility for clients released before Memory switched to moves. */
   clicks?: number;
   mistakes?: number;
   maxMistakes?: number;
@@ -65,6 +67,11 @@ export const getCharacterXpProgress = (pet: PetState): CharacterXpProgress => {
   };
 };
 
+const memoryMoves = (input: GameRewardInput): number => {
+  if (typeof input.moves === 'number') return Math.max(0, Math.round(input.moves));
+  return Math.max(0, Math.ceil(Math.round(input.clicks || 0) / 2));
+};
+
 export const calculateGameReward = (input: GameRewardInput): GameRewardResult => {
   if (input.statsOnly) return { xp: 0, coins: 0, mood: 0, label: 'Stats only' };
   const coinAdjustment = Math.round(input.coinsAdjustment || 0);
@@ -73,7 +80,7 @@ export const calculateGameReward = (input: GameRewardInput): GameRewardResult =>
   if (input.type === 'sprint') { const guessedWords = Math.max(0, Math.round(input.guessedWords || 0)); const xp = guessedWords ? Math.min(30, guessedWords * 5) : 0; return reward(xp, guessedWords >= 10 ? C.sprint.great : guessedWords >= 6 ? C.sprint.good : C.sprint.low, guessedWords ? 'Sprint done' : 'Sprint empty'); }
   if (input.type === 'anagram') { const guessedWords = Math.max(0, Math.round(input.guessedWords || 0)); const xp = guessedWords ? Math.min(25, guessedWords * 5) : 5; return reward(xp, C.anagram.success, 'Anagram done'); }
   if (input.type === 'translation') { const guessedWords = Math.max(0, Math.round(input.guessedWords || 0)); const xp = guessedWords ? Math.min(30, guessedWords * 4) : 5; return reward(xp, guessedWords >= 9 ? C.sprint.good : guessedWords >= 6 ? C.sprint.low : 0, 'Translation choice done'); }
-  if (input.type === 'memory') { const clicks = Math.max(0, Math.round(input.clicks || 0)); const xp = clicks > 0 && clicks <= 12 ? 30 : clicks <= 16 ? 25 : clicks <= 20 ? 20 : clicks <= 24 ? 15 : clicks > 24 ? 10 : 8; return reward(xp, clicks > 0 && clicks <= 16 ? C.memory.great : clicks <= 24 ? C.memory.good : C.memory.low, 'Memory done'); }
+  if (input.type === 'memory') { const moves = memoryMoves(input); const xp = moves > 0 && moves <= 6 ? 30 : moves <= 8 ? 25 : moves <= 10 ? 20 : moves <= 12 ? 15 : moves > 12 ? 10 : 8; return reward(xp, moves > 0 && moves <= 8 ? C.memory.great : moves <= 12 ? C.memory.good : C.memory.low, 'Memory done'); }
   if (input.type === 'hangman') { const maxMistakes = Math.max(1, Math.round(input.maxMistakes || 7)); const mistakes = Math.max(0, Math.min(maxMistakes, Math.round(input.mistakes || 0))); const xp = input.won ? 25 + Math.min(10, maxMistakes - mistakes) : 8; return reward(xp, input.won ? (mistakes <= 1 ? C.hangman.perfect : C.hangman.win) : C.hangman.loss, 'Hangman done'); }
   if (input.type === 'letterSquare') { const guessedWords = Math.max(0, Math.round(input.guessedWords || 0)); const xp = guessedWords ? Math.min(32, guessedWords * 4) : 5; return reward(xp, guessedWords >= 7 ? C.sprint.good : guessedWords >= 4 ? C.sprint.low : 0, 'Letter square done'); }
   return reward(0, 0, 'Done');
