@@ -1,0 +1,84 @@
+name: Configure Mail.ru SPF and DKIM
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/configure-mailru-spf-dkim.yml'
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  configure:
+    name: Mail.ru SPF and DKIM Setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Mark DNS setup pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Mail.ru DNS",description:"Configuring SPF and DKIM",target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" --data-binary @/tmp/status.json >/dev/null
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Yandex Cloud CLI
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a >/dev/null 2>&1
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+
+      - name: Configure Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > yc-sa-key.json
+          yc config profile create annword-mailru-dns >/dev/null
+          yc config set service-account-key yc-sa-key.json >/dev/null
+          yc config set cloud-id "$YC_CLOUD_ID" >/dev/null
+          yc config set folder-id "$YC_FOLDER_ID" >/dev/null
+
+      - name: Configure Mail.ru SPF and DKIM
+        id: dns
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          python3 scripts/configure_mailru_spf_dkim.py 2>&1 | tee /tmp/dns-output.txt
+
+      - name: Upload DNS diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mailru-spf-dkim-result
+          path: /tmp/dns-output.txt
+          retention-days: 1
+
+      - name: Fail when DNS setup failed
+        if: steps.dns.outcome != 'success'
+        run: exit 1
+
+      - name: Publish DNS setup status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then
+            STATE="success"
+            DESCRIPTION="Mail.ru SPF and DKIM configured"
+          else
+            STATE="failure"
+            DESCRIPTION="Mail.ru SPF/DKIM setup failed"
+          fi
+          export STATE DESCRIPTION
+          node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Mail.ru DNS",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" --data-binary @/tmp/status.json >/dev/null
