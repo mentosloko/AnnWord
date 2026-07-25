@@ -36,7 +36,11 @@ jobs:
           yc config set folder-id "$YC_FOLDER_ID" >/dev/null
 
       - name: Repair SPF and DKIM TXT records
-        run: python3 scripts/fix_mailru_txt_records.py
+        id: repair
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          python3 scripts/fix_mailru_txt_records.py 2>&1 | tee dns-repair.txt
 
       - name: Wait for authoritative DNS
         run: sleep 20
@@ -67,15 +71,16 @@ jobs:
             done
           } | tee dns-diagnostic.txt
 
-      - name: Validate exact public records
-        run: |
-          grep -F '"v=spf1 redirect=_spf.mail.ru"' dns-diagnostic.txt
-          grep -F '"v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCnk6GAUaz8HY54TiaQaeYA5r++Kn4ixocss6lywM6N7PtB8OfgHgJyfNmXNRcwgeFQKvhATQUKqLTrCVC6gZ2/lWVt/e5wi/j2LIRDQgCT/ME4vJ6gSnBWBKa5b2OU7Otipmt9wPW9hqtraUZHTLm9tuxoqEMjdHqNKSK40rnUCwIDAQAB"' dns-diagnostic.txt
-
-      - name: Commit result
+      - name: Commit diagnostic result
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add dns-diagnostic.txt
-          git commit -m "Record repaired public DNS diagnostic" || exit 0
+          git add dns-diagnostic.txt dns-repair.txt
+          git commit -m "Record Mail.ru DNS repair diagnostic" || exit 0
           git push
+
+      - name: Validate exact public records
+        run: |
+          test "${{ steps.repair.outcome }}" = "success"
+          grep -F '"v=spf1 redirect=_spf.mail.ru"' dns-diagnostic.txt
+          grep -F '"v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCnk6GAUaz8HY54TiaQaeYA5r++Kn4ixocss6lywM6N7PtB8OfgHgJyfNmXNRcwgeFQKvhATQUKqLTrCVC6gZ2/lWVt/e5wi/j2LIRDQgCT/ME4vJ6gSnBWBKa5b2OU7Otipmt9wPW9hqtraUZHTLm9tuxoqEMjdHqNKSK40rnUCwIDAQAB"' dns-diagnostic.txt
