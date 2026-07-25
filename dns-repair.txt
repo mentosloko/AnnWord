@@ -1,1 +1,0 @@
-DNS records replaced with quoted TXT values
