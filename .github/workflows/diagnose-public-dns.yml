@@ -1,0 +1,51 @@
+name: Diagnose public DNS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-public-dns.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install DNS tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils
+
+      - name: Query public and authoritative DNS
+        run: |
+          set -o pipefail
+          {
+            echo '=== RESOLVER DEFAULT ==='
+            dig +short TXT annword.ru
+            dig +short MX annword.ru
+            dig +short TXT mailru._domainkey.annword.ru
+            echo '=== GOOGLE 8.8.8.8 ==='
+            dig +short TXT annword.ru @8.8.8.8
+            dig +short MX annword.ru @8.8.8.8
+            dig +short TXT mailru._domainkey.annword.ru @8.8.8.8
+            echo '=== CLOUDFLARE 1.1.1.1 ==='
+            dig +short TXT annword.ru @1.1.1.1
+            dig +short MX annword.ru @1.1.1.1
+            dig +short TXT mailru._domainkey.annword.ru @1.1.1.1
+            echo '=== NS ==='
+            dig +short NS annword.ru
+            for ns in $(dig +short NS annword.ru); do
+              echo "=== AUTHORITATIVE $ns ==="
+              dig +short TXT annword.ru @$ns
+              dig +short MX annword.ru @$ns
+              dig +short TXT mailru._domainkey.annword.ru @$ns
+            done
+          } | tee /tmp/public-dns.txt
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-dns-result
+          path: /tmp/public-dns.txt
+          retention-days: 1
