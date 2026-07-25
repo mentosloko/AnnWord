@@ -8,12 +8,21 @@ on:
 
 permissions:
   contents: write
+  statuses: write
 
 jobs:
   diagnose:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Mark DNS repair pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Mail.ru DNS Repair",description:"Repairing SPF and DKIM TXT records",target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" --data-binary @/tmp/status.json >/dev/null
+
       - uses: actions/checkout@v4
 
       - name: Install tools
@@ -84,3 +93,15 @@ jobs:
           test "${{ steps.repair.outcome }}" = "success"
           grep -F '"v=spf1 redirect=_spf.mail.ru"' dns-diagnostic.txt
           grep -F '"v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCnk6GAUaz8HY54TiaQaeYA5r++Kn4ixocss6lywM6N7PtB8OfgHgJyfNmXNRcwgeFQKvhATQUKqLTrCVC6gZ2/lWVt/e5wi/j2LIRDQgCT/ME4vJ6gSnBWBKa5b2OU7Otipmt9wPW9hqtraUZHTLm9tuxoqEMjdHqNKSK40rnUCwIDAQAB"' dns-diagnostic.txt
+
+      - name: Publish DNS repair status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then STATE=success; DESCRIPTION='Mail.ru SPF and DKIM are publicly correct'; else STATE=failure; DESCRIPTION='Mail.ru DNS repair failed'; fi
+          export STATE DESCRIPTION
+          node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Mail.ru DNS Repair",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/status.json
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" --data-binary @/tmp/status.json >/dev/null
