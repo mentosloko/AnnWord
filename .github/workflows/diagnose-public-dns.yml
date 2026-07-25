@@ -7,13 +7,15 @@ on:
       - '.github/workflows/diagnose-public-dns.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   diagnose:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
+
       - name: Install DNS tools
         run: sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils
 
@@ -41,11 +43,12 @@ jobs:
               dig +short MX annword.ru @$ns
               dig +short TXT mailru._domainkey.annword.ru @$ns
             done
-          } | tee /tmp/public-dns.txt
+          } | tee dns-diagnostic.txt
 
-      - name: Upload result
-        uses: actions/upload-artifact@v4
-        with:
-          name: public-dns-result
-          path: /tmp/public-dns.txt
-          retention-days: 1
+      - name: Commit result
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add dns-diagnostic.txt
+          git commit -m "Record public DNS diagnostic" || exit 0
+          git push
