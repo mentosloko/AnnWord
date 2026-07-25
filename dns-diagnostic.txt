@@ -1,0 +1,23 @@
+=== RESOLVER DEFAULT ===
+"v=spf1" "redirect=_spf.mail.ru"
+10 emx.mail.ru.
+"v=DKIM1"
+=== GOOGLE 8.8.8.8 ===
+"v=spf1" "redirect=_spf.mail.ru"
+10 emx.mail.ru.
+"v=DKIM1"
+=== CLOUDFLARE 1.1.1.1 ===
+"v=spf1" "redirect=_spf.mail.ru"
+10 emx.mail.ru.
+"v=DKIM1"
+=== NS ===
+ns1.yandexcloud.net.
+ns2.yandexcloud.net.
+=== AUTHORITATIVE ns2.yandexcloud.net. ===
+"v=spf1" "redirect=_spf.mail.ru"
+10 emx.mail.ru.
+"v=DKIM1"
+=== AUTHORITATIVE ns1.yandexcloud.net. ===
+"v=spf1" "redirect=_spf.mail.ru"
+10 emx.mail.ru.
+"v=DKIM1"
