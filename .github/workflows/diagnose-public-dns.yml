@@ -1,4 +1,4 @@
-name: Diagnose public DNS
+name: Repair and diagnose Mail.ru DNS
 
 on:
   push:
@@ -16,8 +16,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install DNS tools
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq dnsutils
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a >/dev/null 2>&1
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+
+      - name: Configure Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > yc-sa-key.json
+          yc config profile create annword-mailru-repair >/dev/null
+          yc config set service-account-key yc-sa-key.json >/dev/null
+          yc config set cloud-id "$YC_CLOUD_ID" >/dev/null
+          yc config set folder-id "$YC_FOLDER_ID" >/dev/null
+
+      - name: Repair SPF and DKIM TXT records
+        run: python3 scripts/fix_mailru_txt_records.py
+
+      - name: Wait for authoritative DNS
+        run: sleep 20
 
       - name: Query public and authoritative DNS
         run: |
@@ -45,10 +67,15 @@ jobs:
             done
           } | tee dns-diagnostic.txt
 
+      - name: Validate exact public records
+        run: |
+          grep -F '"v=spf1 redirect=_spf.mail.ru"' dns-diagnostic.txt
+          grep -F '"v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCnk6GAUaz8HY54TiaQaeYA5r++Kn4ixocss6lywM6N7PtB8OfgHgJyfNmXNRcwgeFQKvhATQUKqLTrCVC6gZ2/lWVt/e5wi/j2LIRDQgCT/ME4vJ6gSnBWBKa5b2OU7Otipmt9wPW9hqtraUZHTLm9tuxoqEMjdHqNKSK40rnUCwIDAQAB"' dns-diagnostic.txt
+
       - name: Commit result
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add dns-diagnostic.txt
-          git commit -m "Record public DNS diagnostic" || exit 0
+          git commit -m "Record repaired public DNS diagnostic" || exit 0
           git push
