@@ -105,19 +105,52 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Typecheck
+        id: typecheck
         if: steps.apply_patch.outcome == 'success'
-        run: npm run lint
+        continue-on-error: true
+        run: npm run lint 2>&1 | tee /tmp/fnf-typecheck.log
 
       - name: Unit tests
-        if: steps.apply_patch.outcome == 'success'
-        run: npm run check:unit
+        id: unit_tests
+        if: steps.apply_patch.outcome == 'success' && steps.typecheck.outcome == 'success'
+        continue-on-error: true
+        run: npm run check:unit 2>&1 | tee /tmp/fnf-unit.log
 
       - name: Production build
-        if: steps.apply_patch.outcome == 'success'
-        run: npm run build
+        id: production_build
+        if: steps.apply_patch.outcome == 'success' && steps.typecheck.outcome == 'success' && steps.unit_tests.outcome == 'success'
+        continue-on-error: true
+        run: npm run build 2>&1 | tee /tmp/fnf-build.log
+
+      - name: Commit verification diagnostic
+        if: steps.apply_patch.outcome == 'success' && (steps.typecheck.outcome == 'failure' || steps.unit_tests.outcome == 'failure' || steps.production_build.outcome == 'failure')
+        run: |
+          {
+            echo "typecheck=${{ steps.typecheck.outcome }}"
+            echo "unit_tests=${{ steps.unit_tests.outcome }}"
+            echo "production_build=${{ steps.production_build.outcome }}"
+            echo
+            echo "=== TYPECHECK ==="
+            tail -n 220 /tmp/fnf-typecheck.log 2>/dev/null || true
+            echo
+            echo "=== UNIT TESTS ==="
+            tail -n 320 /tmp/fnf-unit.log 2>/dev/null || true
+            echo
+            echo "=== BUILD ==="
+            tail -n 220 /tmp/fnf-build.log 2>/dev/null || true
+          } > tmp/fnf-release-patch/verification-diagnostic.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add tmp/fnf-release-patch/verification-diagnostic.txt
+          git commit -m "Record F&F verification failure"
+          git push
+
+      - name: Stop after verification failure
+        if: steps.apply_patch.outcome == 'success' && (steps.typecheck.outcome == 'failure' || steps.unit_tests.outcome == 'failure' || steps.production_build.outcome == 'failure')
+        run: exit 1
 
       - name: Commit verified changes
-        if: steps.apply_patch.outcome == 'success'
+        if: steps.apply_patch.outcome == 'success' && steps.typecheck.outcome == 'success' && steps.unit_tests.outcome == 'success' && steps.production_build.outcome == 'success'
         run: |
           rm -rf tmp/fnf-release-patch .github/workflows/apply-fnf-release-fixes.yml
           git config user.name github-actions[bot]
