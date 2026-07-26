@@ -74,15 +74,46 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Typecheck and tests
+      - name: Typecheck
+        id: typecheck
+        continue-on-error: true
+        run: npm run lint 2>&1 | tee /tmp/fnf-final-typecheck.log
+
+      - name: Unit tests
+        id: unit_tests
+        if: steps.typecheck.outcome == 'success'
+        continue-on-error: true
+        run: npm run check:unit 2>&1 | tee /tmp/fnf-final-unit.log
+
+      - name: Commit verification diagnostic
+        if: steps.typecheck.outcome == 'failure' || steps.unit_tests.outcome == 'failure'
         run: |
-          npm run lint
-          npm run check:unit
+          {
+            echo "typecheck=${{ steps.typecheck.outcome }}"
+            echo "unit_tests=${{ steps.unit_tests.outcome }}"
+            echo
+            echo "=== TYPECHECK ==="
+            tail -n 240 /tmp/fnf-final-typecheck.log 2>/dev/null || true
+            echo
+            echo "=== UNIT TESTS ==="
+            tail -n 360 /tmp/fnf-final-unit.log 2>/dev/null || true
+          } > tmp/fnf-final-diagnostic.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add tmp/fnf-final-diagnostic.txt
+          git commit -m "Record final F&F verification failure"
+          git push
+
+      - name: Stop after verification failure
+        if: steps.typecheck.outcome == 'failure' || steps.unit_tests.outcome == 'failure'
+        run: exit 1
 
       - name: Production build
+        if: steps.typecheck.outcome == 'success' && steps.unit_tests.outcome == 'success'
         run: npm run build
 
       - name: Assert source survived build and reset generated PDFs
+        if: steps.typecheck.outcome == 'success' && steps.unit_tests.outcome == 'success'
         run: |
           grep -F "window.setTimeout(() => evaluate(nextSelected), 120)" components/LetterSquareGameV3.tsx
           if grep -Fq '>Проверить</button>' components/LetterSquareGameV3.tsx; then
@@ -93,8 +124,9 @@ jobs:
           grep -F "window.setTimeout(() => evaluate(nextSelected), 120)" components/LetterSquareGameV3.tsx
 
       - name: Commit clean verified branch
+        if: steps.typecheck.outcome == 'success' && steps.unit_tests.outcome == 'success'
         run: |
-          rm -f .github/workflows/fnf-finalize-cleanup.yml tmp/fnf-finalize.run
+          rm -f .github/workflows/fnf-finalize-cleanup.yml tmp/fnf-finalize.run tmp/fnf-final-diagnostic.txt
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
