@@ -47,7 +47,6 @@ const parseCustomDictionary = (value: unknown): string[] => Array.isArray(value)
 
 const normalizeSnapshot = (value: Partial<AdminAnalyticsSnapshot> | null | undefined): AdminAnalyticsSnapshot => ({
   gameStats: Array.isArray(value?.gameStats) ? value!.gameStats.map(row => ({
-    day: String(row.day || ''),
     game_type: row.game_type || null,
     games_started: parseNumber(row.games_started),
     games_finished: parseNumber(row.games_finished),
@@ -104,7 +103,7 @@ export const adminAnalyticsService = {
   loadSnapshot: async (range?: AdminGameDateRange): Promise<AdminAnalyticsSnapshot> => {
     const selectedRange = safeGameRange(range);
     if (isBackendApiConfigured) {
-      const params = new URLSearchParams(selectedRange);
+      const params = new URLSearchParams({ from: selectedRange.from, to: selectedRange.to });
       return normalizeSnapshot(await backendApiRequest<AdminAnalyticsSnapshot>(`/api/analytics/admin?${params.toString()}`));
     }
 
