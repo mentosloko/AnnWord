@@ -40,18 +40,30 @@ jobs:
           from pathlib import Path
 
           target = Path('components/LetterSquareGameV3.tsx')
-          text = target.read_text(encoding='utf-8')
-          old_word = "  const word = selected.map(coord => round?.grid[coord.row]?.[coord.col]?.letter || '').join('');\n"
-          old_logic = "  const choose = (cell: Coord) => { if (!round || feedback || done) return; const last = selected[selected.length - 1]; if (last && same(last, cell)) { setSelected(value => value.slice(0, -1)); return; } if (selected.some(coord => same(coord, cell))) { setMessage('Эта клетка уже выбрана. Нажмите «Стереть».'); return; } if (last && !side(last, cell)) { setMessage('Можно двигаться только вверх, вниз, влево или вправо.'); return; } if (selected.length < round.word.word.length) setSelected(value => [...value, cell]); };\n  const check = () => { if (!round || feedback) return; if (selected.length !== round.word.word.length) { setMessage(`Выберите ${round.word.word.length} букв. Сейчас выбрано: ${selected.length}.`); return; } const correct = word === round.word.word; setFeedback(correct ? 'correct' : 'wrong'); setAnswered(value => value + 1); if (correct) setScore(value => value + 1); save(round.word.word, correct ? 'mastered' : 'failed'); setMessage(correct ? 'Верно!' : `Ответ: ${round.word.word}`); };"
-          new_logic = "  const evaluate = (path: Coord[]) => { if (!round || feedback || path.length !== round.word.word.length) return; const candidate = path.map(coord => round.grid[coord.row]?.[coord.col]?.letter || '').join(''); const correct = candidate === round.word.word; setFeedback(correct ? 'correct' : 'wrong'); setAnswered(value => value + 1); if (correct) setScore(value => value + 1); save(round.word.word, correct ? 'mastered' : 'failed'); setMessage(correct ? 'Верно! Переходите к следующему слову.' : `Ответ: ${round.word.word}`); };\n  const choose = (cell: Coord) => { if (!round || feedback || done) return; const last = selected[selected.length - 1]; if (last && same(last, cell)) { setSelected(value => value.slice(0, -1)); return; } if (selected.some(coord => same(coord, cell))) { setMessage('Эта клетка уже выбрана. Нажмите «Стереть».'); return; } if (last && !side(last, cell)) { setMessage('Можно двигаться только вверх, вниз, влево или вправо.'); return; } if (selected.length >= round.word.word.length) return; const nextSelected = [...selected, cell]; setSelected(nextSelected); if (nextSelected.length === round.word.word.length) window.setTimeout(() => evaluate(nextSelected), 120); };"
+          lines = target.read_text(encoding='utf-8').splitlines()
+          next_lines = []
+          found_word = found_choose = found_check = False
+          for line in lines:
+              if line.startswith('  const word = selected.map('):
+                  found_word = True
+                  continue
+              if line.startswith('  const choose = (cell: Coord) =>'):
+                  found_choose = True
+                  next_lines.append("  const evaluate = (path: Coord[]) => { if (!round || feedback || path.length !== round.word.word.length) return; const candidate = path.map(coord => round.grid[coord.row]?.[coord.col]?.letter || '').join(''); const correct = candidate === round.word.word; setFeedback(correct ? 'correct' : 'wrong'); setAnswered(value => value + 1); if (correct) setScore(value => value + 1); save(round.word.word, correct ? 'mastered' : 'failed'); setMessage(correct ? 'Верно! Переходите к следующему слову.' : `Ответ: ${round.word.word}`); };")
+                  next_lines.append("  const choose = (cell: Coord) => { if (!round || feedback || done) return; const last = selected[selected.length - 1]; if (last && same(last, cell)) { setSelected(value => value.slice(0, -1)); return; } if (selected.some(coord => same(coord, cell))) { setMessage('Эта клетка уже выбрана. Нажмите «Стереть».'); return; } if (last && !side(last, cell)) { setMessage('Можно двигаться только вверх, вниз, влево или вправо.'); return; } if (selected.length >= round.word.word.length) return; const nextSelected = [...selected, cell]; setSelected(nextSelected); if (nextSelected.length === round.word.word.length) window.setTimeout(() => evaluate(nextSelected), 120); };")
+                  continue
+              if line.startswith('  const check = () =>'):
+                  found_check = True
+                  continue
+              next_lines.append(line)
+          if not (found_word and found_choose and found_check):
+              raise SystemExit(f'Snake lines missing: word={found_word}, choose={found_choose}, check={found_check}')
+          text = '\n'.join(next_lines) + '\n'
           old_button = '} : <button type="button" onClick={check} className="rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white">Проверить</button>}</div>'
           new_button = '} : <div className="flex items-center justify-center rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700">Осталось букв: {Math.max(0, round.word.word.length - selected.length)}</div>}</div>'
-          for label, old in [('word', old_word), ('logic', old_logic), ('button', old_button)]:
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'Snake {label}: expected one match, found {count}')
-          text = text.replace(old_word, '').replace(old_logic, new_logic).replace(old_button, new_button)
-          target.write_text(text, encoding='utf-8')
+          if old_button not in text:
+              raise SystemExit('Snake action button not found')
+          target.write_text(text.replace(old_button, new_button, 1), encoding='utf-8')
           PY
 
       - name: Setup Node.js
