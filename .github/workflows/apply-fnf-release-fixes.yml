@@ -33,34 +33,62 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Decode and apply patch
+        id: apply_patch
+        continue-on-error: true
         run: |
-          cat tmp/fnf-release-patch/part* > /tmp/fnf-release-patch.tar.gz.b64
-          echo "59c1cc482bba42c9aa8fb442311a549fe1377bf57f063f347ada9a0225ac63fe  /tmp/fnf-release-patch.tar.gz.b64" | sha256sum -c -
-          base64 -d /tmp/fnf-release-patch.tar.gz.b64 > /tmp/fnf-release-patch.tar.gz
-          echo "a0d849f535468224a33d2526c999d791e7f742462dc74eaa48c3b2d65f13da7a  /tmp/fnf-release-patch.tar.gz" | sha256sum -c -
-          rm -rf /tmp/fnf_patch
-          mkdir -p /tmp/fnf_patch
-          tar -xzf /tmp/fnf-release-patch.tar.gz -C /tmp/fnf_patch
-          python3 /tmp/fnf_patch/patch.py
+          set +e
+          {
+            cat tmp/fnf-release-patch/part* > /tmp/fnf-release-patch.tar.gz.b64
+            echo "59c1cc482bba42c9aa8fb442311a549fe1377bf57f063f347ada9a0225ac63fe  /tmp/fnf-release-patch.tar.gz.b64" | sha256sum -c -
+            base64 -d /tmp/fnf-release-patch.tar.gz.b64 > /tmp/fnf-release-patch.tar.gz
+            echo "a0d849f535468224a33d2526c999d791e7f742462dc74eaa48c3b2d65f13da7a  /tmp/fnf-release-patch.tar.gz" | sha256sum -c -
+            rm -rf /tmp/fnf_patch
+            mkdir -p /tmp/fnf_patch
+            tar -xzf /tmp/fnf-release-patch.tar.gz -C /tmp/fnf_patch
+            python3 /tmp/fnf_patch/patch.py
+          } > /tmp/fnf-patch.log 2>&1
+          STATUS=$?
+          cat /tmp/fnf-patch.log
+          exit $STATUS
+
+      - name: Commit patch diagnostic
+        if: steps.apply_patch.outcome == 'failure'
+        run: |
+          cp /tmp/fnf-patch.log tmp/fnf-release-patch/diagnostic.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add tmp/fnf-release-patch/diagnostic.txt
+          git commit -m "Record F&F patch failure"
+          git push
+
+      - name: Stop after patch failure
+        if: steps.apply_patch.outcome == 'failure'
+        run: exit 1
 
       - name: Setup Node.js
+        if: steps.apply_patch.outcome == 'success'
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Install dependencies
+        if: steps.apply_patch.outcome == 'success'
         run: npm install --no-audit --no-fund
 
       - name: Typecheck
+        if: steps.apply_patch.outcome == 'success'
         run: npm run lint
 
       - name: Unit tests
+        if: steps.apply_patch.outcome == 'success'
         run: npm run check:unit
 
       - name: Production build
+        if: steps.apply_patch.outcome == 'success'
         run: npm run build
 
       - name: Commit verified changes
+        if: steps.apply_patch.outcome == 'success'
         run: |
           rm -rf tmp/fnf-release-patch .github/workflows/apply-fnf-release-fixes.yml
           git config user.name github-actions[bot]
