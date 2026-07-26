@@ -11,7 +11,7 @@ const MAX_STORED_EVENTS = 200;
 const MAX_FAILURE_BACKOFF_MS = 60_000;
 const IMPORTANT_LOADING_PATHS = new Set(['/api/profile/bootstrap', '/api/family/adult-room', '/api/mentor/learners', '/api/daily-quest/today']);
 
-export type AnalyticsEventType = 'game' | 'reward' | 'economy' | 'inventory' | 'character' | 'dictionary' | 'auth' | 'navigation' | 'performance';
+export type AnalyticsEventType = 'game' | 'reward' | 'economy' | 'inventory' | 'character' | 'dictionary' | 'auth' | 'navigation' | 'performance' | 'premium' | 'payment';
 
 export type AnalyticsEventName =
   | 'game_started'
@@ -27,7 +27,16 @@ export type AnalyticsEventName =
   | 'logout'
   | 'request_completed'
   | 'request_failed'
-  | 'screen_state_changed';
+  | 'screen_state_changed'
+  | 'premium_opened'
+  | 'premium_plan_selected'
+  | 'checkout_created'
+  | 'checkout_redirected'
+  | 'payment_return_success'
+  | 'payment_return_pending'
+  | 'payment_return_failed'
+  | 'premium_activated'
+  | 'payment_error';
 
 export type AnalyticsPayload = Record<string, unknown>;
 

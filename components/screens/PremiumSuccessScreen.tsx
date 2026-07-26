@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { UserProfile } from '../../types';
 import { isKidsMode } from '../../services/modeFlags';
 import { formatPremiumExpiresAt, isPremiumActive } from '../../services/premiumAccess';
 import { profileApiService } from '../../services/profileApiService';
 import { isBackendApiConfigured } from '../../services/backendApiClient';
 import { prodamusPaymentService, readPendingProdamusOrderId, ProdamusPaymentStatusResponse } from '../../services/prodamusPaymentService';
+import { analyticsService, AnalyticsEventName } from '../../services/analyticsService';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
 type PremiumSuccessScreenProps = {
@@ -34,6 +35,7 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
   const [confirmedProfile, setConfirmedProfile] = useState<UserProfile | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<ProdamusPaymentStatusResponse | null>(null);
   const [confirmationState, setConfirmationState] = useState<ConfirmationState>(isPremiumActive(userProfile) ? 'confirmed' : 'checking');
+  const trackedEventsRef = useRef(new Set<string>());
   const effectiveProfile = confirmedProfile || userProfile;
   const kidsMode = isKidsMode(effectiveProfile, true);
   const ctaLabel = kidsMode ? 'Добавить слова ребёнка' : 'Добавить свои слова';
@@ -43,12 +45,43 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
     : ['Тематические словари по задачам', 'Слова по уровням A1–C2', 'Тренировка по вашему списку слов'];
   const confirmed = isPremiumActive(effectiveProfile);
   const showNextStep = confirmationState === 'confirmed' || confirmed;
+  const trackPaymentEvent = (eventName: AnalyticsEventName, extra: Record<string, unknown> = {}) => {
+    if (trackedEventsRef.current.has(eventName)) return;
+    trackedEventsRef.current.add(eventName);
+    analyticsService.trackEvent({
+      eventType: eventName === 'premium_activated' ? 'premium' : 'payment',
+      eventName,
+      route: 'premium_success',
+      payload: {
+        mode: kidsMode ? 'kids' : 'practice',
+        role: effectiveProfile.role || 'user',
+        orderId,
+        paymentStatus: paymentStatus?.paymentStatus || null,
+        confirmationState,
+        premiumExpiresAt: effectiveProfile.premiumExpiresAt || null,
+        ...extra,
+      },
+    });
+  };
   const statusText = useMemo(() => {
     if (showNextStep) return 'Premium активен';
     if (confirmationState === 'failed') return 'Нужна повторная проверка';
     if (confirmationState === 'delayed') return 'Подтверждение задерживается';
     return 'Включаем Premium';
   }, [confirmationState, showNextStep]);
+
+  useEffect(() => {
+    if (showNextStep) {
+      trackPaymentEvent('payment_return_success');
+      trackPaymentEvent('premium_activated');
+      return;
+    }
+    if (confirmationState === 'failed') {
+      trackPaymentEvent('payment_return_failed');
+      return;
+    }
+    trackPaymentEvent('payment_return_pending');
+  }, [confirmationState, showNextStep, orderId, paymentStatus?.paymentStatus, effectiveProfile.premiumExpiresAt]);
 
   const syncProfileAfterActivation = async (): Promise<boolean> => {
     const profile = await profileApiService.getCurrentProfile();

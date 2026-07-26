@@ -7,6 +7,7 @@ import { formatPremiumAccessPeriod } from '../../services/premiumAccess';
 import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
 import { getProdamusPlansForMode, prodamusPaymentService, ProdamusPlanCode } from '../../services/prodamusPaymentService';
 import { familyAccountService } from '../../services/familyAccountService';
+import { analyticsService } from '../../services/analyticsService';
 import { useProfileFreshness } from '../../hooks/useProfileFreshness';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
@@ -39,6 +40,29 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
   const [verifyingParent, setVerifyingParent] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const pinInputRef = useRef<HTMLInputElement>(null);
+  const premiumOpenTrackedRef = useRef(false);
+  const productMode = kidsMode ? 'kids' : 'practice';
+  const planPayload = (planCode: ProdamusPlanCode) => {
+    const plan = plans.find(item => item.code === planCode);
+    return {
+      mode: productMode,
+      role: userProfile.role || 'user',
+      planCode,
+      amountRub: plan?.amountRub || null,
+      periodDays: plan?.periodDays || null,
+    };
+  };
+
+  useEffect(() => {
+    if (premiumOpenTrackedRef.current) return;
+    premiumOpenTrackedRef.current = true;
+    analyticsService.trackEvent({
+      eventType: 'premium',
+      eventName: 'premium_opened',
+      route: 'premium',
+      payload: { mode: productMode, role: userProfile.role || 'user', hasPremium, paymentsEnabled: PAYMENTS_ENABLED },
+    });
+  }, [hasPremium, productMode, userProfile.role]);
 
   useEffect(() => {
     if (!pendingPlan) return;
@@ -58,17 +82,26 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
     if (accessChecking) return;
     setLoadingPlan(planCode);
     setPaymentError(null);
+    const payload = planPayload(planCode);
     try {
       const payment = await prodamusPaymentService.createPayment(planCode);
-      window.location.href = payment.checkoutUrl;
+      analyticsService.trackEvent({ eventType: 'payment', eventName: 'checkout_created', route: 'premium', payload: { ...payload, orderId: payment.orderId } });
+      let checkoutHost: string | null = null;
+      try { checkoutHost = new URL(payment.checkoutUrl).host; } catch { checkoutHost = null; }
+      analyticsService.trackEvent({ eventType: 'payment', eventName: 'checkout_redirected', route: 'premium', payload: { ...payload, orderId: payment.orderId, checkoutHost } });
+      void analyticsService.flush();
+      window.location.assign(payment.checkoutUrl);
     } catch (error: unknown) {
-      setPaymentError(error instanceof Error ? error.message : 'Не удалось перейти к оплате.');
+      const message = error instanceof Error ? error.message : 'Не удалось перейти к оплате.';
+      analyticsService.trackEvent({ eventType: 'payment', eventName: 'payment_error', route: 'premium', payload: { ...payload, stage: 'create_checkout', message } });
+      setPaymentError(message);
       setLoadingPlan(null);
     }
   };
 
   const choosePlan = (planCode: ProdamusPlanCode) => {
     setPaymentError(null);
+    analyticsService.trackEvent({ eventType: 'premium', eventName: 'premium_plan_selected', route: 'premium', payload: planPayload(planCode) });
     if (!kidsMode) {
       void startPayment(planCode);
       return;
