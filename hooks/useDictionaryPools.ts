@@ -109,7 +109,7 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
 
     if (currentKidsMode) {
       if (settings.dictionarySource === 'premium' && currentHasPremium) {
-        pool = getKidsPremiumDictionaryEntries(settings.activePremiumDictionaryId, settings.difficulty);
+        pool = getKidsPremiumDictionaryEntries(settings.activePremiumDictionaryId, 'ALL');
       } else if (settings.dictionarySource === 'custom' && currentHasPremium) {
         pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
       } else if (assignedWords.length > 0 && currentHasPremium) {
@@ -118,7 +118,7 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
         pool = getFreeKidsDictionaryEntries(settings.difficulty);
       }
     } else if (settings.dictionarySource === 'premium' && currentHasPremium) {
-      pool = getLoadedPremiumEntries(settings.activePremiumDictionaryId, settings.difficulty);
+      pool = getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL');
     } else if (settings.dictionarySource === 'custom') {
       pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
     } else {
@@ -137,8 +137,8 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
     const currentKidsMode = isKidsMode(userProfile);
     const currentHasPremium = hasPremiumDictionaryAccess(userProfile);
     const premiumWords = currentKidsMode
-      ? (currentHasPremium ? getKidsPremiumDictionaryWords(settings.activePremiumDictionaryId, settings.difficulty) : [])
-      : (settings.dictionarySource === 'premium' && currentHasPremium ? getLoadedPremiumEntries(settings.activePremiumDictionaryId, settings.difficulty).map(entry => entry.word) : []);
+      ? (currentHasPremium ? getKidsPremiumDictionaryWords(settings.activePremiumDictionaryId, 'ALL') : [])
+      : (settings.dictionarySource === 'premium' && currentHasPremium ? getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL').map(entry => entry.word) : []);
     const kidsWords = currentKidsMode ? getAllKidsDictionaryWords() : [];
     const customWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.customDictionaryEn || []);
     const assignedWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.assignedWords || []);

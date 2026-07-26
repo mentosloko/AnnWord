@@ -65,8 +65,8 @@ export const gameEventLedgerService = {
       eventType: 'game_finished',
       gameMode: modeFromReward(input),
       result: 'completed',
-      coinsDelta: reward.coins,
-      xpDelta: reward.xp,
+      coinsDelta: 0,
+      xpDelta: 0,
       payload: basePayload,
       occurredAt,
     };
