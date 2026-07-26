@@ -1,1 +1,1 @@
-run-with-status
+run-with-diagnostics
