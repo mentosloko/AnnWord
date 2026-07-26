@@ -1,0 +1,77 @@
+name: Validate legal documents
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-legal-temp.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode and validate legal sources
+        run: |
+          python3 - <<'PY'
+          import base64, gzip, re
+          from pathlib import Path
+
+          parts = sorted(Path('legal-src').glob('legal-documents.b64.part*'))
+          encoded = ''.join(p.read_text(encoding='utf-8').strip() for p in parts)
+          archive = gzip.decompress(base64.b64decode(encoded)).decode('utf-8')
+          documents = {}
+          for block in archive.split('@@FILE:')[1:]:
+              filename, text = block.split('@@\n', 1)
+              documents[filename.strip()] = text.strip()
+
+          expected = [
+              '01_user_agreement.md', '02_public_offer.md', '03_privacy_policy.md',
+              '04_cookie_policy.md', '05_personal_data_consent.md',
+              '06_child_data_consent.md', '07_marketing_consent.md'
+          ]
+          placeholder_patterns = [
+              r'placeholder', r'будет добавлен', r'добавить позднее', r'вставьте',
+              r'указать реквизиты', r'заполнить', r'example\.com', r'ИП ФИО', r'ООО «?Название'
+          ]
+          lines = []
+          ok = True
+          for name in expected:
+              text = documents.get(name, '')
+              title = next((line[2:].strip() for line in text.splitlines() if line.startswith('# ')), '')
+              emails = sorted(set(re.findall(r'[\w.+-]+@[\w.-]+\.[A-Za-zА-Яа-я]{2,}', text)))
+              dates = sorted(set(re.findall(r'\b(?:0?[1-9]|[12]\d|3[01])[.](?:0?[1-9]|1[0-2])[.]20\d{2}\b', text)))
+              placeholders = [pattern for pattern in placeholder_patterns if re.search(pattern, text, re.I)]
+              has_annword = 'AnnWord' in text or 'annword.ru' in text
+              has_support = 'support@annword.ru' in text
+              has_requisites = any(token in text for token in ['ИНН', 'ОГРНИП', 'Самозанят', 'Индивидуальный предприниматель', 'Исполнитель'])
+              valid = bool(text and title and has_annword and not placeholders)
+              ok = ok and valid
+              lines.extend([
+                  f'FILE: {name}',
+                  f'TITLE: {title}',
+                  f'CHARS: {len(text)}',
+                  f'EMAILS: {", ".join(emails) or "none"}',
+                  f'DATES: {", ".join(dates) or "none"}',
+                  f'HAS_SUPPORT: {has_support}',
+                  f'HAS_REQUISITES_MARKERS: {has_requisites}',
+                  f'PLACEHOLDER_PATTERNS: {", ".join(placeholders) or "none"}',
+                  f'VALID: {valid}',
+                  ''
+              ])
+          lines.insert(0, f'OVERALL_VALID: {ok}\nDOCUMENT_COUNT: {len(documents)}\n')
+          Path('legal-validation.txt').write_text('\n'.join(lines), encoding='utf-8')
+          if not ok:
+              raise SystemExit('Legal source validation failed')
+          PY
+      - name: Commit validation report
+        if: always()
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add legal-validation.txt
+          git commit -m "Record legal document validation" || exit 0
+          git push
