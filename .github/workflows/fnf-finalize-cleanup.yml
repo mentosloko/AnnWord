@@ -1,0 +1,111 @@
+name: Finalize F&F release branch
+
+on:
+  push:
+    branches: [fnf-release-fixes-2026-07-26]
+    paths:
+      - 'tmp/fnf-finalize.run'
+
+permissions:
+  contents: write
+  statuses: write
+
+concurrency:
+  group: finalize-fnf-release
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Mark finalization pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "{\"state\":\"pending\",\"context\":\"F&F Final Cleanup\",\"description\":\"Verifying Snake and cleaning generated PDFs\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply Snake auto-check
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          target = Path('components/LetterSquareGameV3.tsx')
+          text = target.read_text(encoding='utf-8')
+          old_word = "  const word = selected.map(coord => round?.grid[coord.row]?.[coord.col]?.letter || '').join('');\n"
+          old_logic = "  const choose = (cell: Coord) => { if (!round || feedback || done) return; const last = selected[selected.length - 1]; if (last && same(last, cell)) { setSelected(value => value.slice(0, -1)); return; } if (selected.some(coord => same(coord, cell))) { setMessage('Эта клетка уже выбрана. Нажмите «Стереть».'); return; } if (last && !side(last, cell)) { setMessage('Можно двигаться только вверх, вниз, влево или вправо.'); return; } if (selected.length < round.word.word.length) setSelected(value => [...value, cell]); };\n  const check = () => { if (!round || feedback) return; if (selected.length !== round.word.word.length) { setMessage(`Выберите ${round.word.word.length} букв. Сейчас выбрано: ${selected.length}.`); return; } const correct = word === round.word.word; setFeedback(correct ? 'correct' : 'wrong'); setAnswered(value => value + 1); if (correct) setScore(value => value + 1); save(round.word.word, correct ? 'mastered' : 'failed'); setMessage(correct ? 'Верно!' : `Ответ: ${round.word.word}`); };"
+          new_logic = "  const evaluate = (path: Coord[]) => { if (!round || feedback || path.length !== round.word.word.length) return; const candidate = path.map(coord => round.grid[coord.row]?.[coord.col]?.letter || '').join(''); const correct = candidate === round.word.word; setFeedback(correct ? 'correct' : 'wrong'); setAnswered(value => value + 1); if (correct) setScore(value => value + 1); save(round.word.word, correct ? 'mastered' : 'failed'); setMessage(correct ? 'Верно! Переходите к следующему слову.' : `Ответ: ${round.word.word}`); };\n  const choose = (cell: Coord) => { if (!round || feedback || done) return; const last = selected[selected.length - 1]; if (last && same(last, cell)) { setSelected(value => value.slice(0, -1)); return; } if (selected.some(coord => same(coord, cell))) { setMessage('Эта клетка уже выбрана. Нажмите «Стереть».'); return; } if (last && !side(last, cell)) { setMessage('Можно двигаться только вверх, вниз, влево или вправо.'); return; } if (selected.length >= round.word.word.length) return; const nextSelected = [...selected, cell]; setSelected(nextSelected); if (nextSelected.length === round.word.word.length) window.setTimeout(() => evaluate(nextSelected), 120); };"
+          old_button = '} : <button type="button" onClick={check} className="rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white">Проверить</button>}</div>'
+          new_button = '} : <div className="flex items-center justify-center rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700">Осталось букв: {Math.max(0, round.word.word.length - selected.length)}</div>}</div>'
+          for label, old in [('word', old_word), ('logic', old_logic), ('button', old_button)]:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Snake {label}: expected one match, found {count}')
+          text = text.replace(old_word, '').replace(old_logic, new_logic).replace(old_button, new_button)
+          target.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck and tests
+        run: |
+          npm run lint
+          npm run check:unit
+
+      - name: Production build
+        run: npm run build
+
+      - name: Assert source survived build and reset generated PDFs
+        run: |
+          grep -F "window.setTimeout(() => evaluate(nextSelected), 120)" components/LetterSquareGameV3.tsx
+          if grep -Fq '>Проверить</button>' components/LetterSquareGameV3.tsx; then
+            echo 'Snake still contains the Check button' >&2
+            exit 1
+          fi
+          git checkout origin/main -- public/legal/*.pdf
+          grep -F "window.setTimeout(() => evaluate(nextSelected), 120)" components/LetterSquareGameV3.tsx
+
+      - name: Commit clean verified branch
+        run: |
+          rm -f .github/workflows/fnf-finalize-cleanup.yml tmp/fnf-finalize.run
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Finalize Snake flow and clean release diff"
+          git push
+
+      - name: Publish finalization status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ "$JOB_STATUS" = success ]; then
+            STATE=success
+            DESCRIPTION="Clean F&F branch verified"
+          else
+            STATE=failure
+            DESCRIPTION="F&F final cleanup failed"
+          fi
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "{\"state\":\"${STATE}\",\"context\":\"F&F Final Cleanup\",\"description\":\"${DESCRIPTION}\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
+          test "$STATE" = success
