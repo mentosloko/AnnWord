@@ -62,7 +62,7 @@ jobs:
           : > /tmp/premium-analytics-verification.log
           npm run lint >> /tmp/premium-analytics-verification.log 2>&1
           LINT_STATUS=$?
-          npm run test:unit >> /tmp/premium-analytics-verification.log 2>&1
+          npm run check:unit >> /tmp/premium-analytics-verification.log 2>&1
           UNIT_STATUS=$?
           npm run build >> /tmp/premium-analytics-verification.log 2>&1
           BUILD_STATUS=$?
