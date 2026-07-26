@@ -55,36 +55,62 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Verify changes
+        id: verify
+        continue-on-error: true
         run: |
-          npm run lint
-          npm run test:unit
-          npm run build
+          set +e
+          : > /tmp/premium-analytics-verification.log
+          npm run lint >> /tmp/premium-analytics-verification.log 2>&1
+          LINT_STATUS=$?
+          npm run test:unit >> /tmp/premium-analytics-verification.log 2>&1
+          UNIT_STATUS=$?
+          npm run build >> /tmp/premium-analytics-verification.log 2>&1
+          BUILD_STATUS=$?
+          printf 'lint=%s\nunit=%s\nbuild=%s\n' "$LINT_STATUS" "$UNIT_STATUS" "$BUILD_STATUS" | tee /tmp/premium-analytics-status.txt
+          cat /tmp/premium-analytics-verification.log
+          test "$LINT_STATUS" -eq 0 -a "$UNIT_STATUS" -eq 0 -a "$BUILD_STATUS" -eq 0
 
       - name: Commit application changes and clean temporary files
+        if: steps.verify.outcome == 'success'
         run: |
           rm -f \
             .github/workflows/validate-legal-temp.yml \
             .github/workflows/run-premium-funnel-analytics.yml \
             legal-validation.txt \
-            scripts/run-premium-funnel-analytics.trigger
+            scripts/run-premium-funnel-analytics.trigger \
+            premium-analytics-verification.txt
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
           git commit -m "Track Premium purchase funnel"
           git push
 
+      - name: Commit verification diagnostic
+        if: steps.verify.outcome == 'failure'
+        run: |
+          {
+            cat /tmp/premium-analytics-status.txt
+            echo
+            tail -n 160 /tmp/premium-analytics-verification.log
+          } > premium-analytics-verification.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add premium-analytics-verification.txt
+          git commit -m "Record Premium analytics verification failure"
+          git push
+
       - name: Publish analytics rollout status
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
-          JOB_STATUS: ${{ job.status }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
         run: |
-          if [ "$JOB_STATUS" = success ]; then
+          if [ "$VERIFY_OUTCOME" = success ]; then
             STATE=success
             DESCRIPTION="Premium analytics verified and committed"
           else
             STATE=failure
-            DESCRIPTION="Premium analytics rollout failed"
+            DESCRIPTION="Premium analytics verification failed"
           fi
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
