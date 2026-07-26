@@ -233,8 +233,25 @@ jobs:
           TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          if [ "$MONITOR_RESULT" = success ] && [ "$BACKUPS_RESULT" = success ]; then STATE=success; else STATE=failure; fi
-          if [ "$STATE" = success ]; then DESCRIPTION="Production monitoring and PostgreSQL backups verified"; else DESCRIPTION="Production operations check failed"; fi
+          valid_result() { [ "$1" = success ] || [ "$1" = skipped ]; }
+          if valid_result "$MONITOR_RESULT" && valid_result "$BACKUPS_RESULT" && { [ "$MONITOR_RESULT" = success ] || [ "$BACKUPS_RESULT" = success ]; }; then
+            STATE=success
+          else
+            STATE=failure
+          fi
+
+          if [ "$STATE" = success ]; then
+            if [ "$MONITOR_RESULT" = success ] && [ "$BACKUPS_RESULT" = success ]; then
+              DESCRIPTION="Production monitoring and PostgreSQL backups verified"
+            elif [ "$MONITOR_RESULT" = success ]; then
+              DESCRIPTION="Production monitoring verified"
+            else
+              DESCRIPTION="PostgreSQL backups verified"
+            fi
+          else
+            DESCRIPTION="Production operations check failed"
+          fi
+
           export STATE DESCRIPTION
           node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Production Operations",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/operations-status.json
           curl -fsS -X POST \
