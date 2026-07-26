@@ -59,8 +59,8 @@ jobs:
           if not (found_word and found_choose and found_check):
               raise SystemExit(f'Snake lines missing: word={found_word}, choose={found_choose}, check={found_check}')
           text = '\n'.join(next_lines) + '\n'
-          old_button = '} : <button type="button" onClick={check} className="rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white">Проверить</button>}</div>'
-          new_button = '} : <div className="flex items-center justify-center rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700">Осталось букв: {Math.max(0, round.word.word.length - selected.length)}</div>}</div>'
+          old_button = ': <button type="button" onClick={check} className="rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white">Проверить</button>}</div>'
+          new_button = ': <div className="flex items-center justify-center rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700">Осталось букв: {Math.max(0, round.word.word.length - selected.length)}</div>}</div>'
           if old_button not in text:
               raise SystemExit('Snake action button not found')
           target.write_text(text.replace(old_button, new_button, 1), encoding='utf-8')
