@@ -45,6 +45,35 @@ jobs:
             rm -rf /tmp/fnf_patch
             mkdir -p /tmp/fnf_patch
             tar -xzf /tmp/fnf-release-patch.tar.gz -C /tmp/fnf_patch
+            python3 - <<'PY'
+          from pathlib import Path
+
+          patch_path = Path('/tmp/fnf_patch/patch.py')
+          patch = patch_path.read_text(encoding='utf-8')
+          start = patch.index('# Snake automatically evaluates a full chain; the action button advances.')
+          end = patch.index('# A completed daily quest launches a random game unless a saved game should continue.')
+          patch_path.write_text(patch[:start] + '# Snake is handled by the resilient workflow override.\n\n' + patch[end:], encoding='utf-8')
+
+          target = Path('components/LetterSquareGameV3.tsx')
+          lines = target.read_text(encoding='utf-8').splitlines()
+          next_lines = []
+          for line in lines:
+              if line.startswith('  const word = selected.map('):
+                  continue
+              if line.startswith('  const choose = (cell: Coord) =>'):
+                  next_lines.append("  const evaluate = (path: Coord[]) => { if (!round || feedback || path.length !== round.word.word.length) return; const candidate = path.map(coord => round.grid[coord.row]?.[coord.col]?.letter || '').join(''); const correct = candidate === round.word.word; setFeedback(correct ? 'correct' : 'wrong'); setAnswered(value => value + 1); if (correct) setScore(value => value + 1); save(round.word.word, correct ? 'mastered' : 'failed'); setMessage(correct ? 'Верно! Переходите к следующему слову.' : `Ответ: ${round.word.word}`); };")
+                  next_lines.append("  const choose = (cell: Coord) => { if (!round || feedback || done) return; const last = selected[selected.length - 1]; if (last && same(last, cell)) { setSelected(value => value.slice(0, -1)); return; } if (selected.some(coord => same(coord, cell))) { setMessage('Эта клетка уже выбрана. Нажмите «Стереть».'); return; } if (last && !side(last, cell)) { setMessage('Можно двигаться только вверх, вниз, влево или вправо.'); return; } if (selected.length >= round.word.word.length) return; const nextSelected = [...selected, cell]; setSelected(nextSelected); if (nextSelected.length === round.word.word.length) window.setTimeout(() => evaluate(nextSelected), 120); };")
+                  continue
+              if line.startswith('  const check = () =>'):
+                  continue
+              next_lines.append(line)
+          text = '\n'.join(next_lines) + '\n'
+          old_button = '} : <button type="button" onClick={check} className="rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white">Проверить</button>}</div>'
+          new_button = '} : <div className="flex items-center justify-center rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700">Осталось букв: {Math.max(0, round.word.word.length - selected.length)}</div>}</div>'
+          if text.count(old_button) != 1:
+              raise SystemExit(f'Snake button match count: {text.count(old_button)}')
+          target.write_text(text.replace(old_button, new_button), encoding='utf-8')
+          PY
             python3 /tmp/fnf_patch/patch.py
           } > /tmp/fnf-patch.log 2>&1
           STATUS=$?
