@@ -1,1 +1,1 @@
-run-with-diagnostics
+run-final
