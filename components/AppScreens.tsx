@@ -131,7 +131,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
         : isParentAccount ? 'Детский словарь' : 'General English';
   const activeDictionaryIcon = hasAssignedWords && settings.dictionarySource === 'builtin' ? '🎓' : settings.dictionarySource === 'custom' || settings.useCustomDictionary ? '📖' : settings.dictionarySource === 'premium' ? premiumMeta.icon : isParentAccount ? '🌈' : '📚';
   const setupQuestContext = dailyQuest && getDailyQuestTargetModes(dailyQuest).includes(selectedPlayMode) ? dailyQuest : null;
-  const hasKnownDictionary = Boolean(activeDictionaryWordCount || modeWords.length || ownWords.length || settings.dictionarySource === 'builtin');
+  const hasKnownDictionary = Boolean(activeDictionaryWordCount || modeWords.length || ownWords.length || settings.dictionarySource === 'builtin' || settings.dictionarySource === 'premium');
 
   const requestQuickLaunch = (mode: PlayableModeRoute) => {
     if (isTeacher) return;

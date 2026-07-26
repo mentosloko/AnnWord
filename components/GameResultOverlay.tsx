@@ -9,6 +9,7 @@ type GameResultOverlayProps = {
   title: string;
   subtitle?: string;
   details?: React.ReactNode;
+  scoreboard?: React.ReactNode;
   emoji?: string;
   pet?: PetState;
   xpGained?: number;
@@ -25,6 +26,7 @@ export const GameResultOverlay: React.FC<GameResultOverlayProps> = ({
   title,
   subtitle,
   details,
+  scoreboard,
   emoji = '🎉',
   pet,
   xpGained = 0,
@@ -51,6 +53,7 @@ export const GameResultOverlay: React.FC<GameResultOverlayProps> = ({
       <h2 id="game-result-title" className="text-3xl font-black text-indigo-950">{title}</h2>
       {subtitle && <p id="game-result-subtitle" className="mt-2 text-sm font-bold leading-relaxed text-gray-600">{subtitle}</p>}
       {details && <div className="mt-4 rounded-2xl bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-900">{details}</div>}
+      {scoreboard}
       {(hasXp || hasCoins) && (
         <div className={`mt-4 grid ${rewardGridClass} gap-2`}>
           {hasXp && (
