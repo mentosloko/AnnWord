@@ -38,6 +38,21 @@ analyticsRouter.post('/events', optionalAuth, async (req: AuthenticatedRequest, 
 });
 
 const csvCell = (value: unknown): string => `"${String(value ?? '').replace(/"/g, '""')}"`;
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const isoDate = (date: Date): string => date.toISOString().slice(0, 10);
+const shiftIsoDate = (value: string, days: number): string => {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return isoDate(date);
+};
+const dateQueryValue = (value: unknown): string | null => typeof value === 'string' && ISO_DATE_PATTERN.test(value) ? value : null;
+const resolveAdminGameRange = (fromValue: unknown, toValue: unknown): { from: string; to: string } => {
+  const today = isoDate(new Date());
+  let to = dateQueryValue(toValue) || today;
+  let from = dateQueryValue(fromValue) || shiftIsoDate(to, -29);
+  if (from > to) [from, to] = [to, from];
+  return { from, to };
+};
 
 analyticsRouter.get('/admin/export.csv', requireAdmin, async (_req: AuthenticatedRequest, res) => {
   try {
@@ -97,32 +112,73 @@ analyticsRouter.get('/admin/export.csv', requireAdmin, async (_req: Authenticate
   }
 });
 
-analyticsRouter.get('/admin', requireAdmin, async (_req: AuthenticatedRequest, res) => {
+analyticsRouter.get('/admin', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const gameRange = resolveAdminGameRange(req.query?.from, req.query?.to);
     const [gameStats, economyStats, eventSummary, dictionaries, loadingPerformance, economyOverview] = await Promise.all([
       query<{
-        day: string;
         game_type: string | null;
         games_started: number;
         games_finished: number;
         games_won: number;
         unique_users: number;
+        inferred_starts: number;
       }>(
-        `select occurred_at::date::text as day,
-                game_type,
-                count(*) filter (where event_name = 'game_started')::int as games_started,
-                count(*) filter (where event_name = 'game_finished')::int as games_finished,
-                count(*) filter (
-                  where event_name = 'game_finished'
-                    and (payload->>'won' = 'true' or payload->'input'->>'won' = 'true')
-                )::int as games_won,
-                count(distinct user_id) filter (where user_id is not null)::int as unique_users
-           from analytics_events
-          where occurred_at >= current_date - interval '30 days'
-            and event_name in ('game_started', 'game_finished')
-          group by occurred_at::date, game_type
-          order by occurred_at::date desc, game_type nulls last
-          limit 120`,
+        `with analytics_by_actor as (
+           select coalesce(game_type, 'other') as game_type,
+                  coalesce(user_id::text, nullif(session_id, ''), 'anonymous') as actor_key,
+                  count(*) filter (where event_name = 'game_started')::int as starts,
+                  count(*) filter (where event_name = 'game_finished')::int as finishes,
+                  count(*) filter (
+                    where event_name = 'game_finished'
+                      and (
+                        payload->>'won' = 'true'
+                        or (coalesce(payload->>'guessedWords', '') ~ '^[0-9]+$' and (payload->>'guessedWords')::int > 0)
+                        or (coalesce(payload->>'clicks', '') ~ '^[0-9]+$' and (payload->>'clicks')::int > 0)
+                      )
+                  )::int as wins
+             from analytics_events
+            where occurred_at >= $1::date
+              and occurred_at < ($2::date + interval '1 day')
+              and event_name in ('game_started', 'game_finished')
+            group by coalesce(game_type, 'other'), coalesce(user_id::text, nullif(session_id, ''), 'anonymous')
+         ), ledger_by_actor as (
+           select coalesce(game_mode, 'other') as game_type,
+                  user_id::text as actor_key,
+                  count(*) filter (where event_type = 'game_started')::int as starts,
+                  count(*) filter (where event_type = 'game_finished')::int as finishes,
+                  count(*) filter (
+                    where event_type = 'game_finished'
+                      and (
+                        payload->'input'->>'won' = 'true'
+                        or (coalesce(payload->'input'->>'guessedWords', '') ~ '^[0-9]+$' and (payload->'input'->>'guessedWords')::int > 0)
+                        or (coalesce(payload->'input'->>'clicks', '') ~ '^[0-9]+$' and (payload->'input'->>'clicks')::int > 0)
+                      )
+                  )::int as wins
+             from game_events
+            where occurred_at >= $1::date
+              and occurred_at < ($2::date + interval '1 day')
+              and event_type in ('game_started', 'game_finished')
+            group by coalesce(game_mode, 'other'), user_id::text
+         ), actors as (
+           select coalesce(analytics.game_type, ledger.game_type) as game_type,
+                  coalesce(analytics.actor_key, ledger.actor_key) as actor_key,
+                  greatest(coalesce(analytics.starts, 0), coalesce(ledger.starts, 0)) as recorded_starts,
+                  greatest(coalesce(analytics.finishes, 0), coalesce(ledger.finishes, 0)) as finishes,
+                  greatest(coalesce(analytics.wins, 0), coalesce(ledger.wins, 0)) as wins
+             from analytics_by_actor analytics
+             full join ledger_by_actor ledger using (game_type, actor_key)
+         )
+         select game_type,
+                coalesce(sum(greatest(recorded_starts, finishes)), 0)::int as games_started,
+                coalesce(sum(finishes), 0)::int as games_finished,
+                coalesce(sum(wins), 0)::int as games_won,
+                count(*)::int as unique_users,
+                coalesce(sum(greatest(finishes - recorded_starts, 0)), 0)::int as inferred_starts
+           from actors
+          group by game_type
+          order by games_started desc, game_type`,
+        [gameRange.from, gameRange.to],
       ),
       query<{
         day: string;
@@ -241,6 +297,7 @@ analyticsRouter.get('/admin', requireAdmin, async (_req: AuthenticatedRequest, r
 
     res.json({
       gameStats: gameStats.rows,
+      gameRange,
       economyStats: economyStats.rows,
       eventSummary: eventSummary.rows,
       unsupportedDictionaryWords,

@@ -190,7 +190,12 @@ export const analyticsService = {
 
   trackEvent: (input: TrackEventInput): void => {
     try {
-      readQueue().push(createAnalyticsEvent(input));
+      const event = createAnalyticsEvent(input);
+      if (input.eventName === 'game_started') {
+        void analyticsService.sendNow([event]);
+        return;
+      }
+      readQueue().push(event);
       persistQueue();
       scheduleFlush();
     } catch (error) {
