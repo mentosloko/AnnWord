@@ -1,4 +1,4 @@
-name: Validate legal documents
+name: Apply Premium funnel analytics
 
 on:
   push:
@@ -10,68 +10,141 @@ permissions:
   contents: write
 
 jobs:
-  validate:
+  apply:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Decode and validate legal sources
+
+      - name: Patch Premium analytics and legal README
         run: |
           python3 - <<'PY'
-          import base64, gzip, re
           from pathlib import Path
 
-          parts = sorted(Path('legal-src').glob('legal-documents.b64.part*'))
-          encoded = ''.join(p.read_text(encoding='utf-8').strip() for p in parts)
-          archive = gzip.decompress(base64.b64decode(encoded)).decode('utf-8')
-          documents = {}
-          for block in archive.split('@@FILE:')[1:]:
-              filename, text = block.split('@@\n', 1)
-              documents[filename.strip()] = text.strip()
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one match, found {count}')
+              file.write_text(text.replace(old, new), encoding='utf-8')
 
-          expected = [
-              '01_user_agreement.md', '02_public_offer.md', '03_privacy_policy.md',
-              '04_cookie_policy.md', '05_personal_data_consent.md',
-              '06_child_data_consent.md', '07_marketing_consent.md'
-          ]
-          placeholder_patterns = [
-              r'placeholder', r'будет добавлен', r'добавить позднее', r'вставьте',
-              r'указать реквизиты', r'заполнить', r'example\.com', r'ИП ФИО', r'ООО «?Название'
-          ]
-          lines = []
-          ok = True
-          for name in expected:
-              text = documents.get(name, '')
-              title = next((line[2:].strip() for line in text.splitlines() if line.startswith('# ')), '')
-              emails = sorted(set(re.findall(r'[\w.+-]+@[\w.-]+\.[A-Za-zА-Яа-я]{2,}', text)))
-              dates = sorted(set(re.findall(r'\b(?:0?[1-9]|[12]\d|3[01])[.](?:0?[1-9]|1[0-2])[.]20\d{2}\b', text)))
-              placeholders = [pattern for pattern in placeholder_patterns if re.search(pattern, text, re.I)]
-              has_annword = 'AnnWord' in text or 'annword.ru' in text
-              has_support = 'support@annword.ru' in text
-              has_requisites = any(token in text for token in ['ИНН', 'ОГРНИП', 'Самозанят', 'Индивидуальный предприниматель', 'Исполнитель'])
-              valid = bool(text and title and has_annword and not placeholders)
-              ok = ok and valid
-              lines.extend([
-                  f'FILE: {name}',
-                  f'TITLE: {title}',
-                  f'CHARS: {len(text)}',
-                  f'EMAILS: {", ".join(emails) or "none"}',
-                  f'DATES: {", ".join(dates) or "none"}',
-                  f'HAS_SUPPORT: {has_support}',
-                  f'HAS_REQUISITES_MARKERS: {has_requisites}',
-                  f'PLACEHOLDER_PATTERNS: {", ".join(placeholders) or "none"}',
-                  f'VALID: {valid}',
-                  ''
-              ])
-          lines.insert(0, f'OVERALL_VALID: {ok}\nDOCUMENT_COUNT: {len(documents)}\n')
-          Path('legal-validation.txt').write_text('\n'.join(lines), encoding='utf-8')
-          if not ok:
-              raise SystemExit('Legal source validation failed')
+          replace_once(
+              'services/analyticsService.ts',
+              "export type AnalyticsEventType = 'game' | 'reward' | 'economy' | 'inventory' | 'character' | 'dictionary' | 'auth' | 'navigation' | 'performance';",
+              "export type AnalyticsEventType = 'game' | 'reward' | 'economy' | 'inventory' | 'character' | 'dictionary' | 'auth' | 'navigation' | 'performance' | 'premium' | 'payment';",
+          )
+          replace_once(
+              'services/analyticsService.ts',
+              "  | 'request_failed'\n  | 'screen_state_changed';",
+              "  | 'request_failed'\n  | 'screen_state_changed'\n  | 'premium_opened'\n  | 'premium_plan_selected'\n  | 'checkout_created'\n  | 'checkout_redirected'\n  | 'payment_return_success'\n  | 'payment_return_pending'\n  | 'payment_return_failed'\n  | 'premium_activated'\n  | 'payment_error';",
+          )
+
+          replace_once(
+              'components/screens/PremiumScreen.tsx',
+              "import { familyAccountService } from '../../services/familyAccountService';\n",
+              "import { familyAccountService } from '../../services/familyAccountService';\nimport { analyticsService } from '../../services/analyticsService';\n",
+          )
+          replace_once(
+              'components/screens/PremiumScreen.tsx',
+              "  const pinInputRef = useRef<HTMLInputElement>(null);\n\n  useEffect(() => {\n    if (!pendingPlan) return;",
+              "  const pinInputRef = useRef<HTMLInputElement>(null);\n  const premiumOpenTrackedRef = useRef(false);\n  const productMode = kidsMode ? 'kids' : 'practice';\n  const planPayload = (planCode: ProdamusPlanCode) => {\n    const plan = plans.find(item => item.code === planCode);\n    return {\n      mode: productMode,\n      role: userProfile.role || 'user',\n      planCode,\n      amountRub: plan?.amountRub || null,\n      periodDays: plan?.periodDays || null,\n    };\n  };\n\n  useEffect(() => {\n    if (premiumOpenTrackedRef.current) return;\n    premiumOpenTrackedRef.current = true;\n    analyticsService.trackEvent({\n      eventType: 'premium',\n      eventName: 'premium_opened',\n      route: 'premium',\n      payload: { mode: productMode, role: userProfile.role || 'user', hasPremium, paymentsEnabled: PAYMENTS_ENABLED },\n    });\n  }, [hasPremium, productMode, userProfile.role]);\n\n  useEffect(() => {\n    if (!pendingPlan) return;",
+          )
+          replace_once(
+              'components/screens/PremiumScreen.tsx',
+              "  const startPayment = async (planCode: ProdamusPlanCode) => {\n    if (accessChecking) return;\n    setLoadingPlan(planCode);\n    setPaymentError(null);\n    try {\n      const payment = await prodamusPaymentService.createPayment(planCode);\n      window.location.href = payment.checkoutUrl;\n    } catch (error: unknown) {\n      setPaymentError(error instanceof Error ? error.message : 'Не удалось перейти к оплате.');\n      setLoadingPlan(null);\n    }\n  };",
+              "  const startPayment = async (planCode: ProdamusPlanCode) => {\n    if (accessChecking) return;\n    setLoadingPlan(planCode);\n    setPaymentError(null);\n    const payload = planPayload(planCode);\n    try {\n      const payment = await prodamusPaymentService.createPayment(planCode);\n      analyticsService.trackEvent({ eventType: 'payment', eventName: 'checkout_created', route: 'premium', payload: { ...payload, orderId: payment.orderId } });\n      let checkoutHost: string | null = null;\n      try { checkoutHost = new URL(payment.checkoutUrl).host; } catch { checkoutHost = null; }\n      analyticsService.trackEvent({ eventType: 'payment', eventName: 'checkout_redirected', route: 'premium', payload: { ...payload, orderId: payment.orderId, checkoutHost } });\n      void analyticsService.flush();\n      window.location.assign(payment.checkoutUrl);\n    } catch (error: unknown) {\n      const message = error instanceof Error ? error.message : 'Не удалось перейти к оплате.';\n      analyticsService.trackEvent({ eventType: 'payment', eventName: 'payment_error', route: 'premium', payload: { ...payload, stage: 'create_checkout', message } });\n      setPaymentError(message);\n      setLoadingPlan(null);\n    }\n  };",
+          )
+          replace_once(
+              'components/screens/PremiumScreen.tsx',
+              "  const choosePlan = (planCode: ProdamusPlanCode) => {\n    setPaymentError(null);",
+              "  const choosePlan = (planCode: ProdamusPlanCode) => {\n    setPaymentError(null);\n    analyticsService.trackEvent({ eventType: 'premium', eventName: 'premium_plan_selected', route: 'premium', payload: planPayload(planCode) });",
+          )
+
+          replace_once(
+              'components/screens/PremiumSuccessScreen.tsx',
+              "import React, { useEffect, useMemo, useState } from 'react';",
+              "import React, { useEffect, useMemo, useRef, useState } from 'react';",
+          )
+          replace_once(
+              'components/screens/PremiumSuccessScreen.tsx',
+              "import { prodamusPaymentService, readPendingProdamusOrderId, ProdamusPaymentStatusResponse } from '../../services/prodamusPaymentService';\n",
+              "import { prodamusPaymentService, readPendingProdamusOrderId, ProdamusPaymentStatusResponse } from '../../services/prodamusPaymentService';\nimport { analyticsService, AnalyticsEventName } from '../../services/analyticsService';\n",
+          )
+          replace_once(
+              'components/screens/PremiumSuccessScreen.tsx',
+              "  const [confirmationState, setConfirmationState] = useState<ConfirmationState>(isPremiumActive(userProfile) ? 'confirmed' : 'checking');\n  const effectiveProfile = confirmedProfile || userProfile;",
+              "  const [confirmationState, setConfirmationState] = useState<ConfirmationState>(isPremiumActive(userProfile) ? 'confirmed' : 'checking');\n  const trackedEventsRef = useRef(new Set<string>());\n  const effectiveProfile = confirmedProfile || userProfile;",
+          )
+          replace_once(
+              'components/screens/PremiumSuccessScreen.tsx',
+              "  const confirmed = isPremiumActive(effectiveProfile);\n  const showNextStep = confirmationState === 'confirmed' || confirmed;\n  const statusText = useMemo(() => {",
+              "  const confirmed = isPremiumActive(effectiveProfile);\n  const showNextStep = confirmationState === 'confirmed' || confirmed;\n  const trackPaymentEvent = (eventName: AnalyticsEventName, extra: Record<string, unknown> = {}) => {\n    if (trackedEventsRef.current.has(eventName)) return;\n    trackedEventsRef.current.add(eventName);\n    analyticsService.trackEvent({\n      eventType: eventName === 'premium_activated' ? 'premium' : 'payment',\n      eventName,\n      route: 'premium_success',\n      payload: {\n        mode: kidsMode ? 'kids' : 'practice',\n        role: effectiveProfile.role || 'user',\n        orderId,\n        paymentStatus: paymentStatus?.paymentStatus || null,\n        confirmationState,\n        premiumExpiresAt: effectiveProfile.premiumExpiresAt || null,\n        ...extra,\n      },\n    });\n  };\n  const statusText = useMemo(() => {",
+          )
+          replace_once(
+              'components/screens/PremiumSuccessScreen.tsx',
+              "  }, [confirmationState, showNextStep]);\n\n  const syncProfileAfterActivation",
+              "  }, [confirmationState, showNextStep]);\n\n  useEffect(() => {\n    if (showNextStep) {\n      trackPaymentEvent('payment_return_success');\n      trackPaymentEvent('premium_activated');\n      return;\n    }\n    if (confirmationState === 'failed') {\n      trackPaymentEvent('payment_return_failed');\n      return;\n    }\n    trackPaymentEvent('payment_return_pending');\n  }, [confirmationState, showNextStep, orderId, paymentStatus?.paymentStatus, effectiveProfile.premiumExpiresAt]);\n\n  const syncProfileAfterActivation",
+          )
+
+          replace_once(
+              'components/screens/AdminAnalyticsScreen.tsx',
+              "const formatEventType = (type: string): string => ({ game: 'Игра', reward: 'Награда', economy: 'Экономика', inventory: 'Инвентарь', character: 'Персонаж', dictionary: 'Словарь', auth: 'Вход', navigation: 'Навигация', performance: 'Производительность' }[type] || 'Другое');",
+              "const formatEventType = (type: string): string => ({ game: 'Игра', reward: 'Награда', economy: 'Экономика', inventory: 'Инвентарь', character: 'Персонаж', dictionary: 'Словарь', auth: 'Вход', navigation: 'Навигация', performance: 'Производительность', premium: 'Premium', payment: 'Оплата' }[type] || 'Другое');",
+          )
+          replace_once(
+              'components/screens/AdminAnalyticsScreen.tsx',
+              "const formatEventName = (name: string): string => ({ game_started: 'Игра начата', game_finished: 'Игра завершена', hint_used: 'Подсказка использована', reward_granted: 'Награда начислена', shop_item_bought: 'Предмет куплен', inventory_item_used: 'Предмет использован', character_selected: 'Персонаж выбран', dictionary_uploaded: 'Словарь загружен', route_changed: 'Переход между экранами', login_success: 'Вход выполнен', logout: 'Выход выполнен', request_completed: 'Запрос завершён', request_failed: 'Ошибка запроса', screen_state_changed: 'Состояние экрана' }[name] || 'Другое событие');",
+              "const formatEventName = (name: string): string => ({ game_started: 'Игра начата', game_finished: 'Игра завершена', hint_used: 'Подсказка использована', reward_granted: 'Награда начислена', shop_item_bought: 'Предмет куплен', inventory_item_used: 'Предмет использован', character_selected: 'Персонаж выбран', dictionary_uploaded: 'Словарь загружен', route_changed: 'Переход между экранами', login_success: 'Вход выполнен', logout: 'Выход выполнен', request_completed: 'Запрос завершён', request_failed: 'Ошибка запроса', screen_state_changed: 'Состояние экрана', premium_opened: 'Открыли Premium', premium_plan_selected: 'Выбрали тариф', checkout_created: 'Checkout создан', checkout_redirected: 'Перешли к оплате', payment_return_success: 'Оплата подтверждена', payment_return_pending: 'Подтверждение ожидается', payment_return_failed: 'Оплата не подтверждена', premium_activated: 'Premium активирован', payment_error: 'Ошибка оплаты' }[name] || 'Другое событие');\nconst PREMIUM_FUNNEL_EVENTS = ['premium_opened', 'premium_plan_selected', 'checkout_created', 'checkout_redirected', 'payment_return_pending', 'payment_return_success', 'premium_activated', 'payment_return_failed', 'payment_error'] as const;",
+          )
+          replace_once(
+              'components/screens/AdminAnalyticsScreen.tsx',
+              "  const unsupportedWordsCount = useMemo(() => (snapshot?.unsupportedDictionaryWords || []).reduce((sum, row) => sum + row.words.length, 0), [snapshot]);",
+              "  const unsupportedWordsCount = useMemo(() => (snapshot?.unsupportedDictionaryWords || []).reduce((sum, row) => sum + row.words.length, 0), [snapshot]);\n  const premiumFunnel = useMemo(() => {\n    const counts = new Map((snapshot?.eventSummary || []).map(item => [item.event_name, item.count]));\n    return PREMIUM_FUNNEL_EVENTS.map(eventName => ({ eventName, count: counts.get(eventName) || 0 }));\n  }, [snapshot]);",
+          )
+          replace_once(
+              'components/screens/AdminAnalyticsScreen.tsx',
+              "      <section className=\"rounded-[2rem] border border-sky-100 bg-white p-5 shadow-sm\">",
+              "      <section className=\"rounded-[2rem] border border-violet-100 bg-white p-5 shadow-sm\"><div className=\"flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between\"><div><h2 className=\"text-xl font-black text-indigo-950\">Воронка Premium</h2><p className=\"mt-1 text-sm font-semibold text-gray-500\">События последних 1000 записей аналитики. Помогают увидеть, где пользователи прерывают покупку.</p></div><div className=\"rounded-2xl bg-violet-50 px-4 py-2 text-sm font-black text-violet-700\">{premiumFunnel.reduce((sum, item) => sum + item.count, 0)} событий</div></div><div className=\"mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3\">{premiumFunnel.map(item => <div key={item.eventName} className=\"rounded-2xl border border-violet-100 bg-violet-50/60 p-4\"><div className=\"text-sm font-black text-indigo-950\">{formatEventName(item.eventName)}</div><div className=\"mt-2 text-3xl font-black text-violet-700\">{item.count}</div></div>)}</div></section>\n\n      <section className=\"rounded-[2rem] border border-sky-100 bg-white p-5 shadow-sm\">",
+          )
+
+          Path('docs/legal/README.md').write_text(
+              "# Юридические документы AnnWord\n\n"
+              "В проекте размещены финальные тексты юридических документов для ограниченного и публичного запуска. "
+              "Исходники хранятся в архиве `legal-src/legal-documents.b64.part*`, а PDF автоматически формируются "
+              "командой `python3 scripts/generate_legal_pdfs.py` во время сборки.\n\n"
+              "Публикуемые документы:\n\n"
+              "- пользовательское соглашение;\n"
+              "- публичная оферта AnnWord Premium;\n"
+              "- политика обработки персональных данных;\n"
+              "- политика cookie и локального хранилища;\n"
+              "- согласие на обработку персональных данных пользователя;\n"
+              "- согласие законного представителя на обработку данных ребёнка;\n"
+              "- согласие на рекламные и информационные сообщения.\n\n"
+              "Контакт для обращений, указанный в документах: `support@annword.ru`.\n",
+              encoding='utf-8',
+          )
           PY
-      - name: Commit validation report
-        if: always()
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Verify changes
         run: |
+          npm run lint
+          npm run test:unit
+          npm run build
+
+      - name: Commit application changes and remove temporary validation files
+        run: |
+          rm -f .github/workflows/validate-legal-temp.yml legal-validation.txt
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add legal-validation.txt
-          git commit -m "Record legal document validation" || exit 0
+          git add -A
+          git commit -m "Track Premium purchase funnel" || exit 0
           git push
