@@ -64,7 +64,23 @@ jobs:
         run: exit 1
 
       - name: Unit tests
-        run: npm run check:unit
+        id: unit_tests
+        continue-on-error: true
+        run: npm run check:unit 2>&1 | tee /tmp/admin-game-range-tests.log
+
+      - name: Commit unit-test diagnostic
+        if: steps.unit_tests.outcome == 'failure'
+        run: |
+          cp /tmp/admin-game-range-tests.log tmp/admin-game-range-tests.log
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add tmp/admin-game-range-tests.log
+          git commit -m "Record admin game range unit-test failure"
+          git push
+
+      - name: Stop after unit-test failure
+        if: steps.unit_tests.outcome == 'failure'
+        run: exit 1
 
       - name: Production build
         run: npm run build
@@ -78,7 +94,7 @@ jobs:
 
       - name: Commit verified changes
         run: |
-          rm -f scripts/apply_admin_game_date_range.py .github/workflows/admin-game-date-range.yml tmp/admin-game-date-range.run tmp/admin-game-range-typecheck.log
+          rm -f scripts/apply_admin_game_date_range.py .github/workflows/admin-game-date-range.yml tmp/admin-game-date-range.run tmp/admin-game-range-typecheck.log tmp/admin-game-range-tests.log
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
