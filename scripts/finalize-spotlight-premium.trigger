@@ -1,1 +1,1 @@
-finalize Spotlight Premium integration after chunk map fix
+finalize Spotlight Premium integration with validated archive layouts
