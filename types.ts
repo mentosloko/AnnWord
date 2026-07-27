@@ -1,6 +1,7 @@
 export type WordLength = 4 | 5 | 6;
 export type DictionarySource = 'builtin' | 'custom' | 'premium';
 export type DifficultyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'ALL';
+export type SpotlightGrade = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 export type SubscriptionTier = 'free' | 'premium';
 export type AccountRole = 'admin' | 'user' | 'parent' | 'teacher';
 export type AccountMode = 'player' | 'parent' | 'teacher';
@@ -25,12 +26,12 @@ export interface ManagedLearner { id: string; name: string; classLabel?: string;
 export interface CustomDictionaryCollection { id: string; title: string; source: 'manual' | 'ocr' | 'class' | 'topic'; words: string[]; classLabel?: string; theme?: string; createdAt?: string; }
 export interface UserProfile { username: string; role?: AccountRole; accountMode?: AccountMode; subscriptionTier?: SubscriptionTier; premiumExpiresAt?: string; childDisplayName?: string; childShareCode?: string; childSlotsLimit?: number; featureFlags?: FeatureFlags; customDictionaryEn: string[]; assignedWords?: string[]; dictionaryCollections?: CustomDictionaryCollection[]; managedLearners?: ManagedLearner[]; weeklyReportEmail?: string; stats: UserStats; pet: PetState; coins: number; inventory: InventoryItem[]; }
 export type DailyQuestKind = 'wordle_four' | 'sprint_twelve' | 'memory_sixteen' | 'hangman_clean' | 'all_five_games';
-export interface DailyQuestState { questDate: string; kind: DailyQuestKind; title: string; description: string; progressLabel: string; completed: boolean; completedAt?: string | null; rewardItemId?: string | null; rewardWorldId?: PetWorldId | null; }
+export interface DailyQuestState { questDate: string; kind: DailyQuestKind; title: string; description: string; progressLabel: string; completed: boolean; completedAt?: string | null; rewardItemId?: string | null; rewardWorldId?: PetWorldId | null; pending?: boolean; }
 export interface DailyQuestCompletionReward { quest: DailyQuestState; item?: ShopItem | null; worldId?: PetWorldId | null; pending?: boolean; }
 export interface ShopRandomRewardOption { itemId: string; weight: number; }
 export interface ShopItem { id: string; name: string; price: number; type: InventoryItemType; minLevel: number; description: string; imageUrl?: string; effect?: { mood?: number; moodCap?: number; }; characterType?: string; randomReward?: { pool: ShopRandomRewardOption[]; }; }
 export interface CellData { letter: string; status: CharStatus; }
-export interface GameSettings { wordLength: WordLength; useCustomDictionary: boolean; dictionarySource: DictionarySource; difficulty: DifficultyLevel; username: string; activePremiumDictionaryId?: string; }
+export interface GameSettings { wordLength: WordLength; useCustomDictionary: boolean; dictionarySource: DictionarySource; difficulty: DifficultyLevel; username: string; activePremiumDictionaryId?: string; activeSpotlightGrade?: SpotlightGrade; activeSpotlightSectionId?: string | null; }
 export interface EnrichedWord { word: string; translation: string; level: string; isTransliterated?: boolean; }
 export interface HistoryItem { word: string; translation: string | null; }
 export interface GameState { secretWord: string; secretWordData?: EnrichedWord | null; guesses: string[]; history: HistoryItem[]; currentGuess: string; gameStatus: 'playing' | 'won' | 'lost'; rowIndex: number; hint: string | null; loadingHint: boolean; hintCoinsSpent?: number; error: string | null; }
