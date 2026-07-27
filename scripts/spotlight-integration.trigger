@@ -1,1 +1,0 @@
-apply Spotlight Premium integration
