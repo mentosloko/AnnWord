@@ -36,16 +36,7 @@ jobs:
       - name: Assemble verified Spotlight data
         run: |
           set -euo pipefail
-          cat scripts/spotlight-clean/runtime_00.b64 \
-              scripts/spotlight-clean/runtime_01.b64 \
-              scripts/spotlight-clean/runtime_02.b64 \
-              scripts/spotlight-clean/runtime_03.b64 \
-              scripts/spotlight-clean/runtime_04.b64 \
-              scripts/spotlight-clean/runtime_05.b64 \
-              scripts/spotlight-clean/runtime_06.b64 \
-              scripts/spotlight-clean/runtime_07.b64 \
-              scripts/spotlight-clean/runtime_08.b64 \
-            | tr -d '\n\r ' | base64 -d > /tmp/spotlight-runtime.tar.xz
+          cat scripts/spotlight-clean/runtime_00.b64 scripts/spotlight-clean/runtime_01.b64 scripts/spotlight-clean/runtime_02.b64 scripts/spotlight-clean/runtime_03.b64 scripts/spotlight-clean/runtime_04.b64 scripts/spotlight-clean/runtime_05.b64 scripts/spotlight-clean/runtime_06.b64 scripts/spotlight-clean/runtime_07.b64 scripts/spotlight-clean/runtime_08.b64 | tr -d '\n\r ' | base64 -d > /tmp/spotlight-runtime.tar.xz
           echo "82fa77d3138367591c61483b2793bbb548f7afe9ac4ae5aee37c817af35beaca  /tmp/spotlight-runtime.tar.xz" | sha256sum -c -
           test "$(wc -c < /tmp/spotlight-runtime.tar.xz)" -eq 95280
           xz -t /tmp/spotlight-runtime.tar.xz
@@ -56,10 +47,15 @@ jobs:
           for grade in $(seq 2 11); do test -f "dictionaries/premium/spotlight/spotlight_grade_${grade}.json"; done
 
       - name: Apply Spotlight code integration
+        id: apply
+        continue-on-error: true
         run: |
-          set -euo pipefail
-          cp spotlight-apply-decoded.py /tmp/apply-spotlight.py
-          python3 - <<'PY'
+          set +e
+          : > /tmp/spotlight-apply.log
+          {
+            set -euo pipefail
+            cp spotlight-apply-decoded.py /tmp/apply-spotlight.py
+            python3 - <<'PY'
           from pathlib import Path
           path = Path('/tmp/apply-spotlight.py')
           source = path.read_text(encoding='utf-8')
@@ -67,21 +63,39 @@ jobs:
           end = source.index("\n\nwrite('services/premiumDictionaryCatalog.ts'", start)
           path.write_text(source[:start] + source[end + 2:], encoding='utf-8')
           PY
-          python3 /tmp/apply-spotlight.py
-          test -f services/spotlightDictionaryCatalog.ts
-          test -f components/SpotlightSelectionPanel.tsx
-          grep -q "premium_spotlight_school" services/premiumDictionaryCatalog.ts
-          grep -q "activeSpotlightGrade" types.ts
+            python3 /tmp/apply-spotlight.py
+            test -f services/spotlightDictionaryCatalog.ts
+            test -f components/SpotlightSelectionPanel.tsx
+            grep -q "premium_spotlight_school" services/premiumDictionaryCatalog.ts
+            grep -q "activeSpotlightGrade" types.ts
+          } > /tmp/spotlight-apply.log 2>&1
+          STATUS=$?
+          cat /tmp/spotlight-apply.log
+          exit "$STATUS"
+
+      - name: Save Spotlight apply diagnostic
+        if: steps.apply.outcome == 'failure'
+        run: |
+          { echo "Spotlight code integration failed."; echo; cat /tmp/spotlight-apply.log; } > spotlight-apply-error.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add spotlight-apply-error.txt
+          git commit -m "Record Spotlight apply failure"
+          git push origin HEAD:feature/spotlight-premium
+          exit 1
 
       - uses: actions/setup-node@v4
+        if: steps.apply.outcome == 'success'
         with:
           node-version: 22
           cache: npm
 
       - name: Install dependencies
+        if: steps.apply.outcome == 'success'
         run: npm install --no-audit --no-fund
 
       - name: Verify Spotlight integration
+        if: steps.apply.outcome == 'success'
         run: |
           npm run lint
           npm run premium-dictionaries:validate
@@ -89,17 +103,11 @@ jobs:
           npm run build
 
       - name: Commit clean verified branch
+        if: steps.apply.outcome == 'success'
         run: |
           set -euo pipefail
           git diff --name-only -- '*.pdf' | xargs -r git checkout --
-          rm -rf \
-            scripts/spotlight-upload \
-            scripts/spotlight-clean \
-            scripts/spotlight-integration.trigger \
-            .github/workflows/apply-spotlight-premium.yml \
-            spotlight-integration-error.txt \
-            spotlight-finalization-error.txt \
-            spotlight-apply-decoded.py
+          rm -rf scripts/spotlight-upload scripts/spotlight-clean scripts/spotlight-integration.trigger .github/workflows/apply-spotlight-premium.yml spotlight-integration-error.txt spotlight-finalization-error.txt spotlight-apply-error.txt spotlight-apply-decoded.py
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
@@ -110,16 +118,13 @@ jobs:
           fi
 
       - name: Open or update pull request
+        if: steps.apply.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           EXISTING="$(gh pr list --head feature/spotlight-premium --base main --state open --json number --jq '.[0].number // empty')"
           BODY=$'## Что добавлено\n- Premium-семейство Spotlight для 2–11 классов\n- выбор всего класса, основного модуля или дополнительного раздела\n- поддержка Practice и Kids\n- сохранение выбранного класса и раздела в игровых настройках\n- динамическая загрузка данных только выбранного класса\n- слова с дефисами и апострофами исключены\n\n## Проверки\n- TypeScript\n- Premium dictionary validation\n- unit tests\n- production build\n\nСхема базы данных не изменяется.'
-          if [ -z "$EXISTING" ]; then
-            gh pr create --head feature/spotlight-premium --base main --title "Add Spotlight premium dictionaries" --body "$BODY"
-          else
-            gh pr edit "$EXISTING" --title "Add Spotlight premium dictionaries" --body "$BODY"
-          fi
+          if [ -z "$EXISTING" ]; then gh pr create --head feature/spotlight-premium --base main --title "Add Spotlight premium dictionaries" --body "$BODY"; else gh pr edit "$EXISTING" --title "Add Spotlight premium dictionaries" --body "$BODY"; fi
 
       - name: Publish Spotlight finalization status
         if: always()
