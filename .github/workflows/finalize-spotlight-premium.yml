@@ -46,6 +46,8 @@ jobs:
             scripts/spotlight-upload/runtime_00b.b64 \
             scripts/spotlight-upload/runtime_00c.b64 \
             scripts/spotlight-upload/runtime_00d.b64 \
+            scripts/spotlight-upload/runtime_01.b64 \
+            scripts/spotlight-upload/runtime_02.b64 \
             scripts/spotlight-upload/runtime_03.b64 \
             scripts/spotlight-upload/runtime_04.b64 \
             scripts/spotlight-upload/runtime_05.b64 \
