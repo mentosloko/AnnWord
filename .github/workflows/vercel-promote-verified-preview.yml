@@ -11,11 +11,11 @@ on:
       deployment_id:
         description: READY Vercel deployment ID to promote
         required: true
-        default: dpl_6hB8EJyZpK7kk3sF54gYK3BKxcSs
+        default: dpl_EaeM4teYRXCb4TuRVktsNyQxX34U
       expected_entry_asset:
         description: Expected entry asset in promoted HTML
         required: true
-        default: index-Brr2DLwE.js
+        default: index-Cgt5-Eu4.js
 
 permissions:
   contents: read
@@ -33,8 +33,8 @@ jobs:
     env:
       VERCEL_PROJECT_ID: prj_FXkostulT2hFcfu2Y4ffPFXHJ96q
       VERCEL_TEAM_ID: team_f6p6zecR5jGHCXTV1kZVSIux
-      DEPLOYMENT_ID: ${{ inputs.deployment_id || 'dpl_6hB8EJyZpK7kk3sF54gYK3BKxcSs' }}
-      EXPECTED_ENTRY_ASSET: ${{ inputs.expected_entry_asset || 'index-Brr2DLwE.js' }}
+      DEPLOYMENT_ID: ${{ inputs.deployment_id || 'dpl_EaeM4teYRXCb4TuRVktsNyQxX34U' }}
+      EXPECTED_ENTRY_ASSET: ${{ inputs.expected_entry_asset || 'index-Cgt5-Eu4.js' }}
       APP_BASE: https://ann-word.vercel.app
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
