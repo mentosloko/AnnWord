@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SetupScreen } from '../components/screens/SetupScreen';
 import { useClassicGameController } from '../hooks/useClassicGameController';
 import { GameSettings, UserProfile } from '../types';
@@ -39,27 +39,37 @@ const parentProfile: UserProfile = {
   inventory: [],
 };
 
+const setupProps = {
+  selectedPlayMode: 'game' as const,
+  setupError: null,
+  isUploadingDictionary: false,
+  isAuthenticated: true,
+  onFileUpload: vi.fn(),
+  onOpenDictionaryStudio: vi.fn(),
+  onOpenPremium: vi.fn(),
+  onBack: vi.fn(),
+  onLogin: vi.fn(),
+};
+
 describe('game start regressions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    dictionaryRuntimeMock.getModeWords.mockReturnValue(['APPLE']);
+    dictionaryRuntimeMock.ensureReady.mockImplementation(() => new Promise<void>(() => undefined));
+  });
+
   it('does not keep a kids quick start waiting for the general dictionary chunk', async () => {
     const onStartGame = vi.fn().mockResolvedValue(undefined);
     const onAutoStartComplete = vi.fn();
 
     render(
       <SetupScreen
-        selectedPlayMode="game"
+        {...setupProps}
         settings={settings}
         customDictionaryWords={[]}
-        setupError={null}
-        isUploadingDictionary={false}
-        isAuthenticated
         userProfile={parentProfile}
         onSettingsChange={vi.fn()}
-        onFileUpload={vi.fn()}
-        onOpenDictionaryStudio={vi.fn()}
-        onOpenPremium={vi.fn()}
         onStartGame={onStartGame}
-        onBack={vi.fn()}
-        onLogin={vi.fn()}
         autoStart
         onAutoStartComplete={onAutoStartComplete}
       />,
@@ -68,6 +78,41 @@ describe('game start regressions', () => {
     await waitFor(() => expect(onStartGame).toHaveBeenCalledWith(['APPLE']));
     await waitFor(() => expect(onAutoStartComplete).toHaveBeenCalledTimes(1));
     expect(dictionaryRuntimeMock.ensureReady).toHaveBeenCalled();
+  });
+
+  it('falls back to the built-in dictionary when a saved Premium source has expired', async () => {
+    const onStartGame = vi.fn().mockResolvedValue(undefined);
+    const onSettingsChange = vi.fn();
+    const onAutoStartComplete = vi.fn();
+    const expiredProfile: UserProfile = {
+      ...parentProfile,
+      subscriptionTier: 'premium',
+      premiumExpiresAt: '2000-01-01T00:00:00.000Z',
+      featureFlags: { premiumDictionaries: true },
+      customDictionaryEn: ['APPLE'],
+    };
+
+    const Harness = () => {
+      const [currentSettings, setCurrentSettings] = React.useState<GameSettings>({ ...settings, dictionarySource: 'custom', useCustomDictionary: true });
+      const [autoStart, setAutoStart] = React.useState(true);
+      return <SetupScreen
+        {...setupProps}
+        settings={currentSettings}
+        customDictionaryWords={['APPLE']}
+        userProfile={expiredProfile}
+        onSettingsChange={next => { onSettingsChange(next); setCurrentSettings(next); }}
+        onStartGame={onStartGame}
+        autoStart={autoStart}
+        onAutoStartComplete={() => { onAutoStartComplete(); setAutoStart(false); }}
+      />;
+    };
+
+    render(<Harness />);
+
+    await waitFor(() => expect(onSettingsChange).toHaveBeenCalledWith(expect.objectContaining({ dictionarySource: 'builtin', useCustomDictionary: false })));
+    await waitFor(() => expect(onStartGame).toHaveBeenCalledWith(['APPLE']));
+    await waitFor(() => expect(onAutoStartComplete).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/Готовим «Классика»/i)).not.toBeInTheDocument();
   });
 
   it('starts Classic from the prepared snapshot even when saved settings point to another length', () => {
@@ -96,20 +141,12 @@ describe('game start regressions', () => {
   it('keeps the manual start button available when kids words are already in memory', () => {
     render(
       <SetupScreen
-        selectedPlayMode="game"
+        {...setupProps}
         settings={settings}
         customDictionaryWords={[]}
-        setupError={null}
-        isUploadingDictionary={false}
-        isAuthenticated
         userProfile={parentProfile}
         onSettingsChange={vi.fn()}
-        onFileUpload={vi.fn()}
-        onOpenDictionaryStudio={vi.fn()}
-        onOpenPremium={vi.fn()}
         onStartGame={vi.fn()}
-        onBack={vi.fn()}
-        onLogin={vi.fn()}
       />,
     );
 
