@@ -80,6 +80,15 @@
       "theme": "food_hospitality",
       "file": "premium_food_hospitality.json",
       "icon": "🍽️"
+    },
+    {
+      "id": "premium_spotlight_school",
+      "title": "Spotlight 2–11",
+      "shortTitle": "Spotlight",
+      "theme": "school",
+      "file": "spotlight/spotlight_catalog.json",
+      "icon": "📘",
+      "kind": "series"
     }
   ]
 }

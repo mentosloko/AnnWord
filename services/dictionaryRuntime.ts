@@ -1,5 +1,6 @@
 import type { EnrichedWord } from '../types';
 import { getDefaultPremiumDictionaryId, type PremiumDictionaryId } from './premiumDictionaryCatalog';
+import { ensureSpotlightGradeLoaded, isSpotlightDictionaryId, resetSpotlightRuntimeForTests, type SpotlightGrade } from './spotlightDictionaryCatalog';
 
 export type PremiumDictionaryWord = string | {
   word: string;
@@ -19,12 +20,14 @@ export type GeneralDictionaryData = {
   COMMON_WORDS_EN: EnrichedWord[];
 };
 
+type FlatPremiumDictionaryId = Exclude<PremiumDictionaryId, 'premium_spotlight_school'>;
+
 let generalDictionary: GeneralDictionaryData | null = null;
 let generalPromise: Promise<GeneralDictionaryData> | null = null;
-const premiumDictionaries = new Map<PremiumDictionaryId, PremiumDictionaryFile>();
-const premiumPromises = new Map<PremiumDictionaryId, Promise<PremiumDictionaryFile>>();
+const premiumDictionaries = new Map<FlatPremiumDictionaryId, PremiumDictionaryFile>();
+const premiumPromises = new Map<FlatPremiumDictionaryId, Promise<PremiumDictionaryFile>>();
 
-const premiumLoaders: Record<PremiumDictionaryId, () => Promise<PremiumDictionaryFile>> = {
+const premiumLoaders: Record<FlatPremiumDictionaryId, () => Promise<PremiumDictionaryFile>> = {
   premium_business_english: () => import('../dictionaries/premium/premium_business_english.json').then(module => module.default as PremiumDictionaryFile),
   premium_travel_english: () => import('../dictionaries/premium/premium_travel_english.json').then(module => module.default as PremiumDictionaryFile),
   premium_medical_english: () => import('../dictionaries/premium/premium_medical_english.json').then(module => module.default as PremiumDictionaryFile),
@@ -37,10 +40,13 @@ const premiumLoaders: Record<PremiumDictionaryId, () => Promise<PremiumDictionar
   premium_food_hospitality: () => import('../dictionaries/premium/premium_food_hospitality.json').then(module => module.default as PremiumDictionaryFile),
 };
 
-export const resolvePremiumDictionaryId = (id?: string): PremiumDictionaryId =>
-  Object.prototype.hasOwnProperty.call(premiumLoaders, id || '')
-    ? id as PremiumDictionaryId
-    : getDefaultPremiumDictionaryId();
+const isFlatPremiumDictionaryId = (id?: string): id is FlatPremiumDictionaryId =>
+  Object.prototype.hasOwnProperty.call(premiumLoaders, id || '');
+
+export const resolvePremiumDictionaryId = (id?: string): PremiumDictionaryId => {
+  if (isSpotlightDictionaryId(id)) return 'premium_spotlight_school';
+  return isFlatPremiumDictionaryId(id) ? id : getDefaultPremiumDictionaryId();
+};
 
 export const ensureGeneralDictionaryLoaded = async (): Promise<GeneralDictionaryData> => {
   if (generalDictionary) return generalDictionary;
@@ -63,6 +69,9 @@ export const ensureGeneralDictionaryLoaded = async (): Promise<GeneralDictionary
 
 export const ensurePremiumDictionaryLoaded = async (id?: string): Promise<PremiumDictionaryFile> => {
   const dictionaryId = resolvePremiumDictionaryId(id);
+  if (isSpotlightDictionaryId(dictionaryId)) {
+    throw new Error('Spotlight загружается по выбранному классу.');
+  }
   const cached = premiumDictionaries.get(dictionaryId);
   if (cached) return cached;
   const pending = premiumPromises.get(dictionaryId);
@@ -81,20 +90,28 @@ export const ensurePremiumDictionaryLoaded = async (id?: string): Promise<Premiu
   return promise;
 };
 
-export const ensureDictionaryRuntime = async (premiumDictionaryId?: string | null): Promise<void> => {
+export const ensureDictionaryRuntime = async (premiumDictionaryId?: string | null, spotlightGrade?: SpotlightGrade | number | null): Promise<void> => {
   const tasks: Promise<unknown>[] = [ensureGeneralDictionaryLoaded()];
-  if (premiumDictionaryId) tasks.push(ensurePremiumDictionaryLoaded(premiumDictionaryId));
+  if (premiumDictionaryId) {
+    const resolved = resolvePremiumDictionaryId(premiumDictionaryId);
+    tasks.push(isSpotlightDictionaryId(resolved)
+      ? ensureSpotlightGradeLoaded(spotlightGrade)
+      : ensurePremiumDictionaryLoaded(resolved));
+  }
   await Promise.all(tasks);
 };
 
 export const readGeneralDictionary = (): GeneralDictionaryData | null => generalDictionary;
 
-export const readPremiumDictionary = (id?: string): PremiumDictionaryFile | null =>
-  premiumDictionaries.get(resolvePremiumDictionaryId(id)) || null;
+export const readPremiumDictionary = (id?: string): PremiumDictionaryFile | null => {
+  const resolved = resolvePremiumDictionaryId(id);
+  return isSpotlightDictionaryId(resolved) ? null : premiumDictionaries.get(resolved) || null;
+};
 
 export const resetDictionaryRuntimeForTests = (): void => {
   generalDictionary = null;
   generalPromise = null;
   premiumDictionaries.clear();
   premiumPromises.clear();
+  resetSpotlightRuntimeForTests();
 };

@@ -4,6 +4,7 @@ import { ensureDictionaryRuntime, readGeneralDictionary, readPremiumDictionary, 
 import { getAllKidsDictionaryWords, getFreeKidsDictionaryEntries, getKidsPremiumDictionaryEntries, getKidsPremiumDictionaryWords } from '../services/kidsDictionaryCatalog';
 import { isKidsMode } from '../services/modeFlags';
 import { hasPremiumDictionaryAccess } from '../services/premiumDictionaryCatalog';
+import { getSpotlightEntries, isSpotlightDictionaryId, resolveSpotlightGrade } from '../services/spotlightDictionaryCatalog';
 import { normalizeWord } from '../services/wordNormalization';
 import { DifficultyLevel, EnrichedWord, GameSettings, UserProfile, WordLength } from '../types';
 
@@ -60,14 +61,21 @@ const getLoadedPremiumEntries = (id?: string, difficulty: DifficultyLevel = 'ALL
   return entries;
 };
 
+const getSelectedPremiumEntries = (settings: Pick<GameSettings, 'activePremiumDictionaryId' | 'activeSpotlightGrade' | 'activeSpotlightSectionId'>): EnrichedWord[] =>
+  isSpotlightDictionaryId(settings.activePremiumDictionaryId)
+    ? getSpotlightEntries(settings.activeSpotlightGrade, settings.activeSpotlightSectionId)
+    : getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL');
+
 export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictionaryPoolsArgs) => {
   const runtimeEnabled = enabled ?? shouldLoadForCurrentRoute();
   const kidsMode = isKidsMode(userProfile);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
-  const premiumDictionaryId = !kidsMode && settings.dictionarySource === 'premium' && hasPremium
-    ? resolvePremiumDictionaryId(settings.activePremiumDictionaryId)
+  const selectedPremiumDictionaryId = settings.dictionarySource === 'premium' && hasPremium ? settings.activePremiumDictionaryId : null;
+  const premiumDictionaryId = selectedPremiumDictionaryId && (!kidsMode || isSpotlightDictionaryId(selectedPremiumDictionaryId))
+    ? resolvePremiumDictionaryId(selectedPremiumDictionaryId)
     : null;
-  const loadKey = runtimeEnabled ? `general:${premiumDictionaryId || 'none'}` : 'disabled';
+  const spotlightGrade = isSpotlightDictionaryId(premiumDictionaryId) ? resolveSpotlightGrade(settings.activeSpotlightGrade) : null;
+  const loadKey = runtimeEnabled ? `general:${premiumDictionaryId || 'none'}:${spotlightGrade || 'none'}` : 'disabled';
   const [loadState, setLoadState] = useState<LoadState>({ key: 'disabled', status: 'idle', error: null });
 
   const ensureReady = useCallback(async (): Promise<void> => {
@@ -76,14 +84,14 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
       ? previous
       : { key: loadKey, status: 'loading', error: null });
     try {
-      await ensureDictionaryRuntime(premiumDictionaryId);
+      await ensureDictionaryRuntime(premiumDictionaryId, spotlightGrade);
       setLoadState({ key: loadKey, status: 'ready', error: null });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Не удалось загрузить словарь.';
       setLoadState({ key: loadKey, status: 'error', error: message });
       throw error;
     }
-  }, [loadKey, premiumDictionaryId, runtimeEnabled]);
+  }, [loadKey, premiumDictionaryId, runtimeEnabled, spotlightGrade]);
 
   useEffect(() => {
     if (!runtimeEnabled) {
@@ -105,11 +113,13 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
     const currentKidsMode = isKidsMode(userProfile);
     const currentHasPremium = hasPremiumDictionaryAccess(userProfile);
     const assignedWords = userProfile.assignedWords || [];
-    const isPracticeCustomDictionary = !currentKidsMode && settings.dictionarySource === 'custom';
+    const usesSourceVocabulary = settings.dictionarySource === 'custom' || (settings.dictionarySource === 'premium' && isSpotlightDictionaryId(settings.activePremiumDictionaryId));
 
     if (currentKidsMode) {
       if (settings.dictionarySource === 'premium' && currentHasPremium) {
-        pool = getKidsPremiumDictionaryEntries(settings.activePremiumDictionaryId, 'ALL');
+        pool = isSpotlightDictionaryId(settings.activePremiumDictionaryId)
+          ? getSpotlightEntries(settings.activeSpotlightGrade, settings.activeSpotlightSectionId)
+          : getKidsPremiumDictionaryEntries(settings.activePremiumDictionaryId, 'ALL');
       } else if (settings.dictionarySource === 'custom' && currentHasPremium) {
         pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
       } else if (assignedWords.length > 0 && currentHasPremium) {
@@ -118,7 +128,7 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
         pool = getFreeKidsDictionaryEntries(settings.difficulty);
       }
     } else if (settings.dictionarySource === 'premium' && currentHasPremium) {
-      pool = getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL');
+      pool = getSelectedPremiumEntries(settings);
     } else if (settings.dictionarySource === 'custom') {
       pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
     } else {
@@ -129,16 +139,20 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
       pool = pool.map(word => ({ ...word, word: word.word.toUpperCase() }));
     }
 
-    return pool.filter(word => isPracticeCustomDictionary ? isAllowedValidationWord(word.word) : isAllowedSecretWord(word.word));
-  }, [settings.activePremiumDictionaryId, settings.dictionarySource, settings.difficulty, userProfile]);
+    return pool.filter(word => usesSourceVocabulary ? isAllowedValidationWord(word.word) : isAllowedSecretWord(word.word));
+  }, [settings.activePremiumDictionaryId, settings.activeSpotlightGrade, settings.activeSpotlightSectionId, settings.dictionarySource, settings.difficulty, userProfile]);
 
   const getValidationPool = useCallback((wordLengthOverride?: WordLength): string[] => {
     const validationWordLength = wordLengthOverride ?? settings.wordLength;
     const currentKidsMode = isKidsMode(userProfile);
     const currentHasPremium = hasPremiumDictionaryAccess(userProfile);
     const premiumWords = currentKidsMode
-      ? (currentHasPremium ? getKidsPremiumDictionaryWords(settings.activePremiumDictionaryId, 'ALL') : [])
-      : (settings.dictionarySource === 'premium' && currentHasPremium ? getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL').map(entry => entry.word) : []);
+      ? (currentHasPremium
+        ? (isSpotlightDictionaryId(settings.activePremiumDictionaryId)
+          ? getSpotlightEntries(settings.activeSpotlightGrade, settings.activeSpotlightSectionId).map(entry => entry.word)
+          : getKidsPremiumDictionaryWords(settings.activePremiumDictionaryId, 'ALL'))
+        : [])
+      : (settings.dictionarySource === 'premium' && currentHasPremium ? getSelectedPremiumEntries(settings).map(entry => entry.word) : []);
     const kidsWords = currentKidsMode ? getAllKidsDictionaryWords() : [];
     const customWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.customDictionaryEn || []);
     const assignedWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.assignedWords || []);
@@ -154,7 +168,7 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
       .filter(word => isAllowedValidationWord(word));
 
     return Array.from(new Set(combinedPool));
-  }, [settings.activePremiumDictionaryId, settings.dictionarySource, settings.difficulty, settings.wordLength, userProfile]);
+  }, [settings.activePremiumDictionaryId, settings.activeSpotlightGrade, settings.activeSpotlightSectionId, settings.dictionarySource, settings.difficulty, settings.wordLength, userProfile]);
 
   const getModeWords = useCallback((options: ModeWordPoolOptions = {}): string[] => {
     const secretPool = getSecretWordPool();
@@ -168,11 +182,13 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
   const getWordTranslation = useCallback((word: string): string | null => {
     const normalized = normalizeWord(word);
     if (!normalized) return null;
+    if (settings.dictionarySource === 'premium') {
+      const premiumEntry = getSelectedPremiumEntries(settings).find(entry => entry.word === normalized);
+      if (premiumEntry?.translation) return premiumEntry.translation;
+    }
     const generalEntry = readGeneralDictionary()?.COMMON_WORDS_EN.find(entry => normalizeWord(entry.word) === normalized);
-    if (generalEntry?.translation) return generalEntry.translation;
-    const premiumEntry = getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL').find(entry => entry.word === normalized);
-    return premiumEntry?.translation || null;
-  }, [settings.activePremiumDictionaryId]);
+    return generalEntry?.translation || null;
+  }, [settings.activePremiumDictionaryId, settings.activeSpotlightGrade, settings.activeSpotlightSectionId, settings.dictionarySource]);
 
   return useMemo(() => ({
     status,

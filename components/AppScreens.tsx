@@ -10,6 +10,7 @@ import type { ChildSetupResult } from '../services/familyAccountService';
 import { getDailyQuestPrimaryMode, getDailyQuestTargetModes } from '../services/dailyQuest';
 import { getKidsDictionaryMeta } from '../services/kidsDictionaryCatalog';
 import { getPremiumDictionaryMeta } from '../services/premiumDictionaryCatalog';
+import { getSpotlightDictionaryMeta, getSpotlightSelectionLabel, isSpotlightDictionaryId } from '../services/spotlightDictionaryCatalog';
 import { hasSavedAnagramSession } from '../services/anagramSessionStatus';
 import { resolveAccessibleRoute } from '../services/routeAccess';
 import { DailyQuestRewardModal } from './DailyQuestCard';
@@ -120,12 +121,14 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
   const setupError = classicGame.setupError || dictionaryUpload.error;
   const hasActiveClassicGame = Boolean(classicGame.hasActiveGame);
   const hasActiveAnagramGame = isAuthenticated && hasSavedAnagramSession(userProfile.username);
-  const premiumMeta = isParentAccount ? getKidsDictionaryMeta(settings.activePremiumDictionaryId) : getPremiumDictionaryMeta(settings.activePremiumDictionaryId);
+  const premiumMeta = isSpotlightDictionaryId(settings.activePremiumDictionaryId)
+    ? getSpotlightDictionaryMeta()
+    : isParentAccount ? getKidsDictionaryMeta(settings.activePremiumDictionaryId) : getPremiumDictionaryMeta(settings.activePremiumDictionaryId);
   const hasAssignedWords = isParentAccount && (userProfile.assignedWords || []).length > 0;
   const activeDictionaryName = settings.dictionarySource === 'custom' || settings.useCustomDictionary
     ? hasAssignedWords ? 'Свои слова и слова преподавателя' : 'Слова из вашего списка'
     : settings.dictionarySource === 'premium'
-      ? premiumMeta.title
+      ? isSpotlightDictionaryId(settings.activePremiumDictionaryId) ? getSpotlightSelectionLabel(settings) : premiumMeta.title
       : hasAssignedWords
         ? 'Слова от преподавателя'
         : isParentAccount ? 'Детский словарь' : 'General English';
@@ -143,7 +146,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
   };
   const startSelectedMode = (snapshotWords?: string[]) => {
     const words = Array.from(new Set((snapshotWords || modeWords).map(word => word.trim().toUpperCase()).filter(Boolean)));
-    setDictionarySnapshot({ words, label: activeDictionaryName, icon: activeDictionaryIcon, key: `${settings.dictionarySource}:${settings.activePremiumDictionaryId || 'default'}:${words.join('|')}` });
+    setDictionarySnapshot({ words, label: activeDictionaryName, icon: activeDictionaryIcon, key: `${settings.dictionarySource}:${settings.activePremiumDictionaryId || 'default'}:${settings.activeSpotlightGrade || 'none'}:${settings.activeSpotlightSectionId || 'all'}:${words.join('|')}` });
     setQuickStartRequested(false);
     onGameStarted?.(selectedPlayMode);
     if (selectedPlayMode === 'game') { classicGame.startNewGame(words); return; }

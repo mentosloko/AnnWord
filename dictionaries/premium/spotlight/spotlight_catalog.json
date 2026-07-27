@@ -1,0 +1,846 @@
+{
+  "version": 1,
+  "familyId": "spotlight_school_2_11",
+  "title": "Spotlight 2–11",
+  "grades": [
+    {
+      "grade": 2,
+      "title": "Spotlight 2 класс",
+      "wordCount": 293,
+      "modules": [
+        {
+          "id": "spotlight_2_starter",
+          "kind": "core",
+          "label": "Starter",
+          "title": "Let’s Go! / Starter Module",
+          "wordCount": 27
+        },
+        {
+          "id": "spotlight_2_module_1",
+          "kind": "core",
+          "label": "Module 1",
+          "title": "My Home!",
+          "wordCount": 30
+        },
+        {
+          "id": "spotlight_2_module_2",
+          "kind": "core",
+          "label": "Module 2",
+          "title": "My Birthday!",
+          "wordCount": 31
+        },
+        {
+          "id": "spotlight_2_module_3",
+          "kind": "core",
+          "label": "Module 3",
+          "title": "My Animals!",
+          "wordCount": 21
+        },
+        {
+          "id": "spotlight_2_module_4",
+          "kind": "core",
+          "label": "Module 4",
+          "title": "My Toys!",
+          "wordCount": 15
+        },
+        {
+          "id": "spotlight_2_module_5",
+          "kind": "core",
+          "label": "Module 5",
+          "title": "My Holidays!",
+          "wordCount": 24
+        }
+      ],
+      "supplements": [
+        {
+          "id": "spotlight_2_supplement_the_town_mouse_and_the_country_mouse",
+          "kind": "supplement",
+          "label": "The Town Mouse & The Country Mouse",
+          "title": "The Town Mouse & The Country Mouse",
+          "wordCount": 9
+        },
+        {
+          "id": "spotlight_2_supplement_spotlight_on_the_uk",
+          "kind": "supplement",
+          "label": "Spotlight on the UK",
+          "title": "Spotlight on the UK",
+          "wordCount": 15
+        },
+        {
+          "id": "spotlight_2_supplement_spotlight_on_russia",
+          "kind": "supplement",
+          "label": "Spotlight on Russia",
+          "title": "Spotlight on Russia",
+          "wordCount": 22
+        },
+        {
+          "id": "spotlight_2_supplement_where_i_live_and_what_i_do",
+          "kind": "supplement",
+          "label": "Where I Live and What I Do",
+          "title": "Where I Live and What I Do",
+          "wordCount": 6
+        }
+      ]
+    },
+    {
+      "grade": 3,
+      "title": "Spotlight 3 класс",
+      "wordCount": 286,
+      "modules": [
+        {
+          "id": "spotlight_3_starter",
+          "kind": "core",
+          "label": "Starter",
+          "title": "Welcome Back!",
+          "wordCount": 10
+        },
+        {
+          "id": "spotlight_3_module_1",
+          "kind": "core",
+          "label": "Module 1",
+          "title": "School Days!",
+          "wordCount": 20
+        },
+        {
+          "id": "spotlight_3_module_2",
+          "kind": "core",
+          "label": "Module 2",
+          "title": "Family Moments!",
+          "wordCount": 14
+        },
+        {
+          "id": "spotlight_3_module_3",
+          "kind": "core",
+          "label": "Module 3",
+          "title": "All the Things I Like!",
+          "wordCount": 16
+        },
+        {
+          "id": "spotlight_3_module_4",
+          "kind": "core",
+          "label": "Module 4",
+          "title": "Come in and Play!",
+          "wordCount": 9
+        },
+        {
+          "id": "spotlight_3_module_5",
+          "kind": "core",
+          "label": "Module 5",
+          "title": "Furry Friends!",
+          "wordCount": 27
+        },
+        {
+          "id": "spotlight_3_module_6",
+          "kind": "core",
+          "label": "Module 6",
+          "title": "Home, Sweet Home!",
+          "wordCount": 11
+        },
+        {
+          "id": "spotlight_3_module_7",
+          "kind": "core",
+          "label": "Module 7",
+          "title": "A Day Off!",
+          "wordCount": 25
+        },
+        {
+          "id": "spotlight_3_module_8",
+          "kind": "core",
+          "label": "Module 8",
+          "title": "Day by Day!",
+          "wordCount": 17
+        }
+      ],
+      "supplements": [
+        {
+          "id": "spotlight_3_supplement_numbers",
+          "kind": "supplement",
+          "label": "Numbers",
+          "title": "Numbers",
+          "wordCount": 13
+        },
+        {
+          "id": "spotlight_3_supplement_fun_at_school",
+          "kind": "supplement",
+          "label": "Fun at School",
+          "title": "Fun at School",
+          "wordCount": 23
+        },
+        {
+          "id": "spotlight_3_supplement_the_toy_soldier",
+          "kind": "supplement",
+          "label": "The Toy Soldier",
+          "title": "The Toy Soldier",
+          "wordCount": 9
+        },
+        {
+          "id": "spotlight_3_supplement_arthur_and_rascal",
+          "kind": "supplement",
+          "label": "Arthur & Rascal",
+          "title": "Arthur & Rascal",
+          "wordCount": 10
+        },
+        {
+          "id": "spotlight_3_supplement_merry_christmas_everybody",
+          "kind": "supplement",
+          "label": "Merry Christmas, Everybody",
+          "title": "Merry Christmas, Everybody",
+          "wordCount": 4
+        },
+        {
+          "id": "spotlight_3_supplement_cultural_sections_on_english_speaking_countries",
+          "kind": "supplement",
+          "label": "Cultural Sections on English-Speaking Countries",
+          "title": "Cultural Sections on English-Speaking Countries",
+          "wordCount": 31
+        },
+        {
+          "id": "spotlight_3_supplement_spotlight_on_russia",
+          "kind": "supplement",
+          "label": "Spotlight on Russia",
+          "title": "Spotlight on Russia",
+          "wordCount": 42
+        },
+        {
+          "id": "spotlight_3_supplement_mother_s_day",
+          "kind": "supplement",
+          "label": "Mother’s Day",
+          "title": "Mother’s Day",
+          "wordCount": 1
+        }
+      ]
+    },
+    {
+      "grade": 4,
+      "title": "Spotlight 4 класс",
+      "wordCount": 276,
+      "modules": [
+        {
+          "id": "spotlight_4_starter",
+          "kind": "core",
+          "label": "Starter",
+          "title": "Back Together!",
+          "wordCount": 6
+        },
+        {
+          "id": "spotlight_4_module_1",
+          "kind": "core",
+          "label": "Module 1",
+          "title": "Family & Friends!",
+          "wordCount": 21
+        },
+        {
+          "id": "spotlight_4_module_2",
+          "kind": "core",
+          "label": "Module 2",
+          "title": "A Working Day!",
+          "wordCount": 34
+        },
+        {
+          "id": "spotlight_4_module_3",
+          "kind": "core",
+          "label": "Module 3",
+          "title": "Tasty Treats!",
+          "wordCount": 38
+        },
+        {
+          "id": "spotlight_4_module_4",
+          "kind": "core",
+          "label": "Module 4",
+          "title": "At the Zoo!",
+          "wordCount": 17
+        },
+        {
+          "id": "spotlight_4_module_5",
+          "kind": "core",
+          "label": "Module 5",
+          "title": "Where Were You Yesterday?",
+          "wordCount": 9
+        },
+        {
+          "id": "spotlight_4_module_6",
+          "kind": "core",
+          "label": "Module 6",
+          "title": "Tell the Tale!",
+          "wordCount": 7
+        },
+        {
+          "id": "spotlight_4_module_7",
+          "kind": "core",
+          "label": "Module 7",
+          "title": "Days to Remember!",
+          "wordCount": 7
+        },
+        {
+          "id": "spotlight_4_module_8",
+          "kind": "core",
+          "label": "Module 8",
+          "title": "Places to Go!",
+          "wordCount": 8
+        }
+      ],
+      "supplements": [
+        {
+          "id": "spotlight_4_supplement_goldilocks_and_the_three_bears",
+          "kind": "supplement",
+          "label": "Goldilocks and the Three Bears",
+          "title": "Goldilocks and the Three Bears",
+          "wordCount": 22
+        },
+        {
+          "id": "spotlight_4_supplement_cultural_sections_on_english_speaking_countries",
+          "kind": "supplement",
+          "label": "Cultural Sections on English-Speaking Countries",
+          "title": "Cultural Sections on English-Speaking Countries",
+          "wordCount": 19
+        },
+        {
+          "id": "spotlight_4_supplement_arthur_and_rascal",
+          "kind": "supplement",
+          "label": "Arthur & Rascal",
+          "title": "Arthur & Rascal",
+          "wordCount": 7
+        },
+        {
+          "id": "spotlight_4_supplement_special_days",
+          "kind": "supplement",
+          "label": "Special Days",
+          "title": "Special Days",
+          "wordCount": 2
+        },
+        {
+          "id": "spotlight_4_supplement_spotlight_on_russia",
+          "kind": "supplement",
+          "label": "Spotlight on Russia",
+          "title": "Spotlight on Russia",
+          "wordCount": 29
+        },
+        {
+          "id": "spotlight_4_supplement_months",
+          "kind": "supplement",
+          "label": "Months",
+          "title": "Months",
+          "wordCount": 12
+        },
+        {
+          "id": "spotlight_4_supplement_numbers",
+          "kind": "supplement",
+          "label": "Numbers",
+          "title": "Numbers",
+          "wordCount": 8
+        },
+        {
+          "id": "spotlight_4_supplement_geographical_names_and_nationalities",
+          "kind": "supplement",
+          "label": "Geographical Names and Nationalities",
+          "title": "Geographical Names and Nationalities",
+          "wordCount": 27
+        },
+        {
+          "id": "spotlight_4_supplement_useful_english",
+          "kind": "supplement",
+          "label": "Useful English",
+          "title": "Useful English",
+          "wordCount": 1
+        }
+      ]
+    },
+    {
+      "grade": 5,
+      "title": "Spotlight 5 класс",
+      "wordCount": 927,
+      "modules": [
+        {
+          "id": "spotlight_5_starter",
+          "kind": "core",
+          "label": "Starter",
+          "title": "Starter Module",
+          "wordCount": 114
+        },
+        {
+          "id": "spotlight_5_module_1",
+          "kind": "core",
+          "label": "Module 1",
+          "title": "School Days",
+          "wordCount": 59
+        },
+        {
+          "id": "spotlight_5_module_2",
+          "kind": "core",
+          "label": "Module 2",
+          "title": "That’s Me",
+          "wordCount": 93
+        },
+        {
+          "id": "spotlight_5_module_3",
+          "kind": "core",
+          "label": "Module 3",
+          "title": "My Home, My Castle",
+          "wordCount": 84
+        },
+        {
+          "id": "spotlight_5_module_4",
+          "kind": "core",
+          "label": "Module 4",
+          "title": "Family Ties",
+          "wordCount": 107
+        },
+        {
+          "id": "spotlight_5_module_5",
+          "kind": "core",
+          "label": "Module 5",
+          "title": "World Animals",
+          "wordCount": 141
+        },
+        {
+          "id": "spotlight_5_module_6",
+          "kind": "core",
+          "label": "Module 6",
+          "title": "Round the Clock",
+          "wordCount": 78
+        },
+        {
+          "id": "spotlight_5_module_7",
+          "kind": "core",
+          "label": "Module 7",
+          "title": "In All Weathers",
+          "wordCount": 75
+        },
+        {
+          "id": "spotlight_5_module_8",
+          "kind": "core",
+          "label": "Module 8",
+          "title": "Special Days",
+          "wordCount": 107
+        },
+        {
+          "id": "spotlight_5_module_9",
+          "kind": "core",
+          "label": "Module 9",
+          "title": "Modern Living",
+          "wordCount": 57
+        },
+        {
+          "id": "spotlight_5_module_10",
+          "kind": "core",
+          "label": "Module 10",
+          "title": "Holidays",
+          "wordCount": 81
+        }
+      ],
+      "supplements": []
+    },
+    {
+      "grade": 6,
+      "title": "Spotlight 6 класс",
+      "wordCount": 708,
+      "modules": [
+        {
+          "id": "spotlight_6_module_1",
+          "kind": "core",
+          "label": "Module 1",
+          "title": "Who’s Who?",
+          "wordCount": 85
+        },
+        {
+          "id": "spotlight_6_module_2",
+          "kind": "core",
+          "label": "Module 2",
+          "title": "Here We Are!",
+          "wordCount": 82
+        },
+        {
+          "id": "spotlight_6_module_3",
+          "kind": "core",
+          "label": "Module 3",
+          "title": "Getting Around",
+          "wordCount": 47
+        },
+        {
+          "id": "spotlight_6_module_4",
+          "kind": "core",
+          "label": "Module 4",
+          "title": "Day After Day",
+          "wordCount": 72
+        },
+        {
+          "id": "spotlight_6_module_5",
+          "kind": "core",
+          "label": "Module 5",
+          "title": "Feasts",
+          "wordCount": 57
+        },
+        {
+          "id": "spotlight_6_module_6",
+          "kind": "core",
+          "label": "Module 6",
+          "title": "Leisure Activities",
+          "wordCount": 76
+        },
+        {
+          "id": "spotlight_6_module_7",
+          "kind": "core",
+          "label": "Module 7",
+          "title": "Now and Then",
+          "wordCount": 80
+        },
+        {
+          "id": "spotlight_6_module_8",
+          "kind": "core",
+          "label": "Module 8",
+          "title": "Rules and Regulations",
+          "wordCount": 55
+        },
+        {
+          "id": "spotlight_6_module_9",
+          "kind": "core",
+          "label": "Module 9",
+          "title": "Food and Refreshments",
+          "wordCount": 83
+        },
+        {
+          "id": "spotlight_6_module_10",
+          "kind": "core",
+          "label": "Module 10",
+          "title": "Holiday Time",
+          "wordCount": 65
+        }
+      ],
+      "supplements": []
+    },
+    {
+      "grade": 7,
+      "title": "Spotlight 7 класс",
+      "wordCount": 808,
+      "modules": [
+        {
+          "id": "spotlight_7_module_1",
+          "kind": "core",
+          "label": "Module 1",
+          "title": "Lifestyles",
+          "wordCount": 86
+        },
+        {
+          "id": "spotlight_7_module_2",
+          "kind": "core",
+          "label": "Module 2",
+          "title": "Tale Time",
+          "wordCount": 139
+        },
+        {
+          "id": "spotlight_7_module_3",
+          "kind": "core",
+          "label": "Module 3",
+          "title": "Profiles",
+          "wordCount": 130
+        },
+        {
+          "id": "spotlight_7_module_4",
+          "kind": "core",
+          "label": "Module 4",
+          "title": "In the News",
+          "wordCount": 53
+        },
+        {
+          "id": "spotlight_7_module_5",
+          "kind": "core",
+          "label": "Module 5",
+          "title": "What the Future Holds",
+          "wordCount": 43
+        },
+        {
+          "id": "spotlight_7_module_6",
+          "kind": "core",
+          "label": "Module 6",
+          "title": "Having Fun",
+          "wordCount": 41
+        },
+        {
+          "id": "spotlight_7_module_7",
+          "kind": "core",
+          "label": "Module 7",
+          "title": "In the Spotlight",
+          "wordCount": 80
+        },
+        {
+          "id": "spotlight_7_module_8",
+          "kind": "core",
+          "label": "Module 8",
+          "title": "Green Issues",
+          "wordCount": 91
+        },
+        {
+          "id": "spotlight_7_module_9",
+          "kind": "core",
+          "label": "Module 9",
+          "title": "Shopping Time",
+          "wordCount": 103
+        },
+        {
+          "id": "spotlight_7_module_10",
+          "kind": "core",
+          "label": "Module 10",
+          "title": "Healthy Body, Healthy Mind",
+          "wordCount": 65
+        }
+      ],
+      "supplements": []
+    },
+    {
+      "grade": 8,
+      "title": "Spotlight 8 класс",
+      "wordCount": 1527,
+      "modules": [
+        {
+          "id": "spotlight_8_module_1",
+          "kind": "core",
+          "label": "Module 1",
+          "title": "Socialising",
+          "wordCount": 213
+        },
+        {
+          "id": "spotlight_8_module_2",
+          "kind": "core",
+          "label": "Module 2",
+          "title": "Food and Shopping",
+          "wordCount": 297
+        },
+        {
+          "id": "spotlight_8_module_3",
+          "kind": "core",
+          "label": "Module 3",
+          "title": "Great Minds",
+          "wordCount": 287
+        },
+        {
+          "id": "spotlight_8_module_4",
+          "kind": "core",
+          "label": "Module 4",
+          "title": "Be Yourself",
+          "wordCount": 249
+        },
+        {
+          "id": "spotlight_8_module_5",
+          "kind": "core",
+          "label": "Module 5",
+          "title": "Global Issues",
+          "wordCount": 162
+        },
+        {
+          "id": "spotlight_8_module_6",
+          "kind": "core",
+          "label": "Module 6",
+          "title": "Culture Exchanges",
+          "wordCount": 177
+        },
+        {
+          "id": "spotlight_8_module_7",
+          "kind": "core",
+          "label": "Module 7",
+          "title": "Education",
+          "wordCount": 108
+        },
+        {
+          "id": "spotlight_8_module_8",
+          "kind": "core",
+          "label": "Module 8",
+          "title": "Pastimes",
+          "wordCount": 171
+        }
+      ],
+      "supplements": []
+    },
+    {
+      "grade": 9,
+      "title": "Spotlight 9 класс",
+      "wordCount": 1389,
+      "modules": [
+        {
+          "id": "spotlight_9_module_1",
+          "kind": "core",
+          "label": "Module 1",
+          "title": "Celebrations",
+          "wordCount": 235
+        },
+        {
+          "id": "spotlight_9_module_2",
+          "kind": "core",
+          "label": "Module 2",
+          "title": "Life and Living",
+          "wordCount": 201
+        },
+        {
+          "id": "spotlight_9_module_3",
+          "kind": "core",
+          "label": "Module 3",
+          "title": "See It to Believe It",
+          "wordCount": 185
+        },
+        {
+          "id": "spotlight_9_module_4",
+          "kind": "core",
+          "label": "Module 4",
+          "title": "Technology",
+          "wordCount": 218
+        },
+        {
+          "id": "spotlight_9_module_5",
+          "kind": "core",
+          "label": "Module 5",
+          "title": "Art and Literature",
+          "wordCount": 239
+        },
+        {
+          "id": "spotlight_9_module_6",
+          "kind": "core",
+          "label": "Module 6",
+          "title": "Town and Community",
+          "wordCount": 193
+        },
+        {
+          "id": "spotlight_9_module_7",
+          "kind": "core",
+          "label": "Module 7",
+          "title": "Staying Safe",
+          "wordCount": 159
+        },
+        {
+          "id": "spotlight_9_module_8",
+          "kind": "core",
+          "label": "Module 8",
+          "title": "Challenges",
+          "wordCount": 171
+        }
+      ],
+      "supplements": []
+    },
+    {
+      "grade": 10,
+      "title": "Spotlight 10 класс",
+      "wordCount": 1855,
+      "modules": [
+        {
+          "id": "spotlight_10_module_1",
+          "kind": "core",
+          "label": "Module 1",
+          "title": "Strong Ties",
+          "wordCount": 295
+        },
+        {
+          "id": "spotlight_10_module_2",
+          "kind": "core",
+          "label": "Module 2",
+          "title": "Living and Spending",
+          "wordCount": 251
+        },
+        {
+          "id": "spotlight_10_module_3",
+          "kind": "core",
+          "label": "Module 3",
+          "title": "Schooldays and Work",
+          "wordCount": 157
+        },
+        {
+          "id": "spotlight_10_module_4",
+          "kind": "core",
+          "label": "Module 4",
+          "title": "Earth Alert!",
+          "wordCount": 275
+        },
+        {
+          "id": "spotlight_10_module_5",
+          "kind": "core",
+          "label": "Module 5",
+          "title": "Holidays",
+          "wordCount": 253
+        },
+        {
+          "id": "spotlight_10_module_6",
+          "kind": "core",
+          "label": "Module 6",
+          "title": "Food and Health",
+          "wordCount": 337
+        },
+        {
+          "id": "spotlight_10_module_7",
+          "kind": "core",
+          "label": "Module 7",
+          "title": "Let’s Have Fun",
+          "wordCount": 232
+        },
+        {
+          "id": "spotlight_10_module_8",
+          "kind": "core",
+          "label": "Module 8",
+          "title": "Technology",
+          "wordCount": 214
+        }
+      ],
+      "supplements": []
+    },
+    {
+      "grade": 11,
+      "title": "Spotlight 11 класс",
+      "wordCount": 1471,
+      "modules": [
+        {
+          "id": "spotlight_11_module_1",
+          "kind": "core",
+          "label": "Module 1",
+          "title": "Relationships",
+          "wordCount": 189
+        },
+        {
+          "id": "spotlight_11_module_2",
+          "kind": "core",
+          "label": "Module 2",
+          "title": "Where There’s a Will",
+          "wordCount": 191
+        },
+        {
+          "id": "spotlight_11_module_3",
+          "kind": "core",
+          "label": "Module 3",
+          "title": "Responsibility",
+          "wordCount": 217
+        },
+        {
+          "id": "spotlight_11_module_4",
+          "kind": "core",
+          "label": "Module 4",
+          "title": "Danger!",
+          "wordCount": 279
+        },
+        {
+          "id": "spotlight_11_module_5",
+          "kind": "core",
+          "label": "Module 5",
+          "title": "Who Are You?",
+          "wordCount": 174
+        },
+        {
+          "id": "spotlight_11_module_6",
+          "kind": "core",
+          "label": "Module 6",
+          "title": "Communication",
+          "wordCount": 164
+        },
+        {
+          "id": "spotlight_11_module_7",
+          "kind": "core",
+          "label": "Module 7",
+          "title": "In Days to Come",
+          "wordCount": 136
+        },
+        {
+          "id": "spotlight_11_module_8",
+          "kind": "core",
+          "label": "Module 8",
+          "title": "Travel",
+          "wordCount": 218
+        }
+      ],
+      "supplements": []
+    }
+  ]
+}

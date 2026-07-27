@@ -11,11 +11,12 @@ import { legalConsentService } from '../services/legalConsentService';
 export type AuthMode = 'login' | 'register';
 export type AuthBootstrapStatus = 'loading' | 'ready' | 'error';
 
-type PersistedGameSettings = Partial<Pick<GameSettings, 'wordLength' | 'useCustomDictionary' | 'dictionarySource' | 'difficulty' | 'activePremiumDictionaryId'>>;
+type PersistedGameSettings = Partial<Pick<GameSettings, 'wordLength' | 'useCustomDictionary' | 'dictionarySource' | 'difficulty' | 'activePremiumDictionaryId' | 'activeSpotlightGrade' | 'activeSpotlightSectionId'>>;
 const SETTINGS_STORAGE_PREFIX = 'annword_game_settings_v1:';
 const isWordLength = (value: unknown): value is WordLength => value === 4 || value === 5 || value === 6;
 const isDictionarySource = (value: unknown): value is DictionarySource => value === 'builtin' || value === 'custom' || value === 'premium';
 const isDifficulty = (value: unknown): value is DifficultyLevel => value === 'ALL' || value === 'A1' || value === 'A2' || value === 'B1' || value === 'B2' || value === 'C1' || value === 'C2';
+const isSpotlightGrade = (value: unknown): value is number => Number.isInteger(value) && Number(value) >= 2 && Number(value) <= 11;
 const isPaymentReturn = (): boolean => {
   if (typeof window === 'undefined') return false;
   const payment = new URLSearchParams(window.location.search).get('payment');
@@ -67,6 +68,8 @@ const readStoredSettings = (userId: string | null): PersistedGameSettings => {
     if (isDictionarySource(parsed.dictionarySource)) next.dictionarySource = parsed.dictionarySource;
     if (isDifficulty(parsed.difficulty)) next.difficulty = parsed.difficulty;
     if (typeof parsed.activePremiumDictionaryId === 'string') next.activePremiumDictionaryId = parsed.activePremiumDictionaryId;
+    if (isSpotlightGrade(parsed.activeSpotlightGrade)) next.activeSpotlightGrade = Number(parsed.activeSpotlightGrade);
+    if (typeof parsed.activeSpotlightSectionId === 'string') next.activeSpotlightSectionId = parsed.activeSpotlightSectionId;
     return next;
   } catch {
     return {};
@@ -81,6 +84,8 @@ const writeStoredSettings = (userId: string | null, settings: GameSettings): voi
       dictionarySource: settings.dictionarySource,
       difficulty: settings.difficulty,
       activePremiumDictionaryId: settings.activePremiumDictionaryId,
+      activeSpotlightGrade: settings.activeSpotlightGrade,
+      activeSpotlightSectionId: settings.activeSpotlightSectionId,
     }));
   } catch {
     // Local preference persistence must not break auth/profile loading.

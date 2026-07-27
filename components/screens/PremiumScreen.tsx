@@ -5,6 +5,7 @@ import { LEGAL_DOCUMENTS, LEGAL_LINK_PROPS } from '../../services/legalDocuments
 import { isKidsMode } from '../../services/modeFlags';
 import { formatPremiumAccessPeriod } from '../../services/premiumAccess';
 import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
+import { getSpotlightDictionaryMeta, isSpotlightDictionaryId } from '../../services/spotlightDictionaryCatalog';
 import { getProdamusPlansForMode, prodamusPaymentService, ProdamusPlanCode } from '../../services/prodamusPaymentService';
 import { familyAccountService } from '../../services/familyAccountService';
 import { analyticsService } from '../../services/analyticsService';
@@ -26,12 +27,12 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
   const kidsMode = isKidsMode(userProfile, true);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
   const accessChecking = !hasPremium && profileFreshness !== 'fresh';
-  const dictionaries = kidsMode ? getKidsDictionaryCatalog() : getPremiumDictionaryCatalog();
+  const dictionaries = kidsMode ? [...getKidsDictionaryCatalog(), getSpotlightDictionaryMeta()] : getPremiumDictionaryCatalog();
   const premiumTitle = kidsMode ? 'Kids Premium' : 'AnnWord Premium';
   const headline = kidsMode ? 'Игры по словам, которые ребёнку действительно нужно повторить' : 'Учите не случайные слова, а нужные именно вам';
   const body = kidsMode
-    ? 'В бесплатном режиме ребёнок играет по базовому набору. Premium открывает детские темы и возможность добавить слова из школы, курса или учебника — чтобы тренировка была ближе к реальным занятиям.'
-    : 'Откройте тематические словари и добавляйте слова из работы, экзамена, курса или своей темы. Доступны наборы Business, Travel, Medicine, IELTS, IT, Finance, Legal, Science, Everyday+ и Food.';
+    ? 'В бесплатном режиме ребёнок играет по базовому набору. Premium открывает детские темы, Spotlight для 2–11 классов и возможность добавить слова из школы, курса или учебника.'
+    : 'Откройте тематические словари, включая Spotlight по классам и модулям, и добавляйте слова из работы, экзамена, курса или своей темы.';
   const plans = getProdamusPlansForMode(kidsMode);
   const [loadingPlan, setLoadingPlan] = useState<ProdamusPlanCode | null>(null);
   const [pendingPlan, setPendingPlan] = useState<ProdamusPlanCode | null>(null);
@@ -166,7 +167,7 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
           </div>
           <div className="rounded-[2rem] border-2 border-amber-100 bg-amber-50/60 p-4">
             <div className="grid grid-cols-2 gap-3">
-              {dictionaries.map(item => <div key={item.id} className="rounded-2xl border-2 border-white bg-white p-3 shadow-sm"><div className="flex items-center justify-between gap-2"><span className="text-2xl" aria-hidden="true">{item.icon}</span><span className="text-sm">{hasPremium ? '✅' : accessChecking ? '⏳' : '🔒'}</span></div><div className="mt-2 truncate text-sm font-black text-indigo-950">{item.shortTitle}</div><div className="text-xs font-black text-amber-700">Тематический словарь · A1–C2</div></div>)}
+              {dictionaries.map(item => <div key={item.id} className="rounded-2xl border-2 border-white bg-white p-3 shadow-sm"><div className="flex items-center justify-between gap-2"><span className="text-2xl" aria-hidden="true">{item.icon}</span><span className="text-sm">{hasPremium ? '✅' : accessChecking ? '⏳' : '🔒'}</span></div><div className="mt-2 truncate text-sm font-black text-indigo-950">{item.shortTitle}</div><div className="text-xs font-black text-amber-700">{isSpotlightDictionaryId(item.id) ? 'Школьный учебник · 2–11 классы' : 'Тематический словарь · A1–C2'}</div></div>)}
             </div>
           </div>
         </div>
