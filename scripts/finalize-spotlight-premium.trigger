@@ -1,1 +1,1 @@
-diagnose Spotlight Premium TypeScript validation tests and build
+persist generated Spotlight Premium sources for type fixes
