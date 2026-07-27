@@ -1,1 +1,1 @@
-retry verified Spotlight Premium integration with apply diagnostics
+run Spotlight Premium integration and capture exact apply failure
