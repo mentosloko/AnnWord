@@ -54,7 +54,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
   const [startError, setStartError] = React.useState<string | null>(null);
   const autoStartedRef = React.useRef(false);
   const assignedCount = parentMode ? (userProfile.assignedWords || []).length : 0;
-  const sourceReady = source !== 'custom' || (hasPremium && customDictionaryWords.length > 0);
+  const premiumSourceWithoutAccess = source !== 'builtin' && !hasPremium;
+  const sourceReady = source === 'builtin' || (source === 'premium' && hasPremium) || (source === 'custom' && hasPremium && customDictionaryWords.length > 0);
   const premiumCatalog = parentMode ? getKidsDictionaryCatalog() : getPremiumDictionaryCatalog();
   const respectWordLength = !LENGTH_AGNOSTIC_MODES.has(selectedPlayMode);
   const readModeWords = React.useCallback(() => dictionaryRuntime.getModeWords({ respectWordLength }), [dictionaryRuntime, respectWordLength]);
@@ -62,6 +63,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
   const dictionaryLoadBlocksStart = dictionaryRuntime.status === 'loading' && immediateWordCount === 0;
 
   React.useEffect(() => { setStartError(null); }, [selectedPlayMode, settings.activePremiumDictionaryId, settings.dictionarySource, settings.difficulty, settings.wordLength]);
+  React.useEffect(() => {
+    if (autoStart || !premiumSourceWithoutAccess) return;
+    onSettingsChange({ ...settings, dictionarySource: 'builtin', useCustomDictionary: false });
+  }, [autoStart, onSettingsChange, premiumSourceWithoutAccess, settings]);
 
   const selectSource = (nextSource: DictionarySource) => {
     if ((nextSource === 'custom' || nextSource === 'premium') && !isAuthenticated) { onLogin(); return; }
@@ -91,10 +96,20 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
 
   React.useEffect(() => {
     if (!autoStart) { autoStartedRef.current = false; return; }
-    if (autoStartedRef.current || !sourceReady) return;
+    if (autoStartedRef.current) return;
+    if (premiumSourceWithoutAccess) {
+      onSettingsChange({ ...settings, dictionarySource: 'builtin', useCustomDictionary: false });
+      return;
+    }
+    if (!sourceReady) {
+      autoStartedRef.current = true;
+      setStartError(source === 'custom' ? 'В выбранном списке пока нет слов. Добавьте слова или выберите встроенный словарь.' : 'Выбранный словарь сейчас недоступен.');
+      onAutoStartComplete?.();
+      return;
+    }
     autoStartedRef.current = true;
     void startGame().finally(() => onAutoStartComplete?.());
-  }, [autoStart, onAutoStartComplete, sourceReady, startGame]);
+  }, [autoStart, onAutoStartComplete, onSettingsChange, premiumSourceWithoutAccess, settings, source, sourceReady, startGame]);
 
   const retryDictionaryLoad = async () => { try { await waitForDictionaryRuntime(dictionaryRuntime.ensureReady()); setStartError(null); } catch (error) { setStartError(error instanceof Error ? error.message : 'Не удалось загрузить словарь.'); } };
   const loadingLabel = dictionaryRuntime.status === 'error' ? 'Повторить загрузку словаря' : isStarting || dictionaryLoadBlocksStart ? 'Загружаю словарь…' : `${hasActiveClassicGame && selectedPlayMode === 'game' ? 'Начать новую: ' : 'Начать: '}${MODE_LABELS[selectedPlayMode]}${questContext ? ' · задание' : ''}`;
