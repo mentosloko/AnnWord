@@ -1,16 +1,17 @@
 Spotlight finalization failed.
 
 Available chunks:
--rw-r--r-- 1 runner runner  9385 Jul 27 12:05 scripts/spotlight-upload/runtime_00.b64
--rw-r--r-- 1 runner runner  8000 Jul 27 12:05 scripts/spotlight-upload/runtime_00a.b64
--rw-r--r-- 1 runner runner 16000 Jul 27 12:05 scripts/spotlight-upload/runtime_00b.b64
--rw-r--r-- 1 runner runner  5911 Jul 27 12:05 scripts/spotlight-upload/runtime_00d.b64
--rw-r--r-- 1 runner runner 12000 Jul 27 12:05 scripts/spotlight-upload/runtime_01.b64
--rw-r--r-- 1 runner runner 12000 Jul 27 12:05 scripts/spotlight-upload/runtime_02.b64
--rw-r--r-- 1 runner runner 18000 Jul 27 12:05 scripts/spotlight-upload/runtime_03.b64
--rw-r--r-- 1 runner runner 18001 Jul 27 12:05 scripts/spotlight-upload/runtime_04.b64
--rw-r--r-- 1 runner runner 18000 Jul 27 12:05 scripts/spotlight-upload/runtime_05.b64
--rw-r--r-- 1 runner runner 18000 Jul 27 12:05 scripts/spotlight-upload/runtime_06.b64
--rw-r--r-- 1 runner runner 18000 Jul 27 12:05 scripts/spotlight-upload/runtime_07.b64
--rw-r--r-- 1 runner runner   232 Jul 27 12:05 scripts/spotlight-upload/runtime_08.b64
-/home/runner/work/_temp/e53637e9-41a1-41fb-b543-d5cce474ff75.sh: line 24: scripts/spotlight-upload/runtime_00c.b64: No such file or directory
+-rw-r--r-- 1 runner runner  9385 Jul 27 12:09 scripts/spotlight-upload/runtime_00.b64
+-rw-r--r-- 1 runner runner  8000 Jul 27 12:09 scripts/spotlight-upload/runtime_00a.b64
+-rw-r--r-- 1 runner runner 16000 Jul 27 12:09 scripts/spotlight-upload/runtime_00b.b64
+-rw-r--r-- 1 runner runner  5911 Jul 27 12:09 scripts/spotlight-upload/runtime_00d.b64
+-rw-r--r-- 1 runner runner 12000 Jul 27 12:09 scripts/spotlight-upload/runtime_01.b64
+-rw-r--r-- 1 runner runner 12000 Jul 27 12:09 scripts/spotlight-upload/runtime_02.b64
+-rw-r--r-- 1 runner runner 18000 Jul 27 12:09 scripts/spotlight-upload/runtime_03.b64
+-rw-r--r-- 1 runner runner 18001 Jul 27 12:09 scripts/spotlight-upload/runtime_04.b64
+-rw-r--r-- 1 runner runner 18000 Jul 27 12:09 scripts/spotlight-upload/runtime_05.b64
+-rw-r--r-- 1 runner runner 18000 Jul 27 12:09 scripts/spotlight-upload/runtime_06.b64
+-rw-r--r-- 1 runner runner 18000 Jul 27 12:09 scripts/spotlight-upload/runtime_07.b64
+-rw-r--r-- 1 runner runner   232 Jul 27 12:09 scripts/spotlight-upload/runtime_08.b64
+Archive bytes: 108106
+xz: /tmp/spotlight-runtime.tar.xz: Compressed data is corrupt
