@@ -50,7 +50,6 @@ jobs:
             for file in \
               scripts/spotlight-upload/runtime_00a.b64 \
               scripts/spotlight-upload/runtime_00b.b64 \
-              scripts/spotlight-upload/runtime_00c.b64 \
               scripts/spotlight-upload/runtime_00d.b64 \
               scripts/spotlight-upload/runtime_01.b64 \
               scripts/spotlight-upload/runtime_02.b64 \
