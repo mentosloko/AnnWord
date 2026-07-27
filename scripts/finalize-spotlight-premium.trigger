@@ -1,1 +1,1 @@
-finalize Spotlight Premium integration with validated archive layouts
+finalize Spotlight Premium integration after independent base64 decoding
