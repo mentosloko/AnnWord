@@ -1,0 +1,3 @@
+Spotlight code integration failed.
+
+Spotlight integration patch applied.
