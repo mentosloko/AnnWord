@@ -1,1 +1,1 @@
-extract Spotlight integration script for clean recovery
+run verified Spotlight Premium integration from clean archive
