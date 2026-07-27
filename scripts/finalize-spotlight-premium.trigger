@@ -1,1 +1,1 @@
-finalize Spotlight Premium integration after archive fix
+finalize Spotlight Premium integration with diagnostics
