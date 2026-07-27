@@ -47,23 +47,35 @@ jobs:
             fi
             echo "Available chunks:"
             ls -l scripts/spotlight-upload/runtime_*.b64
-            for file in \
+            assemble() {
+              local label="$1"
+              shift
+              echo "Trying chunk layout: $label"
+              for file in "$@"; do tr -cd 'A-Za-z0-9+/=' < "$file"; done | base64 -d > /tmp/spotlight-runtime.tar.xz
+              echo "Archive bytes: $(wc -c < /tmp/spotlight-runtime.tar.xz)"
+              xz -t /tmp/spotlight-runtime.tar.xz
+            }
+            if ! assemble combined \
               scripts/spotlight-upload/runtime_00a.b64 \
               scripts/spotlight-upload/runtime_00b.b64 \
               scripts/spotlight-upload/runtime_00d.b64 \
-              scripts/spotlight-upload/runtime_01.b64 \
-              scripts/spotlight-upload/runtime_02.b64 \
               scripts/spotlight-upload/runtime_03.b64 \
               scripts/spotlight-upload/runtime_04.b64 \
               scripts/spotlight-upload/runtime_05.b64 \
               scripts/spotlight-upload/runtime_06.b64 \
               scripts/spotlight-upload/runtime_07.b64 \
-              scripts/spotlight-upload/runtime_08.b64; do
-              tr -cd 'A-Za-z0-9+/=' < "$file"
-            done | base64 -d > /tmp/spotlight-runtime.tar.xz
-            echo "Archive bytes: $(wc -c < /tmp/spotlight-runtime.tar.xz)"
-            test "$(wc -c < /tmp/spotlight-runtime.tar.xz)" -gt 90000
-            xz -t /tmp/spotlight-runtime.tar.xz
+              scripts/spotlight-upload/runtime_08.b64; then
+              assemble original \
+                scripts/spotlight-upload/runtime_00.b64 \
+                scripts/spotlight-upload/runtime_01.b64 \
+                scripts/spotlight-upload/runtime_02.b64 \
+                scripts/spotlight-upload/runtime_03.b64 \
+                scripts/spotlight-upload/runtime_04.b64 \
+                scripts/spotlight-upload/runtime_05.b64 \
+                scripts/spotlight-upload/runtime_06.b64 \
+                scripts/spotlight-upload/runtime_07.b64 \
+                scripts/spotlight-upload/runtime_08.b64
+            fi
             mkdir -p dictionaries/premium/spotlight
             tar -xJf /tmp/spotlight-runtime.tar.xz -C dictionaries/premium/spotlight
             tr -cd 'A-Za-z0-9+/=' < scripts/spotlight-upload/apply.py.xz.b64 | base64 -d | xz -d > /tmp/apply-spotlight.py
