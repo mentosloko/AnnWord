@@ -59,7 +59,7 @@ const gradeLoaders: Record<SpotlightGrade, () => Promise<SpotlightRuntimeFile>> 
 const gradeCache = new Map<SpotlightGrade, SpotlightRuntimeFile>();
 const gradePromises = new Map<SpotlightGrade, Promise<SpotlightRuntimeFile>>();
 
-export const isSpotlightDictionaryId = (id?: string | null): boolean => id === SPOTLIGHT_DICTIONARY_ID;
+export const isSpotlightDictionaryId = (id?: string | null): id is typeof SPOTLIGHT_DICTIONARY_ID => id === SPOTLIGHT_DICTIONARY_ID;
 
 export const resolveSpotlightGrade = (value?: number | null): SpotlightGrade =>
   grades.includes(value as SpotlightGrade) ? value as SpotlightGrade : 2;
