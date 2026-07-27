@@ -18,7 +18,8 @@ describe('Yandex post-cutover guarantees', () => {
   it('loads admin analytics through the Yandex API and protects the server snapshot', () => {
     const client = read('services/adminAnalyticsService.ts');
     const routes = read('server/routes/analyticsRoutes.ts');
-    expect(client).toContain("backendApiRequest<AdminAnalyticsSnapshot>('/api/analytics/admin')");
+    expect(client).toContain('backendApiRequest<AdminAnalyticsSnapshot>(');
+    expect(client).toContain('/api/analytics/admin?');
     expect(routes).toContain('analyticsRouter.get("/admin", requireAdmin');
     expect(routes).toContain('role !== "admin"');
     expect(routes).toContain('getCustomWordsMissingTranslation');
@@ -26,8 +27,7 @@ describe('Yandex post-cutover guarantees', () => {
 
   it('never trusts analytics user_id supplied by the browser', () => {
     const routes = read('server/routes/analyticsRoutes.ts');
-    expect(routes).toContain('const authenticatedUserId = req.user?.id || null');
-    expect(routes).toContain('authenticatedUserId,');
+    expect(routes).toContain('insertAnalyticsEvents(req.user?.id || null');
     expect(routes).not.toContain('nullableUuid(event.user_id)');
     expect(routes).toContain('analyticsRouter.post("/events", optionalAuth');
   });
