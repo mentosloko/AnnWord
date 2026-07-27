@@ -34,6 +34,16 @@ interface SetupScreenProps {
 
 const MODE_LABELS: Record<PlayableModeRoute, string> = { game: 'Классика', anagrams: 'Анаграммы', translation: '1 из 2', sprint: 'Спринт', memory: 'Память', hangman: 'Виселица', letter_square: 'Змейка' };
 const LENGTH_AGNOSTIC_MODES = new Set<PlayableModeRoute>(['anagrams', 'translation', 'sprint', 'memory', 'letter_square']);
+const DICTIONARY_START_TIMEOUT_MS = 10_000;
+
+const waitForDictionaryRuntime = async (promise: Promise<void>): Promise<void> => {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('Словарь загружается слишком долго. Проверьте соединение и повторите.')), DICTIONARY_START_TIMEOUT_MS);
+  });
+  try { await Promise.race([promise, timeout]); }
+  finally { if (timeoutId !== null) clearTimeout(timeoutId); }
+};
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, settings, customDictionaryWords, setupError, isUploadingDictionary, isAuthenticated, userProfile, questContext, hasActiveClassicGame = false, onResumeClassicGame, onOpenDictionaryStudio, onOpenPremium, onSettingsChange, onStartGame, onBack, onLogin, autoStart = false, onAutoStartComplete }) => {
   const parentMode = isKidsMode(userProfile, isAuthenticated);
@@ -41,10 +51,17 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
   const source = settings.dictionarySource;
   const dictionaryRuntime = useDictionaryPools({ settings, userProfile, enabled: true });
   const [isStarting, setIsStarting] = React.useState(false);
+  const [startError, setStartError] = React.useState<string | null>(null);
   const autoStartedRef = React.useRef(false);
   const assignedCount = parentMode ? (userProfile.assignedWords || []).length : 0;
   const sourceReady = source !== 'custom' || (hasPremium && customDictionaryWords.length > 0);
   const premiumCatalog = parentMode ? getKidsDictionaryCatalog() : getPremiumDictionaryCatalog();
+  const respectWordLength = !LENGTH_AGNOSTIC_MODES.has(selectedPlayMode);
+  const readModeWords = React.useCallback(() => dictionaryRuntime.getModeWords({ respectWordLength }), [dictionaryRuntime, respectWordLength]);
+  const immediateWordCount = readModeWords().length;
+  const dictionaryLoadBlocksStart = dictionaryRuntime.status === 'loading' && immediateWordCount === 0;
+
+  React.useEffect(() => { setStartError(null); }, [selectedPlayMode, settings.activePremiumDictionaryId, settings.dictionarySource, settings.difficulty, settings.wordLength]);
 
   const selectSource = (nextSource: DictionarySource) => {
     if ((nextSource === 'custom' || nextSource === 'premium') && !isAuthenticated) { onLogin(); return; }
@@ -55,14 +72,22 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
   const startGame = React.useCallback(async () => {
     if (!sourceReady || isStarting) return;
     setIsStarting(true);
+    setStartError(null);
     try {
-      await dictionaryRuntime.ensureReady();
-      const dictionarySnapshot = dictionaryRuntime.getModeWords({ respectWordLength: !LENGTH_AGNOSTIC_MODES.has(selectedPlayMode) });
+      let dictionarySnapshot = readModeWords();
+      if (!dictionarySnapshot.length) {
+        await waitForDictionaryRuntime(dictionaryRuntime.ensureReady());
+        dictionarySnapshot = readModeWords();
+      } else if (dictionaryRuntime.status !== 'ready') {
+        void dictionaryRuntime.ensureReady().catch(() => undefined);
+      }
       if (!dictionarySnapshot.length) throw new Error('В выбранном словаре нет слов для этой игры.');
       await onStartGame(dictionarySnapshot);
-    } catch { /* The hook exposes the user-facing error. */ }
+    } catch (error) {
+      setStartError(error instanceof Error ? error.message : 'Не удалось подготовить игру. Попробуйте снова.');
+    }
     finally { setIsStarting(false); }
-  }, [dictionaryRuntime, isStarting, onStartGame, selectedPlayMode, sourceReady]);
+  }, [dictionaryRuntime, isStarting, onStartGame, readModeWords, sourceReady]);
 
   React.useEffect(() => {
     if (!autoStart) { autoStartedRef.current = false; return; }
@@ -71,9 +96,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
     void startGame().finally(() => onAutoStartComplete?.());
   }, [autoStart, onAutoStartComplete, sourceReady, startGame]);
 
-  const retryDictionaryLoad = async () => { try { await dictionaryRuntime.ensureReady(); } catch { /* The hook exposes the user-facing error. */ } };
-  const loadingLabel = dictionaryRuntime.status === 'error' ? 'Повторить загрузку словаря' : isStarting || dictionaryRuntime.status === 'loading' ? 'Загружаю словарь…' : `${hasActiveClassicGame && selectedPlayMode === 'game' ? 'Начать новую: ' : 'Начать: '}${MODE_LABELS[selectedPlayMode]}${questContext ? ' · задание' : ''}`;
-  const visibleError = setupError || (dictionaryRuntime.error ? 'Не удалось загрузить словарь. Проверьте соединение и повторите.' : null);
+  const retryDictionaryLoad = async () => { try { await waitForDictionaryRuntime(dictionaryRuntime.ensureReady()); setStartError(null); } catch (error) { setStartError(error instanceof Error ? error.message : 'Не удалось загрузить словарь.'); } };
+  const loadingLabel = dictionaryRuntime.status === 'error' ? 'Повторить загрузку словаря' : isStarting || dictionaryLoadBlocksStart ? 'Загружаю словарь…' : `${hasActiveClassicGame && selectedPlayMode === 'game' ? 'Начать новую: ' : 'Начать: '}${MODE_LABELS[selectedPlayMode]}${questContext ? ' · задание' : ''}`;
+  const visibleError = setupError || startError || (dictionaryRuntime.error ? 'Не удалось загрузить словарь. Проверьте соединение и повторите.' : null);
 
   if (autoStart) return <ScreenContainer className="max-w-md pb-24 pt-12"><ExperienceState kind={visibleError ? 'error' : 'loading'} title={visibleError ? 'Не удалось подготовить игру' : `Готовим «${MODE_LABELS[selectedPlayMode]}»`} description={visibleError || 'Загружаем выбранный словарь. Игра начнётся автоматически.'} actionLabel={visibleError ? 'Открыть настройки' : undefined} onAction={visibleError ? onAutoStartComplete : undefined} /><button type="button" onClick={onBack} className={`mt-3 w-full ${experienceUi.secondaryButton}`}>Отменить</button></ScreenContainer>;
 
@@ -92,7 +117,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
       {source === 'custom' && hasPremium && <section className="mt-4 rounded-2xl bg-purple-50/70 p-4"><span className="block font-bold text-indigo-950">{customDictionaryWords.length ? `Выбрано слов: ${customDictionaryWords.length}` : 'Список слов пока пуст'}</span><p className="mt-1 text-xs font-medium text-purple-700/80">{customDictionaryWords.length ? 'Список готов для игр.' : 'Добавьте слова, чтобы начать.'}</p>{isUploadingDictionary && <p className="mt-2 text-xs font-bold text-purple-700">Сохраняю слова…</p>}<button type="button" onClick={onOpenDictionaryStudio} className={`mt-3 w-full ${experienceUi.primaryButton}`}>{customDictionaryWords.length ? 'Изменить слова' : 'Добавить слова'}</button></section>}
       {source === 'premium' && hasPremium && <section className="mt-4 rounded-2xl bg-amber-50/70 p-4"><h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-amber-600">Выберите тему</h2><div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Выбор Premium-словаря">{premiumCatalog.map(item => <button type="button" key={item.id} onClick={() => onSettingsChange({ ...settings, dictionarySource: 'premium', useCustomDictionary: false, activePremiumDictionaryId: item.id })} className={`rounded-2xl bg-white p-3 text-left ring-2 ${settings.activePremiumDictionaryId === item.id ? 'ring-amber-300' : 'ring-transparent'}`}><div className="text-xl" aria-hidden="true">{item.icon}</div><div className="mt-1 truncate text-xs font-bold text-indigo-950">{item.shortTitle}</div></button>)}</div></section>}
       {hasActiveClassicGame && selectedPlayMode === 'game' && onResumeClassicGame && <button type="button" onClick={onResumeClassicGame} className="mt-5 w-full rounded-2xl bg-emerald-50 py-3 font-bold text-emerald-700 ring-1 ring-emerald-100">Продолжить сохранённую игру</button>}
-      <button type="button" onClick={() => void (dictionaryRuntime.status === 'error' ? retryDictionaryLoad() : startGame())} disabled={!sourceReady || isStarting || dictionaryRuntime.status === 'loading'} className={`mt-3 w-full py-4 ${sourceReady && dictionaryRuntime.status !== 'loading' ? experienceUi.primaryButton : 'rounded-2xl bg-slate-100 font-bold text-slate-400'}`}>{!sourceReady ? source === 'custom' && !hasPremium ? 'Нужен Premium' : 'Нет слов для игры' : loadingLabel}</button>
+      <button type="button" onClick={() => void (dictionaryRuntime.status === 'error' ? retryDictionaryLoad() : startGame())} disabled={!sourceReady || isStarting || dictionaryLoadBlocksStart} className={`mt-3 w-full py-4 ${sourceReady && !dictionaryLoadBlocksStart ? experienceUi.primaryButton : 'rounded-2xl bg-slate-100 font-bold text-slate-400'}`}>{!sourceReady ? source === 'custom' && !hasPremium ? 'Нужен Premium' : 'Нет слов для игры' : loadingLabel}</button>
     </div>
   </ScreenContainer>;
 };
