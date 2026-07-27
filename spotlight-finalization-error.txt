@@ -1,22 +1,33 @@
 Spotlight finalization failed.
 
 Available chunks:
--rw-r--r-- 1 runner runner  9385 Jul 27 12:13 scripts/spotlight-upload/runtime_00.b64
--rw-r--r-- 1 runner runner  8000 Jul 27 12:13 scripts/spotlight-upload/runtime_00a.b64
--rw-r--r-- 1 runner runner 16000 Jul 27 12:13 scripts/spotlight-upload/runtime_00b.b64
--rw-r--r-- 1 runner runner  5911 Jul 27 12:13 scripts/spotlight-upload/runtime_00d.b64
--rw-r--r-- 1 runner runner 12000 Jul 27 12:13 scripts/spotlight-upload/runtime_01.b64
--rw-r--r-- 1 runner runner 12000 Jul 27 12:13 scripts/spotlight-upload/runtime_02.b64
--rw-r--r-- 1 runner runner 18000 Jul 27 12:13 scripts/spotlight-upload/runtime_03.b64
--rw-r--r-- 1 runner runner 18001 Jul 27 12:13 scripts/spotlight-upload/runtime_04.b64
--rw-r--r-- 1 runner runner 18000 Jul 27 12:13 scripts/spotlight-upload/runtime_05.b64
--rw-r--r-- 1 runner runner 18000 Jul 27 12:13 scripts/spotlight-upload/runtime_06.b64
--rw-r--r-- 1 runner runner 18000 Jul 27 12:13 scripts/spotlight-upload/runtime_07.b64
--rw-r--r-- 1 runner runner   232 Jul 27 12:13 scripts/spotlight-upload/runtime_08.b64
+-rw-r--r-- 1 runner runner  9385 Jul 27 12:15 scripts/spotlight-upload/runtime_00.b64
+-rw-r--r-- 1 runner runner  8000 Jul 27 12:15 scripts/spotlight-upload/runtime_00a.b64
+-rw-r--r-- 1 runner runner 16000 Jul 27 12:15 scripts/spotlight-upload/runtime_00b.b64
+-rw-r--r-- 1 runner runner  5911 Jul 27 12:15 scripts/spotlight-upload/runtime_00d.b64
+-rw-r--r-- 1 runner runner 12000 Jul 27 12:15 scripts/spotlight-upload/runtime_01.b64
+-rw-r--r-- 1 runner runner 12000 Jul 27 12:15 scripts/spotlight-upload/runtime_02.b64
+-rw-r--r-- 1 runner runner 18000 Jul 27 12:15 scripts/spotlight-upload/runtime_03.b64
+-rw-r--r-- 1 runner runner 18001 Jul 27 12:15 scripts/spotlight-upload/runtime_04.b64
+-rw-r--r-- 1 runner runner 18000 Jul 27 12:15 scripts/spotlight-upload/runtime_05.b64
+-rw-r--r-- 1 runner runner 18000 Jul 27 12:15 scripts/spotlight-upload/runtime_06.b64
+-rw-r--r-- 1 runner runner 18000 Jul 27 12:15 scripts/spotlight-upload/runtime_07.b64
+-rw-r--r-- 1 runner runner   232 Jul 27 12:15 scripts/spotlight-upload/runtime_08.b64
+runtime_00.b64 clean=9385 mod4=1 equals=0 tail=ml/0QO3jhv9g
+runtime_00a.b64 clean=8000 mod4=0 equals=0 tail=uO4cw5ZtU5It
+runtime_00b.b64 clean=16000 mod4=0 equals=0 tail=dH8ESisbUfy6
+runtime_00d.b64 clean=5911 mod4=3 equals=0 tail=AKngWTkBkSro
+runtime_01.b64 clean=12000 mod4=0 equals=0 tail=5DH1s6TywYe+
+runtime_02.b64 clean=12000 mod4=0 equals=0 tail=A1kqeCEXE97h
+runtime_03.b64 clean=18000 mod4=0 equals=0 tail=6vrx2oD60T6z
+runtime_04.b64 clean=18001 mod4=1 equals=0 tail=K/FjEfBfrLoV
+runtime_05.b64 clean=18000 mod4=0 equals=0 tail=AKngWTkBkSro
+runtime_06.b64 clean=18000 mod4=0 equals=0 tail=nYybPuxsY3Zl
+runtime_07.b64 clean=18000 mod4=0 equals=0 tail=9M66AiO4Imqg
+runtime_08.b64 clean=232 mod4=0 equals=2 tail=AAAAAARZWg==
 Trying chunk layout: combined
-base64: invalid input
-base64: invalid input
-Archive bytes: 90105
+Archive bytes: 90106
 xz: /tmp/spotlight-runtime.tar.xz: Compressed data is corrupt
 Trying chunk layout: original
-base64: invalid input
+Archive bytes: 92712
+xz: /tmp/spotlight-runtime.tar.xz: Compressed data is corrupt
