@@ -180,7 +180,7 @@ export const useProfileItemServerAuthoritative = async (userId: string, itemId: 
     if (!shopItem || shopItem.type !== 'food') throw new Error('Лакомство не найдено.');
     if ((pet.moodScore || 0) >= 100) throw new Error('Персонаж уже в восторге! Лакомство пригодится позже.');
     pet = applyServerMoodIncrease(pet, shopItem.moodEffect || 8, nowMs);
-    pet.requestedTreatId = pet.requestedTreatId === itemId ? undefined : itemId;
+    pet.requestedTreatId = pet.requestedTreatId === itemId ? undefined : pet.requestedTreatId;
     nextInventory = decrementInventory(inventory, itemId);
   } else if (owned.type === 'accessory') {
     const equipped = pet.equippedAccessories || [];
