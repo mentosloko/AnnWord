@@ -88,7 +88,6 @@ for (const file of files) {
   if (!indexedFiles.has(file)) fail(`${file}: not listed in ${INDEX_FILE}`);
 }
 
-
 const SPOTLIGHT_DIR = path.join(DICTIONARY_DIR, 'spotlight');
 const SPOTLIGHT_CATALOG_FILE = path.join(SPOTLIGHT_DIR, 'spotlight_catalog.json');
 const SPOTLIGHT_WORD_PATTERN = /^[A-Z]{1,18}$/;
@@ -103,7 +102,7 @@ type SpotlightCatalog = {
 };
 type SpotlightRuntime = {
   grade?: number;
-  words?: Array<[unknown, unknown]>;
+  words?: Array<[string, string]>;
   sections?: Array<{ id?: string; kind?: string; label?: string; title?: string; wordIndexes?: unknown[] }>;
 };
 
