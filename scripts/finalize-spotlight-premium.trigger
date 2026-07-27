@@ -1,1 +1,1 @@
-finalize Spotlight Premium integration after base64 boundary normalization
+extract Spotlight integration script for clean recovery
