@@ -1,1 +1,1 @@
-run verified Spotlight Premium integration from clean archive
+retry verified Spotlight Premium integration with apply diagnostics
