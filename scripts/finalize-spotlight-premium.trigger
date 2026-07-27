@@ -1,1 +1,1 @@
-persist generated Spotlight Premium sources for type fixes
+verify Spotlight Premium after type fixes
