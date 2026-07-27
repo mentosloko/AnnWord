@@ -1,1 +1,1 @@
-run Spotlight Premium integration and capture exact apply failure
+verify Spotlight Premium integration with TypeScript tests and build
