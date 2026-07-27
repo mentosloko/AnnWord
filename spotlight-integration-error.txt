@@ -1,0 +1,3 @@
+Spotlight patch failed before verification.
+
+base64: invalid input
