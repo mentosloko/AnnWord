@@ -20,8 +20,8 @@ describe('Yandex post-cutover guarantees', () => {
     const routes = read('server/routes/analyticsRoutes.ts');
     expect(client).toContain('backendApiRequest<AdminAnalyticsSnapshot>(');
     expect(client).toContain('/api/analytics/admin?');
-    expect(routes).toContain('analyticsRouter.get("/admin", requireAdmin');
-    expect(routes).toContain('role !== "admin"');
+    expect(routes).toContain("analyticsRouter.get('/admin', requireAdmin");
+    expect(routes).toContain("role !== 'admin'");
     expect(routes).toContain('getCustomWordsMissingTranslation');
   });
 
@@ -29,7 +29,7 @@ describe('Yandex post-cutover guarantees', () => {
     const routes = read('server/routes/analyticsRoutes.ts');
     expect(routes).toContain('insertAnalyticsEvents(req.user?.id || null');
     expect(routes).not.toContain('nullableUuid(event.user_id)');
-    expect(routes).toContain('analyticsRouter.post("/events", optionalAuth');
+    expect(routes).toContain("analyticsRouter.post('/events', optionalAuth");
   });
 
   it('keeps both legacy database mutation endpoints disabled without an explicit enable flag', () => {
