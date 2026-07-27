@@ -10,7 +10,8 @@ export type PremiumDictionaryId =
   | 'premium_legal_compliance'
   | 'premium_science_research'
   | 'premium_everyday_advanced'
-  | 'premium_food_hospitality';
+  | 'premium_food_hospitality'
+  | 'premium_spotlight_school';
 
 export interface PremiumDictionaryMeta {
   id: PremiumDictionaryId;
@@ -23,6 +24,7 @@ export interface PremiumDictionaryMeta {
 }
 
 const catalog: PremiumDictionaryMeta[] = [
+  { id: 'premium_spotlight_school', title: 'Spotlight 2–11', shortTitle: 'Spotlight', theme: 'school', icon: '📘' },
   { id: 'premium_business_english', title: 'Business English', shortTitle: 'Business', theme: 'business', icon: '💼' },
   { id: 'premium_travel_english', title: 'Travel English', shortTitle: 'Travel', theme: 'travel', icon: '✈️' },
   { id: 'premium_medical_english', title: 'Medical English', shortTitle: 'Medicine', theme: 'medicine', icon: '🩺' },
@@ -44,7 +46,7 @@ export const hasPremiumDictionaryAccess = (userProfile: UserProfile): boolean =>
 
 export const getPremiumDictionaryCatalog = (): PremiumDictionaryMeta[] => catalog;
 
-export const getDefaultPremiumDictionaryId = (): PremiumDictionaryId => 'premium_business_english';
+export const getDefaultPremiumDictionaryId = (): PremiumDictionaryId => 'premium_spotlight_school';
 
 export const getPremiumDictionaryMeta = (id?: string): PremiumDictionaryMeta =>
   catalog.find(item => item.id === id) || catalog[0];
