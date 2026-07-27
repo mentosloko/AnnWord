@@ -22,7 +22,8 @@ describe('Yandex post-cutover guarantees', () => {
     expect(client).toContain('/api/analytics/admin?');
     expect(routes).toContain("analyticsRouter.get('/admin', requireAdmin");
     expect(routes).toContain("role !== 'admin'");
-    expect(routes).toContain('getCustomWordsMissingTranslation');
+    expect(routes).toContain('const unsupportedDictionaryWords = dictionaries.rows');
+    expect(routes).toContain('!GENERAL_DICTIONARY_WORDS.has(word)');
   });
 
   it('never trusts analytics user_id supplied by the browser', () => {
