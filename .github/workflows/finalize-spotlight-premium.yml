@@ -1,0 +1,54 @@
+name: Sync Spotlight Premium
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/finalize-spotlight-premium.trigger
+
+permissions:
+  contents: write
+  statuses: write
+
+concurrency:
+  group: sync-spotlight-premium
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/spotlight-premium
+          fetch-depth: 0
+
+      - name: Merge current main into Spotlight branch
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin main
+          git merge --no-edit origin/main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Verify synchronized Spotlight integration
+        run: |
+          npm run lint
+          npm run premium-dictionaries:validate
+          npm run check:unit
+          npm run build
+
+      - name: Push synchronized branch
+        run: |
+          git diff --name-only -- '*.pdf' | xargs -r git checkout --
+          git status --short
+          git push origin HEAD:feature/spotlight-premium
