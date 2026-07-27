@@ -51,7 +51,10 @@ jobs:
               local label="$1"
               shift
               echo "Trying chunk layout: $label"
-              for file in "$@"; do tr -cd 'A-Za-z0-9+/=' < "$file"; done | base64 -d > /tmp/spotlight-runtime.tar.xz
+              : > /tmp/spotlight-runtime.tar.xz
+              for file in "$@"; do
+                tr -cd 'A-Za-z0-9+/=' < "$file" | base64 -d >> /tmp/spotlight-runtime.tar.xz
+              done
               echo "Archive bytes: $(wc -c < /tmp/spotlight-runtime.tar.xz)"
               xz -t /tmp/spotlight-runtime.tar.xz
             }
