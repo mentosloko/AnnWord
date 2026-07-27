@@ -1,1 +1,1 @@
-finalize Spotlight Premium integration with diagnostics
+finalize Spotlight Premium integration after chunk map fix
