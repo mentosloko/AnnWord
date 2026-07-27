@@ -47,14 +47,26 @@ jobs:
             fi
             echo "Available chunks:"
             ls -l scripts/spotlight-upload/runtime_*.b64
+            describe_chunk() {
+              local file="$1"
+              local clean
+              clean="$(tr -cd 'A-Za-z0-9+/=' < "$file")"
+              printf '%s clean=%s mod4=%s equals=%s tail=%s\n' \
+                "$(basename "$file")" "${#clean}" "$(( ${#clean} % 4 ))" \
+                "$(printf '%s' "$clean" | tr -cd '=' | wc -c)" "${clean: -12}"
+            }
+            for file in scripts/spotlight-upload/runtime_*.b64; do describe_chunk "$file"; done
             assemble() {
               local label="$1"
               shift
               echo "Trying chunk layout: $label"
-              : > /tmp/spotlight-runtime.tar.xz
+              : > /tmp/spotlight-runtime.b64
               for file in "$@"; do
-                tr -cd 'A-Za-z0-9+/=' < "$file" | base64 -d >> /tmp/spotlight-runtime.tar.xz
+                tr -cd 'A-Za-z0-9+/=' < "$file" | tr -d '=' >> /tmp/spotlight-runtime.b64
               done
+              local remainder=$(( $(wc -c < /tmp/spotlight-runtime.b64) % 4 ))
+              if [ "$remainder" -eq 2 ]; then printf '==' >> /tmp/spotlight-runtime.b64; elif [ "$remainder" -eq 3 ]; then printf '=' >> /tmp/spotlight-runtime.b64; elif [ "$remainder" -eq 1 ]; then return 1; fi
+              base64 -d /tmp/spotlight-runtime.b64 > /tmp/spotlight-runtime.tar.xz
               echo "Archive bytes: $(wc -c < /tmp/spotlight-runtime.tar.xz)"
               xz -t /tmp/spotlight-runtime.tar.xz
             }
