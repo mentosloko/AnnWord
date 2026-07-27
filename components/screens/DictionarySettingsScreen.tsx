@@ -3,7 +3,14 @@ import { DictionarySource, DifficultyLevel, GameSettings, UserProfile } from '..
 import { getKidsDictionaryCatalog } from '../../services/kidsDictionaryCatalog';
 import { isKidsMode } from '../../services/modeFlags';
 import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
+import {
+  getSpotlightDictionaryMeta,
+  getSpotlightSelectionLabel,
+  isSpotlightDictionaryId,
+  SPOTLIGHT_ALL_SECTION_ID,
+} from '../../services/spotlightDictionaryCatalog';
 import { ScreenContainer } from '../layout/ScreenContainer';
+import { SpotlightSelectionPanel } from './SpotlightSelectionPanel';
 
 interface DictionarySettingsScreenProps {
   settings: GameSettings;
@@ -45,8 +52,11 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
   const kidsMode = isKidsMode(userProfile, isAuthenticated);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
   const source = settings.dictionarySource;
-  const premiumCatalog = kidsMode ? getKidsDictionaryCatalog() : getPremiumDictionaryCatalog();
+  const premiumCatalog = kidsMode
+    ? [...getKidsDictionaryCatalog(), getSpotlightDictionaryMeta()]
+    : getPremiumDictionaryCatalog();
   const selectedTopic = premiumCatalog.find(item => item.id === settings.activePremiumDictionaryId) || premiumCatalog[0];
+  const spotlightSelected = isSpotlightDictionaryId(settings.activePremiumDictionaryId);
 
   const chooseSource = (nextSource: DictionarySource) => {
     if ((nextSource === 'custom' || nextSource === 'premium') && (!isAuthenticated || !hasPremium)) {
@@ -63,10 +73,19 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
     });
   };
 
+  const choosePremiumDictionary = (id: string) => onSettingsChange({
+    ...settings,
+    dictionarySource: 'premium',
+    useCustomDictionary: false,
+    activePremiumDictionaryId: id,
+    activeSpotlightGrade: isSpotlightDictionaryId(id) ? settings.activeSpotlightGrade || 2 : settings.activeSpotlightGrade,
+    activeSpotlightSectionId: isSpotlightDictionaryId(id) ? settings.activeSpotlightSectionId || SPOTLIGHT_ALL_SECTION_ID : settings.activeSpotlightSectionId,
+  });
+
   const currentLabel = source === 'custom'
     ? 'Ваш список'
     : source === 'premium'
-      ? selectedTopic?.title || 'Тематический словарь'
+      ? spotlightSelected ? getSpotlightSelectionLabel(settings) : selectedTopic?.title || 'Тематический словарь'
       : kidsMode
         ? 'Детский словарь'
         : `General English · ${settings.difficulty === 'ALL' ? 'все уровни' : settings.difficulty}`;
@@ -122,7 +141,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
 
       {source === 'premium' && hasPremium && <section className="mt-4 rounded-3xl border-2 border-amber-100 bg-amber-50/55 p-4">
         <h2 className="text-lg font-black text-indigo-950">Какую тему тренировать</h2>
-        <p className="mt-1 text-sm font-bold text-slate-500">В игре используется весь выбранный тематический набор.</p>
+        <p className="mt-1 text-sm font-bold text-slate-500">Для Spotlight можно дополнительно выбрать класс и модуль.</p>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5" role="group" aria-label="Тематический словарь">
           {premiumCatalog.map(item => {
             const active = settings.activePremiumDictionaryId === item.id;
@@ -130,14 +149,16 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
               type="button"
               key={item.id}
               aria-pressed={active}
-              onClick={() => onSettingsChange({ ...settings, dictionarySource: 'premium', useCustomDictionary: false, activePremiumDictionaryId: item.id })}
+              onClick={() => choosePremiumDictionary(item.id)}
               className={`rounded-2xl border-2 bg-white p-3 text-left transition ${active ? 'border-amber-400 shadow-sm' : 'border-transparent hover:border-amber-200'}`}
             >
               <div className="text-2xl" aria-hidden="true">{item.icon}</div>
               <div className="mt-2 text-sm font-black leading-tight text-indigo-950">{item.shortTitle}</div>
+              {isSpotlightDictionaryId(item.id) && <div className="mt-1 text-[10px] font-black uppercase tracking-wide text-blue-600">2–11 классы</div>}
             </button>;
           })}
         </div>
+        {spotlightSelected && <SpotlightSelectionPanel settings={settings} onSettingsChange={onSettingsChange} />}
       </section>}
 
       {source === 'custom' && hasPremium && <section className="mt-4 rounded-3xl border-2 border-purple-100 bg-purple-50/60 p-4">

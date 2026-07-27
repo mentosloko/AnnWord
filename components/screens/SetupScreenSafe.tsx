@@ -3,12 +3,14 @@ import { DailyQuestState, DictionarySource, GameSettings, UserProfile } from '..
 import { isKidsMode } from '../../services/modeFlags';
 import { getKidsDictionaryCatalog } from '../../services/kidsDictionaryCatalog';
 import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
+import { getSpotlightDictionaryMeta, isSpotlightDictionaryId, SPOTLIGHT_ALL_SECTION_ID } from '../../services/spotlightDictionaryCatalog';
 import { useDictionaryPools } from '../../hooks/useDictionaryPools';
 import { QuestContextBanner } from '../QuestContextBanner';
 import { ScreenContainer } from '../layout/ScreenContainer';
 import { FloatingNotice } from '../ui/StatusNotice';
 import { ExperienceState, experienceUi } from '../ui/ExperiencePrimitives';
 import { PlayableModeRoute } from '../AppScreens';
+import { SpotlightSelectionPanel } from './SpotlightSelectionPanel';
 
 interface SetupScreenProps {
   selectedPlayMode: PlayableModeRoute;
@@ -55,13 +57,16 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
   const autoStartedRef = React.useRef(false);
   const assignedCount = parentMode ? (userProfile.assignedWords || []).length : 0;
   const sourceReady = source !== 'custom' || (hasPremium && customDictionaryWords.length > 0);
-  const premiumCatalog = parentMode ? getKidsDictionaryCatalog() : getPremiumDictionaryCatalog();
+  const premiumCatalog = parentMode
+    ? [...getKidsDictionaryCatalog(), getSpotlightDictionaryMeta()]
+    : getPremiumDictionaryCatalog();
   const respectWordLength = !LENGTH_AGNOSTIC_MODES.has(selectedPlayMode);
   const readModeWords = React.useCallback(() => dictionaryRuntime.getModeWords({ respectWordLength }), [dictionaryRuntime, respectWordLength]);
   const immediateWordCount = readModeWords().length;
   const dictionaryLoadBlocksStart = dictionaryRuntime.status === 'loading' && immediateWordCount === 0;
+  const spotlightSelected = isSpotlightDictionaryId(settings.activePremiumDictionaryId);
 
-  React.useEffect(() => { setStartError(null); }, [selectedPlayMode, settings.activePremiumDictionaryId, settings.dictionarySource, settings.difficulty, settings.wordLength]);
+  React.useEffect(() => { setStartError(null); }, [selectedPlayMode, settings.activePremiumDictionaryId, settings.activeSpotlightGrade, settings.activeSpotlightSectionId, settings.dictionarySource, settings.difficulty, settings.wordLength]);
 
   const selectSource = (nextSource: DictionarySource) => {
     if ((nextSource === 'custom' || nextSource === 'premium') && !isAuthenticated) { onLogin(); return; }
@@ -69,6 +74,16 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
     const nextPremiumId = nextSource === 'premium' && !settings.activePremiumDictionaryId && premiumCatalog[0]?.id ? premiumCatalog[0].id : settings.activePremiumDictionaryId;
     onSettingsChange({ ...settings, dictionarySource: nextSource, useCustomDictionary: nextSource === 'custom', activePremiumDictionaryId: nextPremiumId });
   };
+
+  const selectPremiumDictionary = (id: string) => onSettingsChange({
+    ...settings,
+    dictionarySource: 'premium',
+    useCustomDictionary: false,
+    activePremiumDictionaryId: id,
+    activeSpotlightGrade: isSpotlightDictionaryId(id) ? settings.activeSpotlightGrade || 2 : settings.activeSpotlightGrade,
+    activeSpotlightSectionId: isSpotlightDictionaryId(id) ? settings.activeSpotlightSectionId || SPOTLIGHT_ALL_SECTION_ID : settings.activeSpotlightSectionId,
+  });
+
   const startGame = React.useCallback(async () => {
     if (!sourceReady || isStarting) return;
     setIsStarting(true);
@@ -115,7 +130,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
       {source === 'builtin' && parentMode && assignedCount > 0 && hasPremium && <section className="mt-4 rounded-2xl bg-indigo-50 p-4"><div className="font-bold text-indigo-950">Назначено преподавателем: {assignedCount} слов</div><p className="mt-1 text-xs font-medium text-indigo-600">Эти слова будут использоваться в играх вместо общего детского набора.</p></section>}
       {!hasPremium && <button type="button" onClick={onOpenPremium} className="mt-4 w-full rounded-2xl bg-amber-50 px-4 py-3 text-left ring-1 ring-amber-100"><span className="block text-sm font-bold text-amber-900">Нужны свои слова?</span><span className="mt-1 block text-xs font-medium leading-relaxed text-amber-800/80">В Premium можно выбрать тему или добавить слова из школы, курса или работы.</span></button>}
       {source === 'custom' && hasPremium && <section className="mt-4 rounded-2xl bg-purple-50/70 p-4"><span className="block font-bold text-indigo-950">{customDictionaryWords.length ? `Выбрано слов: ${customDictionaryWords.length}` : 'Список слов пока пуст'}</span><p className="mt-1 text-xs font-medium text-purple-700/80">{customDictionaryWords.length ? 'Список готов для игр.' : 'Добавьте слова, чтобы начать.'}</p>{isUploadingDictionary && <p className="mt-2 text-xs font-bold text-purple-700">Сохраняю слова…</p>}<button type="button" onClick={onOpenDictionaryStudio} className={`mt-3 w-full ${experienceUi.primaryButton}`}>{customDictionaryWords.length ? 'Изменить слова' : 'Добавить слова'}</button></section>}
-      {source === 'premium' && hasPremium && <section className="mt-4 rounded-2xl bg-amber-50/70 p-4"><h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-amber-600">Выберите тему</h2><div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Выбор Premium-словаря">{premiumCatalog.map(item => <button type="button" key={item.id} onClick={() => onSettingsChange({ ...settings, dictionarySource: 'premium', useCustomDictionary: false, activePremiumDictionaryId: item.id })} className={`rounded-2xl bg-white p-3 text-left ring-2 ${settings.activePremiumDictionaryId === item.id ? 'ring-amber-300' : 'ring-transparent'}`}><div className="text-xl" aria-hidden="true">{item.icon}</div><div className="mt-1 truncate text-xs font-bold text-indigo-950">{item.shortTitle}</div></button>)}</div></section>}
+      {source === 'premium' && hasPremium && <section className="mt-4 rounded-2xl bg-amber-50/70 p-4"><h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-amber-600">Выберите тему</h2><div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Выбор Premium-словаря">{premiumCatalog.map(item => <button type="button" key={item.id} onClick={() => selectPremiumDictionary(item.id)} className={`rounded-2xl bg-white p-3 text-left ring-2 ${settings.activePremiumDictionaryId === item.id ? 'ring-amber-300' : 'ring-transparent'}`}><div className="text-xl" aria-hidden="true">{item.icon}</div><div className="mt-1 truncate text-xs font-bold text-indigo-950">{item.shortTitle}</div>{isSpotlightDictionaryId(item.id) && <div className="mt-1 text-[10px] font-black text-blue-600">2–11 классы</div>}</button>)}</div>{spotlightSelected && <SpotlightSelectionPanel settings={settings} onSettingsChange={onSettingsChange} compact />}</section>}
       {hasActiveClassicGame && selectedPlayMode === 'game' && onResumeClassicGame && <button type="button" onClick={onResumeClassicGame} className="mt-5 w-full rounded-2xl bg-emerald-50 py-3 font-bold text-emerald-700 ring-1 ring-emerald-100">Продолжить сохранённую игру</button>}
       <button type="button" onClick={() => void (dictionaryRuntime.status === 'error' ? retryDictionaryLoad() : startGame())} disabled={!sourceReady || isStarting || dictionaryLoadBlocksStart} className={`mt-3 w-full py-4 ${sourceReady && !dictionaryLoadBlocksStart ? experienceUi.primaryButton : 'rounded-2xl bg-slate-100 font-bold text-slate-400'}`}>{!sourceReady ? source === 'custom' && !hasPremium ? 'Нужен Premium' : 'Нет слов для игры' : loadingLabel}</button>
     </div>

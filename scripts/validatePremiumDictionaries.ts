@@ -88,4 +88,62 @@ for (const file of files) {
   if (!indexedFiles.has(file)) fail(`${file}: not listed in ${INDEX_FILE}`);
 }
 
-console.log(`✅ Premium dictionaries validation passed: ${files.length} files.`);
+
+const SPOTLIGHT_DIR = path.join(DICTIONARY_DIR, 'spotlight');
+const SPOTLIGHT_CATALOG_FILE = path.join(SPOTLIGHT_DIR, 'spotlight_catalog.json');
+const SPOTLIGHT_WORD_PATTERN = /^[A-Z]{1,18}$/;
+
+type SpotlightCatalog = {
+  grades?: Array<{
+    grade?: number;
+    wordCount?: number;
+    modules?: Array<{ id?: string; wordCount?: number }>;
+    supplements?: Array<{ id?: string; wordCount?: number }>;
+  }>;
+};
+type SpotlightRuntime = {
+  grade?: number;
+  words?: Array<[unknown, unknown]>;
+  sections?: Array<{ id?: string; kind?: string; label?: string; title?: string; wordIndexes?: unknown[] }>;
+};
+
+if (!fs.existsSync(SPOTLIGHT_CATALOG_FILE)) fail('Spotlight catalog not found');
+const spotlightCatalog = readJson<SpotlightCatalog>(SPOTLIGHT_CATALOG_FILE);
+const spotlightGrades = spotlightCatalog.grades || [];
+const expectedGrades = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+if (spotlightGrades.map(item => item.grade).join(',') !== expectedGrades.join(',')) fail('Spotlight grades must be 2–11');
+
+for (const gradeMeta of spotlightGrades) {
+  const grade = Number(gradeMeta.grade);
+  const runtimePath = path.join(SPOTLIGHT_DIR, `spotlight_grade_${grade}.json`);
+  if (!fs.existsSync(runtimePath)) fail(`Spotlight grade ${grade} file not found`);
+  const runtime = readJson<SpotlightRuntime>(runtimePath);
+  if (runtime.grade !== grade) fail(`Spotlight grade ${grade}: mismatched grade`);
+  if (!Array.isArray(runtime.words) || runtime.words.length !== gradeMeta.wordCount) fail(`Spotlight grade ${grade}: word count mismatch`);
+  const seenWords = new Set<string>();
+  runtime.words.forEach((item, index) => {
+    if (!Array.isArray(item) || typeof item[0] !== 'string' || !SPOTLIGHT_WORD_PATTERN.test(item[0])) fail(`Spotlight grade ${grade}: invalid word at ${index}`);
+    if (typeof item[1] !== 'string' || !item[1].trim()) fail(`Spotlight grade ${grade}: missing translation for ${item[0]}`);
+    if (seenWords.has(item[0])) fail(`Spotlight grade ${grade}: duplicate word ${item[0]}`);
+    seenWords.add(item[0]);
+  });
+  const sections = runtime.sections || [];
+  const sectionById = new Map(sections.map(section => [section.id, section]));
+  const expectedSections = [...(gradeMeta.modules || []), ...(gradeMeta.supplements || [])];
+  if (sections.length !== expectedSections.length) fail(`Spotlight grade ${grade}: section count mismatch`);
+  for (const meta of expectedSections) {
+    const section = sectionById.get(meta.id);
+    if (!section || !Array.isArray(section.wordIndexes)) fail(`Spotlight grade ${grade}: missing section ${meta.id}`);
+    const uniqueIndexes = new Set<number>();
+    for (const rawIndex of section.wordIndexes) {
+      const wordIndex = Number(rawIndex);
+      if (!Number.isInteger(wordIndex) || wordIndex < 0 || wordIndex >= runtime.words.length) fail(`Spotlight grade ${grade}: invalid word index in ${meta.id}`);
+      if (uniqueIndexes.has(wordIndex)) fail(`Spotlight grade ${grade}: duplicate word index in ${meta.id}`);
+      uniqueIndexes.add(wordIndex);
+    }
+    if (uniqueIndexes.size !== meta.wordCount) fail(`Spotlight grade ${grade}: word count mismatch in ${meta.id}`);
+  }
+  console.log(`✅ Spotlight ${grade}: ${runtime.words.length} words, ${sections.length} sections`);
+}
+
+console.log(`✅ Premium dictionaries validation passed: ${files.length} flat files plus Spotlight 2–11.`);

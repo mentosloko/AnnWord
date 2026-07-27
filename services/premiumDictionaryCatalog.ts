@@ -1,4 +1,5 @@
 import { DifficultyLevel, UserProfile } from '../types';
+import { getSpotlightDictionaryMeta, SPOTLIGHT_DICTIONARY_ID } from './spotlightDictionaryCatalog';
 
 export type PremiumDictionaryId =
   | 'premium_business_english'
@@ -10,7 +11,8 @@ export type PremiumDictionaryId =
   | 'premium_legal_compliance'
   | 'premium_science_research'
   | 'premium_everyday_advanced'
-  | 'premium_food_hospitality';
+  | 'premium_food_hospitality'
+  | typeof SPOTLIGHT_DICTIONARY_ID;
 
 export interface PremiumDictionaryMeta {
   id: PremiumDictionaryId;
@@ -20,6 +22,8 @@ export interface PremiumDictionaryMeta {
   icon: string;
   wordCount?: number;
   levelCounts?: Partial<Record<DifficultyLevel, number>>;
+  kind?: 'flat' | 'series';
+  description?: string;
 }
 
 const catalog: PremiumDictionaryMeta[] = [
@@ -33,6 +37,7 @@ const catalog: PremiumDictionaryMeta[] = [
   { id: 'premium_science_research', title: 'Science & Research English', shortTitle: 'Science', theme: 'science', icon: '🔬' },
   { id: 'premium_everyday_advanced', title: 'Everyday Advanced English', shortTitle: 'Everyday+', theme: 'everyday_advanced', icon: '💬' },
   { id: 'premium_food_hospitality', title: 'Food & Hospitality English', shortTitle: 'Food', theme: 'food_hospitality', icon: '🍽️' },
+  getSpotlightDictionaryMeta(),
 ];
 
 export const hasPremiumDictionaryAccess = (userProfile: UserProfile): boolean => {
