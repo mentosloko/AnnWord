@@ -42,7 +42,7 @@ const Shop = React.lazy(() => import('./Shop').then(module => ({ default: module
 const PetRoom = React.lazy(() => import('./PetRoom').then(module => ({ default: module.PetRoom })));
 
 export type PlayableModeRoute = 'game' | 'anagrams' | 'translation' | 'sprint' | 'memory' | 'hangman' | 'letter_square';
-export interface ClassicGameScreenBindings { setupError: string | null; gameState: GameState; keyStatuses: Record<string, CharStatus>; shakeRowIndex: number | null; hasActiveGame?: boolean; resumeGame?: () => boolean; startNewGame: () => void; handleChar: (char: string) => void; handleDelete: () => void; handleEnter: () => void | Promise<void>; fetchHint: () => void | Promise<void>; }
+export interface ClassicGameScreenBindings { setupError: string | null; gameState: GameState; keyStatuses: Record<string, CharStatus>; shakeRowIndex: number | null; hasActiveGame?: boolean; resumeGame?: () => boolean; startNewGame: (dictionarySnapshot?: string[]) => void; handleChar: (char: string) => void; handleDelete: () => void; handleEnter: () => void | Promise<void>; fetchHint: () => void | Promise<void>; }
 export interface DictionaryUploadBindings { isUploadingDictionary: boolean; error: string | null; onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void; }
 export interface AppScreensProps {
   route: ViewState;
@@ -146,7 +146,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
     setDictionarySnapshot({ words, label: activeDictionaryName, icon: activeDictionaryIcon, key: `${settings.dictionarySource}:${settings.activePremiumDictionaryId || 'default'}:${words.join('|')}` });
     setQuickStartRequested(false);
     onGameStarted?.(selectedPlayMode);
-    if (selectedPlayMode === 'game') { classicGame.startNewGame(); return; }
+    if (selectedPlayMode === 'game') { classicGame.startNewGame(words); return; }
     onRouteChange(selectedPlayMode);
   };
   const startDailyQuest = (quest: DailyQuestState) => {
