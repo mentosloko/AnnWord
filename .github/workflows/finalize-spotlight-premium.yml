@@ -59,7 +59,6 @@ jobs:
           path.write_text(source[:start] + source[end + 2:], encoding='utf-8')
           PY
           python3 /tmp/apply-spotlight.py
-          echo "Spotlight source files after patch:"
           find services components -maxdepth 3 -iname '*spotlight*' -print
 
       - uses: actions/setup-node@v4
@@ -71,17 +70,45 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Verify Spotlight integration
+        id: verify
+        continue-on-error: true
         run: |
-          npm run lint
-          npm run premium-dictionaries:validate
-          npm run check:unit
-          npm run build
+          set +e
+          : > /tmp/spotlight-verify.log
+          STATUS=0
+          run_check() {
+            local label="$1"
+            shift
+            echo "===== $label =====" | tee -a /tmp/spotlight-verify.log
+            "$@" >> /tmp/spotlight-verify.log 2>&1
+            local code=$?
+            echo "exit=$code" | tee -a /tmp/spotlight-verify.log
+            if [ "$code" -ne 0 ]; then STATUS="$code"; return "$code"; fi
+          }
+          run_check "TypeScript" npm run lint || true
+          if [ "$STATUS" -eq 0 ]; then run_check "Premium dictionaries" npm run premium-dictionaries:validate || true; fi
+          if [ "$STATUS" -eq 0 ]; then run_check "Unit tests" npm run check:unit || true; fi
+          if [ "$STATUS" -eq 0 ]; then run_check "Production build" npm run build || true; fi
+          cat /tmp/spotlight-verify.log
+          exit "$STATUS"
+
+      - name: Save Spotlight verification diagnostic
+        if: steps.verify.outcome == 'failure'
+        run: |
+          { echo "Run: $GITHUB_RUN_ID"; echo; cat /tmp/spotlight-verify.log; } > spotlight-verification-error.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add spotlight-verification-error.txt
+          git commit -m "Record Spotlight verification failure"
+          git push origin HEAD:feature/spotlight-premium
+          exit 1
 
       - name: Commit clean verified branch
+        if: steps.verify.outcome == 'success'
         run: |
           set -euo pipefail
           git diff --name-only -- '*.pdf' | xargs -r git checkout --
-          rm -rf scripts/spotlight-upload scripts/spotlight-clean scripts/spotlight-integration.trigger .github/workflows/apply-spotlight-premium.yml spotlight-integration-error.txt spotlight-finalization-error.txt spotlight-apply-error.txt spotlight-apply-decoded.py
+          rm -rf scripts/spotlight-upload scripts/spotlight-clean scripts/spotlight-integration.trigger .github/workflows/apply-spotlight-premium.yml spotlight-integration-error.txt spotlight-finalization-error.txt spotlight-apply-error.txt spotlight-verification-error.txt spotlight-apply-decoded.py
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
@@ -92,6 +119,7 @@ jobs:
           fi
 
       - name: Open or update pull request
+        if: steps.verify.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
