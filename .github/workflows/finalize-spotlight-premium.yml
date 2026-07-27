@@ -47,15 +47,10 @@ jobs:
           for grade in $(seq 2 11); do test -f "dictionaries/premium/spotlight/spotlight_grade_${grade}.json"; done
 
       - name: Apply Spotlight code integration
-        id: apply
-        continue-on-error: true
         run: |
-          set +e
-          : > /tmp/spotlight-apply.log
-          {
-            set -euo pipefail
-            cp spotlight-apply-decoded.py /tmp/apply-spotlight.py
-            python3 - <<'PY'
+          set -euo pipefail
+          cp spotlight-apply-decoded.py /tmp/apply-spotlight.py
+          python3 - <<'PY'
           from pathlib import Path
           path = Path('/tmp/apply-spotlight.py')
           source = path.read_text(encoding='utf-8')
@@ -63,39 +58,19 @@ jobs:
           end = source.index("\n\nwrite('services/premiumDictionaryCatalog.ts'", start)
           path.write_text(source[:start] + source[end + 2:], encoding='utf-8')
           PY
-            python3 /tmp/apply-spotlight.py
-            test -f services/spotlightDictionaryCatalog.ts
-            test -f components/SpotlightSelectionPanel.tsx
-            grep -q "premium_spotlight_school" services/premiumDictionaryCatalog.ts
-            grep -q "activeSpotlightGrade" types.ts
-          } > /tmp/spotlight-apply.log 2>&1
-          STATUS=$?
-          cat /tmp/spotlight-apply.log
-          exit "$STATUS"
-
-      - name: Save Spotlight apply diagnostic
-        if: steps.apply.outcome == 'failure'
-        run: |
-          { echo "Spotlight code integration failed."; echo; cat /tmp/spotlight-apply.log; } > spotlight-apply-error.txt
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add spotlight-apply-error.txt
-          git commit -m "Record Spotlight apply failure"
-          git push origin HEAD:feature/spotlight-premium
-          exit 1
+          python3 /tmp/apply-spotlight.py
+          echo "Spotlight source files after patch:"
+          find services components -maxdepth 3 -iname '*spotlight*' -print
 
       - uses: actions/setup-node@v4
-        if: steps.apply.outcome == 'success'
         with:
           node-version: 22
           cache: npm
 
       - name: Install dependencies
-        if: steps.apply.outcome == 'success'
         run: npm install --no-audit --no-fund
 
       - name: Verify Spotlight integration
-        if: steps.apply.outcome == 'success'
         run: |
           npm run lint
           npm run premium-dictionaries:validate
@@ -103,7 +78,6 @@ jobs:
           npm run build
 
       - name: Commit clean verified branch
-        if: steps.apply.outcome == 'success'
         run: |
           set -euo pipefail
           git diff --name-only -- '*.pdf' | xargs -r git checkout --
@@ -118,7 +92,6 @@ jobs:
           fi
 
       - name: Open or update pull request
-        if: steps.apply.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
