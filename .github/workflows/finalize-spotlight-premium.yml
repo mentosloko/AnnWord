@@ -1,4 +1,4 @@
-name: Finalize Spotlight Premium
+name: Sync Spotlight Premium
 
 on:
   push:
@@ -8,62 +8,29 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
   statuses: write
 
 concurrency:
-  group: finalize-spotlight-premium
+  group: sync-spotlight-premium
   cancel-in-progress: true
 
 jobs:
-  finalize:
+  sync:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - name: Mark Spotlight finalization pending
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          node -e 'process.stdout.write(JSON.stringify({state:"pending",context:"Spotlight Finalization",description:"Verifying Spotlight Premium integration",target_url:process.env.TARGET_URL}))' > /tmp/status.json
-          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" --data-binary @/tmp/status.json
-
       - uses: actions/checkout@v4
         with:
           ref: feature/spotlight-premium
           fetch-depth: 0
 
-      - name: Assemble verified Spotlight data
+      - name: Merge current main into Spotlight branch
         run: |
           set -euo pipefail
-          cat scripts/spotlight-clean/runtime_00.b64 scripts/spotlight-clean/runtime_01.b64 scripts/spotlight-clean/runtime_02.b64 scripts/spotlight-clean/runtime_03.b64 scripts/spotlight-clean/runtime_04.b64 scripts/spotlight-clean/runtime_05.b64 scripts/spotlight-clean/runtime_06.b64 scripts/spotlight-clean/runtime_07.b64 scripts/spotlight-clean/runtime_08.b64 | tr -d '\n\r ' | base64 -d > /tmp/spotlight-runtime.tar.xz
-          echo "82fa77d3138367591c61483b2793bbb548f7afe9ac4ae5aee37c817af35beaca  /tmp/spotlight-runtime.tar.xz" | sha256sum -c -
-          test "$(wc -c < /tmp/spotlight-runtime.tar.xz)" -eq 95280
-          xz -t /tmp/spotlight-runtime.tar.xz
-          rm -rf dictionaries/premium/spotlight
-          mkdir -p dictionaries/premium/spotlight
-          tar -xJf /tmp/spotlight-runtime.tar.xz -C dictionaries/premium/spotlight
-          test -f dictionaries/premium/spotlight/spotlight_catalog.json
-          for grade in $(seq 2 11); do test -f "dictionaries/premium/spotlight/spotlight_grade_${grade}.json"; done
-
-      - name: Apply Spotlight code integration
-        run: |
-          set -euo pipefail
-          if [ -f services/spotlightDictionaryCatalog.ts ]; then
-            echo "Spotlight code already persisted on feature branch."
-          else
-            cp spotlight-apply-decoded.py /tmp/apply-spotlight.py
-            python3 - <<'PY'
-          from pathlib import Path
-          path = Path('/tmp/apply-spotlight.py')
-          source = path.read_text(encoding='utf-8')
-          start = source.index("bundle_path = ROOT / 'scripts/spotlight-runtime.zip.b64'")
-          end = source.index("\n\nwrite('services/premiumDictionaryCatalog.ts'", start)
-          path.write_text(source[:start] + source[end + 2:], encoding='utf-8')
-          PY
-            python3 /tmp/apply-spotlight.py
-          fi
-          find services components -maxdepth 3 -iname '*spotlight*' -print
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin main
+          git merge --no-edit origin/main
 
       - uses: actions/setup-node@v4
         with:
@@ -73,73 +40,15 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Verify Spotlight integration
-        id: verify
-        continue-on-error: true
+      - name: Verify synchronized Spotlight integration
         run: |
-          set +e
-          : > /tmp/spotlight-verify.log
-          STATUS=0
-          run_check() {
-            local label="$1"
-            shift
-            echo "===== $label =====" | tee -a /tmp/spotlight-verify.log
-            "$@" >> /tmp/spotlight-verify.log 2>&1
-            local code=$?
-            echo "exit=$code" | tee -a /tmp/spotlight-verify.log
-            if [ "$code" -ne 0 ]; then STATUS="$code"; return "$code"; fi
-          }
-          run_check "TypeScript" npm run lint || true
-          if [ "$STATUS" -eq 0 ]; then run_check "Premium dictionaries" npm run premium-dictionaries:validate || true; fi
-          if [ "$STATUS" -eq 0 ]; then run_check "Unit tests" npm run check:unit || true; fi
-          if [ "$STATUS" -eq 0 ]; then run_check "Production build" npm run build || true; fi
-          cat /tmp/spotlight-verify.log
-          exit "$STATUS"
+          npm run lint
+          npm run premium-dictionaries:validate
+          npm run check:unit
+          npm run build
 
-      - name: Save Spotlight verification diagnostic and generated sources
-        if: steps.verify.outcome == 'failure'
+      - name: Push synchronized branch
         run: |
-          { echo "Run: $GITHUB_RUN_ID"; echo; cat /tmp/spotlight-verify.log; } > spotlight-verification-error.txt
           git diff --name-only -- '*.pdf' | xargs -r git checkout --
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A
-          git commit -m "Persist Spotlight integration for type fixes"
+          git status --short
           git push origin HEAD:feature/spotlight-premium
-          exit 1
-
-      - name: Commit clean verified branch
-        if: steps.verify.outcome == 'success'
-        run: |
-          set -euo pipefail
-          git diff --name-only -- '*.pdf' | xargs -r git checkout --
-          rm -rf scripts/spotlight-upload scripts/spotlight-clean scripts/spotlight-integration.trigger .github/workflows/apply-spotlight-premium.yml spotlight-integration-error.txt spotlight-finalization-error.txt spotlight-apply-error.txt spotlight-verification-error.txt spotlight-apply-decoded.py
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A
-          git diff --cached --check
-          if ! git diff --cached --quiet; then
-            git commit -m "Add Spotlight premium dictionaries"
-            git push origin HEAD:feature/spotlight-premium
-          fi
-
-      - name: Open or update pull request
-        if: steps.verify.outcome == 'success'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          EXISTING="$(gh pr list --head feature/spotlight-premium --base main --state open --json number --jq '.[0].number // empty')"
-          BODY=$'## Что добавлено\n- Premium-семейство Spotlight для 2–11 классов\n- выбор всего класса, основного модуля или дополнительного раздела\n- поддержка Practice и Kids\n- сохранение выбранного класса и раздела в игровых настройках\n- динамическая загрузка данных только выбранного класса\n- слова с дефисами и апострофами исключены\n\n## Проверки\n- TypeScript\n- Premium dictionary validation\n- unit tests\n- production build\n\nСхема базы данных не изменяется.'
-          if [ -z "$EXISTING" ]; then gh pr create --head feature/spotlight-premium --base main --title "Add Spotlight premium dictionaries" --body "$BODY"; else gh pr edit "$EXISTING" --title "Add Spotlight premium dictionaries" --body "$BODY"; fi
-
-      - name: Publish Spotlight finalization status
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          JOB_STATUS: ${{ job.status }}
-        run: |
-          if [ "$JOB_STATUS" = "success" ]; then STATE=success; DESCRIPTION="Spotlight Premium verified and PR ready"; else STATE=failure; DESCRIPTION="Spotlight Premium finalization failed"; fi
-          STATE="$STATE" DESCRIPTION="$DESCRIPTION" node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Spotlight Finalization",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/status.json
-          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" --data-binary @/tmp/status.json
-          test "$STATE" = success
