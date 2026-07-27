@@ -1,1 +1,1 @@
-finalize Spotlight Premium integration after independent base64 decoding
+finalize Spotlight Premium integration after base64 boundary normalization
