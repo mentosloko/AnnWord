@@ -1,4 +1,5 @@
 import { DifficultyLevel, UserProfile } from '../types';
+import { SPOTLIGHT_DICTIONARY_ID } from './spotlightDictionary';
 
 export type PremiumDictionaryId =
   | 'premium_business_english'
@@ -10,7 +11,8 @@ export type PremiumDictionaryId =
   | 'premium_legal_compliance'
   | 'premium_science_research'
   | 'premium_everyday_advanced'
-  | 'premium_food_hospitality';
+  | 'premium_food_hospitality'
+  | typeof SPOTLIGHT_DICTIONARY_ID;
 
 export interface PremiumDictionaryMeta {
   id: PremiumDictionaryId;
@@ -22,7 +24,16 @@ export interface PremiumDictionaryMeta {
   levelCounts?: Partial<Record<DifficultyLevel, number>>;
 }
 
+const spotlightMeta: PremiumDictionaryMeta = {
+  id: SPOTLIGHT_DICTIONARY_ID,
+  title: 'Spotlight 2–11',
+  shortTitle: 'Spotlight',
+  theme: 'school',
+  icon: '🎒',
+};
+
 const catalog: PremiumDictionaryMeta[] = [
+  spotlightMeta,
   { id: 'premium_business_english', title: 'Business English', shortTitle: 'Business', theme: 'business', icon: '💼' },
   { id: 'premium_travel_english', title: 'Travel English', shortTitle: 'Travel', theme: 'travel', icon: '✈️' },
   { id: 'premium_medical_english', title: 'Medical English', shortTitle: 'Medicine', theme: 'medicine', icon: '🩺' },
@@ -43,6 +54,8 @@ export const hasPremiumDictionaryAccess = (userProfile: UserProfile): boolean =>
 };
 
 export const getPremiumDictionaryCatalog = (): PremiumDictionaryMeta[] => catalog;
+
+export const getSpotlightPremiumDictionaryMeta = (): PremiumDictionaryMeta => spotlightMeta;
 
 export const getDefaultPremiumDictionaryId = (): PremiumDictionaryId => 'premium_business_english';
 
