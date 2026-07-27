@@ -1,1 +1,1 @@
-verify Spotlight Premium integration with TypeScript tests and build
+diagnose Spotlight Premium TypeScript validation tests and build
