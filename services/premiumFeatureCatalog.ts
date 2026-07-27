@@ -1,5 +1,6 @@
 import { PetState, PetWorldId, ShopItem, UserProfile } from '../types';
 import { getShopItemsByType } from './shopCatalog';
+import { STREAK_STICKER_MILESTONES } from './streakStickerPolicy';
 
 export interface PetWorldDefinition { id: PetWorldId; title: string; emoji: string; description: string; backgroundImageUrl?: string; backgroundClass: string; }
 export interface StreakSticker { id: string; days: number; title: string; emoji: string; description: string; }
@@ -12,12 +13,19 @@ export const PET_WORLDS: PetWorldDefinition[] = [
   { id: 'opera', title: 'Опера', emoji: '🎼', description: 'Фон дня за ежедневное задание', backgroundImageUrl: '/assets/rooms/daily/opera.webp', backgroundClass: 'from-indigo-100 to-amber-100' },
   { id: 'sausage_fridge', title: 'Холодильник с сосисками', emoji: '🌭', description: 'Фон дня за ежедневное задание', backgroundImageUrl: '/assets/rooms/daily/sausage-fridge.webp', backgroundClass: 'from-teal-50 to-orange-100' },
 ];
-export const STREAK_STICKERS: StreakSticker[] = [
-  { id: 'streak_3', days: 3, title: 'Звёздный старт', emoji: '⭐', description: '3 дня подряд' },
-  { id: 'streak_7', days: 7, title: 'Огонёк недели', emoji: '🔥', description: '7 дней подряд' },
-  { id: 'streak_14', days: 14, title: 'Медаль друга', emoji: '🏅', description: '14 дней подряд' },
-  { id: 'streak_30', days: 30, title: 'Кубок героя', emoji: '🏆', description: '30 дней подряд' },
-];
+
+const STREAK_STICKER_DETAILS: Record<string, Omit<StreakSticker, 'id' | 'days'>> = {
+  streak_1: { title: 'Первый шаг', emoji: '🌱', description: '1 день занятий' },
+  streak_3: { title: 'Звёздный старт', emoji: '⭐', description: '3 дня подряд' },
+  streak_7: { title: 'Огонёк недели', emoji: '🔥', description: '7 дней подряд' },
+  streak_14: { title: 'Медаль друга', emoji: '🏅', description: '14 дней подряд' },
+  streak_30: { title: 'Кубок героя', emoji: '🏆', description: '30 дней подряд' },
+};
+
+export const STREAK_STICKERS: StreakSticker[] = STREAK_STICKER_MILESTONES.map(milestone => ({
+  ...milestone,
+  ...STREAK_STICKER_DETAILS[milestone.id],
+}));
 
 const moscowDateKey = (date = new Date()): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 const treatRequestStorageKey = (profile: UserProfile) => `annword:treat-request:${profile.username || 'guest'}:${moscowDateKey()}`;
