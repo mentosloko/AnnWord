@@ -80,7 +80,7 @@ describe('mobile Practice root-cause regressions', () => {
     const dictionary = read('components/screens/DictionarySettingsScreen.tsx');
     const practice = read('components/screens/PracticeHomeScreenWithLetterSquare.tsx');
     const anagram = read('components/AnagramGame.tsx');
-    expect(dictionary).toContain('Встроенный словарь с разными уровнями сложности.');
+    expect(dictionary).toContain('Выберите сложность только для общего словаря. На тематические наборы этот уровень не влияет.');
     expect(dictionary).not.toContain('В бесплатном режиме доступен базовый набор');
     expect(practice).not.toContain('Практика на сегодня выполнена');
     expect(practice).not.toContain('Можно сыграть ещё в любую игру или вернуться завтра');

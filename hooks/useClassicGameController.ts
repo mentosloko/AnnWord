@@ -48,13 +48,20 @@ export const useClassicGameController = ({ route, settings, sessionOwnerId, getS
 
   const hasActiveGame = Boolean(storageKey && gameState.secretWord && gameState.gameStatus === 'playing');
   const resumeGame = useCallback(() => { if (!storageKey || !gameState.secretWord || gameState.gameStatus !== 'playing') return false; onRouteChange('game'); scrollTop(); return true; }, [gameState.gameStatus, gameState.secretWord, onRouteChange, storageKey]);
-  const startNewGame = useCallback(() => {
+  const startNewGame = useCallback((dictionarySnapshot?: string[]) => {
     finishingRef.current = false;
     setSetupError(null);
-    const source = getSecretWordPool();
-    if (source.length === 0 && settings.dictionarySource !== 'custom') { setSetupError('Словарь ещё загружается. Попробуйте снова.'); return; }
-    if (settings.dictionarySource === 'custom' && source.length === 0) { setSetupError('Мой словарь не загружен. Загрузите TXT/CSV-файл или выберите встроенный словарь.'); return; }
-    const candidateLengths = settings.dictionarySource === 'custom' ? RANDOM_WORD_LENGTHS.filter(length => source.some(entry => entry.word.length === length)) : [settings.wordLength];
+    const fullSource = getSecretWordPool();
+    if (fullSource.length === 0 && settings.dictionarySource !== 'custom') { setSetupError('Словарь ещё загружается. Попробуйте снова.'); return; }
+    if (settings.dictionarySource === 'custom' && fullSource.length === 0) { setSetupError('Мой словарь не загружен. Загрузите TXT/CSV-файл или выберите встроенный словарь.'); return; }
+    const preparedWords = new Set((dictionarySnapshot || []).map(word => word.trim().toUpperCase()).filter(Boolean));
+    const source = preparedWords.size > 0 ? fullSource.filter(entry => preparedWords.has(entry.word.toUpperCase())) : fullSource;
+    if (source.length === 0) { setSetupError('Выбранный словарь изменился. Вернитесь к настройкам и запустите игру снова.'); return; }
+    const candidateLengths = preparedWords.size > 0
+      ? RANDOM_WORD_LENGTHS.filter(length => source.some(entry => entry.word.length === length))
+      : settings.dictionarySource === 'custom'
+        ? RANDOM_WORD_LENGTHS.filter(length => source.some(entry => entry.word.length === length))
+        : [settings.wordLength];
     if (candidateLengths.length === 0) { setSetupError('В вашем словаре нет слов длиной 4–6 букв.'); return; }
     const wordLength = candidateLengths[Math.floor(Math.random() * candidateLengths.length)];
     const pool = source.filter(entry => entry.word.length === wordLength);

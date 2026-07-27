@@ -22,13 +22,15 @@ describe('lazy dictionary critical path', () => {
     expect(classicController).not.toContain("from '../dictionaries/");
   });
 
-  it('loads the runtime only on game and setup routes', () => {
+  it('loads the runtime only on game and setup routes without blocking an available kids pool', () => {
     const pools = read('hooks/useDictionaryPools.ts');
     const setup = read('components/screens/SetupScreenSafe.tsx');
 
     expect(pools).toContain('DICTIONARY_ROUTE_PATTERN');
     expect(pools).toContain('enabled ?? shouldLoadForCurrentRoute()');
-    expect(setup).toContain('await dictionaryRuntime.ensureReady()');
+    expect(setup).toContain('let dictionarySnapshot = readModeWords()');
+    expect(setup).toContain('waitForDictionaryRuntime(dictionaryRuntime.ensureReady())');
+    expect(setup).toContain('void dictionaryRuntime.ensureReady()');
     expect(setup).toContain('Загружаю словарь…');
   });
 });
