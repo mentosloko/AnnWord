@@ -66,11 +66,11 @@ describe('verified QA fixes', () => {
     expect(premium).not.toContain('Premium активен до:');
   });
 
-  it('renders compact treat cards without duplicated description or shortage explanation', () => {
+  it('renders treats and wardrobe accessories with the same compact card footprint', () => {
     const shop = read('components/Shop.tsx');
-    expect(shop).toContain("activeTab === 'food' ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'");
-    expect(shop).toContain("const compactFood = item.type === 'food'");
-    expect(shop).toContain('{!compactFood && <p');
+    expect(shop).toContain('grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4');
+    expect(shop).toContain("const compactCard = item.type === 'food' || item.type === 'accessory'");
+    expect(shop).toContain('{!compactCard && <p');
     expect(shop).not.toContain('сыграйте ещё');
     expect(shop).not.toContain('Можно купить</div>');
   });
