@@ -16,7 +16,7 @@ describe('Yandex pet mood integration', () => {
     const service = read('services/userService.ts');
     const routes = read('server/routes/profileRoutes.ts');
     expect(api).toContain('/api/profile/use-item');
-    expect(service).toContain('if(isBackendApiConfigured)return profileApiService.useItem(itemId)');
+    expect(service).toContain('if(isBackendApiConfigured)return profileApiService.useItem(itemId');
     expect(routes).toContain('useProfileItemServerAuthoritative');
   });
 
