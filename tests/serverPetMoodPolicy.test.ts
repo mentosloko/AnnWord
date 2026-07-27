@@ -67,13 +67,28 @@ describe('server pet mood clock', () => {
 
 describe('server pet activity', () => {
   it('increments a streak only when the previous activity was yesterday', () => {
-    const next = markServerPetActivity(pet({ dailyStreak: 3, lastDailyActivityDate: '2026-07-16' }), '2026-07-17', '2026-07-16');
+    const next = markServerPetActivity(pet({ dailyStreak: 3, lastDailyActivityDate: '2026-07-16', earnedStickerIds: ['streak_1', 'streak_3'] }), '2026-07-17', '2026-07-16');
     expect(next.dailyStreak).toBe(4);
     expect(next.lastDailyActivityDate).toBe('2026-07-17');
+    expect(next.earnedStickerIds).toEqual(['streak_1', 'streak_3']);
   });
 
-  it('does not increment twice on the same day', () => {
-    const next = markServerPetActivity(pet({ dailyStreak: 4, lastDailyActivityDate: '2026-07-17' }), '2026-07-17', '2026-07-16');
+  it('does not increment twice on the same day and backfills earned stickers', () => {
+    const next = markServerPetActivity(pet({ dailyStreak: 4, lastDailyActivityDate: '2026-07-17', earnedStickerIds: [] }), '2026-07-17', '2026-07-16');
     expect(next.dailyStreak).toBe(4);
+    expect(next.earnedStickerIds).toEqual(['streak_1', 'streak_3']);
+  });
+
+  it('awards the first-day sticker immediately', () => {
+    const next = markServerPetActivity(pet({ dailyStreak: 0, lastDailyActivityDate: undefined, earnedStickerIds: [] }), '2026-07-17', '2026-07-16');
+    expect(next.dailyStreak).toBe(1);
+    expect(next.earnedStickerIds).toEqual(['streak_1']);
+  });
+
+  it('keeps previously earned stickers when a broken streak resets to one day', () => {
+    const next = markServerPetActivity(pet({ dailyStreak: 8, lastDailyActivityDate: '2026-07-10', earnedStickerIds: ['streak_1', 'streak_3', 'streak_7'] }), '2026-07-17', '2026-07-16');
+    expect(next.dailyStreak).toBe(1);
+    expect(next.lastDailyActivityDate).toBe('2026-07-17');
+    expect(next.earnedStickerIds).toEqual(['streak_1', 'streak_3', 'streak_7']);
   });
 });

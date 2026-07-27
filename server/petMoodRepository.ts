@@ -24,6 +24,11 @@ const moscowDateKey = (date: Date): string => {
 };
 
 const previousMoscowDateKey = (serverNowMs: number): string => moscowDateKey(new Date(serverNowMs - 86_400_000));
+const sameStringSet = (first: string[] | undefined, second: string[] | undefined): boolean => {
+  const left = Array.from(new Set(first || [])).sort();
+  const right = Array.from(new Set(second || [])).sort();
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+};
 
 interface LockedProfileRow {
   id: string;
@@ -93,7 +98,10 @@ export const reconcileProfileMood = async (userId: string, markActivity = false)
   const nextPet = markActivity
     ? markServerPetActivity(clock.pet, today, previousMoscowDateKey(nowMs))
     : clock.pet;
-  const changed = clock.changed || nextPet.lastDailyActivityDate !== clock.pet.lastDailyActivityDate || nextPet.dailyStreak !== clock.pet.dailyStreak;
+  const changed = clock.changed
+    || nextPet.lastDailyActivityDate !== clock.pet.lastDailyActivityDate
+    || nextPet.dailyStreak !== clock.pet.dailyStreak
+    || !sameStringSet(nextPet.earnedStickerIds, clock.pet.earnedStickerIds);
   return changed ? persistPet(client, userId, nextPet) : mapHydratedProfile(userId, row);
 });
 
@@ -124,6 +132,7 @@ const mergeNonMoodPetFields = (serverPet: PetState, incoming: unknown): PetState
     moodUpdatedAt: serverPet.moodUpdatedAt,
     lastDailyActivityDate: serverPet.lastDailyActivityDate,
     dailyStreak: serverPet.dailyStreak,
+    earnedStickerIds: Array.from(new Set([...(serverPet.earnedStickerIds || []), ...(incomingPet.earnedStickerIds || [])])),
   };
 };
 

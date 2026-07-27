@@ -1,5 +1,6 @@
 import type { PetState } from '../types';
 import { deriveMoodFromScore, normalizeMoodScore } from './gamificationRules';
+import { preserveEarnedStickerIds } from './streakStickerPolicy';
 
 export const PET_MOOD_LOSS_PER_DAY = 8;
 export const PET_MOOD_STEP_MS = 3 * 60 * 60 * 1000;
@@ -79,10 +80,17 @@ export const applyServerMoodIncrease = (pet: PetState, delta: number, serverNowM
   };
 };
 
+const awardStreakStickers = (pet: PetState, streakDays: number): PetState => ({
+  ...pet,
+  earnedStickerIds: preserveEarnedStickerIds(pet.earnedStickerIds, streakDays),
+});
+
 export const markServerPetActivity = (pet: PetState, moscowDate: string, previousMoscowDate: string): PetState => {
-  if (pet.lastDailyActivityDate === moscowDate) return pet;
+  if (pet.lastDailyActivityDate === moscowDate) {
+    return awardStreakStickers(pet, Math.max(0, Math.round(pet.dailyStreak || 0)));
+  }
   const nextStreak = pet.lastDailyActivityDate === previousMoscowDate
     ? Math.max(1, Math.round(pet.dailyStreak || 0) + 1)
     : 1;
-  return { ...pet, lastDailyActivityDate: moscowDate, dailyStreak: nextStreak };
+  return awardStreakStickers({ ...pet, lastDailyActivityDate: moscowDate, dailyStreak: nextStreak }, nextStreak);
 };
