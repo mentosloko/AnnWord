@@ -4,7 +4,7 @@ import { normalizeInventory } from "../services/profileMapper";
 import type { DailyQuestCompletionReward, DailyQuestKind, DailyQuestState, InventoryItem, ShopItem, UserProfile } from "../types";
 import type { GameRewardInput } from "../services/gamificationRules";
 import { DAILY_QUEST_DEFINITIONS, getMemoryMovesFromResult } from "../services/dailyQuest";
-import { pickDailyQuestTreat } from "../services/dailyQuestRewardCatalog";
+import { pickDailyQuestRewardChoice } from "../services/dailyQuestRewardPolicy";
 
  type DailyQuestRow = {
   user_id: string;
@@ -207,7 +207,7 @@ export async function applyDailyQuestResult(userId: string, input: GameRewardInp
   if (!completed) return { quest: await getOrCreateDailyQuest(userId), reward: null, profile: null };
   if (quest.completed) return { quest, reward: null, profile: await reconcileProfileMood(userId, true) };
 
-  const treat = pickDailyQuestTreat(userId, questDate);
+  const rewardChoice = pickDailyQuestRewardChoice(userId, questDate);
   const result = await transaction(async client => {
     const lockedQuest = await client.query<DailyQuestRow>(
       `select user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id
@@ -220,25 +220,40 @@ export async function applyDailyQuestResult(userId: string, input: GameRewardInp
     if (!row) throw new Error("Daily quest not found");
     if (row.completed) return { row, awarded: false };
 
-    const profileResult = await client.query<{ role: string | null; account_mode: string | null; inventory: unknown }>(
-      "select role, account_mode, inventory from profiles where id = $1 for update",
+    const profileResult = await client.query<{ role: string | null; account_mode: string | null; inventory: unknown; pet: Record<string, unknown> | null }>(
+      "select role, account_mode, inventory, pet from profiles where id = $1 for update",
       [userId],
     );
     const profile = profileResult.rows[0];
     const isKids = profile?.role === "parent" || profile?.account_mode === "parent";
     if (isKids && profile) {
-      const inventory = addInventoryReward(normalizeInventory(profile.inventory), treat);
-      await client.query("update profiles set inventory = $2::jsonb, updated_at = now() where id = $1", [userId, JSON.stringify(inventory)]);
+      if (rewardChoice.worldId) {
+        const pet = {
+          ...(profile.pet || {}),
+          activeWorldId: rewardChoice.worldId,
+          activeWorldDate: questDate,
+        };
+        await client.query("update profiles set pet = $2::jsonb, updated_at = now() where id = $1", [userId, JSON.stringify(pet)]);
+      } else if (rewardChoice.item) {
+        const inventory = addInventoryReward(normalizeInventory(profile.inventory), rewardChoice.item);
+        await client.query("update profiles set inventory = $2::jsonb, updated_at = now() where id = $1", [userId, JSON.stringify(inventory)]);
+      }
     }
     const updated = await client.query<DailyQuestRow>(
       `update daily_quests
           set completed = true,
               completed_at = coalesce(completed_at, now()),
-              reward_item_id = case when $3::boolean then $4 else reward_item_id end,
+              reward_item_id = $3,
+              reward_world_id = $4,
               updated_at = now()
         where user_id = $1 and quest_date = $2
         returning user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id`,
-      [userId, questDate, isKids, treat.id],
+      [
+        userId,
+        questDate,
+        isKids ? rewardChoice.item?.id || null : null,
+        isKids ? rewardChoice.worldId : null,
+      ],
     );
     return { row: updated.rows[0], awarded: isKids };
   });
@@ -246,7 +261,7 @@ export async function applyDailyQuestResult(userId: string, input: GameRewardInp
   const completedQuest = toQuest(result.row);
   return {
     quest: completedQuest,
-    reward: result.awarded ? { quest: completedQuest, item: treat, worldId: null } : null,
+    reward: result.awarded ? { quest: completedQuest, item: rewardChoice.item, worldId: rewardChoice.worldId } : null,
     profile: await reconcileProfileMood(userId, true),
   };
 }
