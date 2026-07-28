@@ -301,25 +301,26 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
           <h4 className="mt-4 text-xs font-black uppercase tracking-wider text-amber-700">Модуль</h4>
           {spotlightLoadState === 'loading' && spotlightSections.length === 0 && <p className="mt-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">Загружаю список модулей…</p>}
           {spotlightLoadState === 'error' && <div className="mt-2 rounded-2xl bg-rose-50 p-3 text-sm font-bold text-rose-700"><p>Не удалось загрузить модули Spotlight.</p><button type="button" onClick={retrySpotlightLoad} className="mt-2 rounded-xl bg-white px-3 py-2 text-xs font-black">Повторить</button></div>}
-          {(spotlightSections.length > 0 || spotlightLoadState === 'ready') && <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2" role="group" aria-label="Модуль Spotlight">
+          {(spotlightSections.length > 0 || spotlightLoadState === 'ready') && <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3" role="group" aria-label="Модуль Spotlight">
             <button
               type="button"
               aria-pressed={selectedSpotlightSectionId === SPOTLIGHT_ALL_SECTIONS_ID}
               onClick={() => selectSpotlightSection(SPOTLIGHT_ALL_SECTIONS_ID)}
-              className={`rounded-2xl border-2 p-3 text-left transition ${selectedSpotlightSectionId === SPOTLIGHT_ALL_SECTIONS_ID ? 'border-amber-400 bg-amber-100' : 'border-indigo-50 bg-white hover:border-indigo-200'}`}
+              className={`flex min-h-12 items-center justify-between gap-2 rounded-xl border-2 px-3 py-2.5 text-left transition ${selectedSpotlightSectionId === SPOTLIGHT_ALL_SECTIONS_ID ? 'border-amber-400 bg-amber-100' : 'border-indigo-50 bg-white hover:border-indigo-200'}`}
             >
-              <span className="block text-sm font-black text-indigo-950">Весь класс</span>
-              <span className="mt-1 block text-[11px] font-bold text-slate-500">Все модули и дополнительные слова</span>
+              <span className="min-w-0 text-sm font-black leading-tight text-indigo-950">Весь класс</span>
+              <span className="shrink-0 rounded-full bg-white/80 px-2 py-1 text-[10px] font-black text-slate-500">все слова</span>
             </button>
             {spotlightSections.map(section => <button
               type="button"
               key={section.id}
+              aria-label={`${section.title}, ${section.wordCount} слов`}
               aria-pressed={selectedSpotlightSectionId === section.id}
               onClick={() => selectSpotlightSection(section.id)}
-              className={`rounded-2xl border-2 p-3 text-left transition ${selectedSpotlightSectionId === section.id ? 'border-amber-400 bg-amber-100' : 'border-indigo-50 bg-white hover:border-indigo-200'}`}
+              className={`flex min-h-12 items-center justify-between gap-2 rounded-xl border-2 px-3 py-2.5 text-left transition ${selectedSpotlightSectionId === section.id ? 'border-amber-400 bg-amber-100' : 'border-indigo-50 bg-white hover:border-indigo-200'}`}
             >
-              <span className="block text-sm font-black text-indigo-950">{section.label}</span>
-              <span className="mt-1 block text-[11px] font-bold leading-relaxed text-slate-500">{section.title} · {section.wordCount} слов</span>
+              <span className="min-w-0 text-sm font-black leading-tight text-indigo-950">{section.title}</span>
+              <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-black text-slate-500">{section.wordCount} слов</span>
             </button>)}
           </div>}
         </div>}
