@@ -263,8 +263,8 @@ jobs:
     env:
       VERCEL_PROJECT_ID: prj_FXkostulT2hFcfu2Y4ffPFXHJ96q
       VERCEL_TEAM_ID: team_f6p6zecR5jGHCXTV1kZVSIux
-      DEPLOYMENT_ID: dpl_EaeM4teYRXCb4TuRVktsNyQxX34U
-      EXPECTED_ENTRY_ASSET: index-Cgt5-Eu4.js
+      DEPLOYMENT_ID: dpl_2D8MhS8jQVAwDoShnJmZzecSFaeN
+      EXPECTED_ENTRY_ASSET: index-CAafUni9.js
       APP_BASE: https://ann-word.vercel.app
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
