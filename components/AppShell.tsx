@@ -36,9 +36,23 @@ interface AppShellProps {
 
 const GAME_ROUTES: ViewState[] = ['game', 'anagrams', 'translation', 'sprint', 'hangman', 'memory', 'letter_square'];
 
+const navigateToDictionarySelection = (fallback?: () => void): void => {
+  if (typeof window === 'undefined') {
+    fallback?.();
+    return;
+  }
+  const path = '/dictionary';
+  if (window.location.pathname !== path) window.history.pushState({}, '', path);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+};
+
 export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onHomeClick, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onAdminClick, onAdultRoomClick, onDictionaryStudioClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => {
   const isGameRoute = GAME_ROUTES.includes(route);
   const showMobileNav = isAuthenticated && !isGameRoute;
+  const isTeacher = userProfile.role === 'teacher' || userProfile.accountMode === 'teacher';
+  const onDictionaryClick = isTeacher
+    ? onDictionaryStudioClick
+    : () => navigateToDictionarySelection(onDictionaryStudioClick);
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
@@ -54,12 +68,12 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
           onShopClick={onShopClick}
           onAdminClick={onAdminClick}
           onAdultRoomClick={onAdultRoomClick}
-          onDictionaryStudioClick={onDictionaryStudioClick}
+          onDictionaryStudioClick={onDictionaryClick}
         />
       )}
       <div className={`flex-1 ${showMobileNav ? 'pb-20 lg:pb-0' : ''}`}>{children}</div>
       {!isGameRoute && <LegalFooter />}
-      {!isGameRoute && <MobileBottomNav route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} onHomeClick={onHomeClick} onProfileClick={onProfileClick} onShopClick={onShopClick} onAdultRoomClick={onAdultRoomClick} onDictionaryStudioClick={onDictionaryStudioClick} />}
+      {!isGameRoute && <MobileBottomNav route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} onHomeClick={onHomeClick} onProfileClick={onProfileClick} onShopClick={onShopClick} onAdultRoomClick={onAdultRoomClick} onDictionaryStudioClick={onDictionaryClick} />}
       <AppModals
         showLoginModal={showLoginModal}
         showRulesModal={showRulesModal}
