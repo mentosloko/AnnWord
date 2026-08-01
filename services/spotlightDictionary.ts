@@ -41,8 +41,14 @@ export interface SpotlightSectionOption {
   wordCount: number;
 }
 
+export interface SpotlightSelection {
+  grade: SpotlightGradeNumber;
+  sectionId: string;
+}
+
 const WORD_PATTERN = /^[A-Z]{1,18}$/;
 const GRADES: SpotlightGradeNumber[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+const SPOTLIGHT_STORAGE_PREFIX = 'annword_spotlight_selection_v1:';
 
 let spotlightDictionary: SpotlightDictionaryFile | null = null;
 let spotlightPromise: Promise<SpotlightDictionaryFile> | null = null;
@@ -51,6 +57,40 @@ const isSpotlightGrade = (value: unknown): value is SpotlightGradeNumber =>
   typeof value === 'number' && GRADES.includes(value as SpotlightGradeNumber);
 
 const normalizeGrade = (value?: number): SpotlightGradeNumber => isSpotlightGrade(value) ? value : 2;
+
+const normalizeSectionId = (value: unknown): string =>
+  typeof value === 'string' && value.trim() ? value.trim() : SPOTLIGHT_ALL_SECTIONS_ID;
+
+export const readStoredSpotlightSelection = (username: string): SpotlightSelection => {
+  if (typeof window === 'undefined') return { grade: 2, sectionId: SPOTLIGHT_ALL_SECTIONS_ID };
+  try {
+    const raw = window.localStorage.getItem(`${SPOTLIGHT_STORAGE_PREFIX}${username || 'guest'}`);
+    const parsed = raw ? JSON.parse(raw) as { grade?: unknown; sectionId?: unknown } : null;
+    return {
+      grade: isSpotlightGrade(parsed?.grade) ? parsed.grade : 2,
+      sectionId: normalizeSectionId(parsed?.sectionId),
+    };
+  } catch {
+    return { grade: 2, sectionId: SPOTLIGHT_ALL_SECTIONS_ID };
+  }
+};
+
+export const resolveSpotlightSelection = (
+  grade: number | undefined,
+  sectionId: string | undefined,
+  username: string,
+): SpotlightSelection => {
+  const stored = readStoredSpotlightSelection(username);
+  const hasExplicitGrade = isSpotlightGrade(grade);
+  return {
+    grade: hasExplicitGrade ? grade : stored.grade,
+    sectionId: sectionId?.trim()
+      ? sectionId.trim()
+      : hasExplicitGrade
+        ? SPOTLIGHT_ALL_SECTIONS_ID
+        : stored.sectionId,
+  };
+};
 
 const normalizeEntry = (entry: SpotlightDictionaryWord): SpotlightDictionaryWord | null => {
   const word = String(entry?.word || '').trim().toUpperCase();
