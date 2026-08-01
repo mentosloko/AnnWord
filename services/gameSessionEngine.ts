@@ -9,22 +9,49 @@ export type { WordPracticeResult } from './wordPracticeProgress';
 export type GameSessionMode = 'anagram' | 'sprint' | 'memory' | 'hangman' | 'translation' | 'letterSquare';
 export type AdaptiveGameSessionMode = 'anagram' | 'sprint' | 'translation' | 'letterSquare';
 
+let activeGameDictionaryEntries: EnrichedWord[] = [];
+
 const translatedEntries = (entries: EnrichedWord[]): EnrichedWord[] => entries
   .filter(entry => hasRussianTranslation(entry.translation))
   .map(entry => ({ ...entry, word: normalizeWord(entry.word) }))
   .filter(entry => Boolean(entry.word));
 
+const uniqueEntries = (entries: EnrichedWord[]): EnrichedWord[] => {
+  const byWord = new Map<string, EnrichedWord>();
+  for (const entry of translatedEntries(entries)) byWord.set(entry.word, entry);
+  return Array.from(byWord.values());
+};
+
+/**
+ * Keeps the exact enriched dictionary selected for the current game launch.
+ * Mini-games receive a string snapshot for routing compatibility, then use this
+ * runtime snapshot to preserve dictionary-specific words and translations.
+ */
+export const setActiveGameDictionaryEntries = (entries: EnrichedWord[]): void => {
+  activeGameDictionaryEntries = uniqueEntries(entries);
+};
+
+export const readActiveGameDictionaryEntries = (): EnrichedWord[] =>
+  activeGameDictionaryEntries.map(entry => ({ ...entry }));
+
+export const resetActiveGameDictionaryEntriesForTests = (): void => {
+  activeGameDictionaryEntries = [];
+};
+
 /**
  * Builds the only playable mini-game dictionary: every entry has a real Russian translation.
  * If words are supplied, their order is kept and unsupported entries are discarded.
+ * The active runtime dictionary overrides General English for matching words so
+ * premium dictionaries keep their own vocabulary and translations in every game.
  */
 export const buildPlayableGameDictionary = (
   words: string[] = [],
   fallbackDictionary?: EnrichedWord[],
 ): EnrichedWord[] => {
-  const available = translatedEntries(fallbackDictionary || readGeneralDictionary()?.COMMON_WORDS_EN || []);
-  if (words.length === 0) return available;
+  const fallbackEntries = translatedEntries(fallbackDictionary || readGeneralDictionary()?.COMMON_WORDS_EN || []);
+  if (words.length === 0) return fallbackEntries;
 
+  const available = uniqueEntries([...fallbackEntries, ...activeGameDictionaryEntries]);
   const byWord = new Map(available.map(entry => [entry.word, entry]));
   const seen = new Set<string>();
   const playable: EnrichedWord[] = [];
