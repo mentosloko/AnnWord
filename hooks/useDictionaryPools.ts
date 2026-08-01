@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getCustomWordsAvailableInBuiltinDictionary, hasRussianTranslation, isAllowedSecretWord, isAllowedValidationWord, toCustomEnrichedWords } from '../services/dictionaryEngine';
 import { ensureDictionaryRuntime, readGeneralDictionary, readPremiumDictionary, resolvePremiumDictionaryId, type PremiumDictionaryWord } from '../services/dictionaryRuntime';
+import { setActiveGameDictionaryEntries } from '../services/gameSessionEngine';
 import { getAllKidsDictionaryWords, getFreeKidsDictionaryEntries, getKidsPremiumDictionaryEntries, getKidsPremiumDictionaryWords } from '../services/kidsDictionaryCatalog';
 import { isKidsMode } from '../services/modeFlags';
 import { hasPremiumDictionaryAccess } from '../services/premiumDictionaryCatalog';
-import { getSpotlightEntries, SPOTLIGHT_PREMIUM_DICTIONARY_ID } from '../services/spotlightDictionary';
+import { getSpotlightEntries, resolveSpotlightSelection, SPOTLIGHT_PREMIUM_DICTIONARY_ID } from '../services/spotlightDictionary';
 import { normalizeWord } from '../services/wordNormalization';
 import { DifficultyLevel, EnrichedWord, GameSettings, UserProfile, WordLength } from '../types';
 
@@ -68,11 +69,15 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
   const kidsMode = isKidsMode(userProfile);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
   const spotlightActive = settings.dictionarySource === 'premium' && hasPremium && isSpotlightId(settings.activePremiumDictionaryId);
+  const spotlightSelection = useMemo(
+    () => resolveSpotlightSelection(settings.activeSpotlightGrade, settings.activeSpotlightSectionId, userProfile.username),
+    [settings.activeSpotlightGrade, settings.activeSpotlightSectionId, userProfile.username],
+  );
   const premiumDictionaryId = settings.dictionarySource === 'premium' && hasPremium && (spotlightActive || !kidsMode)
     ? resolvePremiumDictionaryId(settings.activePremiumDictionaryId)
     : null;
   const spotlightSelectionKey = spotlightActive
-    ? `${settings.activeSpotlightGrade || 2}:${settings.activeSpotlightSectionId || 'all'}`
+    ? `${spotlightSelection.grade}:${spotlightSelection.sectionId}`
     : 'none';
   const loadKey = runtimeEnabled ? `general:${premiumDictionaryId || 'none'}:${spotlightSelectionKey}` : 'disabled';
   const [loadState, setLoadState] = useState<LoadState>({ key: 'disabled', status: 'idle', error: null });
@@ -108,8 +113,8 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
   const error = loadState.key === loadKey ? loadState.error : null;
 
   const readSelectedSpotlightEntries = useCallback((): EnrichedWord[] =>
-    getSpotlightEntries(settings.activeSpotlightGrade, settings.activeSpotlightSectionId),
-  [settings.activeSpotlightGrade, settings.activeSpotlightSectionId]);
+    getSpotlightEntries(spotlightSelection.grade, spotlightSelection.sectionId),
+  [spotlightSelection.grade, spotlightSelection.sectionId]);
 
   const getSecretWordPool = useCallback((): EnrichedWord[] => {
     let pool: EnrichedWord[] = [];
@@ -144,7 +149,9 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
       pool = pool.map(word => ({ ...word, word: word.word.toUpperCase() }));
     }
 
-    return pool.filter(word => isPracticeCustomDictionary ? isAllowedValidationWord(word.word) : isAllowedSecretWord(word.word));
+    const playablePool = pool.filter(word => isPracticeCustomDictionary ? isAllowedValidationWord(word.word) : isAllowedSecretWord(word.word));
+    setActiveGameDictionaryEntries(playablePool);
+    return playablePool;
   }, [readSelectedSpotlightEntries, settings.activePremiumDictionaryId, settings.dictionarySource, settings.difficulty, userProfile]);
 
   const getValidationPool = useCallback((wordLengthOverride?: WordLength): string[] => {
