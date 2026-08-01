@@ -147,11 +147,11 @@ function completedModeFromInput(input: GameRewardInput): string | null {
   return null;
 }
 
-const memoryMoveTarget = (variantKey: string): number => variantKey === "memory_twelve" ? 6
-  : variantKey === "memory_fourteen" ? 7
-    : variantKey === "memory_eighteen" ? 9
-      : variantKey === "memory_twenty" ? 10
-        : 8;
+const memoryMoveTarget = (variantKey: string): number => variantKey === "memory_twelve" ? 8
+  : variantKey === "memory_fourteen" ? 9
+    : variantKey === "memory_eighteen" ? 11
+      : variantKey === "memory_twenty" ? 12
+        : 10;
 
 function qualifies(quest: DailyQuestWithVariant, input: GameRewardInput): boolean {
   const variantKey = quest.variantKey || quest.kind;
