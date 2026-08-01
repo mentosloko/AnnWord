@@ -49,8 +49,8 @@ describe('Memory moves contract', () => {
 
   it('completes a Memory quest only within the move target', () => {
     const quest = memoryQuest(DAILY_QUEST_DEFINITIONS.memory_fourteen.description);
-    expect(doesGameResultCompleteDailyQuest(quest, { type: 'memory', moves: 7 })).toBe(true);
-    expect(doesGameResultCompleteDailyQuest(quest, { type: 'memory', moves: 8 })).toBe(false);
+    expect(doesGameResultCompleteDailyQuest(quest, { type: 'memory', moves: 9 })).toBe(true);
+    expect(doesGameResultCompleteDailyQuest(quest, { type: 'memory', moves: 10 })).toBe(false);
   });
 });
 
