@@ -4,17 +4,42 @@ on:
   push:
     branches:
       - ops/export-yandex-users-20260804
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   export-users:
+    if: ${{ github.event_name == 'push' || github.head_ref == 'ops/export-yandex-users-20260804' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GH_TOKEN: ${{ github.token }}
     steps:
+      - name: Delete prior one-time export artifacts
+        run: |
+          set -euo pipefail
+          for artifact_name in annword-yandex-users-20260804 annword-yandex-users-encrypted-20260804; do
+            curl -fsSL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${artifact_name}&per_page=100" > "/tmp/${artifact_name}.json"
+            node -e 'const fs=require("fs");const body=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));for(const item of body.artifacts||[])console.log(item.id)' "/tmp/${artifact_name}.json" | while read -r artifact_id; do
+              test -n "$artifact_id" || continue
+              curl -fsSL -X DELETE \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}"
+            done
+          done
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -30,7 +55,8 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$DATABASE_URL"
-          mkdir -p /tmp/annword-user-export
+          rm -rf /tmp/annword-user-export /tmp/annword-user-export-encrypted
+          mkdir -p /tmp/annword-user-export /tmp/annword-user-export-encrypted
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import pg from 'pg';
@@ -86,10 +112,10 @@ jobs:
               p.child_display_name,
               p.weekly_report_email,
               p.coins,
-              coalesce((p.stats ->> 'gamesPlayed')::int, 0) as games_played,
-              coalesce((p.stats ->> 'gamesWon')::int, 0) as games_won,
-              coalesce(jsonb_array_length(p.custom_dictionary_en), 0) as custom_dictionary_word_count,
-              coalesce(jsonb_array_length(p.inventory), 0) as inventory_item_count,
+              case when coalesce(p.stats ->> 'gamesPlayed', '') ~ '^\\d+$' then (p.stats ->> 'gamesPlayed')::int else 0 end as games_played,
+              case when coalesce(p.stats ->> 'gamesWon', '') ~ '^\\d+$' then (p.stats ->> 'gamesWon')::int else 0 end as games_won,
+              case when jsonb_typeof(p.custom_dictionary_en) = 'array' then jsonb_array_length(p.custom_dictionary_en) else 0 end as custom_dictionary_word_count,
+              case when jsonb_typeof(p.inventory) = 'array' then jsonb_array_length(p.inventory) else 0 end as inventory_item_count,
               p.created_at as profile_created_at,
               p.updated_at as profile_updated_at,
               coalesce(g.game_event_count, 0) as game_event_count,
@@ -140,10 +166,49 @@ jobs:
           console.log(`Exported ${rows.length} safe user records.`);
           NODE
 
-      - name: Upload encrypted-at-rest artifact
+      - name: Encrypt export for the current assistant session
+        run: |
+          set -euo pipefail
+          cat > /tmp/annword-export-public.crt <<'CERT'
+          -----BEGIN CERTIFICATE-----
+          MIIEMzCCApugAwIBAgIUHw0vzSN8+LekrPYJqAzb+4VJr2gwDQYJKoZIhvcNAQEL
+          BQAwKTEnMCUGA1UEAwweQW5uV29yZCBVc2VyIEV4cG9ydCAyMDI2LTA4LTA0MB4X
+          DTI2MDgwMzIxMTEyOVoXDTI2MDgwNTIxMTEyOVowKTEnMCUGA1UEAwweQW5uV29y
+          ZCBVc2VyIEV4cG9ydCAyMDI2LTA4LTA0MIIBojANBgkqhkiG9w0BAQEFAAOCAY8A
+          MIIBigKCAYEAtCHrZNc92NUgrcqjPXzSRgPv8ksJrk/1aMW9mGJvMHKl+YZjMhxj
+          6JTFK75M8ErQm41aXuiMS+uK1NMbDiRO9Eo1aGVck3VfKXVYdufr67yR+r1gTQXJ
+          UTYIQUd9l+QLFaBTC4RL39Xh7ujuptys2Kh/ZKdIvoy+kHzgyPnsPaROkIKD2i7h
+          sl2RcYMpx7X1wTPEf0E4zo/sCPKoxVwYISI/c+otDg2p0lku60fal9P5mSeX6Ix1
+          okM8AKe80kvuc0MxOzB9NEMUPuQjZz+rHwZTT2KuYHnAr/B//eYTUJ8N/GyRy/8K
+          9XxWeRXiXxI9geX2ef76hY5YNjeBlJDmFSFn5gj7/htTzOuPTIMO7fgqiJoeFu/v
+          0V/kUA4cc9gFzBc8rMk/wKDPF3FzhON4fH3Fv7L1G6MMsYPmMeVFozxYzCNFHAT+
+          iarK8VFNesIl8Ov7oBGkIaRt0lLv4Ah3gA20T2/+ONvJsy5ygeZ3O95yc0fJBAAw
+          SoExTMlLiUWZAgMBAAGjUzBRMB0GA1UdDgQWBBSqU7RTlUnuhvYkUm1B44VbQ/hW
+          oTAfBgNVHSMEGDAWgBSqU7RTlUnuhvYkUm1B44VbQ/hWoTAPBgNVHRMBAf8EBTAD
+          AQH/MA0GCSqGSIb3DQEBCwUAA4IBgQBa/ERmpT0Q+m98N0gfF6GW8EIXYFT/dXXh
+          86n4xISci7ZGCW9L1nsFtVJS0DwpT23QmWwk2aJqvpaCXU7CKCggxQBVP8908ndC
+          ljpXFQ/sxdbtwvEDVryi+evTkp5Hj4WZkBdnmYblenDFKRD9eNXi1eWvUyHBNp+b
+          1MlP2TbNCwVhUNdjts8OX39FOmOFujqw1aolPEqHDcXeMp54N+p9rO4K4fBIRNxB
+          u+SwTiiBgO0BIzUrCFoXhEb/Ku8GmxsHSJYTk3RtIM/2eZlriy2XOkX4gZdGLEUL
+          mrRHSr1aAzFvKzzhwiSmGGeBVwXfPD4rZaCg983ma661ZY0d8K6ALYWqaazmcXwE
+          5ciZvponG/oP3Y06I8kXskj1aAcy8IcfZ1/8OnXIAbrdFJipBYhQQILyA2sKMZx9
+          gvUX6Jj0OtRL4moUDvkc3+w54eO/Mf1Vt6DzDt7Fg4yvHRyg8kMDRYyJ8bAsD+vD
+          Q79hV0TrGc6I7GFubfGp+UYEQs7BAFo=
+          -----END CERTIFICATE-----
+          CERT
+          tar -C /tmp/annword-user-export -czf /tmp/annword-yandex-users.tar.gz .
+          openssl cms -encrypt -binary -aes256 \
+            -in /tmp/annword-yandex-users.tar.gz \
+            -outform DER \
+            -out /tmp/annword-user-export-encrypted/annword-yandex-users.p7m \
+            /tmp/annword-export-public.crt
+          printf 'Encrypted CMS export. Certificate SHA-256 fingerprint: 25:59:B8:62:9B:76:12:93:BA:62:76:BA:77:B4:A7:A2:80:B8:42:CB:E5:F3:B8:B4:8E:16:3F:A1:0A:C3:0E:64\n' > /tmp/annword-user-export-encrypted/README.txt
+          rm -rf /tmp/annword-user-export /tmp/annword-yandex-users.tar.gz /tmp/annword-export-public.crt
+
+      - name: Upload encrypted one-time artifact
         uses: actions/upload-artifact@v4
         with:
-          name: annword-yandex-users-20260804
-          path: /tmp/annword-user-export/
+          name: annword-yandex-users-encrypted-20260804
+          path: /tmp/annword-user-export-encrypted/
           if-no-files-found: error
           retention-days: 1
