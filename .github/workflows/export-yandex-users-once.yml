@@ -1,0 +1,149 @@
+name: Export Yandex users once
+
+on:
+  push:
+    branches:
+      - ops/export-yandex-users-20260804
+
+permissions:
+  contents: read
+
+jobs:
+  export-users:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Export safe user fields
+        run: |
+          set -euo pipefail
+          test -n "$DATABASE_URL"
+          mkdir -p /tmp/annword-user-export
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import pg from 'pg';
+
+          const { Pool } = pg;
+          const rawConnectionString = process.env.DATABASE_URL || '';
+          const connectionUrl = new URL(rawConnectionString);
+          for (const key of ['sslmode', 'sslcert', 'sslkey', 'sslrootcert']) connectionUrl.searchParams.delete(key);
+          const pool = new Pool({
+            connectionString: connectionUrl.toString(),
+            ssl: { rejectUnauthorized: false },
+            max: 1,
+            connectionTimeoutMillis: 10000,
+          });
+
+          const sql = `
+            with game_activity as (
+              select user_id, count(*)::int as game_event_count, max(occurred_at) as last_game_at
+                from public.game_events
+               group by user_id
+            ), analytics_activity as (
+              select user_id, count(*)::int as analytics_event_count, max(occurred_at) as last_analytics_at
+                from public.analytics_events
+               where user_id is not null
+               group by user_id
+            ), quest_activity as (
+              select user_id, count(*)::int as daily_quest_count, max(updated_at) as last_quest_at
+                from public.daily_quests
+               group by user_id
+            ), payment_activity as (
+              select user_id,
+                     count(*)::int as payment_count,
+                     count(*) filter (where status = 'paid')::int as paid_payment_count,
+                     max(created_at) as last_payment_at,
+                     max(paid_at) as last_paid_at
+                from public.premium_payments
+               group by user_id
+            )
+            select
+              u.id as user_id,
+              u.email,
+              u.full_name,
+              u.provider,
+              u.email_confirmed_at,
+              u.password_reset_required,
+              u.created_at as user_created_at,
+              u.updated_at as user_updated_at,
+              p.username,
+              p.role,
+              p.account_mode,
+              p.subscription_tier,
+              p.premium_expires_at,
+              p.child_display_name,
+              p.weekly_report_email,
+              p.coins,
+              coalesce((p.stats ->> 'gamesPlayed')::int, 0) as games_played,
+              coalesce((p.stats ->> 'gamesWon')::int, 0) as games_won,
+              coalesce(jsonb_array_length(p.custom_dictionary_en), 0) as custom_dictionary_word_count,
+              coalesce(jsonb_array_length(p.inventory), 0) as inventory_item_count,
+              p.created_at as profile_created_at,
+              p.updated_at as profile_updated_at,
+              coalesce(g.game_event_count, 0) as game_event_count,
+              g.last_game_at,
+              coalesce(a.analytics_event_count, 0) as analytics_event_count,
+              a.last_analytics_at,
+              coalesce(q.daily_quest_count, 0) as daily_quest_count,
+              q.last_quest_at,
+              coalesce(pay.payment_count, 0) as payment_count,
+              coalesce(pay.paid_payment_count, 0) as paid_payment_count,
+              pay.last_payment_at,
+              pay.last_paid_at,
+              (
+                select max(value)
+                  from (values
+                    (u.updated_at),
+                    (p.updated_at),
+                    (g.last_game_at),
+                    (a.last_analytics_at),
+                    (q.last_quest_at),
+                    (pay.last_payment_at)
+                  ) as activity(value)
+              ) as last_activity_at
+            from public.app_users u
+            left join public.profiles p on p.id = u.id
+            left join game_activity g on g.user_id = u.id
+            left join analytics_activity a on a.user_id = u.id
+            left join quest_activity q on q.user_id = u.id
+            left join payment_activity pay on pay.user_id = u.id
+            order by u.created_at asc, lower(u.email) asc
+          `;
+
+          const result = await pool.query(sql);
+          await pool.end();
+
+          const rows = result.rows;
+          const columns = rows.length ? Object.keys(rows[0]) : [];
+          const csvCell = (value) => {
+            if (value === null || value === undefined) return '';
+            const normalized = value instanceof Date ? value.toISOString() : String(value);
+            return `"${normalized.replaceAll('"', '""')}"`;
+          };
+          const csv = [columns.map(csvCell).join(','), ...rows.map(row => columns.map(column => csvCell(row[column])).join(','))].join('\n');
+          const exportDir = '/tmp/annword-user-export';
+          fs.writeFileSync(`${exportDir}/annword-yandex-users.csv`, `\uFEFF${csv}\n`, 'utf8');
+          fs.writeFileSync(`${exportDir}/annword-yandex-users.json`, JSON.stringify({ exported_at: new Date().toISOString(), count: rows.length, users: rows }, null, 2), 'utf8');
+          fs.writeFileSync(`${exportDir}/summary.txt`, `AnnWord Yandex users: ${rows.length}\nExported at: ${new Date().toISOString()}\n`, 'utf8');
+          console.log(`Exported ${rows.length} safe user records.`);
+          NODE
+
+      - name: Upload encrypted-at-rest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: annword-yandex-users-20260804
+          path: /tmp/annword-user-export/
+          if-no-files-found: error
+          retention-days: 1
