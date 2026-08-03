@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="AnnWord">
+  <rect width="256" height="256" fill="#fff"/>
+  <rect x="18" y="4" width="226" height="248" rx="54" fill="#57B84D"/>
+  <path fill="#FBF9F3" d="M55 4h100l82 82v92c0 29-24 53-53 53H55C26 231 8 210 8 181V56C8 27 26 4 55 4Z"/>
+  <path fill="#121821" fill-rule="evenodd" d="M54 185 104 58h44l57 127h-38l-13-34H95l-13 34H54Zm55-59h31l-15-40-16 40Z"/>
+</svg>
