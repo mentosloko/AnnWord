@@ -1,9 +1,6 @@
 name: Export Yandex users once
 
 on:
-  push:
-    branches:
-      - ops/export-yandex-users-20260804
   pull_request:
     branches:
       - main
@@ -12,16 +9,25 @@ permissions:
   contents: read
   actions: write
 
+concurrency:
+  group: annword-yandex-user-export
+  cancel-in-progress: true
+
 jobs:
   export-users:
-    if: ${{ github.event_name == 'push' || github.head_ref == 'ops/export-yandex-users-20260804' }}
+    if: ${{ github.head_ref == 'ops/export-yandex-users-20260804' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       GH_TOKEN: ${{ github.token }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+      YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+      YC_SERVICE_ACCOUNT_ID: ${{ secrets.YC_SERVICE_ACCOUNT_ID }}
+      YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+      EXPORT_PUBLIC_KEY_B64: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQm9qQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FZOEFNSUlCaWdLQ0FZRUF0Q0hyWk5jOTJOVWdyY3FqUFh6UwpSZ1B2OGtzSnJrLzFhTVc5bUdKdk1IS2wrWVpqTWh4ajZKVEZLNzVNOEVyUW00MWFYdWlNUyt1SzFOTWJEaVJPCjlFbzFhR1ZjazNWZktYVllkdWZyNjd5UityMWdUUVhKVVRZSVFVZDlsK1FMRmFCVEM0UkwzOVhoN3VqdXB0eXMKMktoL1pLZEl2b3kra0h6Z3lQbnNQYVJPa0lLRDJpN2hzbDJSY1lNcHg3WDF3VFBFZjBFNHpvL3NDUEtveFZ3WQpJU0kvYytvdERnMnAwbGt1NjBmYWw5UDVtU2VYNkl4MW9rTThBS2U4MGt2dWMwTXhPekI5TkVNVVB1UWpaeityCkh3WlRUMkt1WUhuQXIvQi8vZVlUVUo4Ti9HeVJ5LzhLOVh4V2VSWGlYeEk5Z2VYMmVmNzZoWTVZTmplQmxKRG0KRlNGbjVnajcvaHRUek91UFRJTU83ZmdxaUpvZUZ1L3YwVi9rVUE0Y2M5Z0Z6QmM4ck1rL3dLRFBGM0Z6aE9ONApmSDNGdjdMMUc2TU1zWVBtTWVWRm96eFl6Q05GSEFUK2lhcks4VkZOZXNJbDhPdjdvQkdrSWFSdDBsTHY0QWgzCmdBMjBUMi8rT052SnN5NXlnZVozTzk1eWMwZkpCQUF3U29FeFRNbExpVVdaQWdNQkFBRT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==
     steps:
-      - name: Delete prior one-time export artifacts
+      - name: Delete previous export artifacts
         run: |
           set -euo pipefail
           for artifact_name in annword-yandex-users-20260804 annword-yandex-users-encrypted-20260804; do
@@ -40,170 +46,219 @@ jobs:
             done
           done
 
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Export safe user fields
+      - name: Install and configure Yandex Cloud CLI
         run: |
           set -euo pipefail
           test -n "$DATABASE_URL"
-          rm -rf /tmp/annword-user-export /tmp/annword-user-export-encrypted
-          mkdir -p /tmp/annword-user-export /tmp/annword-user-export-encrypted
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          import pg from 'pg';
+          test -n "$YC_SERVICE_ACCOUNT_KEY_JSON"
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > /tmp/yc-key.json
+          "$HOME/yandex-cloud/bin/yc" config profile create annword-user-export
+          "$HOME/yandex-cloud/bin/yc" config set service-account-key /tmp/yc-key.json
+          "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
+          "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
 
-          const { Pool } = pg;
-          const rawConnectionString = process.env.DATABASE_URL || '';
-          const connectionUrl = new URL(rawConnectionString);
-          for (const key of ['sslmode', 'sslcert', 'sslkey', 'sslrootcert']) connectionUrl.searchParams.delete(key);
-          const pool = new Pool({
-            connectionString: connectionUrl.toString(),
-            ssl: { rejectUnauthorized: false },
-            max: 1,
-            connectionTimeoutMillis: 10000,
-          });
-
-          const sql = `
-            with game_activity as (
-              select user_id, count(*)::int as game_event_count, max(occurred_at) as last_game_at
-                from public.game_events
-               group by user_id
-            ), analytics_activity as (
-              select user_id, count(*)::int as analytics_event_count, max(occurred_at) as last_analytics_at
-                from public.analytics_events
-               where user_id is not null
-               group by user_id
-            ), quest_activity as (
-              select user_id, count(*)::int as daily_quest_count, max(updated_at) as last_quest_at
-                from public.daily_quests
-               group by user_id
-            ), payment_activity as (
-              select user_id,
-                     count(*)::int as payment_count,
-                     count(*) filter (where status = 'paid')::int as paid_payment_count,
-                     max(created_at) as last_payment_at,
-                     max(paid_at) as last_paid_at
-                from public.premium_payments
-               group by user_id
-            )
-            select
-              u.id as user_id,
-              u.email,
-              u.full_name,
-              u.provider,
-              u.email_confirmed_at,
-              u.password_reset_required,
-              u.created_at as user_created_at,
-              u.updated_at as user_updated_at,
-              p.username,
-              p.role,
-              p.account_mode,
-              p.subscription_tier,
-              p.premium_expires_at,
-              p.child_display_name,
-              p.weekly_report_email,
-              p.coins,
-              case when coalesce(p.stats ->> 'gamesPlayed', '') ~ '^\\d+$' then (p.stats ->> 'gamesPlayed')::int else 0 end as games_played,
-              case when coalesce(p.stats ->> 'gamesWon', '') ~ '^\\d+$' then (p.stats ->> 'gamesWon')::int else 0 end as games_won,
-              case when jsonb_typeof(p.custom_dictionary_en) = 'array' then jsonb_array_length(p.custom_dictionary_en) else 0 end as custom_dictionary_word_count,
-              case when jsonb_typeof(p.inventory) = 'array' then jsonb_array_length(p.inventory) else 0 end as inventory_item_count,
-              p.created_at as profile_created_at,
-              p.updated_at as profile_updated_at,
-              coalesce(g.game_event_count, 0) as game_event_count,
-              g.last_game_at,
-              coalesce(a.analytics_event_count, 0) as analytics_event_count,
-              a.last_analytics_at,
-              coalesce(q.daily_quest_count, 0) as daily_quest_count,
-              q.last_quest_at,
-              coalesce(pay.payment_count, 0) as payment_count,
-              coalesce(pay.paid_payment_count, 0) as paid_payment_count,
-              pay.last_payment_at,
-              pay.last_paid_at,
-              (
-                select max(value)
-                  from (values
-                    (u.updated_at),
-                    (p.updated_at),
-                    (g.last_game_at),
-                    (a.last_analytics_at),
-                    (q.last_quest_at),
-                    (pay.last_payment_at)
-                  ) as activity(value)
-              ) as last_activity_at
-            from public.app_users u
-            left join public.profiles p on p.id = u.id
-            left join game_activity g on g.user_id = u.id
-            left join analytics_activity a on a.user_id = u.id
-            left join quest_activity q on q.user_id = u.id
-            left join payment_activity pay on pay.user_id = u.id
-            order by u.created_at asc, lower(u.email) asc
-          `;
-
-          const result = await pool.query(sql);
-          await pool.end();
-
-          const rows = result.rows;
-          const columns = rows.length ? Object.keys(rows[0]) : [];
-          const csvCell = (value) => {
-            if (value === null || value === undefined) return '';
-            const normalized = value instanceof Date ? value.toISOString() : String(value);
-            return `"${normalized.replaceAll('"', '""')}"`;
-          };
-          const csv = [columns.map(csvCell).join(','), ...rows.map(row => columns.map(column => csvCell(row[column])).join(','))].join('\n');
-          const exportDir = '/tmp/annword-user-export';
-          fs.writeFileSync(`${exportDir}/annword-yandex-users.csv`, `\uFEFF${csv}\n`, 'utf8');
-          fs.writeFileSync(`${exportDir}/annword-yandex-users.json`, JSON.stringify({ exported_at: new Date().toISOString(), count: rows.length, users: rows }, null, 2), 'utf8');
-          fs.writeFileSync(`${exportDir}/summary.txt`, `AnnWord Yandex users: ${rows.length}\nExported at: ${new Date().toISOString()}\n`, 'utf8');
-          console.log(`Exported ${rows.length} safe user records.`);
-          NODE
-
-      - name: Encrypt export for the current assistant session
+      - name: Prepare temporary encrypted export function
         run: |
           set -euo pipefail
-          cat > /tmp/annword-export-public.crt <<'CERT'
-          -----BEGIN CERTIFICATE-----
-          MIIEMzCCApugAwIBAgIUHw0vzSN8+LekrPYJqAzb+4VJr2gwDQYJKoZIhvcNAQEL
-          BQAwKTEnMCUGA1UEAwweQW5uV29yZCBVc2VyIEV4cG9ydCAyMDI2LTA4LTA0MB4X
-          DTI2MDgwMzIxMTEyOVoXDTI2MDgwNTIxMTEyOVowKTEnMCUGA1UEAwweQW5uV29y
-          ZCBVc2VyIEV4cG9ydCAyMDI2LTA4LTA0MIIBojANBgkqhkiG9w0BAQEFAAOCAY8A
-          MIIBigKCAYEAtCHrZNc92NUgrcqjPXzSRgPv8ksJrk/1aMW9mGJvMHKl+YZjMhxj
-          6JTFK75M8ErQm41aXuiMS+uK1NMbDiRO9Eo1aGVck3VfKXVYdufr67yR+r1gTQXJ
-          UTYIQUd9l+QLFaBTC4RL39Xh7ujuptys2Kh/ZKdIvoy+kHzgyPnsPaROkIKD2i7h
-          sl2RcYMpx7X1wTPEf0E4zo/sCPKoxVwYISI/c+otDg2p0lku60fal9P5mSeX6Ix1
-          okM8AKe80kvuc0MxOzB9NEMUPuQjZz+rHwZTT2KuYHnAr/B//eYTUJ8N/GyRy/8K
-          9XxWeRXiXxI9geX2ef76hY5YNjeBlJDmFSFn5gj7/htTzOuPTIMO7fgqiJoeFu/v
-          0V/kUA4cc9gFzBc8rMk/wKDPF3FzhON4fH3Fv7L1G6MMsYPmMeVFozxYzCNFHAT+
-          iarK8VFNesIl8Ov7oBGkIaRt0lLv4Ah3gA20T2/+ONvJsy5ygeZ3O95yc0fJBAAw
-          SoExTMlLiUWZAgMBAAGjUzBRMB0GA1UdDgQWBBSqU7RTlUnuhvYkUm1B44VbQ/hW
-          oTAfBgNVHSMEGDAWgBSqU7RTlUnuhvYkUm1B44VbQ/hWoTAPBgNVHRMBAf8EBTAD
-          AQH/MA0GCSqGSIb3DQEBCwUAA4IBgQBa/ERmpT0Q+m98N0gfF6GW8EIXYFT/dXXh
-          86n4xISci7ZGCW9L1nsFtVJS0DwpT23QmWwk2aJqvpaCXU7CKCggxQBVP8908ndC
-          ljpXFQ/sxdbtwvEDVryi+evTkp5Hj4WZkBdnmYblenDFKRD9eNXi1eWvUyHBNp+b
-          1MlP2TbNCwVhUNdjts8OX39FOmOFujqw1aolPEqHDcXeMp54N+p9rO4K4fBIRNxB
-          u+SwTiiBgO0BIzUrCFoXhEb/Ku8GmxsHSJYTk3RtIM/2eZlriy2XOkX4gZdGLEUL
-          mrRHSr1aAzFvKzzhwiSmGGeBVwXfPD4rZaCg983ma661ZY0d8K6ALYWqaazmcXwE
-          5ciZvponG/oP3Y06I8kXskj1aAcy8IcfZ1/8OnXIAbrdFJipBYhQQILyA2sKMZx9
-          gvUX6Jj0OtRL4moUDvkc3+w54eO/Mf1Vt6DzDt7Fg4yvHRyg8kMDRYyJ8bAsD+vD
-          Q79hV0TrGc6I7GFubfGp+UYEQs7BAFo=
-          -----END CERTIFICATE-----
-          CERT
-          tar -C /tmp/annword-user-export -czf /tmp/annword-yandex-users.tar.gz .
-          openssl cms -encrypt -binary -aes256 \
-            -in /tmp/annword-yandex-users.tar.gz \
-            -outform DER \
-            -out /tmp/annword-user-export-encrypted/annword-yandex-users.p7m \
-            /tmp/annword-export-public.crt
-          printf 'Encrypted CMS export. Certificate SHA-256 fingerprint: 25:59:B8:62:9B:76:12:93:BA:62:76:BA:77:B4:A7:A2:80:B8:42:CB:E5:F3:B8:B4:8E:16:3F:A1:0A:C3:0E:64\n' > /tmp/annword-user-export-encrypted/README.txt
-          rm -rf /tmp/annword-user-export /tmp/annword-yandex-users.tar.gz /tmp/annword-export-public.crt
+          FUNCTION_NAME="annword-export-users-${GITHUB_RUN_ID}"
+          echo "FUNCTION_NAME=$FUNCTION_NAME" >> "$GITHUB_ENV"
+          rm -rf /tmp/annword-export-function
+          mkdir -p /tmp/annword-export-function
+          cat > /tmp/annword-export-function/package.json <<'JSON'
+          {
+            "name": "annword-user-export-function",
+            "version": "1.0.0",
+            "private": true,
+            "dependencies": { "pg": "8.16.3" }
+          }
+          JSON
+          cat > /tmp/annword-export-function/index.js <<'NODE'
+          const crypto = require('node:crypto');
+          const { Pool } = require('pg');
+
+          const normalizeConnectionString = (value) => {
+            const url = new URL(value);
+            for (const key of ['sslmode', 'sslcert', 'sslkey', 'sslrootcert']) url.searchParams.delete(key);
+            return url.toString();
+          };
+          const dateValue = (value) => value ? new Date(value).toISOString() : null;
+          const countValue = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+          const maxDate = (...values) => {
+            const times = values.filter(Boolean).map(value => new Date(value).getTime()).filter(Number.isFinite);
+            return times.length ? new Date(Math.max(...times)).toISOString() : null;
+          };
+          const mapByUser = (rows) => new Map(rows.map(row => [String(row.user_id), row]));
+
+          exports.handler = async function () {
+            const pool = new Pool({
+              connectionString: normalizeConnectionString(process.env.DATABASE_URL || ''),
+              ssl: { rejectUnauthorized: false },
+              max: 1,
+              connectionTimeoutMillis: 10000,
+            });
+            try {
+              const base = await pool.query(`
+                select
+                  u.id::text as user_id,
+                  u.email,
+                  u.full_name,
+                  u.provider,
+                  u.email_confirmed_at,
+                  u.password_reset_required,
+                  u.created_at as user_created_at,
+                  u.updated_at as user_updated_at,
+                  p.username,
+                  p.role,
+                  p.account_mode,
+                  p.subscription_tier,
+                  p.premium_expires_at,
+                  p.child_display_name,
+                  p.weekly_report_email,
+                  p.coins,
+                  p.stats,
+                  p.custom_dictionary_en,
+                  p.inventory,
+                  p.created_at as profile_created_at,
+                  p.updated_at as profile_updated_at
+                from public.app_users u
+                left join public.profiles p on p.id = u.id
+                order by u.created_at asc, lower(u.email) asc
+              `);
+
+              const relationExists = async (name) => {
+                const result = await pool.query('select to_regclass($1) as relation', [`public.${name}`]);
+                return Boolean(result.rows[0] && result.rows[0].relation);
+              };
+              const gameRows = await relationExists('game_events')
+                ? (await pool.query('select user_id::text, count(*)::int as event_count, max(occurred_at) as last_at from public.game_events group by user_id')).rows
+                : [];
+              const analyticsRows = await relationExists('analytics_events')
+                ? (await pool.query('select user_id::text, count(*)::int as event_count, max(occurred_at) as last_at from public.analytics_events where user_id is not null group by user_id')).rows
+                : [];
+              const questRows = await relationExists('daily_quests')
+                ? (await pool.query('select user_id::text, count(*)::int as quest_count, max(updated_at) as last_at from public.daily_quests group by user_id')).rows
+                : [];
+              const paymentRows = await relationExists('premium_payments')
+                ? (await pool.query("select user_id::text, count(*)::int as payment_count, count(*) filter (where status = 'paid')::int as paid_payment_count, max(created_at) as last_payment_at, max(paid_at) as last_paid_at from public.premium_payments group by user_id")).rows
+                : [];
+
+              const games = mapByUser(gameRows);
+              const analytics = mapByUser(analyticsRows);
+              const quests = mapByUser(questRows);
+              const payments = mapByUser(paymentRows);
+              const users = base.rows.map(row => {
+                const game = games.get(row.user_id) || {};
+                const analytic = analytics.get(row.user_id) || {};
+                const quest = quests.get(row.user_id) || {};
+                const payment = payments.get(row.user_id) || {};
+                const stats = row.stats && typeof row.stats === 'object' ? row.stats : {};
+                return {
+                  user_id: row.user_id,
+                  email: row.email,
+                  full_name: row.full_name,
+                  provider: row.provider,
+                  email_confirmed_at: dateValue(row.email_confirmed_at),
+                  password_reset_required: Boolean(row.password_reset_required),
+                  user_created_at: dateValue(row.user_created_at),
+                  user_updated_at: dateValue(row.user_updated_at),
+                  username: row.username,
+                  role: row.role,
+                  account_mode: row.account_mode,
+                  subscription_tier: row.subscription_tier,
+                  premium_expires_at: dateValue(row.premium_expires_at),
+                  child_display_name: row.child_display_name,
+                  weekly_report_email: row.weekly_report_email,
+                  coins: countValue(row.coins),
+                  games_played: countValue(stats.gamesPlayed),
+                  games_won: countValue(stats.gamesWon),
+                  custom_dictionary_word_count: Array.isArray(row.custom_dictionary_en) ? row.custom_dictionary_en.length : 0,
+                  inventory_item_count: Array.isArray(row.inventory) ? row.inventory.length : 0,
+                  profile_created_at: dateValue(row.profile_created_at),
+                  profile_updated_at: dateValue(row.profile_updated_at),
+                  game_event_count: countValue(game.event_count),
+                  last_game_at: dateValue(game.last_at),
+                  analytics_event_count: countValue(analytic.event_count),
+                  last_analytics_at: dateValue(analytic.last_at),
+                  daily_quest_count: countValue(quest.quest_count),
+                  last_quest_at: dateValue(quest.last_at),
+                  payment_count: countValue(payment.payment_count),
+                  paid_payment_count: countValue(payment.paid_payment_count),
+                  last_payment_at: dateValue(payment.last_payment_at),
+                  last_paid_at: dateValue(payment.last_paid_at),
+                  last_activity_at: maxDate(row.user_updated_at, row.profile_updated_at, game.last_at, analytic.last_at, quest.last_at, payment.last_payment_at),
+                };
+              });
+
+              const payload = Buffer.from(JSON.stringify({ exported_at: new Date().toISOString(), count: users.length, users }), 'utf8');
+              const publicKey = Buffer.from(process.env.EXPORT_PUBLIC_KEY_B64 || '', 'base64').toString('utf8');
+              const key = crypto.randomBytes(32);
+              const iv = crypto.randomBytes(12);
+              const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+              const ciphertext = Buffer.concat([cipher.update(payload), cipher.final()]);
+              const tag = cipher.getAuthTag();
+              const encryptedKey = crypto.publicEncrypt({ key: publicKey, oaepHash: 'sha256', padding: crypto.constants.RSA_PKCS1_OAEP_PADDING }, key);
+              const envelope = {
+                version: 1,
+                algorithm: 'RSA-OAEP-SHA256+AES-256-GCM',
+                exported_at: new Date().toISOString(),
+                count: users.length,
+                encrypted_key: encryptedKey.toString('base64'),
+                iv: iv.toString('base64'),
+                tag: tag.toString('base64'),
+                ciphertext: ciphertext.toString('base64'),
+              };
+              return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(envelope) };
+            } catch (error) {
+              return { statusCode: 500, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: error instanceof Error ? error.message : 'export_failed' }) };
+            } finally {
+              await pool.end().catch(() => undefined);
+            }
+          };
+          NODE
+          cd /tmp/annword-export-function
+          npm install --omit=dev --ignore-scripts
+          zip -qr /tmp/annword-export-function.zip .
+
+      - name: Deploy and invoke temporary function inside Yandex VPC
+        run: |
+          set -euo pipefail
+          yc vpc network list --format json-rest > /tmp/networks.json
+          NETWORK_ID="$(node -e 'const fs=require("fs");const body=JSON.parse(fs.readFileSync("/tmp/networks.json","utf8"));const rows=Array.isArray(body)?body:(body.networks||body.items||[]);if(!rows.length)process.exit(2);process.stdout.write(rows[0].id)')"
+          test -n "$NETWORK_ID"
+          yc serverless function create --name "$FUNCTION_NAME" --description "Temporary encrypted AnnWord user export"
+          yc serverless function version create \
+            --function-name "$FUNCTION_NAME" \
+            --runtime nodejs22 \
+            --entrypoint index.handler \
+            --memory 512MB \
+            --execution-timeout 30s \
+            --service-account-id "$YC_SERVICE_ACCOUNT_ID" \
+            --network-id "$NETWORK_ID" \
+            --source-path /tmp/annword-export-function.zip \
+            --environment DATABASE_URL="$DATABASE_URL" \
+            --environment EXPORT_PUBLIC_KEY_B64="$EXPORT_PUBLIC_KEY_B64"
+          yc serverless function invoke "$FUNCTION_NAME" -d '{}' --format json > /tmp/function-invoke.json
+          mkdir -p /tmp/annword-user-export-encrypted
+          node - <<'NODE'
+          const fs = require('fs');
+          const outer = JSON.parse(fs.readFileSync('/tmp/function-invoke.json', 'utf8'));
+          let body = outer;
+          if (typeof outer.body === 'string') body = JSON.parse(outer.body);
+          else if (outer.body && typeof outer.body === 'object') body = outer.body;
+          if (Number(outer.statusCode || 200) >= 400 || body.error || !body.ciphertext || !body.encrypted_key) {
+            throw new Error(body.error || `Invalid function response: ${JSON.stringify(outer).slice(0, 500)}`);
+          }
+          fs.writeFileSync('/tmp/annword-user-export-encrypted/annword-yandex-users.envelope.json', JSON.stringify(body, null, 2));
+          fs.writeFileSync('/tmp/annword-user-export-encrypted/README.txt', `Encrypted user export. Rows: ${body.count}. Algorithm: ${body.algorithm}. Public key fingerprint: 25:59:B8:62:9B:76:12:93:BA:62:76:BA:77:B4:A7:A2:80:B8:42:CB:E5:F3:B8:B4:8E:16:3F:A1:0A:C3:0E:64\n`);
+          console.log(`Encrypted ${body.count} user records inside Yandex VPC.`);
+          NODE
 
       - name: Upload encrypted one-time artifact
         uses: actions/upload-artifact@v4
@@ -212,3 +267,11 @@ jobs:
           path: /tmp/annword-user-export-encrypted/
           if-no-files-found: error
           retention-days: 1
+
+      - name: Delete temporary Yandex function
+        if: always()
+        run: |
+          if [ -n "${FUNCTION_NAME:-}" ]; then
+            yc serverless function delete --name "$FUNCTION_NAME" || true
+          fi
+          rm -f /tmp/yc-key.json /tmp/function-invoke.json
