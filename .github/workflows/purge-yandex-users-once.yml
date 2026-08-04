@@ -1,0 +1,152 @@
+name: Purge Yandex users once
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: annword-yandex-user-purge
+  cancel-in-progress: false
+
+jobs:
+  purge-users:
+    if: ${{ github.head_ref == 'ops/purge-yandex-users-20260804' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+      YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+      YC_SERVICE_ACCOUNT_ID: ${{ secrets.YC_SERVICE_ACCOUNT_ID }}
+      YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+      YC_POSTGRES_CLUSTER_ID: ${{ secrets.YC_POSTGRES_CLUSTER_ID }}
+      YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+      KEEP_EMAIL_HASHES: ba3f9280d317a1c94ce709c839c6f82f9e0a0ac7d21be09531fe6d8ec2a6bb31,26877c387fdc456f790e95ef8b6aaccacb2d33107fe3129e35c01134773b3201,2bdbe6d2533df007fce7988aed0e5e19dc46430c8551350b4253ef45f0e38eb2
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Yandex Cloud CLI
+        run: |
+          set -euo pipefail
+          test -n "$DATABASE_URL"
+          test -n "$YC_SERVICE_ACCOUNT_KEY_JSON"
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > /tmp/yc-key.json
+          "$HOME/yandex-cloud/bin/yc" config profile create annword-user-purge
+          "$HOME/yandex-cloud/bin/yc" config set service-account-key /tmp/yc-key.json
+          "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
+          "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
+
+      - name: Create fresh PostgreSQL backup
+        run: |
+          set -euo pipefail
+          CLUSTER_ID="${YC_POSTGRES_CLUSTER_ID:-}"
+          if [ -z "$CLUSTER_ID" ]; then
+            yc managed-postgresql cluster list --format json-rest > /tmp/clusters.json
+            CLUSTER_ID="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/clusters.json","utf8"));const a=Array.isArray(x)?x:(x.clusters||x.items||[]);if(a.length!==1)process.exit(2);process.stdout.write(a[0].id)')"
+          fi
+          test -n "$CLUSTER_ID"
+          yc managed-postgresql cluster list-backups --id "$CLUSTER_ID" --format json-rest > /tmp/backups-before.json
+          BEFORE_COUNT="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/backups-before.json","utf8"));const a=Array.isArray(x)?x:(x.backups||x.items||[]);process.stdout.write(String(a.length))')"
+          yc managed-postgresql cluster backup --id "$CLUSTER_ID"
+          for attempt in $(seq 1 40); do
+            yc managed-postgresql cluster list-backups --id "$CLUSTER_ID" --format json-rest > /tmp/backups-after.json
+            AFTER_COUNT="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/backups-after.json","utf8"));const a=Array.isArray(x)?x:(x.backups||x.items||[]);process.stdout.write(String(a.length))')"
+            [ "$AFTER_COUNT" -gt "$BEFORE_COUNT" ] && break
+            [ "$attempt" -eq 40 ] && { echo "Fresh backup did not appear."; exit 1; }
+            sleep 15
+          done
+          node - <<'NODE'
+          const fs = require('fs');
+          const raw = JSON.parse(fs.readFileSync('/tmp/backups-after.json', 'utf8'));
+          const rows = Array.isArray(raw) ? raw : (raw.backups || raw.items || []);
+          rows.sort((a,b) => new Date(b.createdAt || b.created_at || 0) - new Date(a.createdAt || a.created_at || 0));
+          if (!rows[0]?.id) throw new Error('Backup metadata missing');
+          fs.writeFileSync('/tmp/backup-summary.json', JSON.stringify({
+            backup_id: rows[0].id,
+            created_at: rows[0].createdAt || rows[0].created_at || null
+          }, null, 2));
+          console.log(`Fresh backup ready: ${rows[0].id}`);
+          NODE
+
+      - name: Package temporary purge function
+        run: |
+          set -euo pipefail
+          FUNCTION_NAME="annword-purge-users-${GITHUB_RUN_ID}"
+          echo "FUNCTION_NAME=$FUNCTION_NAME" >> "$GITHUB_ENV"
+          cd .ops/yandex-user-purge
+          npm install --omit=dev --ignore-scripts
+          zip -qr /tmp/annword-purge-function.zip .
+
+      - name: Run transactional purge inside Yandex VPC
+        run: |
+          set -euo pipefail
+          yc vpc network list --format json-rest > /tmp/networks.json
+          NETWORK_ID="$(node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/networks.json","utf8"));const a=Array.isArray(x)?x:(x.networks||x.items||[]);if(!a.length)process.exit(2);process.stdout.write(a[0].id)')"
+          yc serverless function create --name "$FUNCTION_NAME" --description "Temporary transactional AnnWord user purge"
+          yc serverless function version create \
+            --function-name "$FUNCTION_NAME" \
+            --runtime nodejs22 \
+            --entrypoint index.handler \
+            --memory 512MB \
+            --execution-timeout 120s \
+            --service-account-id "$YC_SERVICE_ACCOUNT_ID" \
+            --network-id "$NETWORK_ID" \
+            --source-path /tmp/annword-purge-function.zip \
+            --environment DATABASE_URL="$DATABASE_URL" \
+            --environment KEEP_EMAIL_HASHES="$KEEP_EMAIL_HASHES"
+          yc serverless function invoke "$FUNCTION_NAME" -d '{}' --format json > /tmp/function-invoke.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const outer = JSON.parse(fs.readFileSync('/tmp/function-invoke.json','utf8'));
+          const body = typeof outer.body === 'string' ? JSON.parse(outer.body) : (outer.body || outer);
+          fs.writeFileSync('/tmp/purge-report.json', JSON.stringify(body, null, 2));
+          if (Number(outer.statusCode || 200) >= 400 || body.ok !== true) {
+            throw new Error(body.error || JSON.stringify(outer).slice(0,1000));
+          }
+          const r = body.report || {};
+          console.log(JSON.stringify({
+            ok: true,
+            users_before: r.users_before,
+            users_removed: r.users_removed,
+            users_after: r.users_after,
+            profiles_after: r.profiles_after,
+            deleted_rows_total: r.deleted_rows_total,
+            deleted_tables: Object.keys(r.deleted_by_table || {}).length,
+            verification: r.verification
+          }, null, 2));
+          NODE
+
+      - name: Verify production database health
+        run: |
+          set -euo pipefail
+          API_BASE="${YC_API_PUBLIC_URL%/}"
+          for attempt in 1 2 3 4 5; do
+            BODY="$(curl -fsS "${API_BASE}/api/health/db" || true)"
+            printf '%s' "$BODY" | grep -Eq '"ok"[[:space:]]*:[[:space:]]*true' && { echo "$BODY"; exit 0; }
+            sleep 5
+          done
+          exit 1
+
+      - name: Upload purge report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: annword-yandex-user-purge-report-20260804
+          path: |
+            /tmp/backup-summary.json
+            /tmp/purge-report.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+      - name: Delete temporary Yandex function
+        if: always()
+        run: |
+          set +e
+          [ -n "${FUNCTION_NAME:-}" ] && yc serverless function delete "$FUNCTION_NAME"
+          rm -f /tmp/yc-key.json
