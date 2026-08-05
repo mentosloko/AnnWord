@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { preserveEstablishedAccountAccess } from '../services/profileAccessState';
+import { mergeProfileUpdateForOwner, preserveEstablishedAccountAccess } from '../services/profileAccessState';
 import { UserProfile } from '../types';
 
 const profile = (overrides: Partial<UserProfile> = {}): UserProfile => ({
@@ -54,6 +54,15 @@ describe('preserveEstablishedAccountAccess', () => {
     const fullServerProfile = profile({ accountMode: 'teacher', role: 'teacher', subscriptionTier: 'free' });
 
     expect(preserveEstablishedAccountAccess(previous, fullServerProfile)).toMatchObject({ accountMode: 'teacher', role: 'teacher', subscriptionTier: 'free' });
+  });
+
+  it('does not carry onboarding state between different accounts on the same device', () => {
+    const previous = profile({ childDisplayName: 'Анна', childShareCode: 'ABC12345', pet: { ...profile().pet, characterOnboarded: true, name: 'Рэй' } });
+    const newAccount = profile({ username: 'new-user', childDisplayName: undefined, childShareCode: undefined, pet: { ...profile().pet, characterOnboarded: false, name: 'Щенок' } });
+    const merged = mergeProfileUpdateForOwner('old-user-id', 'new-user-id', previous, newAccount);
+    expect(merged.childDisplayName).toBeUndefined();
+    expect(merged.childShareCode).toBeUndefined();
+    expect(merged.pet.characterOnboarded).toBe(false);
   });
 
   it('never sends a completed character back to onboarding when an older response arrives', () => {
