@@ -5,6 +5,7 @@ import { requireAuth } from "../auth";
 import { query, transaction } from "../db";
 import { readRequiredEnv } from "../config";
 import { loadManagedLearners } from "../mentorRepository";
+import { updateProfileAccountMode } from "../profileRepository";
 import { writeParentAccessCookie } from "../parentAccess";
 
 export const familyRouter = Router();
@@ -33,10 +34,8 @@ familyRouter.post("/account-mode", async (req: AuthenticatedRequest, res) => {
   try {
     const mode = text(req.body?.mode);
     if (!["player", "parent", "teacher"].includes(mode)) { res.status(400).json({ error: "Invalid account mode" }); return; }
-    const role = mode === "parent" ? "parent" : mode === "teacher" ? "teacher" : "user";
-    const featureFlags = mode === "player" ? {} : { adultRoom: true };
-    await query("update profiles set role = $2, account_mode = $3, feature_flags = $4::jsonb, updated_at = now() where id = $1", [req.user!.id, role, mode, JSON.stringify(featureFlags)]);
-    res.json({ ok: true });
+    const profile = await updateProfileAccountMode(req.user!.id, mode as "player" | "parent" | "teacher");
+    res.json({ ok: true, profile });
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : "Account mode update failed" });
   }

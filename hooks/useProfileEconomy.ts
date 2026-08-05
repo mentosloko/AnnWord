@@ -132,14 +132,15 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
   }, [currentUserId, setUserProfile, userProfile]);
 
   const updateCharacter = useCallback(async (pet: PetState) => {
-    setUserProfile(prev => ({ ...prev, pet }));
-    if (!currentUserId) return;
+    const completingOnboarding = pet.characterOnboarded === true && userProfile.pet.characterOnboarded !== true;
+    if (!completingOnboarding) setUserProfile(prev => ({ ...prev, pet }));
+    if (!currentUserId) { setUserProfile(prev => ({ ...prev, pet })); return; }
     try {
       const userService = await getUserService();
       const updatedProfile = await userService.updateUserPet(currentUserId, pet);
       if (updatedProfile) setUserProfile(updatedProfile);
     } catch (error) {
-      setUserProfile(userProfile);
+      if (!completingOnboarding) setUserProfile(userProfile);
       console.error('Failed to update character', error);
       throw error;
     }

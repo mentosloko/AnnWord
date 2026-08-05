@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 interface AccessibleDialogProps {
   open: boolean;
@@ -14,10 +15,9 @@ interface AccessibleDialogProps {
 
 export const AccessibleDialog: React.FC<AccessibleDialogProps> = ({ open, titleId, descriptionId, labelledBy, describedBy, className = '', overlayClassName = '', children, onEscape }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
+  useBodyScrollLock(open);
   useEffect(() => {
     if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const focusTimer = window.setTimeout(() => dialogRef.current?.focus(), 0);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onEscape?.();
@@ -35,7 +35,6 @@ export const AccessibleDialog: React.FC<AccessibleDialogProps> = ({ open, titleI
     window.addEventListener('keydown', onKeyDown);
     return () => {
       window.clearTimeout(focusTimer);
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [open, onEscape]);

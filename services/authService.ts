@@ -2,7 +2,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
 import { BackendApiError, backendApiBaseUrl, backendApiRequest, isBackendApiConfigured, writeBackendAccessToken } from './backendApiClient';
 import type { RegistrationConsentSnapshot } from './legalConsentService';
-import type { DailyQuestState, UserProfile } from '../types';
+import type { AccountMode, DailyQuestState, UserProfile } from '../types';
 import { dailyQuestService } from './dailyQuestService';
 
 export interface AuthBootstrapResult {
@@ -202,11 +202,11 @@ export const authService = {
     if (error) throw error;
   },
 
-  signUpWithEmail: async (email: string, password: string, consents: RegistrationConsentSnapshot): Promise<{ needsEmailConfirmation: boolean }> => {
+  signUpWithEmail: async (email: string, password: string, consents: RegistrationConsentSnapshot, accountMode?: AccountMode): Promise<{ needsEmailConfirmation: boolean }> => {
     if (isBackendApiConfigured) {
       const payload = await withTransientRetry(() => backendApiRequest<BackendRegistrationPayload>('/api/auth/email/account', {
         method: 'POST',
-        body: { email, credential: password, name: email.split('@')[0], consents },
+        body: { email, credential: password, name: email.split('@')[0], consents, accountMode },
       }));
       writeExplicitLogout(false);
       if (payload.needsEmailConfirmation !== false || !payload.user) {

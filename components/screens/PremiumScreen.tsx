@@ -64,16 +64,14 @@ export const PremiumScreen: React.FC<PremiumScreenProps> = ({ userProfile, onBac
     });
   }, [hasPremium, productMode, userProfile.role]);
 
+  useBodyScrollLock(Boolean(pendingPlan));
   useEffect(() => {
     if (!pendingPlan) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const timer = window.setTimeout(() => pinInputRef.current?.focus(), 0);
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !verifyingParent) setPendingPlan(null); };
     window.addEventListener('keydown', closeOnEscape);
     return () => {
       window.clearTimeout(timer);
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', closeOnEscape);
     };
   }, [pendingPlan, verifyingParent]);

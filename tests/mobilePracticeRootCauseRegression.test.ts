@@ -62,10 +62,12 @@ describe('mobile Practice root-cause regressions', () => {
 
   it('reconciles stats and daily quest before publishing the terminal Classic state', () => {
     const controller = read('hooks/useClassicGameController.ts');
-    const reconciliation = controller.indexOf('Promise.all([statsPromise, questPromise])');
+    const rewardSave = controller.indexOf('await onStatsUpdate');
+    const questSave = controller.indexOf('await onDailyQuestResult');
     const terminalPublish = controller.indexOf('gameStatus: terminalStatus');
-    expect(reconciliation).toBeGreaterThan(-1);
-    expect(terminalPublish).toBeGreaterThan(reconciliation);
+    expect(rewardSave).toBeGreaterThan(-1);
+    expect(questSave).toBeGreaterThan(rewardSave);
+    expect(terminalPublish).toBeGreaterThan(questSave);
     expect(controller).toContain('finishingRef.current');
   });
 

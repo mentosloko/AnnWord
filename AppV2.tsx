@@ -9,7 +9,7 @@ import { useDictionaryUpload } from './hooks/useDictionaryUpload';
 import { useProfileEconomy } from './hooks/useProfileEconomy';
 import { AccountMode, DailyQuestCompletionReward, DailyQuestState, DictionarySource, GameRewardType, PetState, ShopItem, UserStats, ViewState, WordLearningHistory } from './types';
 import { analyticsService } from './services/analyticsService';
-import { GameRewardInput } from './services/gamificationRules';
+import { calculateGameReward, GameRewardInput } from './services/gamificationRules';
 import { updateReviewPriorities, WordPracticeResult } from './services/gameSessionEngine';
 import { preloadAppAssetsForProfile } from './services/assetPreloader';
 import { WORDLE_HINT_COST, getWordleHintBalanceDelta } from './services/wordleEconomy';
@@ -22,6 +22,9 @@ import { getDefaultPremiumDictionaryId } from './services/premiumDictionaryCatal
 import { ClientEntryPath } from './services/clientEntryPath';
 import { getClientLocationFromPathname, getClientRouteUrl, getInitialClientLocation } from './services/clientRoute';
 import { gameEventLedgerService } from './services/gameEventLedgerService';
+import { clearRegistrationIntent, readRegistrationIntent, rememberRegistrationIntent } from './services/registrationIntent';
+import { markRewardEducation, readRewardEducation, type RewardEducationKind } from './services/rewardEducation';
+import { InfoModal } from './components/modals/InfoModal';
 
 const LENGTH_AGNOSTIC_MODES = new Set<PlayableModeRoute>(['anagrams', 'translation', 'sprint', 'memory', 'letter_square']);
 const PAYMENT_ORDER_STORAGE_KEY = 'annword_pending_payment_order_id';
@@ -125,14 +128,16 @@ const AppV2: React.FC = () => {
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [dailyQuest, setDailyQuest] = useState<DailyQuestState | null>(null);
   const [dailyQuestReward, setDailyQuestReward] = useState<DailyQuestCompletionReward | null>(null);
+  const [rewardEducation, setRewardEducation] = useState<RewardEducationKind | null>(null);
   const [blockGuestShellOnBootstrap] = useState(() => hasInitialOAuthCode());
   const authProfile = useAuthProfile();
-  const { bootstrapStatus, bootstrapError, settings, setSettings, userProfile, setUserProfile, currentUser, cachedUserId, isAuthenticated, authMode, tempUsername, setTempUsername, tempPassword, setTempPassword, authError, setAuthError, isAuthLoading, openLoginMode, openRegisterMode, submitEmailAuth, loginWithYandex, logout } = authProfile;
+  const { bootstrapStatus, bootstrapError, settings, setSettings, userProfile, setUserProfile, currentUser, cachedUserId, isAuthenticated, authMode, tempUsername, setTempUsername, tempPassword, setTempPassword, authError, setAuthError, registrationConfirmationEmail, clearRegistrationConfirmation, isAuthLoading, openLoginMode, openRegisterMode, submitEmailAuth, loginWithYandex, logout } = authProfile;
   const currentUserId = currentUser?.id ?? cachedUserId ?? null;
   const { getSecretWordPool, getValidationPool, getModeWords } = useDictionaryPools({ settings, userProfile });
   const profileEconomy = useProfileEconomy({ currentUserId, userProfile, setUserProfile });
   const wordReviewStatsRef = useRef<UserStats>(userProfile.stats);
   const wordPracticeSyncRef = useRef<Promise<void>>(Promise.resolve());
+  const registrationIntentApplyingRef = useRef(false);
   const isAdmin = userProfile.role === 'admin';
   const isTeacher = userProfile.accountMode === 'teacher' || userProfile.role === 'teacher';
   const isKids = userProfile.accountMode === 'parent' || userProfile.role === 'parent';
@@ -180,11 +185,29 @@ const AppV2: React.FC = () => {
 
   useEffect(() => { wordReviewStatsRef.current = userProfile.stats; }, [userProfile.stats]);
   const goRoot = useCallback(() => { setEntryPath('home'); setRoute('landing'); }, [setEntryPath, setRoute]);
-  const openDictionaryArea = useCallback(() => setRoute(isAdmin || isTeacher || isKids ? 'dictionary_studio' : 'dictionary_settings'), [isAdmin, isKids, isTeacher, setRoute]);
+  const openDictionaryArea = useCallback(() => setRoute(isKids ? 'dictionary_settings' : isAdmin || isTeacher ? 'dictionary_studio' : 'dictionary_settings'), [isAdmin, isKids, isTeacher, setRoute]);
   const setDictionarySource = useCallback((source: DictionarySource) => setSettings(previous => ({ ...previous, dictionarySource: source, useCustomDictionary: source === 'custom' })), [setSettings]);
   const dictionaryUpload = useDictionaryUpload({ updateDictionary: profileEconomy.updateDictionary, setDictionarySource });
 
-  useEffect(() => { if (isAuthenticated) setShowLoginModal(false); }, [isAuthenticated]);
+  useEffect(() => { if (isAuthenticated || registrationConfirmationEmail) setShowLoginModal(false); }, [isAuthenticated, registrationConfirmationEmail]);
+  useEffect(() => {
+    if (bootstrapStatus !== 'ready' || !isAuthenticated || userProfile.role === 'admin' || userProfile.accountMode || registrationIntentApplyingRef.current) return;
+    const intent = readRegistrationIntent();
+    if (!intent) return;
+    registrationIntentApplyingRef.current = true;
+    void familyAccountService.selectAccountMode(intent.accountMode)
+      .then(serverProfile => {
+        const nextEntryPath: ClientEntryPath = intent.accountMode === 'parent' ? 'kids' : intent.accountMode === 'teacher' ? 'teacher' : 'practice';
+        setEntryPath(nextEntryPath);
+        if (serverProfile) setUserProfile(serverProfile);
+        else setUserProfile(previous => ({ ...previous, accountMode: intent.accountMode, role: intent.accountMode === 'parent' ? 'parent' : intent.accountMode === 'teacher' ? 'teacher' : 'user' }));
+        clearRegistrationIntent();
+        replaceRoute(intent.accountMode === 'teacher' ? 'adult_room' : intent.accountMode === 'parent' ? 'family_setup' : 'landing');
+      })
+      .catch(error => console.error('Failed to apply saved registration format', error))
+      .finally(() => { registrationIntentApplyingRef.current = false; });
+  }, [bootstrapStatus, isAuthenticated, replaceRoute, setEntryPath, setUserProfile, userProfile.accountMode, userProfile.role]);
+  useEffect(() => { if (bootstrapStatus === 'ready' && isAuthenticated && userProfile.accountMode) clearRegistrationIntent(); }, [bootstrapStatus, isAuthenticated, userProfile.accountMode]);
   useEffect(() => { if (bootstrapStatus === 'ready' && isKids) preloadAppAssetsForProfile(userProfile); }, [bootstrapStatus, isKids, userProfile.pet.type, userProfile.pet.characterOnboarded]);
   useEffect(() => {
     if (bootstrapStatus !== 'ready') return;
@@ -203,6 +226,7 @@ const AppV2: React.FC = () => {
   useEffect(() => {
     if (bootstrapStatus !== 'ready' || !isAuthenticated) return;
     if (userProfile.role !== 'admin' && !userProfile.accountMode) {
+      if (registrationIntentApplyingRef.current) return;
       if (route !== 'account_mode_setup') replaceRoute('account_mode_setup');
       return;
     }
@@ -254,7 +278,7 @@ const AppV2: React.FC = () => {
     return () => { window.removeEventListener('focus', refreshVisibleQuest); document.removeEventListener('visibilitychange', refreshVisibleQuest); window.clearInterval(intervalId); };
   }, [bootstrapStatus, canUseDailyQuest, loadDailyQuest]);
   const openLogin = useCallback(() => { openLoginMode(); setShowLoginModal(true); }, [openLoginMode]);
-  const openRegister = useCallback(() => { openRegisterMode(); setShowLoginModal(true); }, [openRegisterMode]);
+  const openRegister = useCallback((path?: 'practice' | 'kids' | 'teacher') => { if (path) { rememberRegistrationIntent(path); setEntryPath(path); } openRegisterMode(); setShowLoginModal(true); }, [openRegisterMode, setEntryPath]);
   const updateEmail = useCallback((value: string) => { if (authError) setAuthError(null); setTempUsername(value); }, [authError, setAuthError, setTempUsername]);
   const updatePassword = useCallback((value: string) => { if (authError) setAuthError(null); setTempPassword(value); }, [authError, setAuthError, setTempPassword]);
   const handleAuthModeChange = useCallback((mode: 'login' | 'register') => { if (mode === 'login') openLoginMode(); else openRegisterMode(); }, [openLoginMode, openRegisterMode]);
@@ -324,10 +348,11 @@ const AppV2: React.FC = () => {
     setRoute('dictionary_settings');
   }, [setRoute, setSettings, setUserProfile]);
   const handleSelectAccountMode = useCallback(async (mode: AccountMode) => {
-    await familyAccountService.selectAccountMode(mode);
+    const serverProfile = await familyAccountService.selectAccountMode(mode);
     const nextEntryPath: ClientEntryPath = mode === 'parent' ? 'kids' : mode === 'teacher' ? 'teacher' : 'practice';
     setEntryPath(nextEntryPath);
-    setUserProfile(previous => ({ ...previous, accountMode: mode, role: mode === 'parent' ? 'parent' : mode === 'teacher' ? 'teacher' : 'user', featureFlags: mode === 'player' ? previous.featureFlags : { ...(previous.featureFlags || {}), adultRoom: true } }));
+    if (serverProfile) setUserProfile(serverProfile);
+    else setUserProfile(previous => ({ ...previous, accountMode: mode, role: mode === 'parent' ? 'parent' : mode === 'teacher' ? 'teacher' : 'user', featureFlags: mode === 'player' ? previous.featureFlags : { ...(previous.featureFlags || {}), adultRoom: true } }));
     setRoute(mode === 'teacher' ? 'adult_room' : mode === 'parent' ? 'family_setup' : 'landing');
   }, [setEntryPath, setRoute, setUserProfile]);
   const handleCreateChild = useCallback(async (childName: string, pin: string): Promise<ChildSetupResult> => familyAccountService.createChild(childName, pin), []);
@@ -346,10 +371,17 @@ const AppV2: React.FC = () => {
       if (!input.statsOnly) await submitDailyQuestResult(input);
       return;
     }
-    const questPromise = !input.statsOnly ? submitDailyQuestResult(input) : Promise.resolve();
+    const reward = calculateGameReward(input);
+    const showCoins = userProfile.coins <= 0 && reward.coins > 0 && !readRewardEducation(currentUserId, 'coins');
+    const showXp = (userProfile.pet.xp || 0) <= 0 && reward.xp > 0 && !readRewardEducation(currentUserId, 'xp');
     await profileEconomy.applyGameReward(input, { stats: nextStats, analyticsEvents: [event] });
-    await questPromise;
-  }, [currentUserId, isKids, profileEconomy, route, settings.dictionarySource, settings.difficulty, settings.wordLength, submitDailyQuestResult, userProfile.stats]);
+    if (!input.statsOnly) await submitDailyQuestResult(input);
+    if (showCoins || showXp) {
+      const kind: RewardEducationKind = showCoins && showXp ? 'coins_and_xp' : showCoins ? 'coins' : 'xp';
+      markRewardEducation(currentUserId, kind);
+      setRewardEducation(kind);
+    }
+  }, [currentUserId, isKids, profileEconomy, route, settings.dictionarySource, settings.difficulty, settings.wordLength, submitDailyQuestResult, userProfile.coins, userProfile.pet.xp, userProfile.stats]);
   const handleWordPractice = useCallback(async (word: string, result: WordPracticeResult) => {
     const previousStats = wordReviewStatsRef.current;
     const nextStats = addPracticeWordToStats(previousStats, word, result);
@@ -358,7 +390,7 @@ const AppV2: React.FC = () => {
     wordPracticeSyncRef.current = wordPracticeSyncRef.current.catch(() => undefined).then(() => profileEconomy.updateStats(nextStats));
     await wordPracticeSyncRef.current;
   }, [profileEconomy, route, sendWordLedgerEvent]);
-  const handleCharacterOnboardingComplete = useCallback(async (character: PetState) => { await profileEconomy.updateCharacter(character); setRoute('landing'); }, [profileEconomy, setRoute]);
+  const handleCharacterOnboardingComplete = useCallback(async (character: PetState) => { await profileEconomy.updateCharacter(character); analyticsService.trackEvent({ userId: currentUserId, eventType: 'onboarding', eventName: 'character_onboarding_completed', route: 'character_onboarding', payload: { characterType: character.type } }); replaceRoute('landing'); }, [currentUserId, profileEconomy, replaceRoute]);
   const startTrackedGame = useCallback((mode: PlayableModeRoute) => {
     analyticsService.trackEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_started', gameType: toAnalyticsGameType(mode), route: mode, payload: { wordLength: isLengthAgnosticMode(mode) ? 'any' : settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty, wordsAvailable: modeWords.length } });
   }, [currentUserId, modeWords.length, settings.dictionarySource, settings.difficulty, settings.wordLength]);
@@ -366,6 +398,14 @@ const AppV2: React.FC = () => {
   if (bootstrapStatus === 'error') return <AuthBootstrapGate error={bootstrapError} onRetry={() => window.location.reload()} />;
   if (bootstrapStatus !== 'ready' && !canRenderWhileBootstrapping) return <AuthBootstrapGate mode="blocking" />;
   const shell = <AppShell route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} showLoginModal={showLoginModal} showRulesModal={showRulesModal} authMode={authMode} tempUsername={tempUsername} tempPassword={tempPassword} authError={authError} isAuthLoading={isAuthLoading} onHomeClick={goRoot} onLoginClick={openLogin} onLogoutClick={handleLogout} onProfileClick={() => setRoute('profile')} onShopClick={() => setRoute('shop')} onAdminClick={() => setRoute('admin')} onAdultRoomClick={() => setRoute('adult_room')} onDictionaryStudioClick={openDictionaryArea} onCloseLogin={() => setShowLoginModal(false)} onCloseRules={() => setShowRulesModal(false)} onAuthModeChange={handleAuthModeChange} onUsernameChange={updateEmail} onPasswordChange={updatePassword} onAuthSubmit={submitEmailAuth} onYandexLogin={loginWithYandex}><AppScreens route={route} entryPath={entryPath} selectedPlayMode={selectedPlayMode} userProfile={userProfile} isAuthenticated={isAuthenticated} dailyQuest={dailyQuest} dailyQuestReward={dailyQuestReward} onCloseDailyQuestReward={() => setDailyQuestReward(null)} settings={settings} modeWords={modeWords} activeDictionaryWordCount={activeDictionaryWordCount} classicGame={classicGame} dictionaryUpload={{ isUploadingDictionary: dictionaryUpload.isUploadingDictionary, error: dictionaryUpload.dictionaryUploadError, onFileUpload: dictionaryUpload.handleDictionaryFileUpload }} onRouteChange={setRoute} onEntryPathChange={setEntryPath} onSelectedPlayModeChange={setSelectedPlayMode} onSettingsChange={setSettings} onOpenLogin={openLogin} onOpenRegister={openRegister} onOpenRules={() => setShowRulesModal(true)} onBuy={handleBuy} onUseItem={handleUseItem} onUpdatePet={profileEconomy.updateCharacter} onSaveDictionary={handleSaveDictionary} onSelectAccountMode={handleSelectAccountMode} onCreateChild={handleCreateChild} onChildSetupComplete={handleChildSetupComplete} onGameReward={handleGameReward} onWordPractice={handleWordPractice} onCharacterOnboardingComplete={handleCharacterOnboardingComplete} onGameStarted={startTrackedGame} onTestUnlockPremium={handleTestUnlockPremium} onDictionaryPeek={chargeDictionaryPeek} /></AppShell>;
-  return <>{shell}{bootstrapStatus === 'loading' && <AuthBootstrapGate mode="inline" />}</>;
+  const rewardEducationDescription = rewardEducation === 'coins_and_xp'
+    ? <>Монеты нужны для лакомств, предметов и подсказок. Опыт повышает уровень питомца и открывает новые возможности.</>
+    : rewardEducation === 'coins'
+      ? <>Монеты можно тратить в магазине на лакомства и предметы для питомца, а также на некоторые подсказки в играх.</>
+      : <>Опыт растёт после игр, повышает уровень питомца и постепенно открывает новые возможности.</>;
+  return <>{shell}{bootstrapStatus === 'loading' && <AuthBootstrapGate mode="inline" />}
+    <InfoModal open={Boolean(registrationConfirmationEmail)} eyebrow="Проверьте почту" title="Подтвердите регистрацию" description={<>Мы отправили письмо на <strong>{registrationConfirmationEmail}</strong>. Откройте ссылку из письма — после этого аккаунт будет создан и выбранный формат сохранится.</>} actionLabel="Хорошо" onClose={clearRegistrationConfirmation} />
+    <InfoModal open={Boolean(rewardEducation)} eyebrow="Первая награда" title={rewardEducation === 'coins_and_xp' ? 'Монеты и опыт' : rewardEducation === 'coins' ? 'Что такое монеты?' : 'Что такое опыт?'} description={rewardEducationDescription} onClose={() => setRewardEducation(null)} />
+  </>;
 };
 export default AppV2;

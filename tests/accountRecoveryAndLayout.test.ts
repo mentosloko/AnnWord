@@ -15,7 +15,10 @@ describe('account recovery and stable transient UI', () => {
     expect(authModal.toLowerCase()).not.toContain('magic link');
     expect(authModal).not.toContain('Войти по ссылке');
     expect(authModal).toContain("minLength={mode === 'register' ? 8 : undefined}");
-    expect(authModal).toContain('аккаунт активируется после перехода по ссылке');
+    const app = read('AppV2.tsx');
+    expect(app).toContain('registrationConfirmationEmail');
+    expect(app).toContain('title="Подтвердите регистрацию"');
+    expect(app).toContain('Откройте ссылку из письма');
     expect(authModal).toContain('Продолжить через Яндекс');
   });
 

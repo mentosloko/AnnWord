@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { AccountMode } from '../types';
+import { AccountMode, UserProfile } from '../types';
 import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
 import { legalConsentService } from './legalConsentService';
 import { mentorRoomService, normalizeMentorRoomResult, type MentorRoomLoadResult } from './mentorRoomService';
@@ -83,13 +83,13 @@ const validateParentPin = (pin: string): string => {
 };
 
 export const familyAccountService = {
-  async selectAccountMode(mode: AccountMode): Promise<void> {
+  async selectAccountMode(mode: AccountMode): Promise<UserProfile | null> {
     if (isBackendApiConfigured) {
-      await backendApiRequest<{ ok: boolean }>('/api/family/account-mode', {
+      const result = await backendApiRequest<{ ok: boolean; profile?: UserProfile }>('/api/family/account-mode', {
         method: 'POST',
         body: { mode },
       });
-      return;
+      return result.profile || null;
     }
 
     const role = mode === 'parent' ? 'parent' : mode === 'teacher' ? 'teacher' : 'user';
@@ -107,6 +107,7 @@ export const familyAccountService = {
     if (error) {
       throw new Error(getErrorMessage(error, 'Не удалось выбрать тип аккаунта.'));
     }
+    return null;
   },
 
   async createChild(childName: string, pin: string): Promise<ChildSetupResult> {

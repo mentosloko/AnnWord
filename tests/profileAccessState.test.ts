@@ -53,6 +53,20 @@ describe('preserveEstablishedAccountAccess', () => {
     const previous = profile();
     const fullServerProfile = profile({ accountMode: 'teacher', role: 'teacher', subscriptionTier: 'free' });
 
-    expect(preserveEstablishedAccountAccess(previous, fullServerProfile)).toBe(fullServerProfile);
+    expect(preserveEstablishedAccountAccess(previous, fullServerProfile)).toMatchObject({ accountMode: 'teacher', role: 'teacher', subscriptionTier: 'free' });
+  });
+
+  it('never sends a completed character back to onboarding when an older response arrives', () => {
+    const previous = profile({ pet: { ...profile().pet, characterOnboarded: true, name: 'Рэй' } });
+    const stale = profile({ pet: { ...profile().pet, characterOnboarded: false, name: 'Щенок' }, coins: 4 });
+    const merged = preserveEstablishedAccountAccess(previous, stale);
+    expect(merged.pet.characterOnboarded).toBe(true);
+    expect(merged.coins).toBe(4);
+  });
+
+  it('keeps the newest rewarded room when a stale game response arrives later', () => {
+    const previous = profile({ pet: { ...profile().pet, activeWorldId: 'space_room', activeWorldDate: '2026-08-05' } });
+    const stale = profile({ pet: { ...profile().pet, activeWorldId: 'default_room', activeWorldDate: undefined } });
+    expect(preserveEstablishedAccountAccess(previous, stale).pet).toMatchObject({ activeWorldId: 'space_room', activeWorldDate: '2026-08-05' });
   });
 });

@@ -12,7 +12,7 @@ export const isPremiumActive = (userProfile: UserProfile): boolean => {
 export const hasPremiumDictionaries = (userProfile: UserProfile): boolean =>
   isPremiumActive(userProfile) && userProfile.featureFlags?.premiumDictionaries === true;
 
-export const getTrialPremiumExpiresAt = (days = 7, now = new Date()): string =>
+export const getTrialPremiumExpiresAt = (days = 30, now = new Date()): string =>
   new Date(now.getTime() + Math.max(1, Math.round(days)) * DAY_MS).toISOString();
 
 export const formatPremiumExpiresAt = (expiresAt?: string): string => {

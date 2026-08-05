@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
@@ -135,8 +136,18 @@ profileRouter.patch("/stats", async (req: AuthenticatedRequest, res) => {
 
 profileRouter.patch("/pet", async (req: AuthenticatedRequest, res) => {
   try {
+    const requestedOnboardingCompletion = req.body?.pet?.characterOnboarded === true;
     await updateProfilePet(req.user!.id, req.body?.pet);
     const profile = await reconcileProfileMood(req.user!.id);
+    if (requestedOnboardingCompletion) {
+      console.info(JSON.stringify({
+        level: "INFO",
+        event: "character_onboarding_persisted",
+        userHash: createHash("sha256").update(req.user!.id).digest("hex").slice(0, 12),
+        characterOnboarded: profile.pet.characterOnboarded === true,
+        characterType: profile.pet.type,
+      }));
+    }
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "pet_update_failed", error: error instanceof Error ? error.message : "Pet update failed" });

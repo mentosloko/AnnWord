@@ -63,7 +63,7 @@ export interface AppScreensProps {
   onSelectedPlayModeChange: (mode: PlayableModeRoute) => void;
   onSettingsChange: (settings: GameSettings | ((prev: GameSettings) => GameSettings)) => void;
   onOpenLogin: () => void;
-  onOpenRegister: () => void;
+  onOpenRegister: (path?: 'practice' | 'kids' | 'teacher') => void;
   onOpenRules: () => void;
   onBuy: (item: ShopItem) => Promise<void>;
   onUseItem: (itemId: string) => Promise<void>;
@@ -93,7 +93,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
   const safeRoute = resolveAccessibleRoute(route, userProfile, isAuthenticated);
   const goHome = () => { setQuickStartRequested(false); setDictionarySnapshot(null); onRouteChange('landing'); };
   const openEntry = (path: ClientEntryPath) => { onEntryPathChange(path); onRouteChange('landing'); };
-  const startRegisterFor = (path: 'practice' | 'kids' | 'teacher') => { openEntry(path); onOpenRegister(); };
+  const startRegisterFor = (path: 'practice' | 'kids' | 'teacher') => { openEntry(path); onOpenRegister(path); };
   const isParentAccount = userProfile.role === 'parent' || userProfile.accountMode === 'parent';
   const isTeacher = userProfile.role === 'teacher' || userProfile.accountMode === 'teacher';
   const hasChosenAccountMode = userProfile.role === 'admin' || Boolean(userProfile.accountMode);
@@ -116,7 +116,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
   const openPremiumFrom = (from: ViewState, kind: PremiumIntentKind = 'general') => { rememberPremiumIntent(kind, from); onRouteChange('premium'); };
   const returnFromPremium = () => onRouteChange(readPremiumIntent()?.returnTo || 'landing');
   const openAfterPayment = () => { const next = getPremiumSuccessRoute(readPremiumIntent(), isParentAccount); clearPremiumIntent(); onRouteChange(next); };
-  const openDictionaryFromGameArea = () => onRouteChange(isParentAccount ? 'adult_room' : 'dictionary_studio');
+  const openDictionaryFromGameArea = () => onRouteChange(isParentAccount ? 'dictionary_settings' : 'dictionary_studio');
   const setupError = classicGame.setupError || dictionaryUpload.error;
   const hasActiveClassicGame = Boolean(classicGame.hasActiveGame);
   const hasActiveAnagramGame = isAuthenticated && hasSavedAnagramSession(userProfile.username);
@@ -160,9 +160,10 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
   const playDictionaryIcon = dictionarySnapshot?.icon || activeDictionaryIcon;
   const gameProps = { words: playWords, wordLength: settings.wordLength, dictionaryLabel: playDictionaryName, dictionaryIcon: playDictionaryIcon, rulesViewerKey, userProfile, onGameReward, onWordPractice, onBackHome: goHome, onDictionaryPeek };
   const landingMix = <LandingMixScreen entryPath={entryPath} onLogin={onOpenLogin} onStartPractice={() => startRegisterFor('practice')} onStartKids={() => startRegisterFor('kids')} onStartTeacher={() => startRegisterFor('teacher')} />;
-  const accountModeSetup = <AccountModeSetupScreen onSelectMode={onSelectAccountMode} />;
+  const suggestedMode = entryPath === 'kids' ? 'parent' : entryPath === 'teacher' ? 'teacher' : entryPath === 'practice' ? 'player' : null;
+  const accountModeSetup = <AccountModeSetupScreen suggestedMode={suggestedMode} onSelectMode={onSelectAccountMode} />;
   const practiceHome = <PracticeHomeScreen userProfile={userProfile} dailyQuest={dailyQuest} dailyQuestReward={null} onCloseDailyQuestReward={onCloseDailyQuestReward} onStartDailyQuest={startDailyQuest} hasActiveClassicGame={hasActiveClassicGame} hasActiveAnagramGame={hasActiveAnagramGame} activeDictionaryName={activeDictionaryName} onStartClassic={() => requestQuickLaunch('game')} onStartAnagrams={() => requestQuickLaunch('anagrams')} onStartTranslation={() => requestQuickLaunch('translation')} onStartSprint={() => requestQuickLaunch('sprint')} onStartHangman={() => requestQuickLaunch('hangman')} onStartMemory={() => requestQuickLaunch('memory')} onStartLetterSquare={() => requestQuickLaunch('letter_square')} onOpenProfile={() => onRouteChange('profile')} onOpenDictionaryStudio={() => onRouteChange('dictionary_settings')} onOpenPremium={() => openPremiumFrom('landing')} />;
-  const kidsHome = <KidsHomeScreen userProfile={userProfile} dailyQuest={dailyQuest} dailyQuestReward={null} onCloseDailyQuestReward={onCloseDailyQuestReward} onStartDailyQuest={startDailyQuest} hasActiveClassicGame={hasActiveClassicGame} hasActiveAnagramGame={hasActiveAnagramGame} activeDictionaryName={activeDictionaryName} onStartClassic={() => requestQuickLaunch('game')} onStartAnagrams={() => requestQuickLaunch('anagrams')} onStartTranslation={() => requestQuickLaunch('translation')} onStartSprint={() => requestQuickLaunch('sprint')} onStartHangman={() => requestQuickLaunch('hangman')} onStartMemory={() => requestQuickLaunch('memory')} onStartLetterSquare={() => requestQuickLaunch('letter_square')} onOpenShop={() => onRouteChange('shop')} onOpenProfile={() => onRouteChange('profile')} onOpenPetRoom={() => onRouteChange('pet_room')} onOpenAdultRoom={() => onRouteChange('adult_room')} onOpenPremium={() => openPremiumFrom('landing')} />;
+  const kidsHome = <KidsHomeScreen userProfile={userProfile} dailyQuest={dailyQuest} dailyQuestReward={null} onCloseDailyQuestReward={onCloseDailyQuestReward} onStartDailyQuest={startDailyQuest} hasActiveClassicGame={hasActiveClassicGame} hasActiveAnagramGame={hasActiveAnagramGame} activeDictionaryName={activeDictionaryName} onStartClassic={() => requestQuickLaunch('game')} onStartAnagrams={() => requestQuickLaunch('anagrams')} onStartTranslation={() => requestQuickLaunch('translation')} onStartSprint={() => requestQuickLaunch('sprint')} onStartHangman={() => requestQuickLaunch('hangman')} onStartMemory={() => requestQuickLaunch('memory')} onStartLetterSquare={() => requestQuickLaunch('letter_square')} onOpenShop={() => onRouteChange('shop')} onOpenProfile={() => onRouteChange('profile')} onOpenPetRoom={() => onRouteChange('pet_room')} onOpenAdultRoom={() => onRouteChange('adult_room')} onOpenDictionary={() => onRouteChange('dictionary_settings')} onOpenPremium={() => openPremiumFrom('landing')} />;
   const teacherHome = <TeacherDashboardScreen userProfile={userProfile} onOpenDictionaryStudio={() => onRouteChange('dictionary_studio')} onOpenAdultRoom={() => onRouteChange('adult_room')} onOpenProfile={() => onRouteChange('profile')} />;
   const roleHomeScreen = isTeacher ? teacherHome : isParentAccount ? kidsHome : practiceHome;
   const homeScreen = isAuthenticated ? (hasChosenAccountMode ? roleHomeScreen : accountModeSetup) : landingMix;
@@ -177,10 +178,10 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
     premium_success: <PremiumSuccessScreen userProfile={userProfile} onPrimaryAction={openAfterPayment} onBackHome={goHome} />,
     account_mode_setup: hasChosenAccountMode ? homeScreen : accountModeSetup,
     family_setup: <FamilySetupScreen onCreateChild={onCreateChild} onComplete={onChildSetupComplete} onBackHome={goHome} />,
-    character_onboarding: isParentAccount ? <CharacterOnboardingScreen onComplete={onCharacterOnboardingComplete} onOpenPremium={() => openPremiumFrom('character_onboarding', 'character_onboarding')} /> : homeScreen,
+    character_onboarding: isParentAccount ? <CharacterOnboardingScreen onComplete={onCharacterOnboardingComplete} /> : homeScreen,
     landing: homeScreen,
     setup: <SetupScreen selectedPlayMode={selectedPlayMode} settings={settings} customDictionaryWords={ownWords} setupError={setupError} isUploadingDictionary={dictionaryUpload.isUploadingDictionary} isAuthenticated={isAuthenticated} userProfile={userProfile} questContext={setupQuestContext} hasActiveClassicGame={hasActiveClassicGame} onResumeClassicGame={classicGame.resumeGame} onSettingsChange={onSettingsChange} onFileUpload={dictionaryUpload.onFileUpload} onOpenDictionaryStudio={openDictionaryFromGameArea} onOpenPremium={() => openPremiumFrom('setup', 'game_setup')} onStartGame={startSelectedMode} onBack={goHome} onLogin={onOpenLogin} autoStart={quickStartRequested} onAutoStartComplete={() => setQuickStartRequested(false)} />,
-    game: <ClassicGameScreen gameState={classicGame.gameState} settings={settings} userProfile={userProfile} isAuthenticated={isAuthenticated} rulesViewerKey={rulesViewerKey} keyStatuses={classicGame.keyStatuses} shakeRowIndex={classicGame.shakeRowIndex} dictionaryWords={playWords} dictionaryLabel={playDictionaryName} dictionaryIcon={playDictionaryIcon} onChar={classicGame.handleChar} onDelete={classicGame.handleDelete} onEnter={classicGame.handleEnter} onHint={classicGame.fetchHint} onRestart={classicGame.startNewGame} onBackHome={goHome} onRegister={onOpenRegister} onDictionaryPeek={onDictionaryPeek} />,
+    game: <ClassicGameScreen gameState={classicGame.gameState} settings={settings} userProfile={userProfile} isAuthenticated={isAuthenticated} rulesViewerKey={rulesViewerKey} keyStatuses={classicGame.keyStatuses} shakeRowIndex={classicGame.shakeRowIndex} dictionaryWords={playWords} dictionaryLabel={playDictionaryName} dictionaryIcon={playDictionaryIcon} onChar={classicGame.handleChar} onDelete={classicGame.handleDelete} onEnter={classicGame.handleEnter} onHint={classicGame.fetchHint} onRestart={classicGame.startNewGame} onBackHome={goHome} onRegister={() => onOpenRegister()} onDictionaryPeek={onDictionaryPeek} />,
     profile: <ProfileScreen userProfile={userProfile} isAuthenticated={isAuthenticated} activeDictionaryName={activeDictionaryName} onBackHome={goHome} onOpenShop={() => isParentAccount ? onRouteChange('shop') : onRouteChange('landing')} onOpenPetRoom={() => isParentAccount ? onRouteChange('pet_room') : onRouteChange('landing')} onLogin={onOpenLogin} />,
     anagrams: <AnagramsScreen {...gameProps} />,
     translation: <TranslationChoiceScreen {...gameProps} />,

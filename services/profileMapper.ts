@@ -117,6 +117,8 @@ export const mapProfileFromDB = (data: any): UserProfile => {
     accountMode: ['player', 'parent', 'teacher'].includes(String(data?.account_mode)) ? data.account_mode : undefined,
     subscriptionTier: data?.subscription_tier === 'premium' ? 'premium' : 'free',
     premiumExpiresAt: normalizeDateTime(data?.premium_expires_at),
+    kidsTrialStartedAt: normalizeDateTime(data?.kids_trial_started_at),
+    kidsTrialExpiresAt: normalizeDateTime(data?.kids_trial_expires_at),
     childDisplayName: typeof data?.child_display_name === 'string' ? data.child_display_name : undefined,
     childShareCode: typeof data?.child_share_code === 'string' ? data.child_share_code : undefined,
     childSlotsLimit: typeof data?.child_slots_limit === 'number' ? data.child_slots_limit : 1,
