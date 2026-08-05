@@ -5,7 +5,6 @@ import { LEGAL_DOCUMENTS, LEGAL_LINK_PROPS } from '../../services/legalDocuments
 import { passwordResetService } from '../../services/passwordResetService';
 import { StableStatusSlot } from '../ui/StatusNotice';
 import { experienceUi } from '../ui/ExperiencePrimitives';
-import { readRegistrationIntent } from '../../services/registrationIntent';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -70,7 +69,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, mode, email, passw
   }, [isOpen]);
 
   if (!isOpen) return null;
-  const kidsRegistration = mode === 'register' && readRegistrationIntent()?.accountMode === 'parent';
   const title = recoveryMode ? 'Восстановление пароля' : mode === 'login' ? 'Войти в AnnWord' : 'Создать аккаунт';
   const emailHasDomain = email.includes('@') && email.split('@').pop()!.includes('.');
   const invalidRegistrationDomain = mode === 'register' && emailHasDomain && !isRussianEmailDomain(email);
@@ -103,11 +101,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, mode, email, passw
         <button type="submit" disabled={recoveryBusy} className={`flex w-full items-center justify-center gap-2 ${experienceUi.primaryButton}`}>{recoveryBusy && <LoaderIcon />}{recoveryBusy ? 'Отправляю…' : 'Отправить ссылку'}</button>
         <button type="button" disabled={recoveryBusy} onClick={() => { setRecoveryMode(false); setRecoveryMessage(null); setRecoveryError(null); }} className={`w-full ${experienceUi.secondaryButton}`}>Вернуться ко входу</button>
       </form> : <>
-        {kidsRegistration && <div className="mt-3 rounded-2xl border-2 border-amber-100 bg-amber-50 p-4">
-          <div className="text-xs font-black uppercase tracking-widest text-amber-600">Первый месяц бесплатно</div>
-          <h3 className="mt-1 text-lg font-black text-indigo-950">Kids Premium включится после подтверждения email</h3>
-          <p className="mt-2 text-sm font-bold leading-5 text-slate-600">Школьные словари по классам и возможность играть по своим словам будут доступны без оплаты в течение первого месяца. Дата окончания сохранится в аккаунте.</p>
-        </div>}
         <button type="button" disabled={isLoading} onClick={onYandexLogin} className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-red-100 bg-white px-5 py-3 font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-60"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-sm text-white">Я</span>{mode === 'login' ? 'Продолжить через Яндекс' : 'Зарегистрироваться через Яндекс'}</button>
         <div className="my-4 flex items-center gap-3 text-xs font-bold uppercase tracking-wide text-slate-400"><span className="h-px flex-1 bg-slate-200" /><span>или по email</span><span className="h-px flex-1 bg-slate-200" /></div>
         <form onSubmit={event => { event.preventDefault(); submit(); }} className="space-y-4">

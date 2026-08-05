@@ -42,3 +42,7 @@ export const preserveEstablishedAccountAccess = (previous: UserProfile, next: Us
     },
   };
 };
+export const mergeProfileUpdateForOwner = (previousOwnerId: string | null, nextOwnerId: string | null, previous: UserProfile, next: UserProfile): UserProfile => {
+  if (previousOwnerId !== nextOwnerId) return next;
+  return preserveEstablishedAccountAccess(previous, next);
+};

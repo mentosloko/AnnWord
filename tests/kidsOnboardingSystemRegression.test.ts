@@ -26,6 +26,7 @@ describe('Kids registration and onboarding system', () => {
     expect(router).toContain('intended_account_mode');
     expect(router).toContain('createProfileForUser(client, id, row.full_name, initialRole, row.intended_account_mode');
     expect(overlay).toContain('registrationEntryPathForMode(accountMode)');
+    expect(read('hooks/useAuthProfile.ts')).toContain('mergeProfileUpdateForOwner(profileOwnerUserIdRef.current, currentUserIdRef.current');
   });
 
   it('shows email confirmation and first-month Premium information in dialogs/onboarding', () => {
@@ -34,8 +35,8 @@ describe('Kids registration and onboarding system', () => {
     const family = read('components/screens/FamilySetupScreen.tsx');
     const character = read('components/screens/CharacterOnboardingScreen.tsx');
     expect(app).toContain('title="Подтвердите регистрацию"');
-    expect(authModal).toContain('Первый месяц бесплатно');
-    expect(authModal).toContain('Kids Premium включится после подтверждения email');
+    expect(authModal).not.toContain('Первый месяц бесплатно');
+    expect(authModal).not.toContain('Kids Premium включится после подтверждения email');
     expect(family).toContain('Первый месяц Kids Premium бесплатно');
     expect(family).not.toContain('weeklyReportEmail');
     expect(family).not.toContain('Email взрослого');
