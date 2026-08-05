@@ -1,7 +1,7 @@
 import type { PoolClient } from "pg";
-import { query } from "./db";
+import { query, transaction } from "./db";
 import { mapProfileFromDB, normalizeDictionaryField, normalizeInventory, normalizePet, normalizeStats } from "../services/profileMapper";
-import type { PetState, UserProfile, UserStats } from "../types";
+import type { AccountMode, PetState, UserProfile, UserStats } from "../types";
 
 export const PROFILE_COLUMNS = `
   id,
@@ -10,6 +10,8 @@ export const PROFILE_COLUMNS = `
   account_mode,
   subscription_tier,
   premium_expires_at,
+  kids_trial_started_at,
+  kids_trial_expires_at,
   feature_flags,
   dictionary_collections,
   weekly_report_email,
@@ -82,16 +84,60 @@ const mergeStatsForSave = (currentRaw: unknown, incomingRaw: unknown): UserStats
 const mergePetForSave = (currentRaw: unknown, incomingRaw: unknown): PetState => {
   const current = normalizePet(currentRaw || DEFAULT_PET);
   const incoming = normalizePet(incomingRaw || DEFAULT_PET);
+  const currentWorldAt = current.activeWorldDate ? Date.parse(current.activeWorldDate) : Number.NaN;
+  const incomingWorldAt = incoming.activeWorldDate ? Date.parse(incoming.activeWorldDate) : Number.NaN;
+  const keepCurrentWorld = Boolean(current.activeWorldDate) && (!incoming.activeWorldDate || (!Number.isNaN(currentWorldAt) && !Number.isNaN(incomingWorldAt) && currentWorldAt > incomingWorldAt));
   return {
     ...current,
     ...incoming,
     xp: Math.max(current.xp || 0, incoming.xp || 0),
     level: Math.max(current.level || 1, incoming.level || 1),
     characterOnboarded: current.characterOnboarded === true || incoming.characterOnboarded === true,
+    activeWorldId: keepCurrentWorld ? current.activeWorldId : incoming.activeWorldId,
+    activeWorldDate: keepCurrentWorld ? current.activeWorldDate : incoming.activeWorldDate,
     equippedAccessories: Array.from(new Set([...(current.equippedAccessories || []), ...(incoming.equippedAccessories || [])])),
     earnedStickerIds: Array.from(new Set([...(current.earnedStickerIds || []), ...(incoming.earnedStickerIds || [])])),
   };
 };
+
+const roleForMode = (mode: AccountMode): "admin" | "user" | "parent" | "teacher" => mode === "parent" ? "parent" : mode === "teacher" ? "teacher" : "user";
+
+async function applyAccountModeWithClient(client: PoolClient, userId: string, mode: AccountMode): Promise<UserProfile> {
+  const role = roleForMode(mode);
+  const result = await client.query(
+    `update profiles
+        set role = $2,
+            account_mode = $3,
+            feature_flags = case
+              when $3 = 'player' then coalesce(feature_flags, '{}'::jsonb) - 'adultRoom'
+              when $3 = 'parent' then jsonb_set(jsonb_set(coalesce(feature_flags, '{}'::jsonb), '{adultRoom}', 'true'::jsonb, true), '{premiumDictionaries}', 'true'::jsonb, true)
+              else jsonb_set(coalesce(feature_flags, '{}'::jsonb), '{adultRoom}', 'true'::jsonb, true)
+            end,
+            subscription_tier = case
+              when $3 = 'parent' and kids_trial_started_at is null and not (subscription_tier = 'premium' and (premium_expires_at is null or premium_expires_at > now())) then 'premium'
+              else subscription_tier
+            end,
+            premium_expires_at = case
+              when $3 = 'parent' and kids_trial_started_at is null and not (subscription_tier = 'premium' and (premium_expires_at is null or premium_expires_at > now())) then now() + interval '1 month'
+              else premium_expires_at
+            end,
+            kids_trial_started_at = case
+              when $3 = 'parent' and kids_trial_started_at is null and not (subscription_tier = 'premium' and (premium_expires_at is null or premium_expires_at > now())) then now()
+              else kids_trial_started_at
+            end,
+            kids_trial_expires_at = case
+              when $3 = 'parent' and kids_trial_started_at is null and not (subscription_tier = 'premium' and (premium_expires_at is null or premium_expires_at > now())) then now() + interval '1 month'
+              else kids_trial_expires_at
+            end,
+            updated_at = now()
+      where id = $1
+      returning ${PROFILE_COLUMNS}`,
+    [userId, role, mode],
+  );
+  if (!result.rows[0]) throw new Error("Profile not found");
+  return mapProfileFromDB(result.rows[0]);
+}
+
 
 async function addAssignedWords(userId: string, profile: UserProfile): Promise<UserProfile> {
   const result = await query<{ words: string[] }>(
@@ -122,7 +168,7 @@ export async function getProfileById(userId: string): Promise<UserProfile | null
   return row ? mapProfile(userId, row) : null;
 }
 
-export async function createProfileForUser(client: PoolClient, userId: string, username: string, role: "admin" | "user" = "user"): Promise<UserProfile> {
+export async function createProfileForUser(client: PoolClient, userId: string, username: string, role: "admin" | "user" = "user", accountMode?: AccountMode): Promise<UserProfile> {
   const result = await client.query(
     `insert into profiles (
        id,
@@ -151,7 +197,12 @@ export async function createProfileForUser(client: PoolClient, userId: string, u
     ],
   );
 
+  if (accountMode) return applyAccountModeWithClient(client, userId, accountMode);
   return mapProfileFromDB(result.rows[0]);
+}
+
+export async function updateProfileAccountMode(userId: string, mode: AccountMode): Promise<UserProfile> {
+  return transaction(client => applyAccountModeWithClient(client, userId, mode));
 }
 
 export async function getOrCreateProfile(userId: string, username: string): Promise<UserProfile> {

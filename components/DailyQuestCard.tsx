@@ -5,6 +5,7 @@ import { assetUrl } from '../services/assetUrl';
 import { getShopImageUrl } from '../services/petAssets';
 import { getWorld } from '../services/premiumFeatureCatalog';
 import { experienceUi } from './ui/ExperiencePrimitives';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 const MYSTERY_BOX_IMAGE = assetUrl('/assets/rewards/mystery-box.webp');
 const moscowDateKey = (date: Date): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
@@ -31,13 +32,12 @@ export const DailyQuestRewardModal: React.FC<{ reward: DailyQuestCompletionRewar
   const imageUrl = reward.item ? getShopImageUrl(reward.item) : null;
   const safeStreak = Math.max(0, Math.round(streakDays || 0));
   const pending = reward.pending === true;
+  useBodyScrollLock(true);
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const focusTimer = window.setTimeout(() => dialogRef.current?.focus(), 0);
     const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape' && !pending) onClose(); };
     window.addEventListener('keydown', onKeyDown);
-    return () => { window.clearTimeout(focusTimer); document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', onKeyDown); };
+    return () => { window.clearTimeout(focusTimer); window.removeEventListener('keydown', onKeyDown); };
   }, [onClose, pending]);
   const openPet = () => { onClose(); onOpenPetRoom?.(); };
   return <div className="fixed inset-0 z-[95] flex items-center justify-center bg-indigo-950/50 p-3 backdrop-blur-sm" role="presentation"><motion.div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="daily-quest-reward-title" aria-describedby="daily-quest-reward-description" tabIndex={-1} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="max-h-[calc(100dvh-1.5rem)] w-full max-w-sm overflow-y-auto rounded-[2rem] bg-white p-6 text-center shadow-2xl outline-none ring-1 ring-purple-100">

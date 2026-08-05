@@ -7,6 +7,7 @@ import { DictionarySource, DifficultyLevel, GameSettings, UserProfile, WordLengt
 import { profileCache } from '../services/profileCache';
 import { preserveEstablishedAccountAccess } from '../services/profileAccessState';
 import { legalConsentService } from '../services/legalConsentService';
+import { readRegistrationIntent } from '../services/registrationIntent';
 
 export type AuthMode = 'login' | 'register';
 export type AuthBootstrapStatus = 'loading' | 'ready' | 'error';
@@ -120,6 +121,7 @@ export const useAuthProfile = () => {
   const [tempUsername, setTempUsername] = useState('');
   const [tempPassword, setTempPassword] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
+  const [registrationConfirmationEmail, setRegistrationConfirmationEmail] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const bootstrapCompleteRef = useRef(false);
   const initialSessionCheckedRef = useRef(false);
@@ -127,11 +129,11 @@ export const useAuthProfile = () => {
   const setUserProfile = useCallback((next: UserProfile | ((prev: UserProfile) => UserProfile)) => { setUserProfileState(prev => { const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(prev) : next; const safeProfile = preserveEstablishedAccountAccess(prev, resolved); profileCache.write(safeProfile, currentUserIdRef.current); return safeProfile; }); }, []);
   useEffect(() => { if (typeof window === 'undefined') return; const handle = (event: Event) => { const profile = (event as CustomEvent<UserProfile>).detail; if (!isUserProfile(profile)) return; setUserProfile(profile); setSettings(previous => ({ ...previous, username: profile.username })); }; window.addEventListener('annword:profile-updated', handle as EventListener); return () => window.removeEventListener('annword:profile-updated', handle as EventListener); }, [setUserProfile]);
   const resetToGuest = useCallback(() => { currentUserIdRef.current = null; setCachedUserId(null); setCurrentUser(null); profileCache.clear(); setUserProfileState(GUEST_PROFILE); setSettings(createInitialSettings()); }, []);
-  const loadProfileForUser = useCallback(async (user: User) => { const { userService } = await import('../services/userService'); const profile = await userService.getOrCreateProfile(user.id, user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Пользователь', user.email || undefined); profileCache.write(profile, user.id); setUserProfileState(profile); setSettings(prev => ({ ...prev, ...readStoredSettings(user.id), username: profile.username })); }, []);
+  const loadProfileForUser = useCallback(async (user: User) => { const { userService } = await import('../services/userService'); const profile = await userService.getOrCreateProfile(user.id, user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Пользователь', user.email || undefined); profileCache.write(profile, user.id); setUserProfile(profile); setSettings(prev => ({ ...prev, ...readStoredSettings(user.id), username: profile.username })); }, [setUserProfile]);
   useEffect(() => { let cancelled = false; const paymentReturn = paymentReturnRef.current; const finishInitialCheck = (status: AuthBootstrapStatus, error: string | null = null) => { if (cancelled) return; initialSessionCheckedRef.current = true; bootstrapCompleteRef.current = true; setBootstrapStatus(status); setBootstrapError(error); setIsRestoringSession(false); }; const keepCachedProfileReady = (): boolean => { if (!hasCachedProfile || !initialCachedUserId) return false; currentUserIdRef.current = initialCachedUserId; setCachedUserId(initialCachedUserId); finishInitialCheck('ready'); return true; }; const failInitialCheck = (error: unknown, fallbackMessage: string) => { console.error(fallbackMessage, error); if ((paymentReturn && keepCachedProfileReady()) || (hasCachedProfile && cachedProfileHasEstablishedAccess)) finishInitialCheck('ready'); else finishInitialCheck('error', getAuthErrorMessage(error, fallbackMessage)); }; getInitialSessionWithPaymentRetry(paymentReturn).then(async ({ user }) => { if (cancelled) return; if (!user) { if (paymentReturn && keepCachedProfileReady()) return; resetToGuest(); finishInitialCheck('ready'); return; } currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); await loadProfileForUser(user); finishInitialCheck('ready'); }).catch(error => failInitialCheck(error, 'Не удалось восстановить сессию.')); const silentlySyncAuthenticatedUser = async (event: AuthEventName, user: User) => { const isFreshLogin = event === 'SIGNED_IN' && currentUserIdRef.current !== user.id; try { if (event === 'TOKEN_REFRESHED') { currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return; } if (isFreshLogin) { await loadProfileForUser(user); if (cancelled) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return; } currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); if (event === 'SIGNED_IN' || event === 'USER_UPDATED') await loadProfileForUser(user); } catch (error: unknown) { console.error('Не удалось синхронизировать профиль пользователя.', error); if (isFreshLogin && !cancelled) setAuthError(getAuthErrorMessage(error, 'Не удалось загрузить профиль пользователя.')); } finally { if (event === 'SIGNED_IN' && !cancelled) setIsAuthLoading(false); } }; const unsubscribe = authService.onAuthStateChange((event, _session, user) => { if (event === 'INITIAL_SESSION') return; if (event === 'SIGNED_OUT' || !user) { setIsAuthLoading(false); if (paymentReturn && keepCachedProfileReady()) return; resetToGuest(); if (!initialSessionCheckedRef.current) finishInitialCheck('ready'); return; } if (!initialSessionCheckedRef.current) return; void silentlySyncAuthenticatedUser(event, user); }); return () => { cancelled = true; unsubscribe(); }; }, [cachedProfileHasEstablishedAccess, hasCachedProfile, initialCachedUserId, loadProfileForUser, resetToGuest]);
   useEffect(() => { if (!currentUser) return; setTempUsername(''); setTempPassword(''); }, [currentUser]);
   useEffect(() => { if (isRestoringSession) return; writeStoredSettings(currentUser?.id || cachedUserId, settings); }, [cachedUserId, currentUser?.id, isRestoringSession, settings]);
-  const openLoginMode = useCallback(() => { setAuthMode('login'); setAuthError(null); setTempPassword(''); }, []);
+  const openLoginMode = useCallback(() => { setAuthMode('login'); setAuthError(null); setRegistrationConfirmationEmail(null); setTempPassword(''); }, []);
   const openRegisterMode = useCallback(() => { setAuthMode('register'); setAuthError(null); setTempPassword(''); }, []);
   const submitEmailAuth = useCallback(async () => {
     if (!tempUsername.trim() || (authMode === 'login' && !tempPassword.trim())) { setAuthError(authMode === 'login' ? 'Заполните email и пароль' : 'Введите email'); return false; }
@@ -148,8 +150,8 @@ export const useAuthProfile = () => {
         await authService.signInWithEmail(tempUsername, tempPassword);
         profileWillLoadFromAuthEvent = true;
       } else {
-        const result = await authService.signUpWithEmail(tempUsername, tempPassword, registrationConsents!);
-        if (result.needsEmailConfirmation) setAuthError('На вашу электронную почту отправлено письмо для подтверждения. Подтвердите её перед входом.');
+        const result = await authService.signUpWithEmail(tempUsername, tempPassword, registrationConsents!, readRegistrationIntent()?.accountMode);
+        if (result.needsEmailConfirmation) setRegistrationConfirmationEmail(tempUsername.trim().toLowerCase());
         else profileWillLoadFromAuthEvent = true;
       }
       return true;
@@ -162,5 +164,5 @@ export const useAuthProfile = () => {
   }, [authMode, tempPassword, tempUsername]);
   const loginWithYandex = useCallback(async () => { setIsAuthLoading(true); setAuthError(null); try { await authService.signInWithYandex(); } catch (error: unknown) { setAuthError(getAuthErrorMessage(error, 'Не удалось войти через Яндекс.')); setIsAuthLoading(false); } }, []);
   const logout = useCallback(async () => { setIsAuthLoading(true); try { await authService.signOut(); } finally { setIsAuthLoading(false); resetToGuest(); } }, [resetToGuest]);
-  return { bootstrapStatus, bootstrapError, isRestoringSession, settings, setSettings, userProfile, setUserProfile, currentUser, cachedUserId, isAuthenticated: Boolean(currentUser) || Boolean(cachedUserId), authMode, setAuthMode, tempUsername, setTempUsername, tempPassword, setTempPassword, authError, isAuthLoading, setAuthError, openLoginMode, openRegisterMode, submitEmailAuth, loginWithYandex, logout };
+  return { registrationConfirmationEmail, clearRegistrationConfirmation: () => setRegistrationConfirmationEmail(null), bootstrapStatus, bootstrapError, isRestoringSession, settings, setSettings, userProfile, setUserProfile, currentUser, cachedUserId, isAuthenticated: Boolean(currentUser) || Boolean(cachedUserId), authMode, setAuthMode, tempUsername, setTempUsername, tempPassword, setTempPassword, authError, isAuthLoading, setAuthError, openLoginMode, openRegisterMode, submitEmailAuth, loginWithYandex, logout };
 };

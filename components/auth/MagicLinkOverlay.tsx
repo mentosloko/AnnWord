@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { magicLinkService } from '../../services/magicLinkService';
 import { StableStatusSlot } from '../ui/StatusNotice';
+import { clearRegistrationIntent, registrationEntryPathForMode } from '../../services/registrationIntent';
 
 const readToken = (): string => {
   if (typeof window === 'undefined') return '';
@@ -18,6 +19,7 @@ export const MagicLinkOverlay: React.FC = () => {
   const token = useMemo(readToken, []);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(token ? 'loading' : 'idle');
   const [message, setMessage] = useState<string | null>(null);
+  const [accountMode, setAccountMode] = useState<'player' | 'parent' | 'teacher' | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -25,7 +27,8 @@ export const MagicLinkOverlay: React.FC = () => {
     magicLinkService.confirm(token)
       .then(result => {
         if (cancelled) return;
-        setMessage(result);
+        setMessage(result.message);
+        setAccountMode(result.accountMode || null);
         setStatus('success');
       })
       .catch(problem => {
@@ -40,7 +43,9 @@ export const MagicLinkOverlay: React.FC = () => {
 
   const finish = () => {
     clearToken();
-    window.location.assign('/');
+    if (status === 'success') clearRegistrationIntent();
+    const entryPath = registrationEntryPathForMode(accountMode);
+    window.location.assign(entryPath === 'home' ? '/' : `/${entryPath}`);
   };
 
   return (

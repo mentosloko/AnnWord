@@ -4,13 +4,15 @@ import { describe, expect, it } from 'vitest';
 const read = (path: string) => readFileSync(path, 'utf8');
 
 describe('P0 and P1 UX unification', () => {
-  it('keeps magic-link login out of the user interface', () => {
+  it('keeps magic-link login out of the UI and shows registration confirmation in a popup', () => {
     const auth = read('components/auth/AuthModal.tsx');
+    const app = read('AppV2.tsx');
     expect(auth).not.toContain('magicLinkService');
     expect(auth.toLowerCase()).not.toContain('magic link');
     expect(auth).not.toContain('Войти по ссылке');
     expect(auth).toContain('Продолжить через Яндекс');
-    expect(auth).toContain('аккаунт активируется после перехода по ссылке');
+    expect(app).toContain('title="Подтвердите регистрацию"');
+    expect(app).toContain('InfoModal');
   });
 
   it('supports direct quick launch while preserving an editable setup screen', () => {

@@ -18,6 +18,7 @@ import { assertRussianRegistrationEmail } from '../emailPolicy';
 import { ensurePendingEmailRegistrationSchema } from '../pendingEmailRegistrationSchema';
 import { sendPostboxEmail } from '../postboxEmailService';
 import { createProfileForUser } from '../profileRepository';
+import type { AccountMode } from '../../types';
 
 export const magicLinkRouter = Router();
 
@@ -41,6 +42,8 @@ class RegistrationRateLimitError extends Error {
 }
 
 type RegistrationConsents = { termsAccepted: true; personalDataAccepted: true; marketingEmailsAccepted: boolean };
+const readRequestedAccountMode = (value: unknown): AccountMode | null => ['player', 'parent', 'teacher'].includes(String(value)) ? value as AccountMode : null;
+
 const readRegistrationConsents = (value: unknown): RegistrationConsents => {
   if (!value || typeof value !== 'object') throw new Error('Для регистрации необходимо принять пользовательское соглашение и дать согласие на обработку персональных данных.');
   const input = value as Record<string, unknown>;
@@ -123,6 +126,7 @@ magicLinkRouter.post('/email/account', async (req, res) => {
     const rawEmail = readText(body.email);
     assertRussianRegistrationEmail(rawEmail);
     const consents = readRegistrationConsents(body.consents);
+    const intendedAccountMode = readRequestedAccountMode(body.accountMode);
     const input = validateNewUserInput(rawEmail, readText(body[field]), readText(body.name));
     consumeLocalRegistrationLimit(`ip:${readClientIp(req)}`, 8, 15 * 60_000);
     consumeLocalRegistrationLimit(`email:${input.email}`, 3, 15 * 60_000);
@@ -142,16 +146,17 @@ magicLinkRouter.post('/email/account', async (req, res) => {
     const tokenHash = hashToken(token);
     await query("delete from pending_email_registrations where expires_at < now()");
     await query(
-      `insert into pending_email_registrations (email, password_hash, full_name, consents, token_hash, expires_at)
-       values ($1, $2, $3, $4::jsonb, $5, now() + interval '${REGISTRATION_TTL_MINUTES} minutes')
+      `insert into pending_email_registrations (email, password_hash, full_name, consents, intended_account_mode, token_hash, expires_at)
+       values ($1, $2, $3, $4::jsonb, $5, $6, now() + interval '${REGISTRATION_TTL_MINUTES} minutes')
        on conflict (email) do update set
          password_hash = excluded.password_hash,
          full_name = excluded.full_name,
          consents = excluded.consents,
+         intended_account_mode = excluded.intended_account_mode,
          token_hash = excluded.token_hash,
          expires_at = excluded.expires_at,
          updated_at = now()`,
-      [input.email, input.passwordHash, input.name, JSON.stringify(consents), tokenHash],
+      [input.email, input.passwordHash, input.name, JSON.stringify(consents), intendedAccountMode, tokenHash],
     );
     try {
       await sendRegistrationConfirmation(input.email, token);
@@ -218,8 +223,8 @@ magicLinkRouter.post('/magic-link/confirm', async (req, res) => {
     const tokenHash = hashToken(token);
 
     const registeredUser = await transaction(async client => {
-      const pending = await client.query<{ email: string; password_hash: string; full_name: string; consents: RegistrationConsents }>(
-        `select email, password_hash, full_name, consents
+      const pending = await client.query<{ email: string; password_hash: string; full_name: string; consents: RegistrationConsents; intended_account_mode: AccountMode | null }>(
+        `select email, password_hash, full_name, consents, intended_account_mode
            from pending_email_registrations
           where token_hash = $1 and expires_at > now()
           for update`,
@@ -237,7 +242,8 @@ magicLinkRouter.post('/magic-link/confirm', async (req, res) => {
          returning id, email, full_name, password_reset_required`,
         [id, row.email, row.password_hash, row.full_name],
       );
-      await createProfileForUser(client, id, row.full_name);
+      const initialRole = row.intended_account_mode === 'parent' ? 'user' : row.intended_account_mode === 'teacher' ? 'user' : 'user';
+      await createProfileForUser(client, id, row.full_name, initialRole, row.intended_account_mode || undefined);
       await client.query(
         `insert into user_consents (user_id, consent_type, granted, document_version, source, context)
          values
@@ -248,13 +254,13 @@ magicLinkRouter.post('/magic-link/confirm', async (req, res) => {
       );
       await client.query('delete from pending_email_registrations where email = $1', [row.email]);
       const user = created.rows[0];
-      return { id: user.id, email: user.email, name: user.full_name || undefined, passwordResetRequired: user.password_reset_required } satisfies BackendUser;
+      return { user: { id: user.id, email: user.email, name: user.full_name || undefined, passwordResetRequired: user.password_reset_required } satisfies BackendUser, accountMode: row.intended_account_mode };
     });
 
     if (registeredUser) {
-      const sessionToken = createSessionToken(registeredUser);
+      const sessionToken = createSessionToken(registeredUser.user);
       writeSessionCookie(res, sessionToken);
-      res.json({ ...makeSessionPayload(registeredUser, sessionToken), ok: true, message: 'Email подтверждён. Регистрация завершена.' });
+      res.json({ ...makeSessionPayload(registeredUser.user, sessionToken), ok: true, accountMode: registeredUser.accountMode, message: 'Email подтверждён. Регистрация завершена.' });
       return;
     }
 

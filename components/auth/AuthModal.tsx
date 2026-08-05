@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { legalConsentService } from '../../services/legalConsentService';
 import { LEGAL_DOCUMENTS, LEGAL_LINK_PROPS } from '../../services/legalDocuments';
 import { passwordResetService } from '../../services/passwordResetService';
 import { StableStatusSlot } from '../ui/StatusNotice';
 import { experienceUi } from '../ui/ExperiencePrimitives';
+import { readRegistrationIntent } from '../../services/registrationIntent';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -49,10 +51,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, mode, email, passw
     setRecoveryError(null);
     setShowPassword(false);
   }, [isOpen, mode]);
+  useBodyScrollLock(isOpen);
   useEffect(() => {
     if (!isOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const focusTimer = window.setTimeout(() => emailRef.current?.focus(), 0);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onCloseRef.current();
@@ -65,10 +66,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, mode, email, passw
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => { window.clearTimeout(focusTimer); document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', onKeyDown); };
+    return () => { window.clearTimeout(focusTimer); window.removeEventListener('keydown', onKeyDown); };
   }, [isOpen]);
 
   if (!isOpen) return null;
+  const kidsRegistration = mode === 'register' && readRegistrationIntent()?.accountMode === 'parent';
   const title = recoveryMode ? 'Восстановление пароля' : mode === 'login' ? 'Войти в AnnWord' : 'Создать аккаунт';
   const emailHasDomain = email.includes('@') && email.split('@').pop()!.includes('.');
   const invalidRegistrationDomain = mode === 'register' && emailHasDomain && !isRussianEmailDomain(email);
@@ -101,10 +103,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, mode, email, passw
         <button type="submit" disabled={recoveryBusy} className={`flex w-full items-center justify-center gap-2 ${experienceUi.primaryButton}`}>{recoveryBusy && <LoaderIcon />}{recoveryBusy ? 'Отправляю…' : 'Отправить ссылку'}</button>
         <button type="button" disabled={recoveryBusy} onClick={() => { setRecoveryMode(false); setRecoveryMessage(null); setRecoveryError(null); }} className={`w-full ${experienceUi.secondaryButton}`}>Вернуться ко входу</button>
       </form> : <>
+        {kidsRegistration && <div className="mt-3 rounded-2xl border-2 border-amber-100 bg-amber-50 p-4">
+          <div className="text-xs font-black uppercase tracking-widest text-amber-600">Первый месяц бесплатно</div>
+          <h3 className="mt-1 text-lg font-black text-indigo-950">Kids Premium включится после подтверждения email</h3>
+          <p className="mt-2 text-sm font-bold leading-5 text-slate-600">Школьные словари по классам и возможность играть по своим словам будут доступны без оплаты в течение первого месяца. Дата окончания сохранится в аккаунте.</p>
+        </div>}
         <button type="button" disabled={isLoading} onClick={onYandexLogin} className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-red-100 bg-white px-5 py-3 font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-60"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-sm text-white">Я</span>{mode === 'login' ? 'Продолжить через Яндекс' : 'Зарегистрироваться через Яндекс'}</button>
         <div className="my-4 flex items-center gap-3 text-xs font-bold uppercase tracking-wide text-slate-400"><span className="h-px flex-1 bg-slate-200" /><span>или по email</span><span className="h-px flex-1 bg-slate-200" /></div>
         <form onSubmit={event => { event.preventDefault(); submit(); }} className="space-y-4">
-          <label className="block"><span className="mb-1 block text-sm font-bold text-slate-700">Электронная почта</span><input ref={emailRef} required type="email" autoComplete="email" value={email} onChange={event => onEmailChange(event.target.value)} placeholder="user@example.ru" aria-invalid={invalidRegistrationDomain || undefined} className={`w-full rounded-xl border-2 p-3 focus:outline-none ${invalidRegistrationDomain ? 'border-rose-300 bg-rose-50 focus:border-rose-500' : 'border-slate-200 focus:border-indigo-500'}`} />{mode === 'register' && <span className={`mt-2 block text-xs font-medium leading-relaxed ${invalidRegistrationDomain ? 'text-rose-600' : 'text-slate-500'}`}>Используйте адрес в зоне .ru или .рф. После регистрации мы отправим письмо — аккаунт активируется после перехода по ссылке.</span>}</label>
+          <label className="block"><span className="mb-1 block text-sm font-bold text-slate-700">Электронная почта</span><input ref={emailRef} required type="email" autoComplete="email" value={email} onChange={event => onEmailChange(event.target.value)} placeholder="user@example.ru" aria-invalid={invalidRegistrationDomain || undefined} className={`w-full rounded-xl border-2 p-3 focus:outline-none ${invalidRegistrationDomain ? 'border-rose-300 bg-rose-50 focus:border-rose-500' : 'border-slate-200 focus:border-indigo-500'}`} />{mode === 'register' && <span className={`mt-2 block text-xs font-medium leading-relaxed ${invalidRegistrationDomain ? 'text-rose-600' : 'text-slate-500'}`}>Используйте адрес в зоне .ru или .рф.</span>}</label>
           <label className="block"><span className="mb-1 block text-sm font-bold text-slate-700">Пароль</span><div className="relative"><input required type={showPassword ? 'text' : 'password'} minLength={mode === 'register' ? 8 : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={event => onPasswordChange(event.target.value)} placeholder={mode === 'login' ? 'Ваш пароль' : 'Минимум 8 символов'} className="w-full rounded-xl border-2 border-slate-200 p-3 pr-24 focus:border-indigo-500 focus:outline-none" /><button type="button" onClick={() => setShowPassword(value => !value)} className="absolute inset-y-1 right-1 rounded-lg px-3 text-xs font-bold text-indigo-600">{showPassword ? 'Скрыть' : 'Показать'}</button></div>{mode === 'login' && <button type="button" disabled={isLoading} onClick={() => { setRecoveryMode(true); setRecoveryError(null); setRecoveryMessage(null); }} className="mt-2 text-sm font-bold text-indigo-600">Забыли пароль?</button>}</label>
           {mode === 'register' && <fieldset className="space-y-3 rounded-2xl bg-indigo-50/70 p-4"><legend className="px-1 text-sm font-bold text-indigo-800">Согласия</legend><label className="flex items-start gap-3 text-sm font-medium leading-5 text-slate-700"><input type="checkbox" required checked={termsAccepted} onChange={event => setTermsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded" /><span>Принимаю <a href={LEGAL_DOCUMENTS.userAgreement} {...LEGAL_LINK_PROPS} className={legalLinkClassName}>Пользовательское соглашение</a>.<RequiredMark /></span></label><label className="flex items-start gap-3 text-sm font-medium leading-5 text-slate-700"><input type="checkbox" required checked={personalDataAccepted} onChange={event => setPersonalDataAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded" /><span>Согласен на <a href={LEGAL_DOCUMENTS.personalDataConsent} {...LEGAL_LINK_PROPS} className={legalLinkClassName}>обработку персональных данных</a>.<RequiredMark /></span></label><label className="flex items-start gap-3 text-sm font-medium leading-5 text-slate-700"><input type="checkbox" checked={marketingEmailsAccepted} onChange={event => setMarketingEmailsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded" /><span>Хочу получать новости и предложения по условиям <a href={LEGAL_DOCUMENTS.marketingConsent} {...LEGAL_LINK_PROPS} className={legalLinkClassName}>согласия на рассылку</a>.</span></label></fieldset>}
           <button type="submit" disabled={isLoading || invalidRegistrationDomain || requiredConsentsMissing} className={`flex w-full items-center justify-center gap-2 ${experienceUi.primaryButton}`}>{isLoading && <LoaderIcon />}{mode === 'login' ? 'Войти' : 'Создать аккаунт'}</button>

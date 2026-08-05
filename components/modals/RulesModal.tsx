@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 interface RulesModalProps {
   isOpen: boolean;
@@ -8,16 +9,14 @@ interface RulesModalProps {
 export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
 
+  useBodyScrollLock(isOpen);
   useEffect(() => {
     if (!isOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const focusTimer = window.setTimeout(() => dialogRef.current?.focus(), 0);
     const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKeyDown);
     return () => {
       window.clearTimeout(focusTimer);
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [isOpen, onClose]);

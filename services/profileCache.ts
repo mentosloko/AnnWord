@@ -47,6 +47,8 @@ const normalizeProfile = (profile: UserProfile): UserProfile => {
       account_mode: profile.accountMode,
       subscription_tier: profile.subscriptionTier,
       premium_expires_at: profile.premiumExpiresAt,
+      kids_trial_started_at: profile.kidsTrialStartedAt,
+      kids_trial_expires_at: profile.kidsTrialExpiresAt,
       child_display_name: profile.childDisplayName,
       child_share_code: profile.childShareCode,
       child_slots_limit: profile.childSlotsLimit,

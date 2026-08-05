@@ -24,9 +24,10 @@ describe('registration, fetch resilience and immediate quest rewards', () => {
     expect(db).toContain('db_pool_idle_error');
   });
 
-  it('renders daily quest reward globally and starts reconciliation concurrently', () => {
+  it('renders daily quest reward globally and reconciles it after the profile reward', () => {
     expect(read('components/AppScreens.tsx')).toContain('DailyQuestRewardModal reward={dailyQuestReward}');
     expect(read('AppV2.tsx')).toContain('pending: true');
-    expect(read('hooks/useClassicGameController.ts')).toContain('Promise.all([statsPromise, questPromise])');
+    const controller = read('hooks/useClassicGameController.ts');
+    expect(controller.indexOf('await onDailyQuestResult')).toBeGreaterThan(controller.indexOf('await onStatsUpdate'));
   });
 });
