@@ -9,6 +9,7 @@ import { getProdamusPlansForMode, prodamusPaymentService, ProdamusPlanCode } fro
 import { familyAccountService } from '../../services/familyAccountService';
 import { analyticsService } from '../../services/analyticsService';
 import { useProfileFreshness } from '../../hooks/useProfileFreshness';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
  type PremiumScreenProps = {

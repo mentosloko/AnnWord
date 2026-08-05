@@ -65,8 +65,8 @@ describe('preserveEstablishedAccountAccess', () => {
   });
 
   it('keeps the newest rewarded room when a stale game response arrives later', () => {
-    const previous = profile({ pet: { ...profile().pet, activeWorldId: 'space_room', activeWorldDate: '2026-08-05' } });
+    const previous = profile({ pet: { ...profile().pet, activeWorldId: 'theatre', activeWorldDate: '2026-08-05' } });
     const stale = profile({ pet: { ...profile().pet, activeWorldId: 'default_room', activeWorldDate: undefined } });
-    expect(preserveEstablishedAccountAccess(previous, stale).pet).toMatchObject({ activeWorldId: 'space_room', activeWorldDate: '2026-08-05' });
+    expect(preserveEstablishedAccountAccess(previous, stale).pet).toMatchObject({ activeWorldId: 'theatre', activeWorldDate: '2026-08-05' });
   });
 });

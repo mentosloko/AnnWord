@@ -11,8 +11,9 @@ const toMode = (entryPath: ClientEntryPath): AccountMode | null => entryPath ===
 
 export const rememberRegistrationIntent = (entryPath: ClientEntryPath): void => {
   const accountMode = toMode(entryPath);
-  if (!accountMode || typeof window === 'undefined') return;
-  try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ entryPath, accountMode, createdAt: Date.now() } satisfies RegistrationIntent)); } catch { /* optional preference */ }
+  const registrationEntryPath = entryPath === 'practice' || entryPath === 'kids' || entryPath === 'teacher' ? entryPath : null;
+  if (!accountMode || !registrationEntryPath || typeof window === 'undefined') return;
+  try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ entryPath: registrationEntryPath, accountMode, createdAt: Date.now() } satisfies RegistrationIntent)); } catch { /* optional preference */ }
 };
 
 export const readRegistrationIntent = (): RegistrationIntent | null => {

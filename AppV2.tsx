@@ -390,7 +390,7 @@ const AppV2: React.FC = () => {
     wordPracticeSyncRef.current = wordPracticeSyncRef.current.catch(() => undefined).then(() => profileEconomy.updateStats(nextStats));
     await wordPracticeSyncRef.current;
   }, [profileEconomy, route, sendWordLedgerEvent]);
-  const handleCharacterOnboardingComplete = useCallback(async (character: PetState) => { await profileEconomy.updateCharacter(character); analyticsService.trackEvent({ userId: currentUserId, eventType: 'onboarding', eventName: 'character_onboarding_completed', route: 'character_onboarding', payload: { characterType: character.type } }); replaceRoute('landing'); }, [currentUserId, profileEconomy, replaceRoute]);
+  const handleCharacterOnboardingComplete = useCallback(async (character: PetState) => { await profileEconomy.updateCharacter(character); analyticsService.trackEvent({ userId: currentUserId, eventType: 'character', eventName: 'character_selected', route: 'character_onboarding', payload: { characterType: character.type } }); replaceRoute('landing'); }, [currentUserId, profileEconomy, replaceRoute]);
   const startTrackedGame = useCallback((mode: PlayableModeRoute) => {
     analyticsService.trackEvent({ userId: currentUserId, eventType: 'game', eventName: 'game_started', gameType: toAnalyticsGameType(mode), route: mode, payload: { wordLength: isLengthAgnosticMode(mode) ? 'any' : settings.wordLength, dictionarySource: settings.dictionarySource, difficulty: settings.difficulty, wordsAvailable: modeWords.length } });
   }, [currentUserId, modeWords.length, settings.dictionarySource, settings.difficulty, settings.wordLength]);
