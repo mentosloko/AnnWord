@@ -24,12 +24,13 @@ jobs:
       - name: Verify and apply patch
         run: |
           set -euo pipefail
-          wc -c .ops/kids-patch.*
           cat \
             .ops/kids-patch.part00 \
             .ops/kids-patch.part01 \
             .ops/kids-patch.part02 \
-            .ops/kids-patch.part03 \
+            .ops/kids-patch.part03a \
+            .ops/kids-patch.part03b \
+            .ops/kids-patch.part03c \
             .ops/kids-patch.rem00 \
             .ops/kids-patch.rem01 \
             .ops/kids-patch.rem02 \
@@ -39,9 +40,8 @@ jobs:
             .ops/kids-patch.rem06 \
             .ops/kids-patch.rem07 \
             .ops/kids-patch.rem08 \
-            | tr -cd 'A-Za-z0-9+/=' \
             > /tmp/kids-patch.b64
-          wc -c /tmp/kids-patch.b64
+          test "$(wc -c < /tmp/kids-patch.b64)" -eq 122192
           base64 -d /tmp/kids-patch.b64 > /tmp/kids-patch.tar.gz
           echo 'bccfcec6dbabbb1a029a3055a8ced14088a2b54800fb46558b42d96837be1778  /tmp/kids-patch.tar.gz' | sha256sum -c -
           tar -xzf /tmp/kids-patch.tar.gz -C .
