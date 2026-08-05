@@ -1,9 +1,9 @@
 name: Apply Kids patch
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/kids-onboarding-mobile-20260805
+      - main
 
 permissions:
   contents: write
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   apply:
-    if: ${{ github.actor != 'github-actions[bot]' }}
+    if: ${{ github.head_ref == 'agent/kids-onboarding-mobile-20260805' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
