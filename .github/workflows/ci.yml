@@ -35,7 +35,11 @@ jobs:
           code = '\n'.join(line[10:] if line.startswith('          ') else line for line in source[start:end]) + '\n'
           code = code.replace(
               '"await loadProfileForUser(user); if (cancelled) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return;",',
-              '"currentUserIdRef.current = user.id; await loadProfileForUser(user); if (cancelled) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return;",',
+              '"currentUserIdRef.current = user.id; await loadProfileForUser(user); if (cancelled) return; setCachedUserId(user.id); setCurrentUser(user); return;",',
+          )
+          code = code.replace(
+              '"const loaded = await loadProfileForUser(user); if (cancelled || !loaded || !isCurrentProfileOwner(user.id)) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return;")',
+              '"const loaded = await loadProfileForUser(user); if (cancelled || !loaded || !isCurrentProfileOwner(user.id)) return; setCachedUserId(user.id); setCurrentUser(user); return;")',
           )
           code = code.replace(
               "raise RuntimeError(f'{path}: expected one exact match, found {count}')",
