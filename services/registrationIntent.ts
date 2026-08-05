@@ -1,6 +1,7 @@
 import type { ClientEntryPath } from './clientEntryPath';
 import type { AccountMode } from '../types';
 
+// Keep the selected product path until the confirmed account has been created on the server.
 const STORAGE_KEY = 'annword_registration_intent_v1';
 const TTL_MS = 24 * 60 * 60 * 1000;
 
