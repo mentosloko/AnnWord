@@ -35,6 +35,7 @@ jobs:
           code = '\n'.join(line[10:] if line.startswith('          ') else line for line in source[start:end]) + '\n'
           Path('/tmp/apply-deep-audit.py').write_text(code)
           PY
+          nl -ba /tmp/apply-deep-audit.py | sed -n '68,82p'
           python3 /tmp/apply-deep-audit.py
 
       - name: Setup Node
