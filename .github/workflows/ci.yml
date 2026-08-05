@@ -6,9 +6,6 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -16,38 +13,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-          fetch-depth: 0
-
-      - name: Apply deep audit patch
-        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'agent/deep-regression-audit-20260805' && github.actor != 'github-actions[bot]' }}
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          source = Path('.github/workflows/tmp-deep-regression-audit.yml').read_text().splitlines()
-          start = next(i for i, line in enumerate(source) if line.strip() == "python3 - <<'PY'") + 1
-          end = next(i for i in range(start, len(source)) if source[i].strip() == 'PY')
-          code = '\n'.join(line[10:] if line.startswith('          ') else line for line in source[start:end]) + '\n'
-          code = code.replace(
-              '"await loadProfileForUser(user); if (cancelled) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return;",',
-              '"currentUserIdRef.current = user.id; await loadProfileForUser(user); if (cancelled) return; setCachedUserId(user.id); setCurrentUser(user); return;",',
-          )
-          code = code.replace(
-              '"const loaded = await loadProfileForUser(user); if (cancelled || !loaded || !isCurrentProfileOwner(user.id)) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return;")',
-              '"const loaded = await loadProfileForUser(user); if (cancelled || !loaded || !isCurrentProfileOwner(user.id)) return; setCachedUserId(user.id); setCurrentUser(user); return;")',
-          )
-          code = code.replace(
-              "raise RuntimeError(f'{path}: expected one exact match, found {count}')",
-              "raise RuntimeError(f'{path}: expected one exact match, found {count}; needle={old[:160]!r}')",
-          )
-          Path('/tmp/apply-deep-audit.py').write_text(code)
-          PY
-          python3 /tmp/apply-deep-audit.py
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -120,15 +89,3 @@ jobs:
 
       - name: Build
         run: npm exec -- vite build
-
-      - name: Persist verified audit fixes
-        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'agent/deep-regression-audit-20260805' && github.actor != 'github-actions[bot]' }}
-        run: |
-          set -euo pipefail
-          git rm .github/workflows/tmp-deep-regression-audit.yml
-          git checkout origin/main -- .github/workflows/ci.yml
-          git add AppV2.tsx components/auth/MagicLinkOverlay.tsx hooks/useAuthProfile.ts hooks/useDictionaryPools.ts server/dailyQuestRepository.ts services/dailyQuest.ts services/profileAccessState.ts tests/deepRecentRegressionAudit.test.ts .github/workflows/ci.yml
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'Fix deep recent regressions'
-          git push origin HEAD:${{ github.head_ref }}

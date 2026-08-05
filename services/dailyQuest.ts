@@ -94,7 +94,19 @@ const truthy = (value: unknown): boolean => value === true || value === 'true';
 export const getMemoryMovesFromResult = (input: Pick<GameRewardInput, 'moves' | 'clicks'>): number => typeof input.moves === 'number'
   ? Math.max(0, Math.round(input.moves))
   : Math.max(0, Math.ceil(numeric(input.clicks) / 2));
-const completedModeLabel = (input: GameRewardInput): string | null => input.type === 'wordle' && truthy(input.won) ? 'Классика' : input.type === 'sprint' && numeric(input.guessedWords) > 0 ? 'Спринт' : input.type === 'anagram' && numeric(input.guessedWords) > 0 ? 'Анаграммы' : input.type === 'memory' && getMemoryMovesFromResult(input) > 0 ? 'Память' : input.type === 'hangman' && truthy(input.won) ? 'Виселица' : null;
+export type AllFiveQuestCompletedMode = 'wordle' | 'sprint' | 'anagram' | 'memory' | 'hangman';
+export const getAllFiveQuestCompletedMode = (input: GameRewardInput): AllFiveQuestCompletedMode | null => {
+  if (input.type === 'wordle' && truthy(input.won)) return 'wordle';
+  if (input.type === 'sprint' && numeric(input.guessedWords) >= 6) return 'sprint';
+  if (input.type === 'anagram' && numeric(input.guessedWords) >= 5) return 'anagram';
+  if (input.type === 'memory' && getMemoryMovesFromResult(input) > 0) return 'memory';
+  if (input.type === 'hangman' && truthy(input.won)) return 'hangman';
+  return null;
+};
+const completedModeLabel = (input: GameRewardInput): string | null => {
+  const mode = getAllFiveQuestCompletedMode(input);
+  return mode ? modeLabels[mode] || mode : null;
+};
 
 export const doesGameResultCompleteDailyQuest = (quest: DailyQuestState | null | undefined, input: GameRewardInput): boolean => {
   if (!quest || quest.completed) return false;

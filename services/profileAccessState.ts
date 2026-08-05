@@ -46,3 +46,15 @@ export const mergeProfileUpdateForOwner = (previousOwnerId: string | null, nextO
   if (previousOwnerId !== nextOwnerId) return next;
   return preserveEstablishedAccountAccess(previous, next);
 };
+
+/** Ignore a network response unless it still belongs to the active account. */
+export const resolveOwnedProfileUpdate = (
+  activeOwnerId: string | null,
+  responseOwnerId: string | null,
+  previousOwnerId: string | null,
+  previous: UserProfile,
+  next: UserProfile,
+): UserProfile | null => {
+  if (!activeOwnerId || activeOwnerId !== responseOwnerId) return null;
+  return mergeProfileUpdateForOwner(previousOwnerId, responseOwnerId, previous, next);
+};
