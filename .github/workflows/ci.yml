@@ -33,9 +33,16 @@ jobs:
           start = next(i for i, line in enumerate(source) if line.strip() == "python3 - <<'PY'") + 1
           end = next(i for i in range(start, len(source)) if source[i].strip() == 'PY')
           code = '\n'.join(line[10:] if line.startswith('          ') else line for line in source[start:end]) + '\n'
+          code = code.replace(
+              '"await loadProfileForUser(user); if (cancelled) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return;",',
+              '"currentUserIdRef.current = user.id; await loadProfileForUser(user); if (cancelled) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return;",',
+          )
+          code = code.replace(
+              "raise RuntimeError(f'{path}: expected one exact match, found {count}')",
+              "raise RuntimeError(f'{path}: expected one exact match, found {count}; needle={old[:160]!r}')",
+          )
           Path('/tmp/apply-deep-audit.py').write_text(code)
           PY
-          nl -ba /tmp/apply-deep-audit.py | sed -n '68,82p'
           python3 /tmp/apply-deep-audit.py
 
       - name: Setup Node
