@@ -1,0 +1,417 @@
+name: Apply deep regression audit fixes
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fixes:
+    if: ${{ github.actor != 'github-actions[bot]' && github.head_ref == 'agent/deep-regression-audit-20260805' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - name: Apply audited fixes and tests
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(path: str, old: str, new: str):
+              file = Path(path)
+              text = file.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one exact match, found {count}')
+              file.write_text(text.replace(old, new, 1))
+
+          def regex_once(path: str, pattern: str, replacement: str, flags=0):
+              file = Path(path)
+              text = file.read_text()
+              updated, count = re.subn(pattern, replacement, text, count=1, flags=flags)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one regex match, found {count}: {pattern[:80]}')
+              file.write_text(updated)
+
+          profile_access = Path('services/profileAccessState.ts')
+          profile_access.write_text(profile_access.read_text().rstrip() + """
+
+          /** Ignore a network response unless it still belongs to the active account. */
+          export const resolveOwnedProfileUpdate = (
+            activeOwnerId: string | null,
+            responseOwnerId: string | null,
+            previousOwnerId: string | null,
+            previous: UserProfile,
+            next: UserProfile,
+          ): UserProfile | null => {
+            if (!activeOwnerId || activeOwnerId !== responseOwnerId) return null;
+            return mergeProfileUpdateForOwner(previousOwnerId, responseOwnerId, previous, next);
+          };
+          """)
+
+          replace_once('hooks/useAuthProfile.ts',
+            "import { mergeProfileUpdateForOwner } from '../services/profileAccessState';",
+            "import { mergeProfileUpdateForOwner, resolveOwnedProfileUpdate } from '../services/profileAccessState';")
+          replace_once('hooks/useAuthProfile.ts',
+            "import { readRegistrationIntent } from '../services/registrationIntent';",
+            "import { clearRegistrationIntent, readRegistrationIntent } from '../services/registrationIntent';")
+          replace_once('hooks/useAuthProfile.ts',
+            "  const profileOwnerUserIdRef = useRef<string | null>(initialCachedUserId);\n  const setUserProfile = useCallback",
+            """  const profileOwnerUserIdRef = useRef<string | null>(initialCachedUserId);
+  const isCurrentProfileOwner = useCallback((ownerUserId: string | null): boolean => Boolean(ownerUserId && currentUserIdRef.current === ownerUserId), []);
+  const setUserProfileForUser = useCallback((ownerUserId: string, next: UserProfile | ((prev: UserProfile) => UserProfile)): void => {
+    setUserProfileState(prev => {
+      if (currentUserIdRef.current !== ownerUserId) return prev;
+      const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(prev) : next;
+      const safeProfile = resolveOwnedProfileUpdate(currentUserIdRef.current, ownerUserId, profileOwnerUserIdRef.current, prev, resolved);
+      if (!safeProfile) return prev;
+      profileOwnerUserIdRef.current = ownerUserId;
+      profileCache.write(safeProfile, ownerUserId);
+      return safeProfile;
+    });
+  }, []);
+  const setUserProfile = useCallback""")
+          regex_once('hooks/useAuthProfile.ts',
+            r"  const loadProfileForUser = useCallback\(async \(user: User\) => \{.*?\}, \[setUserProfile\]\);",
+            """  const loadProfileForUser = useCallback(async (user: User): Promise<boolean> => {
+    currentUserIdRef.current = user.id;
+    const { userService } = await import('../services/userService');
+    const profile = await userService.getOrCreateProfile(user.id, user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Пользователь', user.email || undefined);
+    if (!isCurrentProfileOwner(user.id)) return false;
+    setUserProfileForUser(user.id, profile);
+    if (!isCurrentProfileOwner(user.id)) return false;
+    setSettings(prev => ({ ...prev, ...readStoredSettings(user.id), username: profile.username }));
+    return true;
+  }, [isCurrentProfileOwner, setUserProfileForUser]);""",
+            re.S)
+          replace_once('hooks/useAuthProfile.ts',
+            "await loadProfileForUser(user); finishInitialCheck('ready');",
+            "const loaded = await loadProfileForUser(user); if (!loaded || cancelled) return; finishInitialCheck('ready');")
+          replace_once('hooks/useAuthProfile.ts',
+            "await loadProfileForUser(user); if (cancelled) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return;",
+            "const loaded = await loadProfileForUser(user); if (cancelled || !loaded || !isCurrentProfileOwner(user.id)) return; currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return;")
+          replace_once('hooks/useAuthProfile.ts',
+            "}, [cachedProfileHasEstablishedAccess, hasCachedProfile, initialCachedUserId, loadProfileForUser, resetToGuest]);",
+            "}, [cachedProfileHasEstablishedAccess, hasCachedProfile, initialCachedUserId, isCurrentProfileOwner, loadProfileForUser, resetToGuest]);")
+          replace_once('hooks/useAuthProfile.ts',
+            "const openLoginMode = useCallback(() => { setAuthMode('login');",
+            "const openLoginMode = useCallback(() => { clearRegistrationIntent(); setAuthMode('login');")
+          replace_once('hooks/useAuthProfile.ts',
+            "userProfile, setUserProfile, currentUser, cachedUserId",
+            "userProfile, setUserProfile, setUserProfileForUser, isCurrentProfileOwner, currentUser, cachedUserId")
+
+          replace_once('AppV2.tsx',
+            "AccountMode, DailyQuestCompletionReward, DailyQuestState, DictionarySource, GameRewardType, PetState, ShopItem, UserStats, ViewState, WordLearningHistory",
+            "AccountMode, DailyQuestCompletionReward, DailyQuestState, DictionarySource, GameRewardType, PetState, ShopItem, UserProfile, UserStats, ViewState, WordLearningHistory")
+          replace_once('AppV2.tsx', "import { pickDailyQuestTreat } from './services/dailyQuestRewardCatalog';\n", "")
+          replace_once('AppV2.tsx',
+            "userProfile, setUserProfile, currentUser, cachedUserId",
+            "userProfile, setUserProfile, setUserProfileForUser, isCurrentProfileOwner, currentUser, cachedUserId")
+          replace_once('AppV2.tsx',
+            "  const { getSecretWordPool, getValidationPool, getModeWords } = useDictionaryPools({ settings, userProfile });\n  const profileEconomy = useProfileEconomy({ currentUserId, userProfile, setUserProfile });",
+            """  const { getSecretWordPool, getValidationPool, getModeWords, getWordTranslation } = useDictionaryPools({ settings, userProfile });
+  const setProfileForRenderOwner = useCallback((next: UserProfile | ((previous: UserProfile) => UserProfile)): void => {
+    if (currentUserId) setUserProfileForUser(currentUserId, next);
+    else setUserProfile(next);
+  }, [currentUserId, setUserProfile, setUserProfileForUser]);
+  const profileEconomy = useProfileEconomy({ currentUserId, userProfile, setUserProfile: setProfileForRenderOwner });""")
+          old_registration_effect = """  useEffect(() => {
+    if (bootstrapStatus !== 'ready' || !isAuthenticated || userProfile.role === 'admin' || userProfile.accountMode || registrationIntentApplyingRef.current) return;
+    const intent = readRegistrationIntent();
+    if (!intent) return;
+    registrationIntentApplyingRef.current = true;
+    void familyAccountService.selectAccountMode(intent.accountMode)
+      .then(serverProfile => {
+        const nextEntryPath: ClientEntryPath = intent.accountMode === 'parent' ? 'kids' : intent.accountMode === 'teacher' ? 'teacher' : 'practice';
+        setEntryPath(nextEntryPath);
+        if (serverProfile) setUserProfile(serverProfile);
+        else setUserProfile(previous => ({ ...previous, accountMode: intent.accountMode, role: intent.accountMode === 'parent' ? 'parent' : intent.accountMode === 'teacher' ? 'teacher' : 'user' }));
+        clearRegistrationIntent();
+        replaceRoute(intent.accountMode === 'teacher' ? 'adult_room' : intent.accountMode === 'parent' ? 'family_setup' : 'landing');
+      })
+      .catch(error => console.error('Failed to apply saved registration format', error))
+      .finally(() => { registrationIntentApplyingRef.current = false; });
+  }, [bootstrapStatus, isAuthenticated, replaceRoute, setEntryPath, setUserProfile, userProfile.accountMode, userProfile.role]);"""
+          new_registration_effect = """  useEffect(() => {
+    if (bootstrapStatus !== 'ready' || !isAuthenticated || userProfile.role === 'admin' || userProfile.accountMode || registrationIntentApplyingRef.current) return;
+    const intent = readRegistrationIntent();
+    const applyingUserId = currentUserId;
+    if (!intent || !applyingUserId) return;
+    registrationIntentApplyingRef.current = true;
+    void familyAccountService.selectAccountMode(intent.accountMode)
+      .then(serverProfile => {
+        if (!isCurrentProfileOwner(applyingUserId)) return;
+        const nextEntryPath: ClientEntryPath = intent.accountMode === 'parent' ? 'kids' : intent.accountMode === 'teacher' ? 'teacher' : 'practice';
+        setEntryPath(nextEntryPath);
+        if (serverProfile) setUserProfileForUser(applyingUserId, serverProfile);
+        else setUserProfileForUser(applyingUserId, previous => ({ ...previous, accountMode: intent.accountMode, role: intent.accountMode === 'parent' ? 'parent' : intent.accountMode === 'teacher' ? 'teacher' : 'user' }));
+        if (!isCurrentProfileOwner(applyingUserId)) return;
+        clearRegistrationIntent();
+        replaceRoute(intent.accountMode === 'teacher' ? 'adult_room' : intent.accountMode === 'parent' ? 'family_setup' : 'landing');
+      })
+      .catch(error => console.error('Failed to apply saved registration format', error))
+      .finally(() => { registrationIntentApplyingRef.current = false; });
+  }, [bootstrapStatus, currentUserId, isAuthenticated, isCurrentProfileOwner, replaceRoute, setEntryPath, setUserProfileForUser, userProfile.accountMode, userProfile.role]);"""
+          replace_once('AppV2.tsx', old_registration_effect, new_registration_effect)
+          replace_once('AppV2.tsx',
+            "  const openLogin = useCallback(() => { openLoginMode(); setShowLoginModal(true); }, [openLoginMode]);\n  const openRegister = useCallback((path?: 'practice' | 'kids' | 'teacher') => { if (path) { rememberRegistrationIntent(path); setEntryPath(path); } openRegisterMode(); setShowLoginModal(true); }, [openRegisterMode, setEntryPath]);",
+            """  const closeAuthModal = useCallback(() => { clearRegistrationIntent(); setShowLoginModal(false); }, []);
+  const openLogin = useCallback(() => { openLoginMode(); setShowLoginModal(true); }, [openLoginMode]);
+  const openRegister = useCallback((path?: 'practice' | 'kids' | 'teacher') => { if (path) { rememberRegistrationIntent(path); setEntryPath(path); } else clearRegistrationIntent(); openRegisterMode(); setShowLoginModal(true); }, [openRegisterMode, setEntryPath]);""")
+          replace_once('AppV2.tsx', "    await logout();\n    setDailyQuest(null);", "    await logout();\n    clearRegistrationIntent();\n    setDailyQuest(null);")
+          replace_once('AppV2.tsx',
+            """      const item = currentUserId ? pickDailyQuestTreat(currentUserId, dailyQuest.questDate) : null;
+      const optimisticQuest = { ...dailyQuest, completed: true, completedAt: new Date().toISOString(), rewardItemId: item?.id || dailyQuest.rewardItemId || null };
+      setDailyQuestReward({ quest: optimisticQuest, item, worldId: dailyQuest.rewardWorldId || null, pending: true });""",
+            """      const optimisticQuest = { ...dailyQuest, completed: true, completedAt: new Date().toISOString(), rewardItemId: dailyQuest.rewardItemId || null };
+      setDailyQuestReward({ quest: optimisticQuest, item: null, worldId: null, pending: true });""")
+          replace_once('AppV2.tsx', "      if (result.profile) setUserProfile(result.profile);", "      if (result.profile && currentUserId) setUserProfileForUser(currentUserId, result.profile);")
+          replace_once('AppV2.tsx',
+            "}, [canUseDailyQuest, currentUserId, dailyQuest, isKids, setUserProfile]);",
+            "}, [canUseDailyQuest, currentUserId, dailyQuest, isKids, setUserProfileForUser]);")
+          replace_once('AppV2.tsx',
+            "const classicGame = useClassicGameController({ route, settings, sessionOwnerId: currentUserId, getSecretWordPool, getValidationPool, getModeWords, onRouteChange:",
+            "const classicGame = useClassicGameController({ route, settings, sessionOwnerId: currentUserId, getSecretWordPool, getValidationPool, getModeWords, getWordTranslation, onRouteChange:")
+          replace_once('AppV2.tsx',
+            """  const handleSaveDictionary = useCallback(async (draft: PremiumDictionaryDraft) => {
+    const collection = await premiumDictionaryService.saveCollection(draft);
+    setUserProfile(previous => ({ ...previous, customDictionaryEn: previous.role === 'teacher' ? previous.customDictionaryEn : collection.words, dictionaryCollections: [collection, ...(previous.dictionaryCollections || []).filter(item => item.id !== collection.id)] }));
+    if (!isTeacher) setDictionarySource('custom');
+  }, [isTeacher, setDictionarySource, setUserProfile]);""",
+            """  const handleSaveDictionary = useCallback(async (draft: PremiumDictionaryDraft) => {
+    const requestUserId = currentUserId;
+    const collection = await premiumDictionaryService.saveCollection(draft);
+    if (!requestUserId || !isCurrentProfileOwner(requestUserId)) return;
+    setUserProfileForUser(requestUserId, previous => ({ ...previous, customDictionaryEn: previous.role === 'teacher' ? previous.customDictionaryEn : collection.words, dictionaryCollections: [collection, ...(previous.dictionaryCollections || []).filter(item => item.id !== collection.id)] }));
+    if (!isTeacher) setDictionarySource('custom');
+  }, [currentUserId, isCurrentProfileOwner, isTeacher, setDictionarySource, setUserProfileForUser]);""")
+          replace_once('AppV2.tsx',
+            """  const handleSelectAccountMode = useCallback(async (mode: AccountMode) => {
+    const serverProfile = await familyAccountService.selectAccountMode(mode);
+    const nextEntryPath: ClientEntryPath = mode === 'parent' ? 'kids' : mode === 'teacher' ? 'teacher' : 'practice';
+    setEntryPath(nextEntryPath);
+    if (serverProfile) setUserProfile(serverProfile);
+    else setUserProfile(previous => ({ ...previous, accountMode: mode, role: mode === 'parent' ? 'parent' : mode === 'teacher' ? 'teacher' : 'user', featureFlags: mode === 'player' ? previous.featureFlags : { ...(previous.featureFlags || {}), adultRoom: true } }));
+    setRoute(mode === 'teacher' ? 'adult_room' : mode === 'parent' ? 'family_setup' : 'landing');
+  }, [setEntryPath, setRoute, setUserProfile]);
+  const handleCreateChild = useCallback(async (childName: string, pin: string): Promise<ChildSetupResult> => familyAccountService.createChild(childName, pin), []);""",
+            """  const handleSelectAccountMode = useCallback(async (mode: AccountMode) => {
+    const requestUserId = currentUserId;
+    const serverProfile = await familyAccountService.selectAccountMode(mode);
+    if (!requestUserId || !isCurrentProfileOwner(requestUserId)) return;
+    const nextEntryPath: ClientEntryPath = mode === 'parent' ? 'kids' : mode === 'teacher' ? 'teacher' : 'practice';
+    setEntryPath(nextEntryPath);
+    if (serverProfile) setUserProfileForUser(requestUserId, serverProfile);
+    else setUserProfileForUser(requestUserId, previous => ({ ...previous, accountMode: mode, role: mode === 'parent' ? 'parent' : mode === 'teacher' ? 'teacher' : 'user', featureFlags: mode === 'player' ? previous.featureFlags : { ...(previous.featureFlags || {}), adultRoom: true } }));
+    setRoute(mode === 'teacher' ? 'adult_room' : mode === 'parent' ? 'family_setup' : 'landing');
+  }, [currentUserId, isCurrentProfileOwner, setEntryPath, setRoute, setUserProfileForUser]);
+  const handleCreateChild = useCallback(async (childName: string, pin: string): Promise<ChildSetupResult> => {
+    const requestUserId = currentUserId;
+    const result = await familyAccountService.createChild(childName, pin);
+    if (!requestUserId || !isCurrentProfileOwner(requestUserId)) throw new Error('Аккаунт изменился во время сохранения. Повторите настройку.');
+    return result;
+  }, [currentUserId, isCurrentProfileOwner]);""")
+          replace_once('AppV2.tsx',
+            "const handleCharacterOnboardingComplete = useCallback(async (character: PetState) => { await profileEconomy.updateCharacter(character); analyticsService.trackEvent({ userId: currentUserId, eventType: 'character', eventName: 'character_selected', route: 'character_onboarding', payload: { characterType: character.type } }); replaceRoute('landing'); }, [currentUserId, profileEconomy, replaceRoute]);",
+            "const handleCharacterOnboardingComplete = useCallback(async (character: PetState) => { const requestUserId = currentUserId; await profileEconomy.updateCharacter(character); if (!requestUserId || !isCurrentProfileOwner(requestUserId)) return; analyticsService.trackEvent({ userId: requestUserId, eventType: 'character', eventName: 'character_selected', route: 'character_onboarding', payload: { characterType: character.type } }); replaceRoute('landing'); }, [currentUserId, isCurrentProfileOwner, profileEconomy, replaceRoute]);")
+          replace_once('AppV2.tsx', "onCloseLogin={() => setShowLoginModal(false)}", "onCloseLogin={closeAuthModal}")
+
+          replace_once('components/auth/MagicLinkOverlay.tsx',
+            "    if (status === 'success') clearRegistrationIntent();",
+            "    clearRegistrationIntent();")
+
+          replace_once('hooks/useDictionaryPools.ts',
+            "        pool = toCustomEnrichedWords(userProfile.customDictionaryEn);",
+            "        pool = toCustomEnrichedWords([...(userProfile.customDictionaryEn || []), ...assignedWords]);")
+          regex_once('hooks/useDictionaryPools.ts',
+            r"  const getWordTranslation = useCallback\(\(word: string\): string \| null => \{.*?\n  \}, \[readSelectedSpotlightEntries, settings\.activePremiumDictionaryId\]\);",
+            """  const getWordTranslation = useCallback((word: string): string | null => {
+    const normalized = normalizeWord(word);
+    if (!normalized) return null;
+    const currentHasPremium = hasPremiumDictionaryAccess(userProfile);
+    const spotlightTranslationActive = settings.dictionarySource === 'premium'
+      && currentHasPremium
+      && isSpotlightId(settings.activePremiumDictionaryId);
+    if (spotlightTranslationActive) {
+      return readSelectedSpotlightEntries().find(entry => entry.word === normalized)?.translation || null;
+    }
+    const generalEntry = readGeneralDictionary()?.COMMON_WORDS_EN.find(entry => normalizeWord(entry.word) === normalized);
+    if (generalEntry?.translation) return generalEntry.translation;
+    if (settings.dictionarySource !== 'premium' || !currentHasPremium) return null;
+    const premiumEntry = getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL').find(entry => entry.word === normalized);
+    return premiumEntry?.translation || null;
+  }, [readSelectedSpotlightEntries, settings.activePremiumDictionaryId, settings.dictionarySource, userProfile]);""",
+            re.S)
+
+          replace_once('services/dailyQuest.ts',
+            """const numeric = (value: unknown): number => Number.isFinite(Number(value)) ? Number(value) : 0;
+const truthy = (value: unknown): boolean => value === true || value === 'true';
+export const getMemoryMovesFromResult = (input: Pick<GameRewardInput, 'moves' | 'clicks'>): number => typeof input.moves === 'number'
+  ? Math.max(0, Math.round(input.moves))
+  : Math.max(0, Math.ceil(numeric(input.clicks) / 2));
+const completedModeLabel = (input: GameRewardInput): string | null => input.type === 'wordle' && truthy(input.won) ? 'Классика' : input.type === 'sprint' && numeric(input.guessedWords) > 0 ? 'Спринт' : input.type === 'anagram' && numeric(input.guessedWords) > 0 ? 'Анаграммы' : input.type === 'memory' && getMemoryMovesFromResult(input) > 0 ? 'Память' : input.type === 'hangman' && truthy(input.won) ? 'Виселица' : null;""",
+            """const numeric = (value: unknown): number => Number.isFinite(Number(value)) ? Number(value) : 0;
+const truthy = (value: unknown): boolean => value === true || value === 'true';
+export const getMemoryMovesFromResult = (input: Pick<GameRewardInput, 'moves' | 'clicks'>): number => typeof input.moves === 'number'
+  ? Math.max(0, Math.round(input.moves))
+  : Math.max(0, Math.ceil(numeric(input.clicks) / 2));
+export type AllFiveQuestCompletedMode = 'wordle' | 'sprint' | 'anagram' | 'memory' | 'hangman';
+export const getAllFiveQuestCompletedMode = (input: GameRewardInput): AllFiveQuestCompletedMode | null => {
+  if (input.type === 'wordle' && truthy(input.won)) return 'wordle';
+  if (input.type === 'sprint' && numeric(input.guessedWords) >= 6) return 'sprint';
+  if (input.type === 'anagram' && numeric(input.guessedWords) >= 5) return 'anagram';
+  if (input.type === 'memory' && getMemoryMovesFromResult(input) > 0) return 'memory';
+  if (input.type === 'hangman' && truthy(input.won)) return 'hangman';
+  return null;
+};
+const completedModeLabel = (input: GameRewardInput): string | null => {
+  const mode = getAllFiveQuestCompletedMode(input);
+  return mode ? modeLabels[mode] || mode : null;
+};""")
+
+          replace_once('server/dailyQuestRepository.ts',
+            "import { DAILY_QUEST_DEFINITIONS, getMemoryMovesFromResult } from \"../services/dailyQuest\";",
+            "import { DAILY_QUEST_DEFINITIONS, getAllFiveQuestCompletedMode, getMemoryMovesFromResult } from \"../services/dailyQuest\";")
+          regex_once('server/dailyQuestRepository.ts',
+            r"\nfunction completedModeFromInput\(input: GameRewardInput\): string \| null \{.*?\n\}\n",
+            "\n",
+            re.S)
+          old_progress = re.compile(r"  if \(quest\.kind === \"all_five_games\" && !quest\.completed\) \{.*?\n  if \(quest\.completed\) return \{ quest, reward: null, profile: await reconcileProfileMood\(userId, true\) \};", re.S)
+          progress_replacement = """  let progressQuest = quest;
+  if (quest.kind === \"all_five_games\" && !quest.completed) {
+    const progressResult = await transaction(async client => {
+      const rowResult = await client.query<DailyQuestRow>(
+        `select user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id
+           from daily_quests
+          where user_id = $1 and quest_date = $2
+          for update`,
+        [userId, questDate],
+      );
+      const row = rowResult.rows[0];
+      if (!row) throw new Error(\"Daily quest not found\");
+      if (row.completed) return { quest: toQuest(row), completedModes: readCompletedModes(row.progress || {}) };
+      const progress = row.progress || { variant_key: \"all_five_games\", completed_modes: [] };
+      const mode = getAllFiveQuestCompletedMode(input);
+      const completedModes = mode ? Array.from(new Set([...readCompletedModes(progress), mode])) : readCompletedModes(progress);
+      progress.completed_modes = completedModes;
+      const updatedProgress = await client.query<DailyQuestRow>(
+        `update daily_quests
+            set progress = $3::jsonb,
+                updated_at = now()
+          where user_id = $1 and quest_date = $2
+          returning user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id`,
+        [userId, questDate, JSON.stringify(progress)],
+      );
+      const updatedRow = updatedProgress.rows[0];
+      if (!updatedRow) throw new Error(\"Daily quest not found\");
+      return { quest: toQuest(updatedRow), completedModes: readCompletedModes(updatedRow.progress || {}) };
+    });
+    progressQuest = progressResult.quest;
+    completed = progressQuest.completed || progressResult.completedModes.length >= 5;
+  }
+
+  if (!completed) return { quest: progressQuest, reward: null, profile: null };
+  if (progressQuest.completed) return { quest: progressQuest, reward: null, profile: await reconcileProfileMood(userId, true) };"""
+          file = Path('server/dailyQuestRepository.ts')
+          updated, count = old_progress.subn(progress_replacement, file.read_text(), count=1)
+          if count != 1:
+              raise RuntimeError(f'server/dailyQuestRepository.ts: all-five transaction block matches={count}')
+          file.write_text(updated)
+
+          Path('tests/deepRecentRegressionAudit.test.ts').write_text("""import { describe, expect, it } from 'vitest';
+          import { GUEST_PROFILE } from '../constants/profileDefaults';
+          import { getAllFiveQuestCompletedMode } from '../services/dailyQuest';
+          import { resolveOwnedProfileUpdate } from '../services/profileAccessState';
+          import type { GameRewardInput } from '../services/gamificationRules';
+          import type { UserProfile } from '../types';
+          import { readFileSync } from 'node:fs';
+
+          const profile = (username: string, coins = 0): UserProfile => ({
+            ...GUEST_PROFILE,
+            username,
+            coins,
+            stats: { ...GUEST_PROFILE.stats, wordsGuessed: { ...GUEST_PROFILE.stats.wordsGuessed } },
+            pet: { ...GUEST_PROFILE.pet, equippedAccessories: [...(GUEST_PROFILE.pet.equippedAccessories || [])] },
+            inventory: [...GUEST_PROFILE.inventory],
+            customDictionaryEn: [...GUEST_PROFILE.customDictionaryEn],
+          });
+          const result = (input: Partial<GameRewardInput>): GameRewardInput => input as GameRewardInput;
+          const read = (path: string): string => readFileSync(path, 'utf8');
+
+          describe('deep recent regression audit', () => {
+            it('rejects a delayed profile response from a previous account', () => {
+              const current = profile('current', 4);
+              const stale = profile('previous', 99);
+              expect(resolveOwnedProfileUpdate('current-id', 'previous-id', 'current-id', current, stale)).toBeNull();
+              expect(resolveOwnedProfileUpdate('current-id', 'current-id', 'current-id', current, { ...current, coins: 7 })?.coins).toBe(7);
+            });
+
+            it('uses the documented thresholds for the five-games quest', () => {
+              expect(getAllFiveQuestCompletedMode(result({ type: 'sprint', guessedWords: 5 }))).toBeNull();
+              expect(getAllFiveQuestCompletedMode(result({ type: 'sprint', guessedWords: 6 }))).toBe('sprint');
+              expect(getAllFiveQuestCompletedMode(result({ type: 'anagram', guessedWords: 4 }))).toBeNull();
+              expect(getAllFiveQuestCompletedMode(result({ type: 'anagram', guessedWords: 5 }))).toBe('anagram');
+              expect(getAllFiveQuestCompletedMode(result({ type: 'wordle', won: false }))).toBeNull();
+              expect(getAllFiveQuestCompletedMode(result({ type: 'wordle', won: true }))).toBe('wordle');
+            });
+
+            it('keeps composite quest progress under one database transaction', () => {
+              const server = read('server/dailyQuestRepository.ts');
+              expect(server).toContain('const progressResult = await transaction(async client =>');
+              expect(server).toContain('const rowResult = await client.query<DailyQuestRow>');
+              expect(server).toContain('getAllFiveQuestCompletedMode(input)');
+            });
+
+            it('binds async profile updates and registration intent to the current account', () => {
+              const auth = read('hooks/useAuthProfile.ts');
+              const app = read('AppV2.tsx');
+              const overlay = read('components/auth/MagicLinkOverlay.tsx');
+              expect(auth).toContain('setUserProfileForUser');
+              expect(auth).toContain('if (!isCurrentProfileOwner(user.id)) return false');
+              expect(auth).toContain('clearRegistrationIntent(); setAuthMode');
+              expect(app).toContain('else clearRegistrationIntent(); openRegisterMode()');
+              expect(app).toContain('onCloseLogin={closeAuthModal}');
+              expect(overlay).toContain('clearRegistrationIntent();');
+            });
+
+            it('uses teacher-assigned words in the Kids custom pool and selected translations in Wordle', () => {
+              const pools = read('hooks/useDictionaryPools.ts');
+              const app = read('AppV2.tsx');
+              expect(pools).toContain('toCustomEnrichedWords([...(userProfile.customDictionaryEn || []), ...assignedWords])');
+              expect(pools).toContain("settings.dictionarySource === 'premium'");
+              expect(app).toContain('getModeWords, getWordTranslation');
+              expect(app).toContain('getModeWords, getWordTranslation, onRouteChange');
+            });
+
+            it('does not show a fake treat while a background reward is still pending', () => {
+              const app = read('AppV2.tsx');
+              expect(app).toContain('item: null, worldId: null, pending: true');
+              expect(app).not.toContain('pickDailyQuestTreat(currentUserId, dailyQuest.questDate)');
+            });
+          });
+          """)
+          PY
+      - name: Verify fixes
+        run: |
+          npm run lint
+          npm run test:run
+          npm run build
+      - name: Commit audited fixes
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/tmp-deep-regression-audit.yml
+          git add AppV2.tsx components/auth/MagicLinkOverlay.tsx hooks/useAuthProfile.ts hooks/useDictionaryPools.ts server/dailyQuestRepository.ts services/dailyQuest.ts services/profileAccessState.ts tests/deepRecentRegressionAudit.test.ts
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Fix deep recent regressions'
+          git push origin HEAD:${{ github.head_ref }}
