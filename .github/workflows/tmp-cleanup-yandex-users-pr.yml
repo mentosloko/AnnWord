@@ -1,0 +1,134 @@
+name: One-time Yandex user cleanup
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: one-time-yandex-user-cleanup
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    if: ${{ github.head_ref == 'ops/cleanup-users-20260805-1906' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client and Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > /tmp/yc-key.json
+          "$HOME/yandex-cloud/bin/yc" config profile create annword-cleanup
+          "$HOME/yandex-cloud/bin/yc" config set service-account-key /tmp/yc-key.json
+          "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
+          "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
+      - name: Create and verify fresh PostgreSQL backup
+        env:
+          CONFIGURED_CLUSTER_ID: ${{ secrets.YC_POSTGRES_CLUSTER_ID }}
+        run: |
+          set -euo pipefail
+          CLUSTER_ID="${CONFIGURED_CLUSTER_ID:-}"
+          if [ -z "$CLUSTER_ID" ]; then
+            yc managed-postgresql cluster list --format json-rest > /tmp/clusters.json
+            CLUSTER_ID="$(node -e 'const x=require("/tmp/clusters.json");const a=Array.isArray(x)?x:(x.clusters||x.items||[]);if(a.length!==1)process.exit(2);process.stdout.write(a[0].id)')"
+          fi
+          yc managed-postgresql cluster list-backups --id "$CLUSTER_ID" --format json-rest > /tmp/backups-before.json
+          START_EPOCH="$(date +%s)"
+          yc managed-postgresql cluster backup --id "$CLUSTER_ID"
+          for attempt in $(seq 1 24); do
+            yc managed-postgresql cluster list-backups --id "$CLUSTER_ID" --format json-rest > /tmp/backups-after.json
+            node - "$START_EPOCH" <<'NODE' && break || true
+          const fs = require('fs');
+          const start = Number(process.argv[2]) * 1000;
+          const x = JSON.parse(fs.readFileSync('/tmp/backups-after.json','utf8'));
+          const a = Array.isArray(x) ? x : (x.backups || x.items || []);
+          const fresh = a.find(b => {
+            const at = Date.parse(b.createdAt || b.created_at || b.startedAt || b.started_at || '');
+            return Number.isFinite(at) && at >= start - 120000;
+          });
+          if (!fresh) process.exit(1);
+          fs.writeFileSync('/tmp/fresh-backup.json', JSON.stringify(fresh, null, 2));
+          console.log('Fresh backup verified');
+          NODE
+            sleep 15
+          done
+          test -s /tmp/fresh-backup.json
+      - name: Transactionally delete every other account and profile
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "select count(*) from public.app_users" > /tmp/users-before-count.txt
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "\copy (select id,email,created_at from public.app_users order by created_at) to '/tmp/users-before.csv' csv header"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          select pg_advisory_xact_lock(hashtext('annword-one-time-user-cleanup'));
+          do $$
+          declare
+            protected text[] := array['alex-manto@yandex.ru','manto.alexander@gmail.com','anna.a.manto@gmail.com'];
+            matched integer;
+            profiled integer;
+          begin
+            select count(*) into matched from public.app_users where lower(email) = any(protected);
+            if matched <> 3 then raise exception 'Safety stop: expected 3 protected users, found %', matched; end if;
+            select count(*) into profiled from public.profiles p join public.app_users u on u.id=p.id where lower(u.email)=any(protected);
+            if profiled <> 3 then raise exception 'Safety stop: expected 3 protected profiles, found %', profiled; end if;
+          end $$;
+          create temporary table cleanup_candidates on commit drop as
+            select id,email,created_at from public.app_users
+             where lower(email) <> all(array['alex-manto@yandex.ru','manto.alexander@gmail.com','anna.a.manto@gmail.com']);
+          \copy cleanup_candidates to '/tmp/deleted-users.csv' csv header
+          do $$
+          begin
+            if to_regclass('public.pending_email_registrations') is not null then
+              delete from public.pending_email_registrations where lower(email) <> all(array['alex-manto@yandex.ru','manto.alexander@gmail.com','anna.a.manto@gmail.com']);
+            end if;
+            if to_regclass('public.email_confirmations') is not null then
+              delete from public.email_confirmations where lower(email) <> all(array['alex-manto@yandex.ru','manto.alexander@gmail.com','anna.a.manto@gmail.com']);
+            end if;
+          end $$;
+          delete from public.app_users where id in (select id from cleanup_candidates);
+          do $$
+          declare users_left integer; profiles_left integer; wrong integer;
+          begin
+            select count(*) into users_left from public.app_users;
+            select count(*) into profiles_left from public.profiles;
+            select count(*) into wrong from public.app_users where lower(email) <> all(array['alex-manto@yandex.ru','manto.alexander@gmail.com','anna.a.manto@gmail.com']);
+            if users_left <> 3 or profiles_left <> 3 or wrong <> 0 then
+              raise exception 'Verification failed: users %, profiles %, unexpected %', users_left, profiles_left, wrong;
+            end if;
+          end $$;
+          commit;
+          SQL
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "\copy (select u.email,p.role,p.account_mode from public.app_users u join public.profiles p on p.id=u.id order by u.email) to '/tmp/users-after.csv' csv header"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "select count(*) from public.app_users" > /tmp/users-after-count.txt
+          BEFORE="$(cat /tmp/users-before-count.txt)"
+          AFTER="$(cat /tmp/users-after-count.txt)"
+          DELETED="$((BEFORE-AFTER))"
+          printf 'users_before=%s\nusers_deleted=%s\nusers_after=%s\nprofiles_after=3\n' "$BEFORE" "$DELETED" "$AFTER" | tee /tmp/cleanup-summary.txt
+          test "$AFTER" = 3
+      - name: Upload private cleanup audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yandex-user-cleanup-audit
+          path: |
+            /tmp/fresh-backup.json
+            /tmp/backups-before.json
+            /tmp/backups-after.json
+            /tmp/users-before-count.txt
+            /tmp/users-before.csv
+            /tmp/deleted-users.csv
+            /tmp/users-after-count.txt
+            /tmp/users-after.csv
+            /tmp/cleanup-summary.txt
+          if-no-files-found: ignore
+          retention-days: 1
