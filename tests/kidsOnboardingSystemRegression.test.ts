@@ -105,7 +105,7 @@ describe('scroll and reward race regressions', () => {
   it('persists the game reward before applying the daily background reward', () => {
     const app = read('AppV2.tsx');
     const controller = read('hooks/useClassicGameController.ts');
-    expect(app.indexOf('await submitDailyQuestResult(input)')).toBeGreaterThan(app.indexOf('await profileEconomy.applyGameReward(input'));
+    expect(app.lastIndexOf('await submitDailyQuestResult(input)')).toBeGreaterThan(app.lastIndexOf('await profileEconomy.applyGameReward(input'));
     expect(controller.indexOf('await onDailyQuestResult')).toBeGreaterThan(controller.indexOf('await onStatsUpdate'));
     expect(read('server/profileRepository.ts')).toContain('keepCurrentWorld');
   });
