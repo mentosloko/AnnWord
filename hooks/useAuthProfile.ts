@@ -8,6 +8,7 @@ import { profileCache } from '../services/profileCache';
 import { mergeProfileUpdateForOwner, resolveOwnedProfileUpdate } from '../services/profileAccessState';
 import { legalConsentService } from '../services/legalConsentService';
 import { clearRegistrationIntent, readRegistrationIntent } from '../services/registrationIntent';
+import { readOwnedProfileUpdateEvent } from '../services/profileUpdateEvent';
 
 export type AuthMode = 'login' | 'register';
 export type AuthBootstrapStatus = 'loading' | 'ready' | 'error';
@@ -140,7 +141,7 @@ export const useAuthProfile = () => {
     });
   }, []);
   const setUserProfile = useCallback((next: UserProfile | ((prev: UserProfile) => UserProfile)) => { setUserProfileState(prev => { const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(prev) : next; const safeProfile = mergeProfileUpdateForOwner(profileOwnerUserIdRef.current, currentUserIdRef.current, prev, resolved); profileOwnerUserIdRef.current = currentUserIdRef.current; profileCache.write(safeProfile, currentUserIdRef.current); return safeProfile; }); }, []);
-  useEffect(() => { if (typeof window === 'undefined') return; const handle = (event: Event) => { const profile = (event as CustomEvent<UserProfile>).detail; if (!isUserProfile(profile)) return; setUserProfile(profile); setSettings(previous => ({ ...previous, username: profile.username })); }; window.addEventListener('annword:profile-updated', handle as EventListener); return () => window.removeEventListener('annword:profile-updated', handle as EventListener); }, [setUserProfile]);
+  useEffect(() => { if (typeof window === 'undefined') return; const handle = (event: Event) => { const update = readOwnedProfileUpdateEvent((event as CustomEvent<unknown>).detail); if (!update || !isUserProfile(update.profile) || !isCurrentProfileOwner(update.userId)) return; setUserProfileForUser(update.userId, update.profile); setSettings(previous => ({ ...previous, username: update.profile.username })); }; window.addEventListener('annword:profile-updated', handle as EventListener); return () => window.removeEventListener('annword:profile-updated', handle as EventListener); }, [isCurrentProfileOwner, setUserProfileForUser]);
   const resetToGuest = useCallback(() => { currentUserIdRef.current = null; profileOwnerUserIdRef.current = null; setCachedUserId(null); setCurrentUser(null); profileCache.clear(); setUserProfileState(GUEST_PROFILE); setSettings(createInitialSettings()); }, []);
   const loadProfileForUser = useCallback(async (user: User): Promise<boolean> => {
     currentUserIdRef.current = user.id;

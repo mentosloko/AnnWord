@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import { CustomDictionaryCollection, UserProfile } from '../types';
 import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
+import { dispatchOwnedProfileUpdate, getCurrentProfileOwnerId } from './profileUpdateEvent';
 
 export interface PremiumDictionaryDraft {
   id?: string;
@@ -77,6 +78,7 @@ export const premiumDictionaryService = {
   },
 
   async saveCollection(draft: PremiumDictionaryDraft): Promise<CustomDictionaryCollection> {
+    const ownerUserId = getCurrentProfileOwnerId();
     const words = normalizeWords(draft.words);
     if (!words.length) throw new Error('Добавьте хотя бы одно английское слово.');
 
@@ -92,9 +94,7 @@ export const premiumDictionaryService = {
           theme: draft.theme || null,
         },
       });
-      if (data.profile && typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('annword:profile-updated', { detail: data.profile }));
-      }
+      if (data.profile) dispatchOwnedProfileUpdate(ownerUserId, data.profile);
       return normalizeCollection(data.collection, draft, words);
     }
 

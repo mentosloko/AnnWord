@@ -7,6 +7,7 @@ import { isBackendApiConfigured } from '../../services/backendApiClient';
 import { prodamusPaymentService, readPendingProdamusOrderId, ProdamusPaymentStatusResponse } from '../../services/prodamusPaymentService';
 import { analyticsService, AnalyticsEventName } from '../../services/analyticsService';
 import { ScreenContainer } from '../layout/ScreenContainer';
+import { dispatchOwnedProfileUpdate, getCurrentProfileOwnerId } from '../../services/profileUpdateEvent';
 
 type PremiumSuccessScreenProps = {
   userProfile: UserProfile;
@@ -31,6 +32,7 @@ const nextDelay = (attempt: number): number => attempt < 4 ? 1_000 : attempt < 1
 const MAX_PAYMENT_STATUS_ATTEMPTS = 16;
 
 export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ userProfile, onPrimaryAction, onBackHome }) => {
+  const ownerUserId = getCurrentProfileOwnerId();
   const [orderId, setOrderId] = useState<string | null>(() => readOrderFromLocation());
   const [confirmedProfile, setConfirmedProfile] = useState<UserProfile | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<ProdamusPaymentStatusResponse | null>(null);
@@ -85,11 +87,12 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
 
   const syncProfileAfterActivation = async (): Promise<boolean> => {
     const profile = await profileApiService.getCurrentProfile();
+    if (!ownerUserId || getCurrentProfileOwnerId() !== ownerUserId) return false;
     if (isPremiumActive(profile)) {
       setConfirmedProfile(profile);
       setConfirmationState('confirmed');
       prodamusPaymentService.forgetPendingOrder(orderId);
-      window.dispatchEvent(new CustomEvent('annword:profile-updated', { detail: profile }));
+      dispatchOwnedProfileUpdate(ownerUserId, profile);
       return true;
     }
     setConfirmationState('delayed');
@@ -105,6 +108,7 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
     if (id !== orderId) setOrderId(id);
 
     const status = await prodamusPaymentService.getPaymentStatus(id);
+    if (!ownerUserId || getCurrentProfileOwnerId() !== ownerUserId) return false;
     setPaymentStatus(status);
     if (status.premiumActive || status.paymentStatus === 'paid') {
       return syncProfileAfterActivation();
@@ -142,7 +146,7 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
     };
     void poll();
     return () => { cancelled = true; };
-  }, [confirmed, orderId]);
+  }, [confirmed, orderId, ownerUserId]);
 
   const retry = async (): Promise<void> => {
     setConfirmationState('checking');

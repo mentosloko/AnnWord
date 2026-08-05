@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GUEST_PROFILE } from '../constants/profileDefaults';
 import { getAllFiveQuestCompletedMode } from '../services/dailyQuest';
 import { resolveOwnedProfileUpdate } from '../services/profileAccessState';
+import { readOwnedProfileUpdateEvent } from '../services/profileUpdateEvent';
 import type { GameRewardInput } from '../services/gamificationRules';
 import type { UserProfile } from '../types';
 import { readFileSync } from 'node:fs';

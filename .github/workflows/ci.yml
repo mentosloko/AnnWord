@@ -6,9 +6,6 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -16,17 +13,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-          fetch-depth: 0
-
-      - name: Apply owner-aware profile event patch
-        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'agent/deep-regression-audit-20260805' && github.actor != 'github-actions[bot]' }}
-        run: python3 scripts/tmp-owned-profile-events.py
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -99,15 +89,3 @@ jobs:
 
       - name: Build
         run: npm exec -- vite build
-
-      - name: Persist owner-aware profile event fixes
-        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'agent/deep-regression-audit-20260805' && github.actor != 'github-actions[bot]' }}
-        run: |
-          set -euo pipefail
-          git rm scripts/tmp-owned-profile-events.py
-          git checkout origin/main -- .github/workflows/ci.yml
-          git add .github/workflows/ci.yml components/WeeklyReportSettingsCard.tsx components/screens/PremiumSuccessScreen.tsx hooks/useAuthProfile.ts services/premiumDictionaryService.ts services/profileUpdateEvent.ts tests/deepRecentRegressionAudit.test.ts
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'Bind profile events to account owners'
-          git push origin HEAD:${{ github.head_ref }}
