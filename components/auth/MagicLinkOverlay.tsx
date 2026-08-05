@@ -43,7 +43,7 @@ export const MagicLinkOverlay: React.FC = () => {
 
   const finish = () => {
     clearToken();
-    if (status === 'success') clearRegistrationIntent();
+    clearRegistrationIntent();
     const entryPath = registrationEntryPathForMode(accountMode);
     window.location.assign(entryPath === 'home' ? '/' : `/${entryPath}`);
   };

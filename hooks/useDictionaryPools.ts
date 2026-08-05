@@ -129,7 +129,7 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
           ? readSelectedSpotlightEntries()
           : getKidsPremiumDictionaryEntries(settings.activePremiumDictionaryId, 'ALL');
       } else if (settings.dictionarySource === 'custom' && currentHasPremium) {
-        pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
+        pool = toCustomEnrichedWords([...(userProfile.customDictionaryEn || []), ...assignedWords]);
       } else if (assignedWords.length > 0 && currentHasPremium) {
         pool = toCustomEnrichedWords(assignedWords);
       } else {
@@ -192,14 +192,19 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
   const getWordTranslation = useCallback((word: string): string | null => {
     const normalized = normalizeWord(word);
     if (!normalized) return null;
-    if (isSpotlightId(settings.activePremiumDictionaryId)) {
+    const currentHasPremium = hasPremiumDictionaryAccess(userProfile);
+    const spotlightTranslationActive = settings.dictionarySource === 'premium'
+      && currentHasPremium
+      && isSpotlightId(settings.activePremiumDictionaryId);
+    if (spotlightTranslationActive) {
       return readSelectedSpotlightEntries().find(entry => entry.word === normalized)?.translation || null;
     }
     const generalEntry = readGeneralDictionary()?.COMMON_WORDS_EN.find(entry => normalizeWord(entry.word) === normalized);
     if (generalEntry?.translation) return generalEntry.translation;
+    if (settings.dictionarySource !== 'premium' || !currentHasPremium) return null;
     const premiumEntry = getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL').find(entry => entry.word === normalized);
     return premiumEntry?.translation || null;
-  }, [readSelectedSpotlightEntries, settings.activePremiumDictionaryId]);
+  }, [readSelectedSpotlightEntries, settings.activePremiumDictionaryId, settings.dictionarySource, userProfile]);
 
   return useMemo(() => ({
     status,

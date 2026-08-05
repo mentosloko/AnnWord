@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { profileApiService, type WeeklyReportPreferenceStatus } from '../services/profileApiService';
 import type { UserProfile } from '../types';
 import { useProfileFreshness } from '../hooks/useProfileFreshness';
+import { dispatchOwnedProfileUpdate, getCurrentProfileOwnerId } from '../services/profileUpdateEvent';
 
 interface Props {
   userProfile: UserProfile;
@@ -30,15 +31,17 @@ export const WeeklyReportSettingsCard: React.FC<Props> = ({ userProfile, premium
 
   const loadStatus = async () => {
     if (!premiumActive) { setStatus(null); return; }
+    const ownerUserId = getCurrentProfileOwnerId();
     setStatusLoading(true);
     try {
       const next = await profileApiService.getWeeklyReportEmailStatus();
+      if (!ownerUserId || getCurrentProfileOwnerId() !== ownerUserId) return;
       setStatus(next);
       setEnabled(next.enabled);
     } catch {
-      setStatus(null);
+      if (ownerUserId && getCurrentProfileOwnerId() === ownerUserId) setStatus(null);
     } finally {
-      setStatusLoading(false);
+      if (ownerUserId && getCurrentProfileOwnerId() === ownerUserId) setStatusLoading(false);
     }
   };
 
@@ -46,6 +49,7 @@ export const WeeklyReportSettingsCard: React.FC<Props> = ({ userProfile, premium
   useEffect(() => { void loadStatus(); }, [premiumActive, userProfile.weeklyReportEmail]);
 
   const toggleReport = async (nextEnabled: boolean) => {
+    const ownerUserId = getCurrentProfileOwnerId();
     const accountEmail = status?.accountEmail?.trim() || '';
     setError(null);
     setMessage(null);
@@ -56,8 +60,9 @@ export const WeeklyReportSettingsCard: React.FC<Props> = ({ userProfile, premium
     setBusy(true);
     try {
       const profile = await profileApiService.updateWeeklyReportEmail(nextEnabled ? accountEmail : '');
+      if (!ownerUserId || getCurrentProfileOwnerId() !== ownerUserId) return;
       setEnabled(nextEnabled);
-      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('annword:profile-updated', { detail: profile }));
+      dispatchOwnedProfileUpdate(ownerUserId, profile);
       setMessage(nextEnabled ? 'Еженедельный отчёт включён.' : 'Еженедельный отчёт отключён.');
       await loadStatus();
     } catch (problem) {

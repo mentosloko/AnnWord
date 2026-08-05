@@ -3,7 +3,7 @@ import { reconcileProfileMood } from "./petMoodRepository";
 import { normalizeInventory } from "../services/profileMapper";
 import type { DailyQuestCompletionReward, DailyQuestKind, DailyQuestState, InventoryItem, ShopItem, UserProfile } from "../types";
 import type { GameRewardInput } from "../services/gamificationRules";
-import { DAILY_QUEST_DEFINITIONS, getMemoryMovesFromResult } from "../services/dailyQuest";
+import { DAILY_QUEST_DEFINITIONS, getAllFiveQuestCompletedMode, getMemoryMovesFromResult } from "../services/dailyQuest";
 import { pickDailyQuestRewardChoice } from "../services/dailyQuestRewardPolicy";
 
  type DailyQuestRow = {
@@ -138,14 +138,6 @@ function boolFrom(value: unknown): boolean {
   return value === true || value === "true";
 }
 
-function completedModeFromInput(input: GameRewardInput): string | null {
-  if (input.type === "wordle" && boolFrom(input.won)) return "wordle";
-  if (input.type === "sprint" && numberFrom(input.guessedWords) > 0) return "sprint";
-  if (input.type === "anagram" && numberFrom(input.guessedWords) > 0) return "anagram";
-  if (input.type === "memory" && getMemoryMovesFromResult(input) > 0) return "memory";
-  if (input.type === "hangman" && boolFrom(input.won)) return "hangman";
-  return null;
-}
 
 const memoryMoveTarget = (variantKey: string): number => variantKey === "memory_twelve" ? 8
   : variantKey === "memory_fourteen" ? 9
@@ -180,32 +172,41 @@ export async function applyDailyQuestResult(userId: string, input: GameRewardInp
   const quest = await getOrCreateDailyQuest(userId);
   let completed = qualifies(quest, input);
 
+  let progressQuest = quest;
   if (quest.kind === "all_five_games" && !quest.completed) {
-    const rowResult = await query<DailyQuestRow>(
-      `select user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id
-         from daily_quests
-        where user_id = $1 and quest_date = $2
-        for update`,
-      [userId, questDate],
-    );
-    const row = rowResult.rows[0];
-    const progress = row?.progress || { variant_key: "all_five_games", completed_modes: [] };
-    const mode = completedModeFromInput(input);
-    const completedModes = mode ? Array.from(new Set([...readCompletedModes(progress), mode])) : readCompletedModes(progress);
-    progress.completed_modes = completedModes;
-    const updatedProgress = await query<DailyQuestRow>(
-      `update daily_quests
-          set progress = $3::jsonb,
-              updated_at = now()
-        where user_id = $1 and quest_date = $2
-        returning user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id`,
-      [userId, questDate, JSON.stringify(progress)],
-    );
-    completed = readCompletedModes(updatedProgress.rows[0]?.progress || {}).length >= 5;
+    const progressResult = await transaction(async client => {
+      const rowResult = await client.query<DailyQuestRow>(
+        `select user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id
+ from daily_quests
+where user_id = $1 and quest_date = $2
+for update`,
+        [userId, questDate],
+      );
+      const row = rowResult.rows[0];
+      if (!row) throw new Error("Daily quest not found");
+      if (row.completed) return { quest: toQuest(row), completedModes: readCompletedModes(row.progress || {}) };
+      const progress = row.progress || { variant_key: "all_five_games", completed_modes: [] };
+      const mode = getAllFiveQuestCompletedMode(input);
+      const completedModes = mode ? Array.from(new Set([...readCompletedModes(progress), mode])) : readCompletedModes(progress);
+      progress.completed_modes = completedModes;
+      const updatedProgress = await client.query<DailyQuestRow>(
+        `update daily_quests
+  set progress = $3::jsonb,
+      updated_at = now()
+where user_id = $1 and quest_date = $2
+returning user_id, quest_date, kind, progress, completed, completed_at, reward_item_id, reward_world_id`,
+        [userId, questDate, JSON.stringify(progress)],
+      );
+      const updatedRow = updatedProgress.rows[0];
+      if (!updatedRow) throw new Error("Daily quest not found");
+      return { quest: toQuest(updatedRow), completedModes: readCompletedModes(updatedRow.progress || {}) };
+    });
+    progressQuest = progressResult.quest;
+    completed = progressQuest.completed || progressResult.completedModes.length >= 5;
   }
 
-  if (!completed) return { quest: await getOrCreateDailyQuest(userId), reward: null, profile: null };
-  if (quest.completed) return { quest, reward: null, profile: await reconcileProfileMood(userId, true) };
+  if (!completed) return { quest: progressQuest, reward: null, profile: null };
+  if (progressQuest.completed) return { quest: progressQuest, reward: null, profile: await reconcileProfileMood(userId, true) };
 
   const rewardChoice = pickDailyQuestRewardChoice(userId, questDate);
   const result = await transaction(async client => {
