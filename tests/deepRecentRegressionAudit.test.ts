@@ -27,6 +27,25 @@ describe('deep recent regression audit', () => {
     expect(resolveOwnedProfileUpdate('current-id', 'current-id', 'current-id', current, { ...current, coins: 7 })?.coins).toBe(7);
   });
 
+  it('requires owner metadata on cross-component profile updates', () => {
+    const current = profile('current', 4);
+    expect(readOwnedProfileUpdateEvent(current)).toBeNull();
+    expect(readOwnedProfileUpdateEvent({ userId: 'current-id', profile: current })).toEqual({ userId: 'current-id', profile: current });
+
+    const auth = read('hooks/useAuthProfile.ts');
+    expect(auth).toContain('readOwnedProfileUpdateEvent');
+    expect(auth).toContain('isCurrentProfileOwner(update.userId)');
+
+    for (const file of [
+      'services/premiumDictionaryService.ts',
+      'components/WeeklyReportSettingsCard.tsx',
+      'components/screens/PremiumSuccessScreen.tsx',
+    ]) {
+      expect(read(file)).toContain('dispatchOwnedProfileUpdate');
+      expect(read(file)).not.toContain("new CustomEvent('annword:profile-updated'");
+    }
+  });
+
   it('uses the documented thresholds for the five-games quest', () => {
     expect(getAllFiveQuestCompletedMode(result({ type: 'sprint', guessedWords: 5 }))).toBeNull();
     expect(getAllFiveQuestCompletedMode(result({ type: 'sprint', guessedWords: 6 }))).toBe('sprint');
