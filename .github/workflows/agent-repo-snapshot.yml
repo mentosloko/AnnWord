@@ -24,6 +24,7 @@ jobs:
       - name: Verify and apply patch
         run: |
           set -euo pipefail
+          wc -c .ops/kids-patch.*
           cat \
             .ops/kids-patch.part00 \
             .ops/kids-patch.part01 \
