@@ -20,6 +20,7 @@ env:
   NODE_VERSION: "20"
   YC_BACKEND_IMAGE: annword-api
   AWS_DEFAULT_REGION: ru-central1
+  AUTH_FROM_EMAIL: noreply@annword.ru
 
 jobs:
   build-and-deploy:
@@ -110,6 +111,31 @@ jobs:
           yc config set cloud-id "$YC_CLOUD_ID"
           yc config set folder-id "$YC_FOLDER_ID"
 
+      - name: Verify noreply sender in Yandex Postbox
+        run: |
+          set -euo pipefail
+          IAM_TOKEN="$(yc iam create-token)"
+          cat > /tmp/postbox-probe.json <<JSON
+          {
+            "FromEmailAddress": "${AUTH_FROM_EMAIL}",
+            "Destination": { "ToAddresses": ["success@simulator.pstbx.ru"] },
+            "Content": {
+              "Simple": {
+                "Subject": { "Data": "AnnWord deployment sender probe", "Charset": "UTF-8" },
+                "Body": { "Text": { "Data": "Verify ${AUTH_FROM_EMAIL} before production deployment.", "Charset": "UTF-8" } }
+              }
+            }
+          }
+          JSON
+          HTTP_CODE="$(curl -sS -o /tmp/postbox-probe-response.json -w '%{http_code}' \
+            -X POST 'https://postbox.cloud.yandex.net/v2/email/outbound-emails' \
+            -H 'Content-Type: application/json' \
+            -H "X-YaCloud-SubjectToken: ${IAM_TOKEN}" \
+            --data-binary @/tmp/postbox-probe.json)"
+          cat /tmp/postbox-probe-response.json
+          test "$HTTP_CODE" = "200"
+          grep -Eqi 'MessageId|messageId' /tmp/postbox-probe-response.json
+
       - name: Login to Yandex Container Registry
         run: yc container registry configure-docker --hostname cr.yandex --force
 
@@ -177,6 +203,7 @@ jobs:
             --environment APP_URL="$APP_URL" \
             --environment API_URL="$API_URL" \
             --environment YC_API_PUBLIC_URL="$YC_API_PUBLIC_URL" \
+            --environment AUTH_FROM_EMAIL="$AUTH_FROM_EMAIL" \
             --environment WEEKLY_REPORT_FROM_EMAIL="$WEEKLY_REPORT_FROM_EMAIL" \
             --environment WEEKLY_REPORT_CRON_SECRET="$WEEKLY_REPORT_CRON_SECRET" \
             --environment RELEASE_SHA="$GITHUB_SHA"
@@ -231,6 +258,7 @@ jobs:
           echo "Production commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo "Backend image: $BACKEND_IMAGE" >> "$GITHUB_STEP_SUMMARY"
           echo "Frontend bucket: ${{ secrets.S3_FRONTEND_BUCKET }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Postbox sender: $AUTH_FROM_EMAIL (verified with delivery simulator)" >> "$GITHUB_STEP_SUMMARY"
           echo "Live API foreign-email rejection: verified" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish Yandex production commit status
