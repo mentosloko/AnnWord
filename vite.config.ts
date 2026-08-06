@@ -39,7 +39,7 @@ const configureYcShim = () => {
     '        ;;',
     '    esac',
     '  done',
-    '  if [ "${args[0]} ${args[1]} ${args[2]} ${args[3]}" = "serverless container revision deploy" ]; then',
+    '  if [ "${args[0]:-} ${args[1]:-} ${args[2]:-} ${args[3]:-}" = "serverless container revision deploy" ]; then',
     '    local has_network="0"',
     '    local item',
     '    for item in "${args[@]}"; do',
