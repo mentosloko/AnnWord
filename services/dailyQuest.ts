@@ -96,7 +96,7 @@ export const getMemoryMovesFromResult = (input: Pick<GameRewardInput, 'moves' | 
   : Math.max(0, Math.ceil(numeric(input.clicks) / 2));
 export type AllFiveQuestCompletedMode = 'letter_square' | 'sprint' | 'anagram' | 'memory' | 'hangman';
 export const getAllFiveQuestCompletedMode = (input: GameRewardInput): AllFiveQuestCompletedMode | null => {
-  if ((input.type === 'letterSquare' || input.type === 'letter_square') && numeric(input.guessedWords) >= 6) return 'letter_square';
+  if (input.type === 'letterSquare' && numeric(input.guessedWords) >= 6) return 'letter_square';
   if (input.type === 'sprint' && numeric(input.guessedWords) >= 6) return 'sprint';
   if (input.type === 'anagram' && numeric(input.guessedWords) >= 5) return 'anagram';
   if (input.type === 'memory' && getMemoryMovesFromResult(input) > 0) return 'memory';
