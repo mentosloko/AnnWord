@@ -26,6 +26,8 @@ const FREE_KIDS_WORDS: EnrichedWord[] = [
   entry('APPLE', 'яблоко'), entry('BABY', 'малыш'), entry('BALL', 'мяч'), entry('BEAR', 'медведь'), entry('BIRD', 'птица'), entry('BOOK', 'книга'), entry('CAKE', 'торт'), entry('CAT', 'кот'), entry('CHAIR', 'стул'), entry('CLOUD', 'облако'), entry('DOG', 'собака'), entry('DOOR', 'дверь'), entry('DUCK', 'утка'), entry('FISH', 'рыба'), entry('GAME', 'игра'), entry('GIRL', 'девочка'), entry('HAPPY', 'счастливый'), entry('HOUSE', 'дом'), entry('JUICE', 'сок'), entry('MILK', 'молоко'), entry('MOON', 'луна'), entry('MOUSE', 'мышь'), entry('PANDA', 'панда'), entry('PIZZA', 'пицца'), entry('ROBOT', 'робот'), entry('SCHOOL', 'школа'), entry('SMILE', 'улыбка'), entry('STAR', 'звезда'), entry('SUN', 'солнце'), entry('TABLE', 'стол'), entry('TEDDY', 'плюшевый мишка'), entry('TRAIN', 'поезд'), entry('TREE', 'дерево'), entry('WATER', 'вода'), entry('YUMMY', 'вкусный'),
 ];
 
+// Grade-based dictionaries are retained for compatibility with already saved profiles,
+// but are intentionally hidden from the current catalog UI.
 const premiumDictionaries: Record<KidsDictionaryId, KidsDictionaryFile> = {
   kids_grade_1: {
     id: 'kids_grade_1', title: '1 класс: первые слова', shortTitle: '1 класс', theme: 'grade', icon: '1️⃣',
@@ -77,9 +79,11 @@ const withCounts = (item: KidsDictionaryFile): KidsDictionaryMeta => {
 export const getFreeKidsDictionaryEntries = (difficulty: DifficultyLevel = 'ALL'): EnrichedWord[] =>
   uniqueEntries(FREE_KIDS_WORDS).filter(item => matchesDifficulty(item, difficulty));
 
-export const getDefaultKidsDictionaryId = (): KidsDictionaryId => 'kids_grade_1';
+export const getDefaultKidsDictionaryId = (): KidsDictionaryId => 'kids_animals';
 
-export const getKidsDictionaryCatalog = (): KidsDictionaryMeta[] => Object.values(premiumDictionaries).map(withCounts);
+export const getKidsDictionaryCatalog = (): KidsDictionaryMeta[] => Object.values(premiumDictionaries)
+  .filter(item => item.theme !== 'grade')
+  .map(withCounts);
 
 export const getKidsDictionaryMeta = (id?: string): KidsDictionaryMeta =>
   getKidsDictionaryCatalog().find(item => item.id === id) || getKidsDictionaryCatalog()[0];
