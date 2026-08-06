@@ -24,7 +24,7 @@ export interface PremiumDictionaryMeta {
 }
 
 const catalog: PremiumDictionaryMeta[] = [
-  { id: 'premium_spotlight_school', title: 'Spotlight 2–11', shortTitle: 'Spotlight', theme: 'school', icon: '📘' },
+  { id: 'premium_spotlight_school', title: 'Школьные (Spotlight)', shortTitle: 'Школьные (Spotlight)', theme: 'school', icon: '📘' },
   { id: 'premium_business_english', title: 'Business English', shortTitle: 'Business', theme: 'business', icon: '💼' },
   { id: 'premium_travel_english', title: 'Travel English', shortTitle: 'Travel', theme: 'travel', icon: '✈️' },
   { id: 'premium_medical_english', title: 'Medical English', shortTitle: 'Medicine', theme: 'medicine', icon: '🩺' },
