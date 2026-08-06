@@ -11,12 +11,23 @@ import { CoinIcon } from './CoinIcon';
 interface ShopProps { userProfile: UserProfile; onBuy?: (item: ShopItem) => Promise<void>; onClose: () => void; onOpenPetRoom?: () => void; }
 type VisibleShopTab = 'food' | 'accessory';
 const VISIBLE_SHOP_TABS: VisibleShopTab[] = ['food', 'accessory'];
+const SHOP_TAB_STORAGE_KEY = 'annword_shop_initial_tab';
 interface PurchaseCelebration { item: ShopItem; title: string; subtitle: string; source: 'purchase' | 'mystery'; }
 const getProfileSyncKey = (profile: UserProfile) => `${profile.username}|${profile.coins}|${profile.pet.level}|${profile.pet.type}|${JSON.stringify(profile.inventory)}`;
 const getTabLabel = (tab: VisibleShopTab) => tab === 'food' ? 'Лакомства' : 'Аксессуары';
 const getItemBenefitText = (item: ShopItem) => item.type === 'food' ? `+${item.effect?.mood || 0} настроение` : item.type === 'accessory' ? 'Для комнаты питомца' : 'Случайный предмет';
 const getRewardDestinationText = (item: ShopItem) => item.type === 'food' ? 'добавлено в лакомства' : item.type === 'accessory' ? 'добавлен в гардероб персонажа' : 'добавлено к предметам';
 const shouldCelebratePurchase = (item: ShopItem, awardedItem?: ShopItem): PurchaseCelebration | null => awardedItem ? { item: awardedItem, source: 'mystery', title: 'Секретная коробка открыта!', subtitle: `Выпало: ${awardedItem.name} — ${getRewardDestinationText(awardedItem)}.` } : item.type === 'accessory' ? { item, source: 'purchase', title: 'Аксессуар куплен!', subtitle: `${item.name} добавлен в гардероб персонажа.` } : item.type === 'food' ? { item, source: 'purchase', title: 'Лакомство куплено!', subtitle: `${item.name} добавлено в лакомства питомца.` } : null;
+const readInitialShopTab = (): VisibleShopTab => {
+  if (typeof window === 'undefined') return 'food';
+  try {
+    const stored = window.sessionStorage.getItem(SHOP_TAB_STORAGE_KEY);
+    window.sessionStorage.removeItem(SHOP_TAB_STORAGE_KEY);
+    return stored === 'accessory' ? 'accessory' : 'food';
+  } catch {
+    return 'food';
+  }
+};
 
 const PurchaseCelebrationModal: React.FC<{ celebration: PurchaseCelebration; onClose: () => void; onOpenPetRoom?: () => void }> = ({ celebration, onClose, onOpenPetRoom }) => {
   const imageUrl = getShopImageUrl(celebration.item);
@@ -26,7 +37,7 @@ const PurchaseCelebrationModal: React.FC<{ celebration: PurchaseCelebration; onC
 };
 
 export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose, onOpenPetRoom }) => {
-  const [activeTab, setActiveTab] = useState<VisibleShopTab>('food');
+  const [activeTab, setActiveTab] = useState<VisibleShopTab>(readInitialShopTab);
   const [showOnlyAffordable, setShowOnlyAffordable] = useState(false);
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [pulseItemId, setPulseItemId] = useState<string | null>(null);

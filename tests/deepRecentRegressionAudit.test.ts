@@ -51,8 +51,9 @@ describe('deep recent regression audit', () => {
     expect(getAllFiveQuestCompletedMode(result({ type: 'sprint', guessedWords: 6 }))).toBe('sprint');
     expect(getAllFiveQuestCompletedMode(result({ type: 'anagram', guessedWords: 4 }))).toBeNull();
     expect(getAllFiveQuestCompletedMode(result({ type: 'anagram', guessedWords: 5 }))).toBe('anagram');
-    expect(getAllFiveQuestCompletedMode(result({ type: 'wordle', won: false }))).toBeNull();
-    expect(getAllFiveQuestCompletedMode(result({ type: 'wordle', won: true }))).toBe('wordle');
+    expect(getAllFiveQuestCompletedMode(result({ type: 'letterSquare', guessedWords: 5 }))).toBeNull();
+    expect(getAllFiveQuestCompletedMode(result({ type: 'letterSquare', guessedWords: 6 }))).toBe('letter_square');
+    expect(getAllFiveQuestCompletedMode(result({ type: 'wordle', won: true }))).toBeNull();
   });
 
   it('keeps composite quest progress under one database transaction', () => {

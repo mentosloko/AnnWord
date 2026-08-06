@@ -26,7 +26,7 @@ export const DAILY_QUEST_DEFINITIONS: Record<string, QuestCopy> = {
   hangman_win: { title: 'Спаси слово', description: 'Победи в Виселице.' },
   letter_square_four: { title: 'Змейка', description: 'Собери не менее 4 слов в игре Змейка.' },
   letter_square_six: { title: 'Змейка дня', description: 'Собери не менее 6 слов в игре Змейка.' },
-  all_five_games: { title: 'Большое приключение', description: 'За сегодня: победи в Классике и Виселице, заверши Память, собери 5 анаграмм и отгадай 6 слов в Спринте.' },
+  all_five_games: { title: 'Большое приключение', description: 'За сегодня: собери 6 слов в Змейке, победи в Виселице, заверши Память, собери 5 анаграмм и отгадай 6 слов в Спринте.' },
 };
 
 const modeLabels: Record<string, string> = { wordle: 'Классика', sprint: 'Спринт', anagram: 'Анаграммы', memory: 'Память', hangman: 'Виселица', letterSquare: 'Змейка', letter_square: 'Змейка' };
@@ -35,7 +35,7 @@ const validWorldIds: PetWorldId[] = ['default_room', 'theatre', 'amusement_park'
 export const getDailyQuestTargetModes = (quest?: Pick<DailyQuestState, 'kind' | 'title' | 'description'> | null): DailyQuestTargetMode[] => {
   if (!quest) return [];
   const text = `${quest.kind} ${quest.title} ${quest.description}`.toLowerCase();
-  if (quest.kind === 'all_five_games' || text.includes('all_five_games')) return ['game', 'anagrams', 'sprint', 'memory', 'hangman'];
+  if (quest.kind === 'all_five_games' || text.includes('all_five_games')) return ['letter_square', 'anagrams', 'sprint', 'memory', 'hangman'];
   if (text.includes('letter_square') || text.includes('lettersquare') || text.includes('квадрат') || text.includes('змейк')) return ['letter_square'];
   if (text.includes('hangman') || text.includes('виселиц')) return ['hangman'];
   if (text.includes('sprint') || text.includes('спринт')) return ['sprint'];
@@ -94,9 +94,9 @@ const truthy = (value: unknown): boolean => value === true || value === 'true';
 export const getMemoryMovesFromResult = (input: Pick<GameRewardInput, 'moves' | 'clicks'>): number => typeof input.moves === 'number'
   ? Math.max(0, Math.round(input.moves))
   : Math.max(0, Math.ceil(numeric(input.clicks) / 2));
-export type AllFiveQuestCompletedMode = 'wordle' | 'sprint' | 'anagram' | 'memory' | 'hangman';
+export type AllFiveQuestCompletedMode = 'letter_square' | 'sprint' | 'anagram' | 'memory' | 'hangman';
 export const getAllFiveQuestCompletedMode = (input: GameRewardInput): AllFiveQuestCompletedMode | null => {
-  if (input.type === 'wordle' && truthy(input.won)) return 'wordle';
+  if (input.type === 'letterSquare' && numeric(input.guessedWords) >= 6) return 'letter_square';
   if (input.type === 'sprint' && numeric(input.guessedWords) >= 6) return 'sprint';
   if (input.type === 'anagram' && numeric(input.guessedWords) >= 5) return 'anagram';
   if (input.type === 'memory' && getMemoryMovesFromResult(input) > 0) return 'memory';
