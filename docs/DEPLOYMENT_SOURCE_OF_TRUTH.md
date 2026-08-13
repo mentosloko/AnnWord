@@ -12,7 +12,7 @@ AnnWord production is fully hosted in Yandex Cloud.
 - Production OAuth: Yandex OAuth through the AnnWord backend.
 - Production branch: `main`.
 
-Supabase and Vercel are **not production runtime components**. Their remaining files, workflows, dependencies, or migration code are legacy/compatibility surfaces only and must never be treated as evidence of the production architecture.
+Supabase and Vercel are **not production runtime components**. Their remaining files, dependencies, migration code, external project settings or provider integrations are legacy/compatibility surfaces only and must never be treated as evidence of the production architecture.
 
 ## Deployment chain
 
@@ -25,7 +25,7 @@ The supported production chain is:
 - `.github/workflows/yandex-smoke.yml` verifies the live Yandex frontend, API, database, Postbox and protected endpoints.
 - `.github/workflows/production-operations.yml` monitors production and enforces PostgreSQL backup policy.
 
-Vercel deployments are previews/legacy verification only and must not be required by, called from, or used as a fallback by any Yandex production workflow.
+Repo-owned Vercel deployment, production-verification and preview-promotion workflows have been retired. A Vercel project or external Git integration may remain temporarily during the decommission window, but it must not be required by, called from, or used as a fallback by any Yandex production workflow.
 
 ## Runtime dependency rule
 
