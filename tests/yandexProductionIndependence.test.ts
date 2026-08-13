@@ -31,6 +31,15 @@ describe('Yandex-only production contract', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('does not keep repo-owned Vercel deployment or verification workflows', () => {
+    const retiredWorkflows = [
+      '.github/workflows/vercel-prebuilt-production.yml',
+      '.github/workflows/vercel-production-verification.yml',
+      '.github/workflows/vercel-promote-verified-preview.yml',
+    ];
+    expect(retiredWorkflows.filter(existsSync)).toEqual([]);
+  });
+
   it('documents Yandex Cloud as the production source of truth', () => {
     const sourceOfTruth = read('docs/DEPLOYMENT_SOURCE_OF_TRUTH.md');
     expect(sourceOfTruth).toContain('AnnWord production is fully hosted in Yandex Cloud.');
