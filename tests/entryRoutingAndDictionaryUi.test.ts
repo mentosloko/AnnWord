@@ -4,16 +4,35 @@ import { describe, expect, it } from 'vitest';
 const read = (path: string) => readFileSync(path, 'utf8');
 
 describe('entry route UX', () => {
-  it('does not render separate placeholder pages or auto-open registration', () => {
+  it('focuses the public funnel on parents and keeps teacher as a separate entry', () => {
     const appScreens = read('components/AppScreens.tsx');
     const landing = read('components/screens/LandingMixScreen.tsx');
+    const accountModeSetup = read('components/screens/AccountModeSetupScreen.tsx');
+    const header = read('components/layout/AppHeader.tsx');
+
     expect(appScreens).not.toContain('ModeEntryScreen');
     expect(appScreens).not.toContain("if (entryPath === 'practice' || entryPath === 'kids' || entryPath === 'teacher') onOpenRegister()");
     expect(appScreens).toContain('hasChosenAccountMode ? roleHomeScreen : accountModeSetup');
     expect(appScreens).toContain('account_mode_setup: hasChosenAccountMode ? homeScreen : accountModeSetup');
-    expect(landing).toContain('Кто будет пользоваться AnnWord?');
-    expect(landing).toContain('Создать Teacher-аккаунт');
-    expect(landing).toContain('Ребёнок возвращается к словам ради игры');
+
+    expect(landing).toContain('Задали английские слова? Пусть ребёнок выучит их играючи.');
+    expect(landing).toContain('Ученики повторяют заданные вами слова между занятиями');
+    expect(landing).toContain('Создать аккаунт преподавателя');
+    expect(landing).not.toContain('Кто будет пользоваться AnnWord?');
+    expect(landing).not.toContain('Создать Practice-аккаунт');
+    expect(landing).not.toContain('Выбрать формат и начать');
+
+    expect(accountModeSetup).toContain("suggestedMode || getModeFromCurrentPath() || 'parent'");
+    expect(accountModeSetup).not.toContain('const OPTIONS');
+    expect(header).toContain("guestTeacherLanding ? '/' : '/teacher'");
+    expect(header).toContain('Преподавателям');
+  });
+
+  it('keeps legacy player access login-only instead of offering new registration', () => {
+    const landing = read('components/screens/LandingMixScreen.tsx');
+    expect(landing).toContain("entryPath === 'practice'");
+    expect(landing).toContain('существующий аккаунт');
+    expect(landing).toContain('ваш прогресс и привычный режим сохранятся');
   });
 
   it('keeps oversized and external assets out of the anonymous first load', () => {
