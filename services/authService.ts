@@ -1,13 +1,30 @@
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '../supabase';
 import { BackendApiError, backendApiBaseUrl, backendApiRequest, isBackendApiConfigured, writeBackendAccessToken } from './backendApiClient';
 import type { RegistrationConsentSnapshot } from './legalConsentService';
 import type { AccountMode, DailyQuestState, UserProfile } from '../types';
 import { dailyQuestService } from './dailyQuestService';
 
+export interface AuthUser {
+  id: string;
+  email?: string;
+  user_metadata: {
+    name?: string;
+    full_name?: string;
+    passwordResetRequired?: boolean;
+    [key: string]: unknown;
+  };
+}
+
+export interface AuthSession {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  expires_at: number;
+  user: AuthUser;
+}
+
 export interface AuthBootstrapResult {
-  session: Session | null;
-  user: User | null;
+  session: AuthSession | null;
+  user: AuthUser | null;
 }
 
 export type AuthEventName = 'INITIAL_SESSION' | 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_REFRESHED' | 'USER_UPDATED' | 'PASSWORD_RECOVERY' | 'MFA_CHALLENGE_VERIFIED' | string;
@@ -40,11 +57,12 @@ type BackendBootstrapPayload = {
   quest?: DailyQuestState | null;
 };
 
-type AuthSubscriber = (event: AuthEventName, session: Session | null, user: User | null) => void;
+type AuthSubscriber = (event: AuthEventName, session: AuthSession | null, user: AuthUser | null) => void;
 const backendSubscribers = new Set<AuthSubscriber>();
 let currentBackendAuth: AuthBootstrapResult = { session: null, user: null };
 let pendingRegisteredProfile: { userId: string; profile: UserProfile } | null = null;
 const EXPLICIT_LOGOUT_STORAGE_KEY = 'annword_explicit_logout_v1';
+const backendRequiredError = (): Error => new Error('Основной сервер AnnWord не настроен для этого запуска.');
 
 export const consumePendingRegisteredProfile = (userId: string): UserProfile | null => {
   if (!pendingRegisteredProfile || pendingRegisteredProfile.userId !== userId) return null;
@@ -91,27 +109,17 @@ const withTransientRetry = async <T,>(operation: () => Promise<T>): Promise<T> =
   }
 };
 
-const toSupabaseUser = (user: BackendUserPayload): User => ({
+const toAuthUser = (user: BackendUserPayload): AuthUser => ({
   id: user.id,
-  aud: 'authenticated',
-  role: 'authenticated',
   email: user.email,
-  email_confirmed_at: new Date(0).toISOString(),
-  phone: '',
-  confirmed_at: new Date(0).toISOString(),
-  last_sign_in_at: new Date().toISOString(),
-  app_metadata: { provider: 'email', providers: ['email'] },
   user_metadata: {
     name: user.name,
     full_name: user.name,
     passwordResetRequired: user.passwordResetRequired === true,
   },
-  identities: [],
-  created_at: new Date(0).toISOString(),
-  updated_at: new Date().toISOString(),
-} as unknown as User);
+});
 
-const toSession = (payload: BackendSessionPayload): Session | null => {
+const toSession = (payload: BackendSessionPayload): AuthSession | null => {
   if (!payload.user) return null;
   const expiresIn = typeof payload.expires_in === 'number' ? payload.expires_in : 60 * 60 * 24 * 30;
   return {
@@ -119,9 +127,8 @@ const toSession = (payload: BackendSessionPayload): Session | null => {
     token_type: payload.token_type || 'bearer',
     expires_in: expiresIn,
     expires_at: Math.floor(Date.now() / 1000) + expiresIn,
-    refresh_token: '',
-    user: toSupabaseUser(payload.user),
-  } as unknown as Session;
+    user: toAuthUser(payload.user),
+  };
 };
 
 const toAuthBootstrap = (payload: BackendSessionPayload): AuthBootstrapResult => {
@@ -135,135 +142,92 @@ const emitBackendAuth = (event: AuthEventName, auth: AuthBootstrapResult): void 
 
 export const authService = {
   getInitialSession: async (): Promise<AuthBootstrapResult> => {
-    if (isBackendApiConfigured) {
-      if (readExplicitLogout()) {
+    if (!isBackendApiConfigured) {
+      clearPrimedBootstrap();
+      currentBackendAuth = { session: null, user: null };
+      return currentBackendAuth;
+    }
+    if (readExplicitLogout()) {
+      clearPrimedBootstrap();
+      currentBackendAuth = { session: null, user: null };
+      return currentBackendAuth;
+    }
+    try {
+      const data = await withTransientRetry(() => backendApiRequest<BackendBootstrapPayload>('/api/profile/bootstrap'));
+      primeBackendPayload(data);
+      currentBackendAuth = data.user ? toAuthBootstrap({ user: data.user }) : { session: null, user: null };
+      return currentBackendAuth;
+    } catch (error) {
+      if (error instanceof BackendApiError && error.status === 401) {
         clearPrimedBootstrap();
         currentBackendAuth = { session: null, user: null };
         return currentBackendAuth;
       }
-      try {
-        const data = await withTransientRetry(() => backendApiRequest<BackendBootstrapPayload>('/api/profile/bootstrap'));
-        primeBackendPayload(data);
-        currentBackendAuth = data.user ? toAuthBootstrap({ user: data.user }) : { session: null, user: null };
-        return currentBackendAuth;
-      } catch (error) {
-        if (error instanceof BackendApiError && error.status === 401) {
-          clearPrimedBootstrap();
-          currentBackendAuth = { session: null, user: null };
-          return currentBackendAuth;
-        }
-        throw error;
-      }
+      throw error;
     }
-
-    const { data, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    return {
-      session: data.session,
-      user: data.session?.user ?? null,
-    };
   },
 
   signInWithYandex: async (): Promise<void> => {
-    if (isBackendApiConfigured) {
-      writeExplicitLogout(false);
-      window.location.href = `${backendApiBaseUrl}/api/auth/yandex`;
-      return;
-    }
-
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (isLocalhost) {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'yandex' as any,
-        options: { redirectTo: window.location.origin },
-      });
-      if (error) throw error;
-      return;
-    }
-
+    if (!isBackendApiConfigured) throw backendRequiredError();
+    writeExplicitLogout(false);
     window.location.href = `${backendApiBaseUrl}/api/auth/yandex`;
   },
 
   signInWithEmail: async (email: string, password: string): Promise<void> => {
-    if (isBackendApiConfigured) {
-      clearPrimedBootstrap();
-      const payload = await withTransientRetry(() => backendApiRequest<BackendSessionPayload>('/api/auth/email/session', {
-        method: 'POST',
-        body: { email, credential: password },
-      }));
-      writeExplicitLogout(false);
-      primeBackendPayload(payload);
-      currentBackendAuth = toAuthBootstrap(payload);
-      emitBackendAuth('SIGNED_IN', currentBackendAuth);
-      return;
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    if (!isBackendApiConfigured) throw backendRequiredError();
+    clearPrimedBootstrap();
+    const payload = await withTransientRetry(() => backendApiRequest<BackendSessionPayload>('/api/auth/email/session', {
+      method: 'POST',
+      body: { email, credential: password },
+    }));
+    writeExplicitLogout(false);
+    primeBackendPayload(payload);
+    currentBackendAuth = toAuthBootstrap(payload);
+    emitBackendAuth('SIGNED_IN', currentBackendAuth);
   },
 
   signUpWithEmail: async (email: string, password: string, consents: RegistrationConsentSnapshot, accountMode?: AccountMode): Promise<{ needsEmailConfirmation: boolean }> => {
-    if (isBackendApiConfigured) {
-      const payload = await withTransientRetry(() => backendApiRequest<BackendRegistrationPayload>('/api/auth/email/account', {
-        method: 'POST',
-        body: { email, credential: password, name: email.split('@')[0], consents, accountMode },
-      }));
-      writeExplicitLogout(false);
-      if (payload.needsEmailConfirmation !== false || !payload.user) {
-        clearPrimedBootstrap();
-        currentBackendAuth = { session: null, user: null };
-        return { needsEmailConfirmation: true };
-      }
-      primeBackendPayload(payload);
-      currentBackendAuth = toAuthBootstrap(payload);
-      emitBackendAuth('SIGNED_IN', currentBackendAuth);
-      return { needsEmailConfirmation: false };
+    if (!isBackendApiConfigured) throw backendRequiredError();
+    const payload = await withTransientRetry(() => backendApiRequest<BackendRegistrationPayload>('/api/auth/email/account', {
+      method: 'POST',
+      body: { email, credential: password, name: email.split('@')[0], consents, accountMode },
+    }));
+    writeExplicitLogout(false);
+    if (payload.needsEmailConfirmation !== false || !payload.user) {
+      clearPrimedBootstrap();
+      currentBackendAuth = { session: null, user: null };
+      return { needsEmailConfirmation: true };
     }
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name: email.split('@')[0], legal_consents: consents } },
-    });
-    if (error) throw error;
-    return { needsEmailConfirmation: Boolean(data.user && !data.session) };
+    primeBackendPayload(payload);
+    currentBackendAuth = toAuthBootstrap(payload);
+    emitBackendAuth('SIGNED_IN', currentBackendAuth);
+    return { needsEmailConfirmation: false };
   },
 
   signOut: async (): Promise<void> => {
-    if (isBackendApiConfigured) {
-      clearPrimedBootstrap();
-      writeExplicitLogout(true);
-      writeBackendAccessToken(null);
-      currentBackendAuth = { session: null, user: null };
-      emitBackendAuth('SIGNED_OUT', currentBackendAuth);
-      let lastError: unknown = null;
-      for (let attempt = 0; attempt < 2; attempt += 1) {
-        try {
-          await backendApiRequest<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
-          return;
-        } catch (error) {
-          lastError = error;
-          await delay(250);
-        }
-      }
-      console.warn('Backend logout request failed after local sign-out', lastError);
-      return;
-    }
+    clearPrimedBootstrap();
+    writeExplicitLogout(true);
+    writeBackendAccessToken(null);
+    currentBackendAuth = { session: null, user: null };
+    emitBackendAuth('SIGNED_OUT', currentBackendAuth);
+    if (!isBackendApiConfigured) return;
 
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        await backendApiRequest<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
+        return;
+      } catch (error) {
+        lastError = error;
+        await delay(250);
+      }
+    }
+    console.warn('Backend logout request failed after local sign-out', lastError);
   },
 
-  onAuthStateChange: (callback: (event: AuthEventName, session: Session | null, user: User | null) => void) => {
-    if (isBackendApiConfigured) {
-      backendSubscribers.add(callback);
-      callback('INITIAL_SESSION', currentBackendAuth.session, currentBackendAuth.user);
-      return () => backendSubscribers.delete(callback);
-    }
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      callback(event, session, session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
+  onAuthStateChange: (callback: AuthSubscriber) => {
+    backendSubscribers.add(callback);
+    callback('INITIAL_SESSION', currentBackendAuth.session, currentBackendAuth.user);
+    return () => backendSubscribers.delete(callback);
   },
 };
