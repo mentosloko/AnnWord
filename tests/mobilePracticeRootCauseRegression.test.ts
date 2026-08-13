@@ -57,7 +57,8 @@ describe('mobile Practice root-cause regressions', () => {
     expect(authRoute).toContain('Server-Timing');
     expect(authService).toContain('pendingRegisteredProfile');
     expect(authService).toContain('consumePendingRegisteredProfile');
-    expect(userService).toContain('registeredProfile||profileApiService.getCurrentProfile()');
+    expect(userService).toContain('const registeredProfile = consumePendingRegisteredProfile(userId);');
+    expect(userService).toContain('return registeredProfile || profileApiService.getCurrentProfile();');
   });
 
   it('reconciles stats and daily quest before publishing the terminal Classic state', () => {
