@@ -8,9 +8,10 @@ const serviceFiles = (): string[] => readdirSync('services', { withFileTypes: tr
   .map(entry => `services/${entry.name}`);
 
 describe('Yandex-only production contract', () => {
-  it('keeps Supabase out of the client service runtime', () => {
+  it('keeps Supabase out of the client runtime', () => {
     const offenders = serviceFiles().filter(path => /from\s+['"]\.\.\/supabase['"]|from\s+['"]\.\/supabase['"]/.test(read(path)));
     expect(offenders).toEqual([]);
+    expect(read('hooks/useAuthProfile.ts')).not.toContain('@supabase/supabase-js');
     expect(existsSync('services/petMoodClock.ts')).toBe(false);
     expect(existsSync('supabase.ts')).toBe(false);
   });
@@ -24,6 +25,34 @@ describe('Yandex-only production contract', () => {
   it('does not keep the legacy Vercel serverless API tree', () => {
     expect(existsSync('api')).toBe(false);
     expect(existsSync('services/premiumPlanCatalog.ts')).toBe(true);
+  });
+
+  it('does not install legacy Supabase or Firebase packages', () => {
+    const packageJson = JSON.parse(read('package.json')) as {
+      dependencies?: Record<string, string>;
+      engines?: { node?: string };
+    };
+    const dependencies = packageJson.dependencies || {};
+    expect(dependencies['@supabase/supabase-js']).toBeUndefined();
+    expect(dependencies.firebase).toBeUndefined();
+    expect(dependencies['firebase-admin']).toBeUndefined();
+    expect(packageJson.engines?.node).toBe('>=22');
+
+    const lockfile = read('package-lock.json');
+    expect(lockfile).not.toContain('node_modules/@supabase/');
+    expect(lockfile).not.toContain('node_modules/firebase"');
+    expect(lockfile).not.toContain('node_modules/firebase-admin"');
+  });
+
+  it('runs the application, PR checks and Yandex production build on Node 22', () => {
+    const dockerfile = read('Dockerfile.api');
+    const prCheck = read('.github/workflows/pr-check.yml');
+    const yandexDeploy = read('.github/workflows/yandex-deploy.yml');
+    expect(dockerfile).toContain('FROM node:22-alpine');
+    expect(prCheck).toContain("node-version: '22'");
+    expect(prCheck).not.toContain("node-version: '20'");
+    expect(yandexDeploy).toContain('NODE_VERSION: "22"');
+    expect(yandexDeploy).not.toContain('NODE_VERSION: "20"');
   });
 
   it('keeps legacy migration secrets out of the Yandex production deploy', () => {
