@@ -1,128 +1,105 @@
 # AnnWord
 
-AnnWord is a Vite + React app for studying English words with Supabase-backed user profiles, custom dictionaries, stats, coins, pet state, inventory, and OAuth/email authentication.
+AnnWord is a Vite + React application for learning English words through games, child/parent profiles, teacher assignments, progress tracking, gamification and Premium features.
 
-## Vercel frontend deployment
+## Production architecture
 
-This repository is prepared for Vercel deployment via `vercel.json`.
+AnnWord production is fully hosted in Yandex Cloud:
 
-Recommended Vercel settings:
+- frontend — Yandex Object Storage;
+- backend — Yandex Serverless Container;
+- database — Yandex Managed PostgreSQL;
+- container images — Yandex Container Registry;
+- email — Yandex Postbox;
+- OAuth — Yandex OAuth through the AnnWord backend.
+
+The production branch is `main`.
+
+The production deployment chain is:
 
 ```text
-Framework Preset: Vite
-Install Command: npm install
-Build Command: npm run build
-Output Directory: dist
-Root Directory: ./
+main
+  -> .github/workflows/yandex-deploy.yml
+  -> Yandex Container Registry / Serverless Container / Object Storage
+  -> .github/workflows/yandex-smoke.yml
+  -> .github/workflows/production-operations.yml
 ```
 
-Required Vercel Environment Variables:
+Supabase and Vercel are not production runtime components. Vercel Git deployments are disabled in `vercel.json`.
 
-```bash
-VITE_SUPABASE_URL=https://qbznenczthmznootlujy.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY
-```
+See `docs/DEPLOYMENT_SOURCE_OF_TRUTH.md` for the authoritative deployment contract.
 
-Optional Vercel Environment Variables:
-
-```bash
-VITE_ADMIN_EMAILS=
-GEMINI_API_KEY=
-```
-
-Do not expose `SUPABASE_SERVICE_ROLE_KEY` to frontend code. Add it only if you later move server-side logic to Vercel Functions and keep it server-only.
-
-The current Vercel setup is for the frontend app. The custom Yandex OAuth flow in `server.ts` is not executed by a static Vercel frontend deployment. For Yandex OAuth in production, move `/api/auth/yandex` and `/api/auth/yandex/callback` to Vercel Functions or Supabase Edge Functions.
-
-After importing the GitHub repository into Vercel, every push to `main` should create a new production deployment. Pull requests should create preview deployments if the Git integration is enabled.
-
-## Local frontend run
+## Local frontend development
 
 Prerequisites:
 
-- Node.js 20+
-- Supabase project with the migrations from `supabase/migrations` applied
+- Node.js compatible with the repository dependencies;
+- npm.
 
-### 1. Install dependencies
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-### 2. Create local environment file
-
-Copy the template:
+Create a local frontend environment file:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Fill at least:
-
-```bash
-VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY
-```
-
-For the current Supabase project, use the Project URL and anon/publishable key from Supabase Dashboard → Project Settings → API.
-
-### 3. Start the frontend
+Start Vite:
 
 ```bash
 npm run dev
 ```
 
-Open the local URL shown by Vite, usually:
+The frontend usually opens at `http://localhost:5173`.
 
-```text
-http://localhost:5173
-```
+For authenticated flows, point `VITE_API_URL` at a running AnnWord backend.
 
-This mode is enough to test the main frontend and Supabase auth/profile flows.
+## Local backend development
 
-## Local full-stack run with Yandex OAuth server
+The active backend entrypoint is `server/yandex-api.ts`.
 
-The custom Yandex OAuth flow is implemented in `server.ts` and needs server-only secrets:
+Server-side environment variables for PostgreSQL, sessions, Yandex OAuth, Prodamus and Object Storage are documented in `.env.yandex.example`.
 
-```bash
-SUPABASE_SERVICE_ROLE_KEY=
-YANDEX_CLIENT_ID=
-YANDEX_CLIENT_SECRET=
-APP_URL=http://localhost:3000
-```
-
-Then run:
+Start the backend in watch mode:
 
 ```bash
-npm run server
+npm run api:dev
 ```
 
-Open:
-
-```text
-http://localhost:3000
-```
-
-## Useful scripts
+Run the backend smoke check:
 
 ```bash
-npm run dev      # Vite frontend only
-npm run server   # Express + Vite middleware, needed for /api/auth/yandex
-npm run build    # production build
-npm run preview  # preview built app
-npm run lint     # TypeScript check
+npm run api:check
 ```
 
-## Supabase schema
+Run Yandex PostgreSQL migrations:
 
-The database schema is versioned in:
-
-```text
-supabase/migrations/
+```bash
+npm run db:yandex:migrate
 ```
 
-The main app currently expects:
+## Quality checks
 
-- `public.profiles`
-- RLS policies for authenticated users
-- RPC function `public.increment_coins(user_id uuid, amount integer)`
+```bash
+npm run lint
+npm run test:run
+npm run check:smoke
+npm run build
+```
+
+The CI workflows run TypeScript checks, tests, smoke checks and production builds before changes are promoted.
+
+## Deployment safety
+
+A successful production release is not established by a build alone. The expected sequence is:
+
+1. `Deploy to Yandex Cloud` succeeds for the `main` commit.
+2. The live frontend release marker exposes that commit SHA.
+3. `Yandex Runtime Smoke` verifies frontend routes, API, PostgreSQL, Postbox and protected endpoints.
+4. `Production Operations` verifies monitoring and PostgreSQL backups.
+
+Vercel previews, old Supabase migrations and other legacy files must never be treated as the source of truth for production.
