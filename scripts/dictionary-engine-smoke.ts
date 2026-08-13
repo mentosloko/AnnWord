@@ -8,6 +8,7 @@ import {
   normalizeCustomDictionary,
   pickRandomSecretWord,
 } from '../services/dictionaryEngine';
+import { ensureGeneralDictionaryLoaded } from '../services/dictionaryRuntime';
 import { parseDictionaryText } from '../services/dictionaryUpload';
 import {
   getGuessTranslationForGame,
@@ -29,6 +30,11 @@ const initialAllWordsCount = ALL_WORDS_EN.length;
 
 assert(initialCommonCount > 0, 'COMMON_WORDS_EN must not be empty');
 assert(initialAllWordsCount > 0, 'ALL_WORDS_EN must not be empty');
+
+// The production dictionary engine reads from a deliberately lazy runtime.
+// Smoke tests must initialize that runtime explicitly instead of depending on
+// an incidental module-import side effect, which can vary between loaders.
+await ensureGeneralDictionaryLoaded();
 
 const customInput = [' apple ', 'APPLE', 'berry!', 'data', 'cat', 'zzzzz'];
 const normalizedCustom = normalizeCustomDictionary(customInput);
