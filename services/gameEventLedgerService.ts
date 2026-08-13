@@ -1,8 +1,7 @@
-import { supabase } from '../supabase';
-import { GameRewardInput } from './gamificationRules';
-import { QueuedAnalyticsEvent } from './analyticsService';
-import { WordPracticeResult } from './gameSessionEngine';
-import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
+import type { GameRewardInput } from './gamificationRules';
+import type { QueuedAnalyticsEvent } from './analyticsService';
+import type { WordPracticeResult } from './gameSessionEngine';
+import { backendApiRequest } from './backendApiClient';
 
 export type GameLedgerEventType = 'game_started' | 'game_finished' | 'word_failed' | 'word_mastered' | 'reward_granted';
 
@@ -88,15 +87,9 @@ export const gameEventLedgerService = {
     const safeEvents = events.filter((event): event is GameLedgerEvent => Boolean(event));
     if (!safeEvents.length) return;
 
-    if (isBackendApiConfigured) {
-      await backendApiRequest('/api/game-events/events', {
-        method: 'POST',
-        body: { events: safeEvents },
-      });
-      return;
-    }
-
-    const { error } = await supabase.rpc('record_game_events', { p_events: safeEvents });
-    if (error) throw error;
+    await backendApiRequest('/api/game-events/events', {
+      method: 'POST',
+      body: { events: safeEvents },
+    });
   },
 };
