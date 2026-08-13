@@ -1,0 +1,109 @@
+name: Retire Vercel Project Once
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/retire-vercel-project-once.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: retire-vercel-project-once
+  cancel-in-progress: false
+
+jobs:
+  retire:
+    name: Delete detached Vercel project
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      VERCEL_PROJECT_ID: prj_FXkostulT2hFcfu2Y4ffPFXHJ96q
+      VERCEL_TEAM_ID: team_f6p6zecR5jGHCXTV1kZVSIux
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN || secrets.VERCEL_ACCESS_TOKEN || secrets.VERCEL_API_TOKEN }}
+      APP_URL: ${{ secrets.APP_URL }}
+      API_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+
+    steps:
+      - name: Verify Yandex production is healthy before deletion
+        run: |
+          set -euo pipefail
+          test -n "$VERCEL_TOKEN"
+          test -n "$APP_URL"
+          test -n "$API_URL"
+
+          APP_BASE="${APP_URL%/}"
+          API_BASE="${API_URL%/}"
+          curl --fail-with-body --silent --show-error --location "$APP_BASE/release.json?pre-vercel-retirement=$GITHUB_RUN_ID" > /tmp/yandex-release-before.json
+          curl --fail-with-body --silent --show-error "$API_BASE/api/health" > /tmp/yandex-health-before.json
+          grep -q '"sha"' /tmp/yandex-release-before.json
+          grep -q '"runtime":"yandex-cloud"' /tmp/yandex-health-before.json
+          grep -q '"status":"ok"' /tmp/yandex-health-before.json
+
+      - name: Assert Vercel project has no custom domains
+        run: |
+          set -euo pipefail
+          PROJECT_URL="https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}"
+          DOMAINS_URL="${PROJECT_URL}/domains?teamId=${VERCEL_TEAM_ID}"
+
+          project_code="$(curl --silent --show-error \
+            --output /tmp/vercel-project.json \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer $VERCEL_TOKEN" \
+            "${PROJECT_URL}?teamId=${VERCEL_TEAM_ID}")"
+          test "$project_code" = "200"
+
+          domains_code="$(curl --silent --show-error \
+            --output /tmp/vercel-domains.json \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer $VERCEL_TOKEN" \
+            "$DOMAINS_URL")"
+          test "$domains_code" = "200"
+
+          node - <<'NODE'
+          const fs = require('fs');
+          const payload = JSON.parse(fs.readFileSync('/tmp/vercel-domains.json', 'utf8'));
+          const domains = Array.isArray(payload.domains) ? payload.domains : [];
+          const names = domains.map(item => String(item?.name || '')).filter(Boolean);
+          const custom = names.filter(name => !name.endsWith('.vercel.app'));
+          console.log(`Vercel project domains: ${names.join(', ') || '(none)'}`);
+          if (custom.length) {
+            throw new Error(`Refusing to delete Vercel project because custom domains remain: ${custom.join(', ')}`);
+          }
+          NODE
+
+      - name: Delete Vercel project
+        run: |
+          set -euo pipefail
+          delete_code="$(curl --silent --show-error \
+            --output /tmp/vercel-delete-response.txt \
+            --write-out '%{http_code}' \
+            --request DELETE \
+            --header "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_TEAM_ID}")"
+          cat /tmp/vercel-delete-response.txt || true
+          test "$delete_code" = "204"
+
+      - name: Verify Vercel project is gone
+        run: |
+          set -euo pipefail
+          code="$(curl --silent --show-error \
+            --output /tmp/vercel-after-delete.json \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_TEAM_ID}")"
+          cat /tmp/vercel-after-delete.json || true
+          test "$code" = "404"
+
+      - name: Verify Yandex production is still healthy after deletion
+        run: |
+          set -euo pipefail
+          APP_BASE="${APP_URL%/}"
+          API_BASE="${API_URL%/}"
+          curl --fail-with-body --silent --show-error --location "$APP_BASE/release.json?post-vercel-retirement=$GITHUB_RUN_ID" > /tmp/yandex-release-after.json
+          curl --fail-with-body --silent --show-error "$API_BASE/api/health" > /tmp/yandex-health-after.json
+          grep -q '"sha"' /tmp/yandex-release-after.json
+          grep -q '"runtime":"yandex-cloud"' /tmp/yandex-health-after.json
+          grep -q '"status":"ok"' /tmp/yandex-health-after.json
