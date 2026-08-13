@@ -48,10 +48,15 @@ export const getPlan = (value: unknown): PremiumPlan | null => typeof value === 
   ? PREMIUM_PLANS[value as ProdamusPlanCode]
   : null;
 
-export const getPublicPlans = () => Object.values(PREMIUM_PLANS).map(plan => ({
-  code: plan.code,
-  title: plan.title,
-  amountRub: plan.amountRub,
-  periodDays: plan.periodDays,
-  mode: plan.mode,
-}));
+// New public sales surfaces expose only the parent/Kids product. Practice plan
+// codes stay in the registry so existing orders, callbacks and legacy accounts
+// continue to resolve correctly.
+export const getPublicPlans = () => Object.values(PREMIUM_PLANS)
+  .filter(plan => plan.mode === 'kids')
+  .map(plan => ({
+    code: plan.code,
+    title: plan.title,
+    amountRub: plan.amountRub,
+    periodDays: plan.periodDays,
+    mode: plan.mode,
+  }));
