@@ -39,7 +39,8 @@ assert(landing.includes('Задали английские слова? Пуст�
 assert(landing.includes('Создать аккаунт преподавателя'), 'teacher public entry');
 assert(profile.includes('onOpenPetRoom'), 'profile pet entry');
 assert(shop.includes('onClose: () => void') && shop.includes('onClick={onClose}'), 'shop close contract');
-assert(shop.includes('onOpenPetRoom') && shop.includes('onClick={onOpenPetRoom}'), 'shop pet room shortcut contract');
+assert(shop.includes('onOpenPetRoom?: () => void') && shop.includes('const goPetRoom = () => { onClose(); onOpenPetRoom?.(); };'), 'shop pet room shortcut contract');
+assert(shop.includes('<PurchaseCelebrationModal') && shop.includes('onOpenPetRoom={onOpenPetRoom}'), 'purchase celebration forwards pet room navigation');
 assert((room.includes('onClose:()=>void') || room.includes('onClose: () => void')) && room.includes('onClick={onClose}'), 'pet room close contract');
 assert(room.includes('onUpdatePet') && room.includes('onOpenShop'), 'pet room update/shop contract');
 assert(room.includes('overflow-x-auto'), 'mobile room horizontal scrolling');
