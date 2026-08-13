@@ -21,6 +21,7 @@ describe('entry route UX', () => {
     expect(landing).not.toContain('Кто будет пользоваться AnnWord?');
     expect(landing).not.toContain('Создать Practice-аккаунт');
     expect(landing).not.toContain('Выбрать формат и начать');
+    expect(landing).toContain("window.history.replaceState({}, '', '/')");
 
     expect(accountModeSetup).toContain("suggestedMode || getModeFromCurrentPath() || 'parent'");
     expect(accountModeSetup).not.toContain('const OPTIONS');
