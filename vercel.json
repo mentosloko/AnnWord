@@ -4,6 +4,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
+  "git": {
+    "deploymentEnabled": false
+  },
   "rewrites": [
     { "source": "/((?!api/|assets/|favicon.ico|manifest.webmanifest|sw.js).*)", "destination": "/index.html" }
   ]
