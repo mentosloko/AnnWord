@@ -19,7 +19,7 @@ export interface AuthUser {
     passwordResetRequired?: boolean;
     [key: string]: unknown;
   };
-  identities?: unknown[];
+  identities?: never[];
   created_at: string;
   updated_at?: string;
   is_anonymous?: boolean;
