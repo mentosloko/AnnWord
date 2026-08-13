@@ -31,13 +31,19 @@ describe('Yandex-only production contract', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('does not keep repo-owned Vercel deployment or verification workflows', () => {
+  it('does not keep repo-owned Vercel deployment, verification or deletion workflows', () => {
     const retiredWorkflows = [
       '.github/workflows/vercel-prebuilt-production.yml',
       '.github/workflows/vercel-production-verification.yml',
       '.github/workflows/vercel-promote-verified-preview.yml',
+      '.github/workflows/retire-vercel-project-once.yml',
     ];
     expect(retiredWorkflows.filter(existsSync)).toEqual([]);
+  });
+
+  it('disables automatic Vercel Git deployments at the project configuration layer', () => {
+    const config = JSON.parse(read('vercel.json')) as { git?: { deploymentEnabled?: boolean } };
+    expect(config.git?.deploymentEnabled).toBe(false);
   });
 
   it('documents Yandex Cloud as the production source of truth', () => {

@@ -25,7 +25,9 @@ The supported production chain is:
 - `.github/workflows/yandex-smoke.yml` verifies the live Yandex frontend, API, database, Postbox and protected endpoints.
 - `.github/workflows/production-operations.yml` monitors production and enforces PostgreSQL backup policy.
 
-Repo-owned Vercel deployment, production-verification and preview-promotion workflows have been retired. A Vercel project or external Git integration may remain temporarily during the decommission window, but it must not be required by, called from, or used as a fallback by any Yandex production workflow.
+Repo-owned Vercel deployment, production-verification and preview-promotion workflows have been retired. `vercel.json` sets `git.deploymentEnabled` to `false`, so the remaining detached Vercel project must not create deployments from Git pushes or pull requests. The Vercel project has no AnnWord custom production domains; only `*.vercel.app` aliases remain.
+
+The Vercel project itself may remain temporarily as an inert external resource. Automated deletion from GitHub is not available because no repository Vercel API token is configured; this does not affect the Yandex deployment chain.
 
 ## Runtime dependency rule
 
@@ -38,6 +40,7 @@ Legacy Supabase/Vercel code may remain temporarily only when needed to retire ol
 1. Keep Yandex deployment, runtime smoke and production monitoring green.
 2. Remove client/runtime fallbacks to legacy providers.
 3. Verify a real `main` deployment reaches `annword.ru` and `api.annword.ru` without legacy-provider involvement.
-4. Remove legacy Vercel checks/workflows and verify another Yandex deployment.
-5. Verify `annword.ru` DNS/domain routing is independent of Vercel.
-6. Only then remove the Vercel project/tokens/integration and remaining legacy server code.
+4. Remove repo-owned Vercel checks/workflows and verify another Yandex deployment.
+5. Verify the Vercel project has no AnnWord custom domains.
+6. Disable Vercel Git deployments and verify a new `main` push does not create a Vercel deployment.
+7. Delete the inert Vercel project later through an authenticated Vercel account/API session when convenient; this is not a production dependency.
