@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
   YC_BACKEND_IMAGE: annword-api
   AWS_DEFAULT_REGION: ru-central1
   AUTH_FROM_EMAIL: noreply@annword.ru
