@@ -1,6 +1,7 @@
 import { BackendApiError, backendApiRequest } from './backendApiClient';
+import { getPlansForMode, type ProdamusPlanCode } from './premiumPlanCatalog';
 
-export type ProdamusPlanCode = 'kids_month' | 'kids_year' | 'practice_month' | 'practice_year';
+export type { ProdamusPlanCode } from './premiumPlanCatalog';
 export type ProdamusPaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded' | 'ignored' | 'not_found';
 
 export interface ProdamusPlanOption {
@@ -12,11 +13,9 @@ export interface ProdamusPlanOption {
 }
 
 export const PRODAMUS_PLAN_OPTIONS: ProdamusPlanOption[] = [
-  { code: 'kids_month', title: 'Kids Premium — 1 месяц', amountRub: 300, periodDays: 31, mode: 'kids' },
-  { code: 'kids_year', title: 'Kids Premium — 1 год', amountRub: 3000, periodDays: 365, mode: 'kids' },
-  { code: 'practice_month', title: 'AnnWord Premium — 1 месяц', amountRub: 300, periodDays: 31, mode: 'practice' },
-  { code: 'practice_year', title: 'AnnWord Premium — 1 год', amountRub: 3000, periodDays: 365, mode: 'practice' },
-];
+  ...getPlansForMode('kids'),
+  ...getPlansForMode('practice'),
+].map(plan => ({ code: plan.code, title: plan.title, amountRub: plan.amountRub, periodDays: plan.periodDays, mode: plan.mode }));
 
 export const getProdamusPlansForMode = (kidsMode: boolean): ProdamusPlanOption[] => PRODAMUS_PLAN_OPTIONS.filter(plan => plan.mode === (kidsMode ? 'kids' : 'practice'));
 
