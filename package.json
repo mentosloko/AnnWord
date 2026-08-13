@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "server": "tsx server.ts",
     "api:dev": "tsx watch server/yandex-api.ts",
     "api:start": "tsx server/yandex-api.ts",
     "api:check": "tsx scripts/yandex-api-smoke.ts",

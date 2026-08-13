@@ -12,6 +12,13 @@ describe('Yandex-only production contract', () => {
     const offenders = serviceFiles().filter(path => /from\s+['"]\.\.\/supabase['"]|from\s+['"]\.\/supabase['"]/.test(read(path)));
     expect(offenders).toEqual([]);
     expect(existsSync('services/petMoodClock.ts')).toBe(false);
+    expect(existsSync('supabase.ts')).toBe(false);
+  });
+
+  it('does not keep the obsolete Supabase development server', () => {
+    expect(existsSync('server.ts')).toBe(false);
+    const packageJson = JSON.parse(read('package.json')) as { scripts?: Record<string, string> };
+    expect(packageJson.scripts?.server).toBeUndefined();
   });
 
   it('keeps legacy migration secrets out of the Yandex production deploy', () => {
@@ -31,19 +38,36 @@ describe('Yandex-only production contract', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('does not keep repo-owned Vercel deployment, verification or deletion workflows', () => {
-    const retiredWorkflows = [
+  it('does not keep repo-owned Vercel workflows or redeploy trigger files', () => {
+    const retiredFiles = [
       '.github/workflows/vercel-prebuilt-production.yml',
       '.github/workflows/vercel-production-verification.yml',
       '.github/workflows/vercel-promote-verified-preview.yml',
       '.github/workflows/retire-vercel-project-once.yml',
+      '.production-redeploy-memory-hotfix',
+      '.runtime-hotfix-trigger',
+      '.vercel-force-redeploy-20260719',
+      '.vercel-preview-trigger',
+      '.vercel-production-retry',
+      '.vercel-redeploy',
     ];
-    expect(retiredWorkflows.filter(existsSync)).toEqual([]);
+    expect(retiredFiles.filter(existsSync)).toEqual([]);
   });
 
   it('disables automatic Vercel Git deployments at the project configuration layer', () => {
     const config = JSON.parse(read('vercel.json')) as { git?: { deploymentEnabled?: boolean } };
     expect(config.git?.deploymentEnabled).toBe(false);
+  });
+
+  it('keeps developer docs aligned with the Yandex architecture', () => {
+    const readme = read('README.md');
+    const envExample = read('.env.example');
+    expect(readme).toContain('AnnWord production is fully hosted in Yandex Cloud');
+    expect(readme).not.toContain('Supabase-backed user profiles');
+    expect(readme).not.toContain('every push to `main` should create a new production deployment');
+    expect(envExample).toContain('VITE_API_URL=http://localhost:8080');
+    expect(envExample).not.toContain('VITE_SUPABASE_URL');
+    expect(envExample).not.toContain('SUPABASE_SERVICE_ROLE_KEY');
   });
 
   it('documents Yandex Cloud as the production source of truth', () => {
