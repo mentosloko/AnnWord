@@ -1,6 +1,5 @@
-import { supabase } from '../supabase';
 import { GameRewardType, ViewState } from '../types';
-import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
+import { backendApiRequest } from './backendApiClient';
 import { loadingTelemetry, type LoadingMetric } from './loadingTelemetry';
 
 const ANALYTICS_SESSION_KEY = 'annword_analytics_session_id';
@@ -145,16 +144,10 @@ export const createAnalyticsEvent = ({ userId, eventType, eventName, gameType = 
 
 const sendEvents = async (events: QueuedAnalyticsEvent[]): Promise<void> => {
   if (events.length === 0) return;
-  if (isBackendApiConfigured) {
-    await backendApiRequest('/api/analytics/events', {
-      method: 'POST',
-      body: { events },
-    });
-    return;
-  }
-
-  const { error } = await supabase.rpc('record_analytics_events', { p_events: events });
-  if (error) throw error;
+  await backendApiRequest('/api/analytics/events', {
+    method: 'POST',
+    body: { events },
+  });
 };
 
 const getFlushDelay = (): number => {

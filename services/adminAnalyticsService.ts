@@ -1,7 +1,4 @@
-import { supabase } from '../supabase';
-import { COMMON_WORDS_EN } from '../dictionaries/english';
-import { normalizeCustomDictionary, normalizeWord } from './dictionaryEngine';
-import { backendApiBaseUrl, backendApiRequest, isBackendApiConfigured, readBackendAccessToken } from './backendApiClient';
+import { backendApiBaseUrl, backendApiRequest, readBackendAccessToken } from './backendApiClient';
 
 export interface AdminGameStat {
   game_type: string | null;
@@ -12,7 +9,6 @@ export interface AdminGameStat {
   inferred_starts: number;
 }
 export interface AdminGameDateRange { from: string; to: string; }
-interface AdminDailyGameStatRow extends Omit<AdminGameStat, 'inferred_starts'> { day: string; inferred_starts?: number; }
 export interface AdminEconomyStat { day: string; coins_earned: number; coins_spent: number; purchases: number; items_used: number; }
 export interface AdminEconomyOverview { total_coins: number; users_with_coins: number; kids_accounts: number; }
 export interface AdminEventSummary { event_type: string; event_name: string; count: number; }
@@ -28,8 +24,6 @@ export interface AdminAnalyticsSnapshot {
   loadingPerformance: AdminLoadingPerformanceRow[];
 }
 
-interface AdminCustomDictionaryRow { user_id: string; username: string | null; custom_dictionary_en: unknown; }
-const GENERAL_WORDS = new Set(COMMON_WORDS_EN.map(entry => normalizeWord(entry.word)));
 const parseNumber = (value: unknown): number => Number(value || 0);
 const isoDate = (date: Date): string => date.toISOString().slice(0, 10);
 const shiftIsoDate = (value: string, days: number): string => { const date = new Date(`${value}T00:00:00.000Z`); date.setUTCDate(date.getUTCDate() + days); return isoDate(date); };
@@ -41,9 +35,6 @@ const safeGameRange = (range?: Partial<AdminGameDateRange> | null): AdminGameDat
   if (from > to) [from, to] = [to, from];
   return { from, to };
 };
-const parseCustomDictionary = (value: unknown): string[] => Array.isArray(value)
-  ? normalizeCustomDictionary(value.filter((word): word is string => typeof word === 'string'))
-  : [];
 
 const normalizeSnapshot = (value: Partial<AdminAnalyticsSnapshot> | null | undefined): AdminAnalyticsSnapshot => ({
   gameStats: Array.isArray(value?.gameStats) ? value!.gameStats.map(row => ({
@@ -102,64 +93,11 @@ const downloadBlob = (blob: Blob, filename: string): void => {
 export const adminAnalyticsService = {
   loadSnapshot: async (range?: AdminGameDateRange): Promise<AdminAnalyticsSnapshot> => {
     const selectedRange = safeGameRange(range);
-    if (isBackendApiConfigured) {
-      const params = new URLSearchParams({ from: selectedRange.from, to: selectedRange.to });
-      return normalizeSnapshot(await backendApiRequest<AdminAnalyticsSnapshot>(`/api/analytics/admin?${params.toString()}`));
-    }
-
-    const [gameStatsResult, economyStatsResult, eventSummaryResult, customDictionaryResult] = await Promise.all([
-      supabase.from('admin_daily_game_stats').select('*').gte('day', selectedRange.from).lte('day', selectedRange.to).order('day', { ascending: false }),
-      supabase.from('admin_economy_stats').select('*').order('day', { ascending: false }).limit(30),
-      supabase.from('analytics_events').select('event_type,event_name').order('occurred_at', { ascending: false }).limit(1000),
-      supabase.rpc('get_admin_custom_dictionaries'),
-    ]);
-    if (gameStatsResult.error) throw gameStatsResult.error;
-    if (economyStatsResult.error) throw economyStatsResult.error;
-    if (eventSummaryResult.error) throw eventSummaryResult.error;
-    if (customDictionaryResult.error) throw customDictionaryResult.error;
-
-    const summaryMap = new Map<string, AdminEventSummary>();
-    for (const event of eventSummaryResult.data || []) {
-      const key = `${event.event_type}:${event.event_name}`;
-      const current = summaryMap.get(key) || { event_type: event.event_type, event_name: event.event_name, count: 0 };
-      current.count += 1;
-      summaryMap.set(key, current);
-    }
-    const unsupportedDictionaryWords = ((customDictionaryResult.data || []) as AdminCustomDictionaryRow[])
-      .map(row => ({
-        userId: row.user_id,
-        username: row.username || 'Без имени',
-        words: parseCustomDictionary(row.custom_dictionary_en).filter(word => !GENERAL_WORDS.has(word)).sort((a, b) => a.localeCompare(b)),
-      }))
-      .filter(row => row.words.length > 0)
-      .sort((a, b) => a.username.localeCompare(b.username));
-
-    const gameMap = new Map<string, AdminGameStat>();
-    for (const row of (gameStatsResult.data || []) as AdminDailyGameStatRow[]) {
-      const key = row.game_type || 'other';
-      const current = gameMap.get(key) || { game_type: row.game_type || 'other', games_started: 0, games_finished: 0, games_won: 0, unique_users: 0, inferred_starts: 0 };
-      const recordedStarts = parseNumber(row.games_started);
-      const finishes = parseNumber(row.games_finished);
-      current.games_started += Math.max(recordedStarts, finishes);
-      current.games_finished += finishes;
-      current.games_won += parseNumber(row.games_won);
-      current.unique_users = Math.max(current.unique_users, parseNumber(row.unique_users));
-      current.inferred_starts += Math.max(finishes - recordedStarts, 0);
-      gameMap.set(key, current);
-    }
-
-    return normalizeSnapshot({
-      gameStats: Array.from(gameMap.values()).sort((first, second) => second.games_started - first.games_started),
-      gameRange: selectedRange,
-      economyStats: economyStatsResult.data || [],
-      eventSummary: Array.from(summaryMap.values()).sort((a, b) => b.count - a.count),
-      unsupportedDictionaryWords,
-      loadingPerformance: [],
-    });
+    const params = new URLSearchParams({ from: selectedRange.from, to: selectedRange.to });
+    return normalizeSnapshot(await backendApiRequest<AdminAnalyticsSnapshot>(`/api/analytics/admin?${params.toString()}`));
   },
 
   downloadEventsCsv: async (): Promise<void> => {
-    if (!isBackendApiConfigured) throw new Error('CSV-выгрузка доступна через основной сервер AnnWord.');
     const token = readBackendAccessToken();
     const response = await fetch(`${backendApiBaseUrl}/api/analytics/admin/export.csv`, {
       credentials: 'include',

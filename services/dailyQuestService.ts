@@ -1,10 +1,7 @@
-import { supabase } from '../supabase';
-import { DailyQuestCompletionReward, DailyQuestState, PetWorldId, UserProfile } from '../types';
-import { GameRewardInput } from './gamificationRules';
-import { mapProfileFromDB } from './profileMapper';
-import { getShopItemById } from './shopCatalog';
+import type { DailyQuestCompletionReward, DailyQuestState, UserProfile } from '../types';
+import type { GameRewardInput } from './gamificationRules';
 import { normalizeDailyQuest } from './dailyQuest';
-import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
+import { backendApiRequest } from './backendApiClient';
 
 interface DailyQuestGameResult {
   quest: DailyQuestState;
@@ -12,9 +9,6 @@ interface DailyQuestGameResult {
   profile: UserProfile | null;
 }
 
-const WORLD_IDS: PetWorldId[] = ['theatre', 'amusement_park', 'ice_rink', 'opera', 'sausage_fridge'];
-const normalizeWorldId = (value: unknown): PetWorldId | null =>
-  WORLD_IDS.includes(value as PetWorldId) ? value as PetWorldId : null;
 let primedTodayQuest: DailyQuestState | null | undefined;
 
 export const dailyQuestService = {
@@ -28,40 +22,17 @@ export const dailyQuestService = {
       primedTodayQuest = undefined;
       return quest;
     }
-    if (isBackendApiConfigured) {
-      const data = await backendApiRequest<{ quest: DailyQuestState }>('/api/daily-quest/today');
-      return normalizeDailyQuest(data.quest);
-    }
-
-    const { data, error } = await supabase.rpc('get_daily_quest');
-    if (error) throw error;
-    return normalizeDailyQuest(data);
+    const data = await backendApiRequest<{ quest: DailyQuestState }>('/api/daily-quest/today');
+    return normalizeDailyQuest(data.quest);
   },
 
   submitGameResult: async (input: GameRewardInput): Promise<DailyQuestGameResult> => {
-    if (isBackendApiConfigured) {
-      const data = await backendApiRequest<DailyQuestGameResult>('/api/daily-quest/result', {
-        method: 'POST',
-        body: input,
-      });
-      const quest = normalizeDailyQuest(data.quest);
-      if (!quest) throw new Error('Не удалось получить ежедневное задание.');
-      return { ...data, quest };
-    }
-
-    const { data, error } = await supabase.rpc('apply_daily_quest_result', {
-      p_game_type: input.type,
-      p_result: input,
+    const data = await backendApiRequest<DailyQuestGameResult>('/api/daily-quest/result', {
+      method: 'POST',
+      body: input,
     });
-    if (error) throw error;
-    const quest = normalizeDailyQuest(data?.quest);
+    const quest = normalizeDailyQuest(data.quest);
     if (!quest) throw new Error('Не удалось получить ежедневное задание.');
-    const item = data?.new_reward_item_id ? getShopItemById(data.new_reward_item_id) : undefined;
-    const worldId = normalizeWorldId(data?.new_reward_world_id);
-    return {
-      quest,
-      reward: item || worldId ? { quest, item: item || null, worldId } : null,
-      profile: data?.profile ? mapProfileFromDB(data.profile) : null,
-    };
+    return { ...data, quest };
   },
 };

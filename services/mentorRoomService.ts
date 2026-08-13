@@ -1,6 +1,5 @@
-import { supabase } from '../supabase';
-import { ManagedLearner, UserStats } from '../types';
-import { backendApiRequest, isBackendApiConfigured } from './backendApiClient';
+import type { ManagedLearner, UserStats } from '../types';
+import { backendApiRequest } from './backendApiClient';
 import { normalizeStats } from './profileMapper';
 
 export interface MentorRoomLoadResult {
@@ -18,16 +17,10 @@ type CachedLearnersPayload = {
   result: MentorRoomLoadResult;
 };
 
-const SCHEMA_NOT_READY_CODES = new Set(['PGRST202', '42P01', '42703', '42883']);
 const LEARNERS_CACHE_KEY = 'annword_mentor_learners_v1';
 const LEARNERS_CACHE_TTL_MS = 30_000;
 let memoryCache: CachedLearnersPayload | null = null;
 let pendingLoad: Promise<MentorRoomLoadResult> | null = null;
-
-const schemaNotReady = (error: any): boolean => Boolean(error) && (
-  SCHEMA_NOT_READY_CODES.has(String(error.code || ''))
-  || /does not exist|could not find the function|schema cache|column .* does not exist/i.test(String(error.message || ''))
-);
 
 const normalizeAssignedWords = (value: unknown): string[] => Array.isArray(value)
   ? Array.from(new Set(value.filter((word): word is string => typeof word === 'string').map(word => word.trim().toUpperCase()).filter(Boolean)))
@@ -84,23 +77,9 @@ const clearCache = (): void => {
   }
 };
 
-const writeError = (error: any, fallback: string): never => {
-  if (schemaNotReady(error)) throw new Error(fallback);
-  throw new Error(String(error?.message || fallback));
-};
-
 const requestLearners = async (): Promise<MentorRoomLoadResult> => {
-  if (isBackendApiConfigured) {
-    const data = await backendApiRequest<BackendLearnersResponse>('/api/mentor/learners');
-    return normalizeMentorRoomResult(data);
-  }
-
-  const { data, error } = await supabase.rpc('get_managed_learner_word_stats');
-  if (error) {
-    if (schemaNotReady(error)) return { learners: [], backendReady: false };
-    throw error;
-  }
-  return normalizeMentorRoomResult({ learners: Array.isArray(data) ? data : [], backendReady: true });
+  const data = await backendApiRequest<BackendLearnersResponse>('/api/mentor/learners');
+  return normalizeMentorRoomResult(data);
 };
 
 export const mentorRoomService = {
@@ -127,37 +106,20 @@ export const mentorRoomService = {
     const normalized = code.trim().toUpperCase();
     if (!normalized) throw new Error('Введите код ребёнка.');
 
-    if (isBackendApiConfigured) {
-      await backendApiRequest<{ ok: boolean }>('/api/mentor/connect', {
-        method: 'POST',
-        body: { code: normalized },
-      });
-      clearCache();
-      return;
-    }
-
-    const { error } = await supabase.rpc('connect_teacher_to_child_by_code', { p_child_code: normalized });
-    if (error) writeError(error, 'Подключение по коду станет доступно после применения новой схемы.');
+    await backendApiRequest<{ ok: boolean }>('/api/mentor/connect', {
+      method: 'POST',
+      body: { code: normalized },
+    });
     clearCache();
   },
 
   async assignCollection(learnerId: string, collectionId: string): Promise<void> {
     if (!collectionId) throw new Error('Выберите сохранённый словарь.');
 
-    if (isBackendApiConfigured) {
-      await backendApiRequest<{ ok: boolean }>('/api/mentor/assign', {
-        method: 'POST',
-        body: { learnerId, collectionId },
-      });
-      clearCache();
-      return;
-    }
-
-    const { error } = await supabase.rpc('assign_dictionary_collection_to_learner', {
-      p_learner_user_id: learnerId,
-      p_collection_id: collectionId,
+    await backendApiRequest<{ ok: boolean }>('/api/mentor/assign', {
+      method: 'POST',
+      body: { learnerId, collectionId },
     });
-    if (error) writeError(error, 'Назначение словаря станет доступно после применения новой схемы.');
     clearCache();
   },
 };
