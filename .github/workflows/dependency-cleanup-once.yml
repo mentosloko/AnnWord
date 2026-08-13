@@ -53,15 +53,6 @@ jobs:
 
           docker = Path('Dockerfile.api')
           docker.write_text(docker.read_text().replace('FROM node:20-alpine', 'FROM node:22-alpine'))
-
-          for workflow in Path('.github/workflows').glob('*.yml'):
-              if workflow.name == 'dependency-cleanup-once.yml':
-                  continue
-              data = workflow.read_text()
-              data = data.replace('NODE_VERSION: "20"', 'NODE_VERSION: "22"')
-              data = data.replace("node-version: '20'", "node-version: '22'")
-              data = data.replace('node-version: "20"', 'node-version: "22"')
-              workflow.write_text(data)
           PY
 
           if grep -R --include='*.ts' --include='*.tsx' -n "@supabase/supabase-js" hooks services components server scripts tests .; then
@@ -107,14 +98,14 @@ jobs:
         run: npm run build
 
       - name: Audit production dependencies
-        run: npm audit --omit=dev || true
+        run: npm audit --omit=dev
 
       - name: Commit generated cleanup
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add hooks/useAuthProfile.ts package.json package-lock.json Dockerfile.api .github/workflows
+          git add hooks/useAuthProfile.ts package.json package-lock.json Dockerfile.api
           git diff --cached --stat
           git diff --cached --quiet && exit 0
           git commit -m 'remove legacy cloud dependencies and move to Node 22'
