@@ -5,13 +5,24 @@ import { dailyQuestService } from './dailyQuestService';
 
 export interface AuthUser {
   id: string;
+  aud: string;
+  role?: string;
   email?: string;
+  email_confirmed_at?: string;
+  phone?: string;
+  confirmed_at?: string;
+  last_sign_in_at?: string;
+  app_metadata: Record<string, unknown>;
   user_metadata: {
     name?: string;
     full_name?: string;
     passwordResetRequired?: boolean;
     [key: string]: unknown;
   };
+  identities?: unknown[];
+  created_at: string;
+  updated_at?: string;
+  is_anonymous?: boolean;
 }
 
 export interface AuthSession {
@@ -19,6 +30,7 @@ export interface AuthSession {
   token_type: string;
   expires_in: number;
   expires_at: number;
+  refresh_token: string;
   user: AuthUser;
 }
 
@@ -111,12 +123,22 @@ const withTransientRetry = async <T,>(operation: () => Promise<T>): Promise<T> =
 
 const toAuthUser = (user: BackendUserPayload): AuthUser => ({
   id: user.id,
+  aud: 'authenticated',
+  role: 'authenticated',
   email: user.email,
+  email_confirmed_at: new Date(0).toISOString(),
+  phone: '',
+  confirmed_at: new Date(0).toISOString(),
+  last_sign_in_at: new Date().toISOString(),
+  app_metadata: { provider: 'email', providers: ['email'] },
   user_metadata: {
     name: user.name,
     full_name: user.name,
     passwordResetRequired: user.passwordResetRequired === true,
   },
+  identities: [],
+  created_at: new Date(0).toISOString(),
+  updated_at: new Date().toISOString(),
 });
 
 const toSession = (payload: BackendSessionPayload): AuthSession | null => {
@@ -127,6 +149,7 @@ const toSession = (payload: BackendSessionPayload): AuthSession | null => {
     token_type: payload.token_type || 'bearer',
     expires_in: expiresIn,
     expires_at: Math.floor(Date.now() / 1000) + expiresIn,
+    refresh_token: '',
     user: toAuthUser(payload.user),
   };
 };
