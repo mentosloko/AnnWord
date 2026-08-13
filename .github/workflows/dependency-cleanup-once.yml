@@ -1,0 +1,104 @@
+name: Dependency Cleanup Once
+
+on:
+  push:
+    branches:
+      - agent/node22-dependency-cleanup
+    paths:
+      - '.github/workflows/dependency-cleanup-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/node22-dependency-cleanup
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Remove legacy provider type and dependencies
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          hook = Path('hooks/useAuthProfile.ts')
+          text = hook.read_text()
+          text = text.replace("import { User } from '@supabase/supabase-js';\n", '')
+          text = text.replace(
+              "import { authService, AuthEventName, AuthBootstrapResult } from '../services/authService';",
+              "import { authService, AuthEventName, AuthBootstrapResult, type AuthUser } from '../services/authService';",
+          )
+          text = re.sub(r'\bUser\b', 'AuthUser', text)
+          hook.write_text(text)
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text())
+          for name in ('@supabase/supabase-js', 'firebase', 'firebase-admin'):
+              package.get('dependencies', {}).pop(name, None)
+          package['engines'] = {'node': '>=22'}
+          package_path.write_text(json.dumps(package, ensure_ascii=False, indent=2) + '\n')
+
+          docker = Path('Dockerfile.api')
+          docker.write_text(docker.read_text().replace('FROM node:20-alpine', 'FROM node:22-alpine'))
+
+          for workflow in Path('.github/workflows').glob('*.yml'):
+              if workflow.name == 'dependency-cleanup-once.yml':
+                  continue
+              data = workflow.read_text()
+              data = data.replace('NODE_VERSION: "20"', 'NODE_VERSION: "22"')
+              data = data.replace("node-version: '20'", "node-version: '22'")
+              data = data.replace('node-version: "20"', 'node-version: "22"')
+              workflow.write_text(data)
+          PY
+
+          if grep -R --include='*.ts' --include='*.tsx' -n "@supabase/supabase-js" hooks services components server scripts tests .; then
+            echo 'Supabase JS import remains after cleanup.'
+            exit 1
+          fi
+          if grep -R --include='*.ts' --include='*.tsx' -En "from ['\"]firebase|require\(['\"]firebase" hooks services components server scripts tests .; then
+            echo 'Firebase runtime import remains after cleanup.'
+            exit 1
+          fi
+
+      - name: Regenerate lockfile
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Install cleaned dependency graph
+        run: npm install
+
+      - name: Typecheck
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:run
+
+      - name: Smoke checks
+        run: npm run check:smoke
+
+      - name: Production build
+        run: npm run build
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev || true
+
+      - name: Commit generated cleanup
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add hooks/useAuthProfile.ts package.json package-lock.json Dockerfile.api .github/workflows
+          git diff --cached --stat
+          git diff --cached --quiet && exit 0
+          git commit -m 'remove legacy cloud dependencies and move to Node 22'
+          git push origin HEAD:agent/node22-dependency-cleanup
