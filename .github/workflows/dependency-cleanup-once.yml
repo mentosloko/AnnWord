@@ -6,6 +6,7 @@ on:
       - agent/node22-dependency-cleanup
     paths:
       - '.github/workflows/dependency-cleanup-once.yml'
+      - 'scripts/dictionary-engine-smoke.ts'
 
 permissions:
   contents: write
@@ -73,6 +74,21 @@ jobs:
 
       - name: Regenerate lockfile
         run: npm install --package-lock-only --ignore-scripts
+
+      - name: Verify legacy packages left the lockfile
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const lock = require('./package-lock.json');
+          const root = lock.packages?.[''] || {};
+          const dependencies = root.dependencies || {};
+          for (const name of ['@supabase/supabase-js', 'firebase', 'firebase-admin']) {
+            if (dependencies[name]) throw new Error(`${name} is still a root dependency`);
+          }
+          const paths = Object.keys(lock.packages || {});
+          const forbidden = paths.filter(path => path.includes('node_modules/@supabase/') || path === 'node_modules/firebase' || path === 'node_modules/firebase-admin');
+          if (forbidden.length) throw new Error(`Legacy package entries remain: ${forbidden.join(', ')}`);
+          NODE
 
       - name: Install cleaned dependency graph
         run: npm install
