@@ -21,6 +21,11 @@ describe('Yandex-only production contract', () => {
     expect(packageJson.scripts?.server).toBeUndefined();
   });
 
+  it('does not keep the legacy Vercel serverless API tree', () => {
+    expect(existsSync('api')).toBe(false);
+    expect(existsSync('services/premiumPlanCatalog.ts')).toBe(true);
+  });
+
   it('keeps legacy migration secrets out of the Yandex production deploy', () => {
     const deploy = read('.github/workflows/yandex-deploy.yml');
     expect(deploy).not.toContain('SUPABASE_DATABASE_URL');
