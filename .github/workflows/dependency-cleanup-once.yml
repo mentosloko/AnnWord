@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/dependency-cleanup-once.yml'
       - 'scripts/dictionary-engine-smoke.ts'
+      - 'scripts/appv2-architecture-smoke.ts'
 
 permissions:
   contents: write
