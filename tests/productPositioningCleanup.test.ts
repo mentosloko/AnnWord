@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { getPlan, getPublicPlans } from '../api/_lib/premiumPlans';
+import { getPlan, getPublicPlans } from '../services/premiumPlanCatalog';
 
 const read = (path: string) => readFileSync(path, 'utf8');
 
