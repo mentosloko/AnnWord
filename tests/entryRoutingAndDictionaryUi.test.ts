@@ -15,7 +15,10 @@ describe('entry route UX', () => {
     expect(appScreens).toContain('hasChosenAccountMode ? roleHomeScreen : accountModeSetup');
     expect(appScreens).toContain('account_mode_setup: hasChosenAccountMode ? homeScreen : accountModeSetup');
 
-    expect(landing).toContain('Задали английские слова? Пусть ребёнок выучит их играючи.');
+    expect(landing).toContain('Снова задали');
+    expect(landing).toContain('слова');
+    expect(landing).toContain('Начать бесплатно');
+    expect(landing).toContain('Без рекламы — гарантировано');
     expect(landing).toContain('Ученики повторяют заданные вами слова между занятиями');
     expect(landing).toContain('Создать аккаунт преподавателя');
     expect(landing).not.toContain('Кто будет пользоваться AnnWord?');
@@ -36,11 +39,20 @@ describe('entry route UX', () => {
     expect(landing).toContain('ваш прогресс и привычный режим сохранятся');
   });
 
-  it('keeps oversized and external assets out of the anonymous first load', () => {
+  it('keeps the approved parent landing faithful to real game mechanics and product promises', () => {
     const landing = read('components/screens/LandingMixScreen.tsx');
     const indexHtml = read('index.html');
+
+    for (const game of ['Вордл', 'Виселица', 'Анаграммы', 'Спринт', 'Змейка']) expect(landing).toContain(game);
+    expect(landing).toContain('Array.from({ length: 7 })');
+    expect(landing).toContain('Перевод');
+    expect(landing).toContain('Как будет по-английски?');
+    expect(landing).toContain("['book', 'pencil', 'school', 'window']");
+    expect(landing).toContain('Соберите слово из соседних клеток. Диагонали нельзя.');
+    expect(landing).not.toContain('Свободная игра');
+    expect(landing).not.toContain('7–13');
+    expect(landing).not.toContain('Только школьные слова');
     expect(landing).not.toContain('/assets/games/line_game.webp');
-    expect(landing).toContain("{ icon: '🐍', title: 'Змейка' }");
     expect(landing).toContain('loading="lazy"');
     expect(indexHtml).not.toContain('fonts.googleapis.com');
     expect(indexHtml).toContain('ui-sans-serif, system-ui');
