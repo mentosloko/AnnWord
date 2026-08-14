@@ -35,7 +35,8 @@ assert(screens.includes("pet_room: isParentAccount ?"), 'parent-only pet room ro
 assert(screens.includes('<PetRoom userProfile={userProfile}') && screens.includes("onOpenShop={() => onRouteChange('shop')}"), 'pet room wiring');
 assert(screens.includes("const isParentAccount = userProfile.role === 'parent' || userProfile.accountMode === 'parent'"), 'parent-only Kids route gating');
 
-assert(landing.includes('Задали английские слова? Пусть ребёнок выучит их играючи.'), 'parent-first public landing');
+assert(landing.includes('Снова задали') && landing.includes('Начать бесплатно'), 'parent-first public landing');
+assert(landing.includes('Без рекламы — гарантировано'), 'ad-free public promise');
 assert(landing.includes('Создать аккаунт преподавателя'), 'teacher public entry');
 assert(profile.includes('onOpenPetRoom'), 'profile pet entry');
 assert(shop.includes('onClose: () => void') && shop.includes('onClick={onClose}'), 'shop close contract');
