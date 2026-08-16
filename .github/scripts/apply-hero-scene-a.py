@@ -1,0 +1,54 @@
+from pathlib import Path
+import re
+
+path = Path('components/screens/LandingMixScreen.tsx')
+text = path.read_text()
+text = text.replace("const PET_SCENE = '/assets/pets/puppy/background.webp';\n", '')
+
+hero = '''const HeroScene = () => (
+  <div className="relative mx-auto aspect-[4/3] w-full max-w-[44rem] overflow-hidden rounded-[2rem] border border-white/80 bg-violet-50 shadow-xl shadow-indigo-900/10">
+    <img src={asset('hero-scene.webp')} alt="Питомец AnnWord в сказочном игровом мире" className="absolute inset-0 h-full w-full object-cover object-center" fetchPriority="high" decoding="async" draggable={false} />
+    <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-indigo-950/5" aria-hidden="true" />
+    <div className="absolute right-3 top-3 z-20 w-[10.5rem] rotate-1 rounded-2xl border border-white/80 bg-white/95 p-3 shadow-xl backdrop-blur-sm sm:right-5 sm:top-5 sm:w-[12.5rem]">
+      <div className="flex items-center justify-between gap-2 text-[10px] font-black text-indigo-950 sm:text-[11px]"><span>Дневная цель</span><span className="whitespace-nowrap">🔥 3 дня</span></div>
+      <div className="mt-2 text-[10px] font-black text-slate-600 sm:text-xs">Выучить 15 новых слов</div>
+      <div className="mt-2 h-2 rounded-full bg-blue-100"><div className="h-full w-2/3 rounded-full bg-gradient-to-r from-sky-400 to-blue-600" /></div>
+      <div className="mt-1 text-right text-[9px] font-black text-indigo-900 sm:text-[10px]">10/15</div>
+    </div>
+    <div className="absolute bottom-3 right-3 z-20 hidden w-[11.5rem] -rotate-1 rounded-2xl border border-white/80 bg-white/95 p-3 shadow-xl backdrop-blur-sm sm:block sm:right-5 sm:w-[13rem]">
+      <div className="text-[11px] font-black text-indigo-950">Сегодня ты молодец!</div>
+      <div className="mt-1 text-lg tracking-wider text-amber-400">★★★★★</div>
+      <div className="mt-2 flex items-center justify-between rounded-xl bg-violet-50 px-3 py-2"><span className="text-[9px] font-black text-slate-500">Награда</span><span className="text-sm font-black text-violet-700">+50 🪙</span></div>
+    </div>
+  </div>
+);'''
+
+text, count = re.subn(
+    r"const HeroScene = \(\) => \(\n.*?\n\);\n\nconst ProblemVisual",
+    hero + "\n\nconst ProblemVisual",
+    text,
+    count=1,
+    flags=re.S,
+)
+if count != 1:
+    raise SystemExit(f'HeroScene replacement count: {count}')
+
+old_pet = '''<div key={label} className="relative overflow-hidden rounded-[1.8rem] bg-white p-3 text-center shadow-md shadow-indigo-900/5"><div className="rounded-[1.4rem] bg-gradient-to-b from-violet-50 to-blue-50 p-2"><img src={src} alt={label} loading="lazy" decoding="async" className="mx-auto h-28 w-full object-contain drop-shadow-lg sm:h-36" /></div><div className="mt-3 text-sm font-black text-indigo-950">{label}</div>{index < 3 && <span className="absolute -right-4 top-1/2 z-10 hidden -translate-y-1/2 text-3xl font-black text-violet-400 sm:block">→</span>}</div>'''
+new_pet = '''<div key={label} className="relative overflow-hidden rounded-[1.8rem] bg-white p-3 text-center shadow-md shadow-indigo-900/5"><div className="flex h-36 items-end justify-center overflow-hidden rounded-[1.4rem] bg-gradient-to-b from-violet-50 via-white to-blue-50 p-3 sm:h-40"><img src={src} alt={label} loading="lazy" decoding="async" className="h-full w-full object-contain object-bottom drop-shadow-lg" /></div><div className="mt-3 text-sm font-black text-indigo-950">{label}</div>{index < 3 && <span className="absolute -right-4 top-1/2 z-10 hidden -translate-y-1/2 text-3xl font-black text-violet-400 sm:block">→</span>}</div>'''
+if old_pet not in text:
+    raise SystemExit('Pet stage card markup not found')
+text = text.replace(old_pet, new_pet, 1)
+
+old_cta = 'className="hidden h-32 w-32 rounded-[1.6rem] object-cover shadow-xl sm:block"'
+new_cta = 'className="hidden h-32 w-32 object-contain drop-shadow-2xl sm:block"'
+if old_cta not in text:
+    raise SystemExit('CTA mascot class not found')
+text = text.replace(old_cta, new_cta, 1)
+
+path.write_text(text)
+
+assert "hero-scene.webp" in text
+assert "hero-mascot.webp" not in text
+assert "PET_SCENE" not in text
+assert "object-bottom drop-shadow-lg" in text
+assert "object-contain drop-shadow-2xl" in text
