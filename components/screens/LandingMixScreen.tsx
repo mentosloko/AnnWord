@@ -34,10 +34,10 @@ const teacherBenefits = [
 ];
 
 const trustItems = [
-  { icon: '⏱', title: 'Короткие игровые сессии', text: 'Легко встроить в обычный день' },
-  { icon: '⊘', title: 'Без рекламы — гарантировано', text: 'Никаких баннеров и роликов' },
-  { icon: '◆', title: 'Безопасная среда', text: 'Без лишнего отвлекающего контента' },
-  { icon: '↗', title: 'Понятный прогресс для родителей', text: 'Видно, что уже получается' },
+  { icon: '⏱', title: 'Короткие игровые сессии', text: '' },
+  { icon: '⊘', title: 'Без рекламы — гарантировано', text: '' },
+  { icon: '◆', title: 'Безопасная среда', text: '' },
+  { icon: '↗', title: 'Понятный прогресс для родителей', text: '' },
 ];
 
 const childBenefits = [
@@ -231,7 +231,7 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
         <section className="relative overflow-hidden bg-[radial-gradient(circle_at_78%_8%,rgba(186,230,253,0.7),transparent_30%),radial-gradient(circle_at_13%_20%,rgba(237,233,254,0.95),transparent_28%),linear-gradient(135deg,#ffffff_0%,#faf9ff_48%,#eef8ff_100%)] px-4 pb-5 pt-6 sm:px-8 sm:pb-8 sm:pt-9 lg:px-10">
           <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
             <div className="relative z-10 py-2">
-              <h1 className="mt-5 max-w-xl text-4xl font-black leading-[0.96] tracking-[-0.048em] text-indigo-950 sm:text-6xl lg:text-[4.55rem]">Снова задали <span className="text-violet-600">слова</span> к пятнице?</h1>
+              <h1 className="max-w-xl text-4xl font-black leading-[0.96] tracking-[-0.048em] text-indigo-950 sm:text-6xl lg:text-[4.55rem]">Снова задали <span className="text-violet-600">слова</span> к пятнице?</h1>
               <p className="mt-5 max-w-xl text-base font-bold leading-relaxed text-slate-600 sm:text-xl">AnnWord превращает школьные слова в короткие игры с прогрессом, наградами и радостью каждый день!</p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <button type="button" onClick={onStartKids} className="rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 px-8 py-4 text-lg font-black text-white shadow-xl shadow-indigo-600/25 transition hover:-translate-y-0.5 hover:shadow-2xl">Начать бесплатно</button>
@@ -239,7 +239,7 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
             </div>
             <HeroScene />
           </div>
-          <div className="relative z-20 mt-7 grid gap-1 rounded-[1.8rem] border border-white/80 bg-white/95 p-2 shadow-xl shadow-indigo-900/8 backdrop-blur sm:grid-cols-2 lg:grid-cols-4">{trustItems.map((item, index) => <article key={item.title} className="flex min-h-[5.75rem] items-center gap-3 rounded-[1.35rem] px-3 py-3 transition hover:bg-indigo-50/60"><div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-xl font-black ${index === 1 ? 'bg-rose-50 text-rose-500' : 'bg-indigo-50 text-indigo-600'}`} aria-hidden="true">{item.icon}</div><div><h2 className="text-sm font-black leading-tight text-indigo-950">{item.title}</h2><p className="mt-1 text-[11px] font-bold leading-snug text-slate-400">{item.text}</p></div></article>)}</div>
+          <div className="relative z-20 mt-7 grid gap-1 rounded-[1.8rem] border border-white/80 bg-white/95 p-2 shadow-xl shadow-indigo-900/8 backdrop-blur sm:grid-cols-2 lg:grid-cols-4">{trustItems.map((item, index) => <article key={item.title} className="flex min-h-[4.75rem] items-center gap-3 rounded-[1.35rem] px-3 py-3 transition hover:bg-indigo-50/60"><div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-xl font-black ${index === 1 ? 'bg-rose-50 text-rose-500' : 'bg-indigo-50 text-indigo-600'}`} aria-hidden="true">{item.icon}</div><div><h2 className="text-sm font-black leading-tight text-indigo-950">{item.title}</h2>{item.text && <p className="mt-1 text-[11px] font-bold leading-snug text-slate-400">{item.text}</p>}</div></article>)}</div>
         </section>
 
         <section className="relative bg-gradient-to-b from-indigo-50/45 via-white to-white px-4 py-10 sm:px-8 sm:py-14 lg:px-10">
@@ -258,7 +258,6 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
         <section id="game-modes" className="relative scroll-mt-24 border-y border-indigo-50 bg-[linear-gradient(180deg,#f7f5ff_0%,#ffffff_48%,#f5fbff_100%)] px-4 py-10 sm:px-8 sm:py-14 lg:px-10">
           <div className="mx-auto max-w-3xl text-center"><h2 className="text-2xl font-black text-indigo-950 sm:text-4xl"><span className="mr-2 text-violet-300" aria-hidden="true">🐾</span>Режимы игры<span className="ml-2 text-violet-300" aria-hidden="true">🐾</span></h2></div>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">{gameCards.map(({ title, subtitle, tone, glow, Preview }) => <article key={title} className={`overflow-hidden rounded-[1.8rem] border-2 border-white bg-white shadow-xl ${glow} transition hover:-translate-y-1`}><div className={`bg-gradient-to-r ${tone} px-4 py-3 text-center text-base font-black text-white`}>{title}</div><div className="h-[18.5rem] p-2"><Preview /></div><div className="px-3 pb-4 text-center text-xs font-black leading-snug text-indigo-900">{subtitle}</div></article>)}</div>
-          <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/80 px-4 py-3 text-center text-xs font-bold leading-relaxed text-blue-700">В «Виселице» ошибки снимают сердечки — без изображения повешения. В «Змейке» слово собирается только по соседним клеткам.</div>
         </section>
 
         <section className="px-4 py-10 sm:px-8 sm:py-14 lg:px-10">
@@ -274,7 +273,6 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
               <div className="grid grid-cols-[7rem_1fr] items-center gap-3"><img src={asset('pet-stage-4.webp')} alt="Питомец AnnWord — герой" loading="lazy" decoding="async" className="w-full object-contain drop-shadow-2xl" /><div><h2 className="text-2xl font-black leading-tight sm:text-3xl">Играй и получай награды!</h2><p className="mt-2 text-sm font-bold leading-relaxed text-indigo-100">Монеты, кристаллы и вещи для питомца превращают усилия в видимый результат.</p></div></div>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">{rewards.map(([src, label]) => <div key={label} className="rounded-2xl bg-white/95 p-2 text-center text-indigo-950 shadow-lg"><img src={src} alt={label} loading="lazy" decoding="async" className="mx-auto h-16 w-16 object-contain sm:h-20 sm:w-20" /><div className="mt-1 text-[10px] font-black sm:text-xs">{label}</div></div>)}</div>
             </div>
-            <div className="mt-5 grid gap-2 rounded-[1.7rem] bg-white/95 p-3 text-indigo-950 sm:grid-cols-3"><div className="rounded-2xl bg-indigo-50 p-4"><div className="text-sm font-black">Без рекламы — гарантировано</div><p className="mt-1 text-xs font-bold leading-relaxed text-slate-500">Никаких рекламных баннеров, роликов и сторонних вставок.</p></div><div className="rounded-2xl bg-indigo-50 p-4"><div className="text-sm font-black">Меньше уговоров</div><p className="mt-1 text-xs font-bold leading-relaxed text-slate-500">Игры, питомец и награды дают ребёнку понятную причину вернуться.</p></div><div className="rounded-2xl bg-indigo-50 p-4"><div className="text-sm font-black">Результат перед глазами</div><p className="mt-1 text-xs font-bold leading-relaxed text-slate-500">Родитель видит прогресс и понимает, где ещё нужна практика.</p></div></div>
           </div>
         </section>
 
@@ -290,7 +288,7 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
             <div className="absolute -bottom-14 -right-8 h-48 w-48 rounded-full bg-white/10" aria-hidden="true" />
             <div className="absolute right-14 top-5 text-5xl opacity-80" aria-hidden="true">✈</div>
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4"><img src={asset('cta-mascot.webp')} alt="Радостный питомец AnnWord" loading="lazy" decoding="async" className="hidden h-32 w-32 rounded-[1.6rem] object-cover shadow-xl sm:block" /><div><h2 className="text-2xl font-black leading-tight sm:text-3xl">Начните учить слова в игре уже сегодня!</h2><p className="mt-2 text-sm font-bold text-indigo-100">7 дней бесплатно. Карта не требуется.</p></div></div>
+              <div className="flex items-center gap-4"><img src={asset('cta-mascot.webp')} alt="Радостный питомец AnnWord" loading="lazy" decoding="async" className="hidden h-32 w-32 rounded-[1.6rem] object-cover shadow-xl sm:block" /><div><h2 className="text-2xl font-black leading-tight sm:text-3xl">Начните учить слова в игре уже сегодня!</h2><p className="mt-2 text-sm font-bold text-indigo-100">Без рекламы. С прогрессом, который видно.</p></div></div>
               <button type="button" onClick={onStartKids} className="shrink-0 rounded-2xl bg-amber-300 px-7 py-4 text-lg font-black text-indigo-950 shadow-xl transition hover:-translate-y-0.5 hover:bg-amber-200">Начать бесплатно</button>
             </div>
           </div>

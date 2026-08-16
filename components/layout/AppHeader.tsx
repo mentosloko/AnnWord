@@ -20,8 +20,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ route, userProfile, isAuth
   const modeLabel = isSetupStage || !isAuthenticated ? 'AnnWord' : isAdmin ? 'Admin' : isTeacher ? 'Teacher' : isParent ? 'Kids' : isPractice ? 'Practice' : 'AnnWord';
   const profileLabel = isTeacher ? 'Профиль преподавателя' : isParent ? 'Твой прогресс' : isAdmin ? 'Профиль администратора' : 'Прогресс';
   const cabinetLabel = isTeacher ? 'Ученики' : 'Кабинет родителя';
-  const guestTeacherLanding = !isAuthenticated && typeof window !== 'undefined' && (window.location.pathname.replace(/\/+$/, '') || '/') === '/teacher';
-  const guestParentLanding = !isAuthenticated && !guestTeacherLanding;
+  const guestPath = !isAuthenticated && typeof window !== 'undefined' ? (window.location.pathname.replace(/\/+$/, '') || '/') : '';
+  const guestTeacherLanding = guestPath === '/teacher';
+  const guestParentLanding = !isAuthenticated && (guestPath === '/' || guestPath === '/kids' || guestPath === '/landing-mix');
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
