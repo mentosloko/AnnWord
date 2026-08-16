@@ -12,7 +12,6 @@ interface LandingMixScreenProps {
 
 const FINAL_ASSET = '/assets/landing/final';
 const asset = (name: string) => `${FINAL_ASSET}/${name}`;
-const PET_SCENE = '/assets/pets/puppy/background.webp';
 
 const PawMark: React.FC<{ className?: string }> = ({ className = '' }) => (
   <svg viewBox="0 0 24 24" aria-hidden="true" className={`inline-block h-[0.9em] w-[0.9em] ${className}`} fill="currentColor">
@@ -130,24 +129,19 @@ const gameCards = [
 ];
 
 const HeroScene = () => (
-  <div className="relative mx-auto min-h-[21rem] w-full max-w-[44rem] overflow-hidden rounded-[2rem] border border-white/80 bg-gradient-to-br from-sky-100 via-violet-100 to-indigo-100 shadow-xl shadow-indigo-900/10 sm:min-h-[24rem] lg:min-h-[25rem]">
-    <img src={PET_SCENE} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover opacity-75" />
-    <div className="absolute inset-0 bg-gradient-to-tr from-indigo-950/5 via-white/5 to-sky-100/30" />
-    <div className="absolute bottom-[-8%] left-[2%] z-10 w-[58%] max-w-[22rem] overflow-hidden rounded-[1.8rem] bg-white/20 sm:left-[4%]">
-      <img src={asset('hero-mascot.webp')} alt="Радостный питомец AnnWord" className="h-full w-full object-cover" fetchPriority="high" decoding="async" draggable={false} />
-    </div>
-    <div className="absolute left-4 top-6 z-20 flex h-14 w-14 rotate-[-8deg] items-center justify-center rounded-full border-4 border-amber-100 bg-amber-300 text-xl font-black text-amber-800 shadow-xl" aria-hidden="true">A</div>
-    <div className="absolute left-[49%] top-10 z-20 text-3xl drop-shadow-lg" aria-hidden="true">✨</div>
-    <div className="absolute right-4 top-5 z-20 w-[12rem] rotate-1 rounded-2xl border border-white/80 bg-white/95 p-3 shadow-xl sm:right-5 sm:w-[13rem]">
-      <div className="flex items-center justify-between text-[11px] font-black text-indigo-950"><span>Дневная цель</span><span>🔥 3 дня подряд!</span></div>
-      <div className="mt-3 text-xs font-black text-slate-600">Выучить 15 новых слов</div>
+  <div className="relative mx-auto aspect-[4/3] w-full max-w-[44rem] overflow-hidden rounded-[2rem] border border-white/80 bg-violet-50 shadow-xl shadow-indigo-900/10">
+    <img src={asset('hero-scene.webp')} alt="Питомец AnnWord в сказочном игровом мире" className="absolute inset-0 h-full w-full object-cover object-center" fetchPriority="high" decoding="async" draggable={false} />
+    <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-indigo-950/5" aria-hidden="true" />
+    <div className="absolute right-3 top-3 z-20 w-[10.5rem] rotate-1 rounded-2xl border border-white/80 bg-white/95 p-3 shadow-xl backdrop-blur-sm sm:right-5 sm:top-5 sm:w-[12.5rem]">
+      <div className="flex items-center justify-between gap-2 text-[10px] font-black text-indigo-950 sm:text-[11px]"><span>Дневная цель</span><span className="whitespace-nowrap">🔥 3 дня</span></div>
+      <div className="mt-2 text-[10px] font-black text-slate-600 sm:text-xs">Выучить 15 новых слов</div>
       <div className="mt-2 h-2 rounded-full bg-blue-100"><div className="h-full w-2/3 rounded-full bg-gradient-to-r from-sky-400 to-blue-600" /></div>
-      <div className="mt-1 text-right text-[10px] font-black text-indigo-900">10/15</div>
+      <div className="mt-1 text-right text-[9px] font-black text-indigo-900 sm:text-[10px]">10/15</div>
     </div>
-    <div className="absolute bottom-5 right-4 z-20 w-[12.5rem] -rotate-1 rounded-2xl border border-white/80 bg-white/95 p-3 shadow-xl sm:right-6 sm:w-[14rem]">
+    <div className="absolute bottom-3 right-3 z-20 hidden w-[11.5rem] -rotate-1 rounded-2xl border border-white/80 bg-white/95 p-3 shadow-xl backdrop-blur-sm sm:block sm:right-5 sm:w-[13rem]">
       <div className="text-[11px] font-black text-indigo-950">Сегодня ты молодец!</div>
-      <div className="mt-2 text-xl tracking-wider text-amber-400">★★★★★</div>
-      <div className="mt-3 flex items-center justify-between rounded-xl bg-violet-50 px-3 py-2"><span className="text-[10px] font-black text-slate-500">Получено наград</span><span className="text-base font-black text-violet-700">+50 🪙</span></div>
+      <div className="mt-1 text-lg tracking-wider text-amber-400">★★★★★</div>
+      <div className="mt-2 flex items-center justify-between rounded-xl bg-violet-50 px-3 py-2"><span className="text-[9px] font-black text-slate-500">Награда</span><span className="text-sm font-black text-violet-700">+50 🪙</span></div>
     </div>
   </div>
 );
@@ -273,7 +267,7 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
         <section className="px-4 py-8 sm:px-8 sm:py-10 lg:px-10">
           <div className="overflow-hidden rounded-[2.3rem] border border-violet-100 bg-gradient-to-r from-violet-50 via-white to-sky-50 p-5 shadow-lg shadow-indigo-900/6 sm:p-7">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="text-2xl font-black text-indigo-950 sm:text-3xl"><PawMark className="mr-2 text-violet-300" />Расти вместе с питомцем!</h2></div><div className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-violet-700 shadow-sm">Получи следующую форму за серию дней · 🔥 3 дня подряд!</div></div>
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">{petStages.map(([src, label], index) => <div key={label} className="relative overflow-hidden rounded-[1.8rem] bg-white p-3 text-center shadow-md shadow-indigo-900/5"><div className="rounded-[1.4rem] bg-gradient-to-b from-violet-50 to-blue-50 p-2"><img src={src} alt={label} loading="lazy" decoding="async" className="mx-auto h-28 w-full object-contain drop-shadow-lg sm:h-36" /></div><div className="mt-3 text-sm font-black text-indigo-950">{label}</div>{index < 3 && <span className="absolute -right-4 top-1/2 z-10 hidden -translate-y-1/2 text-3xl font-black text-violet-400 sm:block">→</span>}</div>)}</div>
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">{petStages.map(([src, label], index) => <div key={label} className="relative overflow-hidden rounded-[1.8rem] bg-white p-3 text-center shadow-md shadow-indigo-900/5"><div className="flex h-36 items-end justify-center overflow-hidden rounded-[1.4rem] bg-gradient-to-b from-violet-50 via-white to-blue-50 p-3 sm:h-40"><img src={src} alt={label} loading="lazy" decoding="async" className="h-full w-full object-contain object-bottom drop-shadow-lg" /></div><div className="mt-3 text-sm font-black text-indigo-950">{label}</div>{index < 3 && <span className="absolute -right-4 top-1/2 z-10 hidden -translate-y-1/2 text-3xl font-black text-violet-400 sm:block">→</span>}</div>)}</div>
           </div>
         </section>
 
@@ -298,7 +292,7 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
             <div className="absolute -bottom-14 -right-8 h-48 w-48 rounded-full bg-white/10" aria-hidden="true" />
             <div className="absolute right-14 top-5 text-5xl opacity-80" aria-hidden="true">✈</div>
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4"><img src={asset('cta-mascot.webp')} alt="Радостный питомец AnnWord" loading="lazy" decoding="async" className="hidden h-32 w-32 rounded-[1.6rem] object-cover shadow-xl sm:block" /><div><h2 className="text-2xl font-black leading-tight sm:text-3xl">Начните учить слова в игре уже сегодня!</h2><p className="mt-2 text-sm font-bold text-indigo-100">Без рекламы. С прогрессом, который видно.</p></div></div>
+              <div className="flex items-center gap-4"><img src={asset('cta-mascot.webp')} alt="Радостный питомец AnnWord" loading="lazy" decoding="async" className="hidden h-32 w-32 object-contain drop-shadow-2xl sm:block" /><div><h2 className="text-2xl font-black leading-tight sm:text-3xl">Начните учить слова в игре уже сегодня!</h2><p className="mt-2 text-sm font-bold text-indigo-100">Без рекламы. С прогрессом, который видно.</p></div></div>
               <button type="button" onClick={onStartKids} className="shrink-0 rounded-2xl bg-amber-300 px-7 py-4 text-lg font-black text-indigo-950 shadow-xl transition hover:-translate-y-0.5 hover:bg-amber-200">Начать бесплатно</button>
             </div>
           </div>
