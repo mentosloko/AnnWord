@@ -1,0 +1,69 @@
+name: Live landing performance audit
+
+on:
+  push:
+    branches:
+      - agent/live-landing-perf-audit
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Curl timings
+        shell: bash
+        run: |
+          set -e
+          for i in 1 2 3 4 5; do
+            curl -L -sS -o /dev/null \
+              -w "CURL run=$i code=%{http_code} dns=%{time_namelookup} connect=%{time_connect} tls=%{time_appconnect} ttfb=%{time_starttransfer} total=%{time_total} size=%{size_download}\n" \
+              https://annword.ru/
+          done
+      - name: Lighthouse mobile
+        shell: bash
+        run: |
+          npx --yes lighthouse@12 https://annword.ru/ \
+            --only-categories=performance \
+            --output=json \
+            --output-path=/tmp/mobile.json \
+            --chrome-flags='--headless --no-sandbox --disable-dev-shm-usage' \
+            --throttling-method=simulate \
+            --quiet
+      - name: Lighthouse desktop
+        shell: bash
+        run: |
+          npx --yes lighthouse@12 https://annword.ru/ \
+            --only-categories=performance \
+            --output=json \
+            --output-path=/tmp/desktop.json \
+            --chrome-flags='--headless --no-sandbox --disable-dev-shm-usage' \
+            --throttling-method=simulate \
+            --preset=desktop \
+            --quiet
+      - name: Print metrics
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          for (const mode of ['mobile', 'desktop']) {
+            const report = JSON.parse(fs.readFileSync(`/tmp/${mode}.json`, 'utf8'));
+            const a = report.audits;
+            const lcpItems = a['largest-contentful-paint-element']?.details?.items?.[0]?.items ?? [];
+            const row = {
+              mode,
+              score: Math.round(report.categories.performance.score * 100),
+              fcpMs: Math.round(a['first-contentful-paint'].numericValue),
+              lcpMs: Math.round(a['largest-contentful-paint'].numericValue),
+              speedIndexMs: Math.round(a['speed-index'].numericValue),
+              tbtMs: Math.round(a['total-blocking-time'].numericValue),
+              cls: Number(a['cumulative-layout-shift'].numericValue.toFixed(3)),
+              ttiMs: Math.round(a['interactive'].numericValue),
+              bytes: Math.round(a['total-byte-weight'].numericValue),
+              requests: a['network-requests'].details.items.length,
+              lcpElement: lcpItems[0]?.node?.snippet ?? null,
+            };
+            console.log(`LIGHTHOUSE ${JSON.stringify(row)}`);
+          }
+          NODE
