@@ -1,0 +1,55 @@
+name: Mobile rescue preview
+on:
+  push:
+    branches:
+      - agent/mobile-landing-rescue
+jobs:
+  preview:
+    if: github.event.head_commit.message == 'Add temporary mobile rescue preview'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Build and serve
+        env:
+          VITE_API_URL: http://127.0.0.1:4174
+        run: |
+          npx vite build
+          nohup node scripts/first-load-mock-api.mjs >/tmp/mock.log 2>&1 &
+          nohup npx vite preview --host 127.0.0.1 --port 4173 >/tmp/preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4174/api/health >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/preview.log /tmp/mock.log
+          exit 1
+      - name: Capture responsive preview
+        run: |
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({headless:true});
+          for (const width of [390, 430]) {
+            const page = await browser.newPage({ viewport: { width, height: 844 }, deviceScaleFactor: 1 });
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle', timeout: 60000 });
+            let height = await page.evaluate(() => document.body.scrollHeight);
+            for (let y = 0; y < height; y += 550) {
+              await page.evaluate(scrollY => window.scrollTo(0, scrollY), y);
+              await page.waitForTimeout(100);
+              height = Math.max(height, await page.evaluate(() => document.body.scrollHeight));
+            }
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await page.waitForTimeout(500);
+            await page.screenshot({ path: `/tmp/rescue-${width}.png`, fullPage: true });
+            console.log(width, await page.evaluate(() => ({innerWidth: window.innerWidth, scrollWidth: document.documentElement.scrollWidth, height: document.body.scrollHeight, unloaded: [...document.images].filter(img => !img.complete || img.naturalWidth === 0).map(img => img.src)})));
+          }
+          await browser.close();
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mobile-rescue-preview
+          path: /tmp/rescue-*.png
+          retention-days: 1
