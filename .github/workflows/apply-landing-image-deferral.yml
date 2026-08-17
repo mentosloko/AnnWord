@@ -1,0 +1,24 @@
+name: Apply landing image deferral
+on:
+  push:
+    branches:
+      - agent/mobile-landing-rescue
+jobs:
+  apply:
+    if: github.event.head_commit.message == 'Add temporary landing image deferral workflow'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply image deferral
+        run: |
+          python3 scripts/defer_landing_images.py
+          rm scripts/defer_landing_images.py .github/workflows/apply-landing-image-deferral.yml
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Defer below fold landing images"
+          git push origin HEAD:agent/mobile-landing-rescue
