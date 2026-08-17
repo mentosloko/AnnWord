@@ -13,34 +13,35 @@ jobs:
           node-version: 22
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
-      - name: Capture live mobile screenshots
+      - name: Capture live mobile viewport screenshots
         run: |
           node --input-type=module <<'NODE'
           import { chromium } from 'playwright';
           const browser = await chromium.launch({headless:true});
-          for (const width of [390, 430]) {
-            const page = await browser.newPage({ viewport: { width, height: 844 }, deviceScaleFactor: 1 });
-            await page.goto('https://annword.ru/', { waitUntil: 'networkidle', timeout: 60000 });
-            const height = await page.evaluate(() => document.body.scrollHeight);
-            for (let y = 0; y < height; y += 650) {
-              await page.evaluate(scrollY => window.scrollTo(0, scrollY), y);
-              await page.waitForTimeout(120);
-            }
-            await page.evaluate(() => window.scrollTo(0, 0));
-            await page.waitForTimeout(500);
-            await page.screenshot({ path: `/tmp/annword-mobile-${width}.png`, fullPage: true });
-            console.log(width, await page.evaluate(() => ({
-              scrollWidth: document.documentElement.scrollWidth,
-              innerWidth: window.innerWidth,
-              bodyWidth: document.body.scrollWidth,
-              bodyHeight: document.body.scrollHeight,
-              unloaded: [...document.images].filter(img => !img.complete || img.naturalWidth === 0).map(img => img.src),
-            })));
+          const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+          await page.goto('https://annword.ru/', { waitUntil: 'networkidle', timeout: 60000 });
+          const targets = [
+            ['hero', 'Снова задали'],
+            ['steps', 'Что делает AnnWord'],
+            ['pet', 'Расти вместе с питомцем!'],
+            ['rewards', 'Играй и получай награды!'],
+            ['child', 'Польза для ребёнка'],
+            ['parents', 'Польза для родителей'],
+          ];
+          for (const [name, text] of targets) {
+            const target = page.getByText(text, { exact: false }).first();
+            await target.scrollIntoViewIfNeeded();
+            await page.waitForTimeout(1500);
+            console.log(name, await page.evaluate(() => [...document.images]
+              .filter(img => { const r = img.getBoundingClientRect(); return r.bottom > -200 && r.top < innerHeight + 200; })
+              .map(img => ({alt: img.alt, src: img.currentSrc || img.src, complete: img.complete, nw: img.naturalWidth, nh: img.naturalHeight, rect: img.getBoundingClientRect().toJSON()}))));
+            await page.screenshot({ path: `/tmp/${name}.png` });
           }
+          console.log('layout', await page.evaluate(() => ({scrollWidth: document.documentElement.scrollWidth, innerWidth, bodyHeight: document.body.scrollHeight})));
           await browser.close();
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: live-mobile-screenshots-loaded
-          path: /tmp/annword-mobile-*.png
+          name: live-mobile-viewport-diagnostics
+          path: /tmp/*.png
           retention-days: 1
