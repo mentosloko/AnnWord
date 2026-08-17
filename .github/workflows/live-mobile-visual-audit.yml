@@ -1,0 +1,38 @@
+name: Live mobile visual audit
+on:
+  push:
+    branches:
+      - agent/live-landing-perf-audit
+jobs:
+  screenshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Capture live mobile screenshots
+        run: |
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({headless:true});
+          for (const width of [390, 430]) {
+            const page = await browser.newPage({ viewport: { width, height: 844 }, deviceScaleFactor: 1 });
+            await page.goto('https://annword.ru/', { waitUntil: 'networkidle', timeout: 60000 });
+            await page.screenshot({ path: `/tmp/annword-mobile-${width}.png`, fullPage: true });
+            console.log(width, await page.evaluate(() => ({
+              scrollWidth: document.documentElement.scrollWidth,
+              innerWidth: window.innerWidth,
+              bodyWidth: document.body.scrollWidth,
+              bodyHeight: document.body.scrollHeight,
+            })));
+          }
+          await browser.close();
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: live-mobile-screenshots
+          path: /tmp/annword-mobile-*.png
+          retention-days: 1
