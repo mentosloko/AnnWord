@@ -21,18 +21,26 @@ jobs:
           for (const width of [390, 430]) {
             const page = await browser.newPage({ viewport: { width, height: 844 }, deviceScaleFactor: 1 });
             await page.goto('https://annword.ru/', { waitUntil: 'networkidle', timeout: 60000 });
+            const height = await page.evaluate(() => document.body.scrollHeight);
+            for (let y = 0; y < height; y += 650) {
+              await page.evaluate(scrollY => window.scrollTo(0, scrollY), y);
+              await page.waitForTimeout(120);
+            }
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await page.waitForTimeout(500);
             await page.screenshot({ path: `/tmp/annword-mobile-${width}.png`, fullPage: true });
             console.log(width, await page.evaluate(() => ({
               scrollWidth: document.documentElement.scrollWidth,
               innerWidth: window.innerWidth,
               bodyWidth: document.body.scrollWidth,
               bodyHeight: document.body.scrollHeight,
+              unloaded: [...document.images].filter(img => !img.complete || img.naturalWidth === 0).map(img => img.src),
             })));
           }
           await browser.close();
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: live-mobile-screenshots
+          name: live-mobile-screenshots-loaded
           path: /tmp/annword-mobile-*.png
           retention-days: 1
