@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ClientEntryPath } from '../../services/clientEntryPath';
 import { ScreenContainer } from '../layout/ScreenContainer';
 
@@ -12,6 +12,29 @@ interface LandingMixScreenProps {
 
 const FINAL_ASSET = '/assets/landing/final';
 const asset = (name: string) => `${FINAL_ASSET}/${name}`;
+
+const DeferredImage: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = ({ src, alt = '', ...props }) => {
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!image || !src) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setShouldLoad(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setShouldLoad(true);
+      observer.disconnect();
+    }, { rootMargin: '240px 0px' });
+    observer.observe(image);
+    return () => observer.disconnect();
+  }, [src]);
+
+  return <img ref={imageRef} src={shouldLoad ? src : undefined} alt={alt} loading="lazy" decoding="async" {...props} />;
+};
 
 const PawMark: React.FC<{ className?: string }> = ({ className = '' }) => (
   <svg viewBox="0 0 24 24" aria-hidden="true" className={`inline-block h-[0.9em] w-[0.9em] ${className}`} fill="currentColor">
@@ -155,13 +178,13 @@ const HeroScene = () => (
 
 const ProblemVisual: React.FC<{ index: number }> = ({ index }) => (
   <div className="relative h-44 overflow-hidden bg-gradient-to-br from-violet-50 via-white to-sky-50 sm:h-48">
-    <img src={asset(`problem-${index + 1}.webp`)} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+    <DeferredImage src={asset(`problem-${index + 1}.webp`)} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
   </div>
 );
 
 const StepVisual: React.FC<{ index: number }> = ({ index }) => (
   <div className="relative h-48 overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-violet-50 via-white to-blue-50 sm:h-52">
-    <img src={asset(`step-${index + 1}.webp`)} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+    <DeferredImage src={asset(`step-${index + 1}.webp`)} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-full w-full object-cover" />
   </div>
 );
 
@@ -274,23 +297,23 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
         <section className="px-4 py-8 sm:px-8 sm:py-10 lg:px-10">
           <div className="overflow-hidden rounded-[2.3rem] border border-violet-100 bg-gradient-to-r from-violet-50 via-white to-sky-50 p-5 shadow-lg shadow-indigo-900/6 sm:p-7">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="text-2xl font-black text-indigo-950 sm:text-3xl"><PawMark className="mr-2 text-violet-300" />Расти вместе с питомцем!</h2></div><div className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-violet-700 shadow-sm">Получи следующую форму за серию дней · 🔥 3 дня подряд!</div></div>
-            <div className="mt-5 grid grid-cols-4 gap-1.5 sm:mt-6 sm:gap-3">{petStages.map(([src, label], index) => <div key={label} className="relative overflow-hidden rounded-[1.2rem] bg-white p-1.5 text-center shadow-md shadow-indigo-900/5 sm:rounded-[1.8rem] sm:p-3"><div className="flex h-20 items-end justify-center overflow-hidden px-0.5 pb-0 pt-1 sm:h-40 sm:px-1 sm:pt-2"><img src={src} alt={label} loading="lazy" decoding="async" className={`h-full w-full origin-bottom object-contain object-bottom drop-shadow-lg transform-gpu ${index === 0 ? 'scale-[0.78]' : index === 1 ? 'scale-[0.88]' : index === 2 ? 'scale-[0.96]' : 'scale-[1.03]'}`} /></div><div className="mt-1.5 text-[11px] font-black text-indigo-950 sm:mt-3 sm:text-sm">{label}</div>{index < 3 && <span className="absolute -right-4 top-1/2 z-10 hidden -translate-y-1/2 text-3xl font-black text-violet-400 sm:block">→</span>}</div>)}</div>
+            <div className="mt-5 grid grid-cols-4 gap-1.5 sm:mt-6 sm:gap-3">{petStages.map(([src, label], index) => <div key={label} className="relative overflow-hidden rounded-[1.2rem] bg-white p-1.5 text-center shadow-md shadow-indigo-900/5 sm:rounded-[1.8rem] sm:p-3"><div className="flex h-20 items-end justify-center overflow-hidden px-0.5 pb-0 pt-1 sm:h-40 sm:px-1 sm:pt-2"><DeferredImage src={src} alt={label} loading="lazy" decoding="async" className={`h-full w-full origin-bottom object-contain object-bottom drop-shadow-lg transform-gpu ${index === 0 ? 'scale-[0.78]' : index === 1 ? 'scale-[0.88]' : index === 2 ? 'scale-[0.96]' : 'scale-[1.03]'}`} /></div><div className="mt-1.5 text-[11px] font-black text-indigo-950 sm:mt-3 sm:text-sm">{label}</div>{index < 3 && <span className="absolute -right-4 top-1/2 z-10 hidden -translate-y-1/2 text-3xl font-black text-violet-400 sm:block">→</span>}</div>)}</div>
           </div>
         </section>
 
         <section className="px-4 pb-8 sm:px-8 sm:pb-10 lg:px-10">
           <div className="overflow-hidden rounded-[2.35rem] bg-gradient-to-r from-indigo-700 via-violet-600 to-sky-500 p-5 text-white shadow-2xl shadow-indigo-700/20 sm:p-7">
             <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
-              <div className="flex items-center gap-3 sm:grid sm:grid-cols-[11rem_1fr]"><img src={asset('cta-mascot.webp')} alt="Питомец AnnWord летит за наградами" loading="lazy" decoding="async" className="-ml-2 h-24 w-24 shrink-0 object-contain drop-shadow-2xl sm:-my-4 sm:-ml-3 sm:h-44 sm:w-44 sm:max-w-none" /><div><h2 className="text-xl font-black leading-tight sm:text-3xl">Играй и получай награды!</h2><p className="mt-1.5 text-xs font-bold leading-relaxed text-indigo-100 sm:mt-2 sm:text-sm">Монеты, кристаллы и вещи для питомца превращают усилия в видимый результат.</p></div></div>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">{rewards.map(([src, label]) => <div key={label} className="rounded-2xl bg-white/95 p-2 text-center text-indigo-950 shadow-lg"><img src={src} alt={label} loading="lazy" decoding="async" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" /><div className="mt-1 text-[10px] font-black sm:text-xs">{label}</div></div>)}</div>
+              <div className="flex items-center gap-3 sm:grid sm:grid-cols-[11rem_1fr]"><DeferredImage src={asset('cta-mascot.webp')} alt="Питомец AnnWord летит за наградами" loading="lazy" decoding="async" className="-ml-2 h-24 w-24 shrink-0 object-contain drop-shadow-2xl sm:-my-4 sm:-ml-3 sm:h-44 sm:w-44 sm:max-w-none" /><div><h2 className="text-xl font-black leading-tight sm:text-3xl">Играй и получай награды!</h2><p className="mt-1.5 text-xs font-bold leading-relaxed text-indigo-100 sm:mt-2 sm:text-sm">Монеты, кристаллы и вещи для питомца превращают усилия в видимый результат.</p></div></div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">{rewards.map(([src, label]) => <div key={label} className="rounded-2xl bg-white/95 p-2 text-center text-indigo-950 shadow-lg"><DeferredImage src={src} alt={label} loading="lazy" decoding="async" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" /><div className="mt-1 text-[10px] font-black sm:text-xs">{label}</div></div>)}</div>
             </div>
           </div>
         </section>
 
         <section id="for-parents" className="scroll-mt-24 px-4 pb-8 sm:px-8 sm:pb-10 lg:px-10">
           <div className="grid gap-4 lg:grid-cols-2">
-            <article className="relative overflow-hidden rounded-[2.15rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-lime-50 p-6 shadow-lg sm:min-h-[20rem] sm:pr-[46%]"><h2 className="text-2xl font-black text-indigo-950">Польза для ребёнка</h2><ul className="mt-5 space-y-3">{childBenefits.map(item => <li key={item} className="flex gap-2 text-sm font-bold leading-relaxed text-slate-600"><span className="mt-0.5 font-black text-emerald-500">✓</span><span>{item}</span></li>)}</ul><img src={asset('benefit-child.webp')} alt="Ребёнок занимается с AnnWord" loading="lazy" decoding="async" className="mt-5 h-44 w-full rounded-[1.6rem] object-cover object-center shadow-lg sm:absolute sm:bottom-4 sm:right-4 sm:mt-0 sm:h-[calc(100%-2rem)] sm:w-[42%]" /></article>
-            <article className="relative overflow-hidden rounded-[2.15rem] border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-violet-50 p-6 shadow-lg sm:min-h-[20rem] sm:pr-[46%]"><h2 className="text-2xl font-black text-indigo-950">Польза для родителей</h2><ul className="mt-5 space-y-3">{parentBenefits.map(item => <li key={item} className="flex gap-2 text-sm font-bold leading-relaxed text-slate-600"><span className="mt-0.5 font-black text-blue-500">✓</span><span>{item}</span></li>)}</ul><img src={asset('benefit-parent.webp')} alt="Родитель видит прогресс ребёнка" loading="lazy" decoding="async" className="mt-5 w-full rounded-[1.6rem] object-cover shadow-lg sm:absolute sm:bottom-4 sm:right-4 sm:mt-0 sm:h-[calc(100%-2rem)] sm:w-[42%]" /></article>
+            <article className="relative overflow-hidden rounded-[2.15rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-lime-50 p-6 shadow-lg sm:min-h-[20rem] sm:pr-[46%]"><h2 className="text-2xl font-black text-indigo-950">Польза для ребёнка</h2><ul className="mt-5 space-y-3">{childBenefits.map(item => <li key={item} className="flex gap-2 text-sm font-bold leading-relaxed text-slate-600"><span className="mt-0.5 font-black text-emerald-500">✓</span><span>{item}</span></li>)}</ul><DeferredImage src={asset('benefit-child.webp')} alt="Ребёнок занимается с AnnWord" loading="lazy" decoding="async" className="mt-5 h-44 w-full rounded-[1.6rem] object-cover object-center shadow-lg sm:absolute sm:bottom-4 sm:right-4 sm:mt-0 sm:h-[calc(100%-2rem)] sm:w-[42%]" /></article>
+            <article className="relative overflow-hidden rounded-[2.15rem] border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-violet-50 p-6 shadow-lg sm:min-h-[20rem] sm:pr-[46%]"><h2 className="text-2xl font-black text-indigo-950">Польза для родителей</h2><ul className="mt-5 space-y-3">{parentBenefits.map(item => <li key={item} className="flex gap-2 text-sm font-bold leading-relaxed text-slate-600"><span className="mt-0.5 font-black text-blue-500">✓</span><span>{item}</span></li>)}</ul><DeferredImage src={asset('benefit-parent.webp')} alt="Родитель видит прогресс ребёнка" loading="lazy" decoding="async" className="mt-5 w-full rounded-[1.6rem] object-cover shadow-lg sm:absolute sm:bottom-4 sm:right-4 sm:mt-0 sm:h-[calc(100%-2rem)] sm:w-[42%]" /></article>
           </div>
         </section>
 
@@ -299,7 +322,7 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
             <div className="absolute -bottom-14 -right-8 h-48 w-48 rounded-full bg-white/10" aria-hidden="true" />
             <div className="absolute right-14 top-5 text-5xl opacity-80" aria-hidden="true">✈</div>
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4"><img src={asset('cta-mascot.webp')} alt="Радостный питомец AnnWord" loading="lazy" decoding="async" className="hidden h-32 w-32 object-contain drop-shadow-2xl sm:block" /><div><h2 className="text-2xl font-black leading-tight sm:text-3xl">Начните учить слова в игре уже сегодня!</h2><p className="mt-2 text-sm font-bold text-indigo-100">Без рекламы. С прогрессом, который видно.</p></div></div>
+              <div className="flex items-center gap-4"><DeferredImage src={asset('cta-mascot.webp')} alt="Радостный питомец AnnWord" loading="lazy" decoding="async" className="hidden h-32 w-32 object-contain drop-shadow-2xl sm:block" /><div><h2 className="text-2xl font-black leading-tight sm:text-3xl">Начните учить слова в игре уже сегодня!</h2><p className="mt-2 text-sm font-bold text-indigo-100">Без рекламы. С прогрессом, который видно.</p></div></div>
               <button type="button" onClick={onStartKids} className="shrink-0 rounded-2xl bg-amber-300 px-7 py-4 text-lg font-black text-indigo-950 shadow-xl transition hover:-translate-y-0.5 hover:bg-amber-200">Начать бесплатно</button>
             </div>
           </div>
