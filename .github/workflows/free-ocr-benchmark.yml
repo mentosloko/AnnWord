@@ -1,0 +1,76 @@
+name: Free OCR benchmark
+
+on:
+  push:
+    branches:
+      - test/easyocr-evaluation-20260718
+    paths:
+      - .github/workflows/free-ocr-benchmark.yml
+      - scripts/free_ocr_benchmark.py
+      - testdata/easyocr/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/free-ocr-benchmark.yml
+      - scripts/free_ocr_benchmark.py
+      - testdata/easyocr/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  providers:
+    name: Test free cloud OCR tiers
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GROQ: ${{ secrets.GROQ }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI: ${{ secrets.GEMINI }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --disable-pip-version-check pillow
+      - name: Run provider benchmark
+        run: python scripts/free_ocr_benchmark.py --mode providers
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: free-ocr-provider-results
+          path: free-ocr-benchmark/
+          retention-days: 7
+
+  local-models:
+    name: Test free local OCR models
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      HF_HUB_DISABLE_XET: '1'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU inference dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+          python -m pip install 'transformers>=5.13,<5.15' pillow sentencepiece safetensors timm einops accelerate
+      - name: Run local benchmark
+        run: python scripts/free_ocr_benchmark.py --mode local
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: free-ocr-local-results
+          path: free-ocr-benchmark/
+          retention-days: 7
