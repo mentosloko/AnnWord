@@ -24,6 +24,7 @@ import { gameEventRouter } from "./routes/gameEventRoutes";
 import { migrationRouter } from "./routes/migrationRoutes";
 import { migrationSchemaRouter } from "./routes/migrationSchemaRoutes";
 import { weeklyReportRouter } from "./routes/weeklyReportRoutes";
+import { getServerTimingHeader, runWithRequestPerformance } from "./performanceTelemetry";
 
 dotenv.config();
 
@@ -109,7 +110,31 @@ async function consumeYandexHandoff(code: string): Promise<BackendUser | null> {
   });
 }
 
+const exposeResponseHeader = (res: Response, headerName: string): void => {
+  const current = String(res.getHeader("Access-Control-Expose-Headers") || "");
+  const values = new Set(current.split(",").map(value => value.trim()).filter(Boolean));
+  values.add(headerName);
+  res.setHeader("Access-Control-Expose-Headers", Array.from(values).join(", "));
+};
+
 app.disable("x-powered-by");
+app.use((req, res, next) => {
+  runWithRequestPerformance(() => {
+    const originalEnd = res.end.bind(res);
+    res.end = ((chunk?: unknown, encoding?: BufferEncoding | (() => void), callback?: () => void) => {
+      if (!res.headersSent) {
+        const timing = getServerTimingHeader();
+        if (timing) {
+          const existing = res.getHeader("Server-Timing");
+          res.setHeader("Server-Timing", existing ? `${String(existing)}, ${timing}` : timing);
+          exposeResponseHeader(res, "Server-Timing");
+        }
+      }
+      return originalEnd(chunk as never, encoding as never, callback as never);
+    }) as typeof res.end;
+    next();
+  });
+});
 app.use((req, res, next) => {
   const originalSetHeader = res.setHeader.bind(res);
   res.setHeader = ((name: string, value: number | string | readonly string[]) => {
@@ -284,9 +309,14 @@ if (fs.existsSync(distDir)) {
 
 async function startServer(): Promise<void> {
   try {
-    await ensureConsentSchema();
-    await ensureWeeklyReportSchema();
-    console.log("Runtime schemas are ready.");
+    const shouldEnsureRuntimeSchema = process.env.NODE_ENV !== "production" || process.env.RUNTIME_SCHEMA_ENSURE === "1";
+    if (shouldEnsureRuntimeSchema) {
+      await ensureConsentSchema();
+      await ensureWeeklyReportSchema();
+      console.log("Runtime schemas are ready.");
+    } else {
+      console.log("Runtime schema DDL skipped; deploy migrations are authoritative in production.");
+    }
     server = app.listen(runtimeConfig.port, "0.0.0.0", () => {
       console.log(`AnnWord API listening on 0.0.0.0:${runtimeConfig.port}`);
     });
