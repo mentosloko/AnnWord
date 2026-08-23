@@ -1,5 +1,6 @@
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg";
 import { runtimeConfig } from "./config";
+import { addServerTiming } from "./performanceTelemetry";
 
 let pool: Pool | undefined;
 const SLOW_QUERY_MS = Number.parseInt(process.env.DB_SLOW_QUERY_MS || "500", 10);
@@ -83,7 +84,7 @@ function getPool(): Pool | undefined {
     const createdPool = new Pool({
       connectionString: normalizeDatabaseConnectionString(runtimeConfig.databaseUrl),
       ssl: { rejectUnauthorized: false },
-      max: Number.parseInt(process.env.PGPOOL_MAX || "5", 10),
+      max: Number.parseInt(process.env.PGPOOL_MAX || "8", 10),
       idleTimeoutMillis: Number.parseInt(process.env.PGPOOL_IDLE_TIMEOUT_MS || "30000", 10),
       connectionTimeoutMillis: Number.parseInt(process.env.PGPOOL_CONNECTION_TIMEOUT_MS || "5000", 10),
       keepAlive: true,
@@ -115,31 +116,60 @@ export function requirePool(): Pool {
   return databasePool;
 }
 
-export async function query<T extends QueryResultRow = QueryResultRow>(text: string, params: unknown[] = []): Promise<QueryResult<T>> {
-  const startedAt = Date.now();
+async function runPoolQuery<T extends QueryResultRow = QueryResultRow>(text: string, params: unknown[]): Promise<QueryResult<T>> {
+  const waitStartedAt = performance.now();
+  const client = await requirePool().connect();
+  const poolWaitMs = performance.now() - waitStartedAt;
+  addServerTiming("db_wait", poolWaitMs);
+  if (poolWaitMs >= SLOW_POOL_WAIT_MS) logSlowDatabaseEvent("db_pool_wait_slow", Math.round(poolWaitMs));
+
   try {
-    return await withPoolRetry(() => requirePool().query<T>(text, params));
+    const queryStartedAt = performance.now();
+    const result = await client.query<T>(text, params);
+    const queryMs = performance.now() - queryStartedAt;
+    addServerTiming("db_query", queryMs);
+    if (queryMs >= SLOW_QUERY_MS) logSlowDatabaseEvent("db_query_slow", Math.round(queryMs), queryLabel(text));
+    return result;
   } finally {
-    const durationMs = Date.now() - startedAt;
-    if (durationMs >= SLOW_QUERY_MS) {
-      logSlowDatabaseEvent("db_query_slow", durationMs, queryLabel(text));
-    }
+    client.release();
   }
 }
 
+export async function query<T extends QueryResultRow = QueryResultRow>(text: string, params: unknown[] = []): Promise<QueryResult<T>> {
+  return withPoolRetry(() => runPoolQuery<T>(text, params));
+}
+
+const instrumentTransactionClient = (client: PoolClient): PoolClient => new Proxy(client, {
+  get(target, property, receiver) {
+    if (property === "query") {
+      return async (...args: unknown[]) => {
+        const startedAt = performance.now();
+        try {
+          return await (target.query as (...queryArgs: unknown[]) => Promise<unknown>)(...args);
+        } finally {
+          addServerTiming("db_query", performance.now() - startedAt);
+        }
+      };
+    }
+    const value = Reflect.get(target, property, receiver);
+    return typeof value === "function" ? value.bind(target) : value;
+  },
+}) as PoolClient;
+
 export async function transaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
-  const transactionStartedAt = Date.now();
+  const transactionStartedAt = performance.now();
   return withPoolRetry(async () => {
-    const poolWaitStartedAt = Date.now();
+    const poolWaitStartedAt = performance.now();
     const client = await requirePool().connect();
-    const poolWaitMs = Date.now() - poolWaitStartedAt;
+    const poolWaitMs = performance.now() - poolWaitStartedAt;
+    addServerTiming("db_wait", poolWaitMs);
     if (poolWaitMs >= SLOW_POOL_WAIT_MS) {
-      logSlowDatabaseEvent("db_pool_wait_slow", poolWaitMs);
+      logSlowDatabaseEvent("db_pool_wait_slow", Math.round(poolWaitMs));
     }
 
     try {
       await client.query("begin");
-      const result = await callback(client);
+      const result = await callback(instrumentTransactionClient(client));
       await client.query("commit");
       return result;
     } catch (error) {
@@ -147,9 +177,10 @@ export async function transaction<T>(callback: (client: PoolClient) => Promise<T
       throw error;
     } finally {
       client.release();
-      const durationMs = Date.now() - transactionStartedAt;
+      const durationMs = performance.now() - transactionStartedAt;
+      addServerTiming("db_tx", durationMs);
       if (durationMs >= SLOW_QUERY_MS) {
-        logSlowDatabaseEvent("db_transaction_slow", durationMs, { poolWaitMs });
+        logSlowDatabaseEvent("db_transaction_slow", Math.round(durationMs), { poolWaitMs: Math.round(poolWaitMs) });
       }
     }
   });
