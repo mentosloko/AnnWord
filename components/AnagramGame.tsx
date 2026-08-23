@@ -47,6 +47,10 @@ export const buildAnagramDictionary = (
   fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN,
 ): EnrichedWord[] => buildPlayableGameDictionary(customDictionaryEn, fallbackDictionary);
 
+export const getIncorrectGuessPositions = (guess: string, solvedWord: string): number[] =>
+  Array.from({ length: Math.max(guess.length, solvedWord.length) }, (_, index) => index)
+    .filter(index => guess[index] !== solvedWord[index]);
+
 const loadSession = (username: string): SavedAnagramSession => {
   const parsed = legacySessionKeys(username).reduce(
     (session, key) => readStoredGameSession<SavedAnagramSession>(key, session),
@@ -103,6 +107,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
   const [wrongAttempts, setWrongAttempts] = useState(initialSession.wrongAttempts);
   const [coinsEarned, setCoinsEarned] = useState(showKidsRewards ? initialSession.coinsEarned : 0);
   const [wordEpoch, setWordEpoch] = useState(0);
+  const [incorrectGuessPositions, setIncorrectGuessPositions] = useState<number[]>([]);
 
   const score = solvedCount - skippedCount;
   const xpEarned = solvedCount * 5;
@@ -149,6 +154,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     setUserGuess([]);
     setShuffledLetters([]);
     setWrongAttempts(0);
+    setIncorrectGuessPositions([]);
     setMessage('');
     setStatus('playing');
     setCurrentWord(word);
@@ -158,12 +164,12 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
 
   useEffect(() => { if (dictionary.length > 0 && !currentWord) pickNewWord(); }, [dictionary.length, currentWord, pickNewWord]);
 
-  const revealWordAfterLimit = (solvedWord: string) => {
+  const finishWordAfterLimit = (solvedWord: string, guessLetters: GuessLetter[]) => {
+    const guess = guessLetters.map(item => item.char).join('');
     setSkippedCount(previous => previous + 1);
     setStatus('skipped');
-    setUserGuess(solvedWord.split('').map((char, index) => ({ char, slotIndex: index })));
-    setShuffledLetters(previous => previous.map(slot => ({ ...slot, isUsed: true })));
-    setMessage(`Ответ: ${solvedWord} — ${currentWord?.translation}. Две ошибки: слово добавлено для повторения.`);
+    setIncorrectGuessPositions(getIncorrectGuessPositions(guess, solvedWord));
+    setMessage(`Правильный ответ: ${solvedWord} — ${currentWord?.translation}. Две ошибки: слово добавлено для повторения.`);
     clearNextWordTimeout();
   };
 
@@ -180,6 +186,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
       const earnedCoin = showKidsRewards && nextSolvedCount % 10 === 0 ? 1 : 0;
       setSolvedCount(nextSolvedCount);
       setWrongAttempts(0);
+      setIncorrectGuessPositions([]);
       if (earnedCoin) setCoinsEarned(previous => previous + 1);
       setStatus('success');
       setMessage(showKidsRewards ? (earnedCoin ? `Правильно! За ${nextSolvedCount} слов получена 1 монета.` : `Правильно! До монеты: ${10 - (nextSolvedCount % 10)} слов.`) : `Правильно! Угадано слов: ${nextSolvedCount}.`);
@@ -193,20 +200,15 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     registerPractice(solvedWord, 'failed');
     const nextWrongAttempts = wrongAttempts + 1;
     setWrongAttempts(nextWrongAttempts);
+    setIncorrectGuessPositions(getIncorrectGuessPositions(guess, solvedWord));
     if (nextWrongAttempts >= MAX_WRONG_ATTEMPTS) {
-      revealWordAfterLimit(solvedWord);
+      finishWordAfterLimit(solvedWord, guessLetters);
       return;
     }
-    setStatus('error');
-    setMessage(`Неверно. Осталась ${MAX_WRONG_ATTEMPTS - nextWrongAttempts} попытка.`);
     clearNextWordTimeout();
-    nextWordTimeoutRef.current = setTimeout(() => {
-      isCheckingRef.current = false;
-      setStatus('playing');
-      setMessage('');
-      setShuffledLetters(previous => previous.map(slot => ({ ...slot, isUsed: false })));
-      setUserGuess([]);
-    }, 1000);
+    isCheckingRef.current = false;
+    setStatus('playing');
+    setMessage(`Неверно. Исправьте подсвеченные буквы. Осталась ${MAX_WRONG_ATTEMPTS - nextWrongAttempts} попытка.`);
   };
 
   const handleLetterClick = (letter: string, index: number) => {
@@ -221,6 +223,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     if (status !== 'playing') return;
     const item = userGuess[guessIndex];
     if (!item) return;
+    setIncorrectGuessPositions([]);
     setUserGuess(previous => previous.filter((_, index) => index !== guessIndex));
     setShuffledLetters(previous => previous.map((slot, index) => index === item.slotIndex ? { ...slot, isUsed: false } : slot));
   };
@@ -231,6 +234,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     setStatus('skipped');
     setSkippedCount(previous => previous + 1);
     registerPractice(currentWord.word, 'failed');
+    setIncorrectGuessPositions([]);
     setUserGuess(currentWord.word.split('').map((char, index) => ({ char, slotIndex: index })));
     setShuffledLetters(previous => previous.map(slot => ({ ...slot, isUsed: true })));
     setMessage(`Ответ: ${currentWord.word} — ${currentWord.translation}. Слово добавлено для повторения.`);
@@ -254,6 +258,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     setSkippedCount(0);
     setWrongAttempts(0);
     setCoinsEarned(0);
+    setIncorrectGuessPositions([]);
     setUserGuess([]);
     setShuffledLetters([]);
     setCurrentWord(null);
@@ -276,11 +281,15 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
       {showKidsRewards && <div className="mt-1 text-xs font-black text-amber-600">1 монета за каждые 10 угаданных слов</div>}
     </div>
     <div key={`answer-${currentWord?.word || 'empty'}-${wordEpoch}`} className="mb-5 grid w-full items-center gap-1.5 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50 p-2 sm:mb-7 sm:gap-2 sm:p-4" style={{ gridTemplateColumns: `repeat(${activeWordLength}, minmax(0, 1fr))` }}>
-      {Array.from({ length: activeWordLength }).map((_, index) => { const item = userGuess[index]; return <div key={`answer-slot-${index}`} className="relative aspect-square min-w-0 rounded-lg border-2 border-indigo-100 bg-white/70"><AnimatePresence mode="wait">{item && <motion.button key={`${currentWord?.word}-${item.slotIndex}-${item.char}`} aria-label={`Убрать букву ${item.char} из позиции ${index + 1}`} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} onClick={() => handleGuessClick(index)} disabled={status !== 'playing'} className="absolute inset-0 flex items-center justify-center rounded-lg border-2 border-indigo-500 bg-white text-[clamp(1rem,5.5vw,1.25rem)] font-bold text-indigo-600 shadow-sm disabled:opacity-100">{item.char}</motion.button>}</AnimatePresence></div>; })}
+      {Array.from({ length: activeWordLength }).map((_, index) => {
+        const item = userGuess[index];
+        const isIncorrect = incorrectGuessPositions.includes(index);
+        return <div key={`answer-slot-${index}`} className="relative aspect-square min-w-0 rounded-lg border-2 border-indigo-100 bg-white/70"><AnimatePresence mode="wait">{item && <motion.button key={`${currentWord?.word}-${item.slotIndex}-${item.char}`} aria-label={`Убрать букву ${item.char} из позиции ${index + 1}${isIncorrect ? ', неверная позиция' : ''}`} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} onClick={() => handleGuessClick(index)} disabled={status !== 'playing'} className={`absolute inset-0 flex items-center justify-center rounded-lg border-2 text-[clamp(1rem,5.5vw,1.25rem)] font-bold shadow-sm transition disabled:opacity-100 ${isIncorrect ? 'border-rose-500 bg-rose-50 text-rose-700 ring-2 ring-rose-200' : 'border-indigo-500 bg-white text-indigo-600'}`}>{item.char}</motion.button>}</AnimatePresence></div>;
+      })}
     </div>
     <div key={`letters-${currentWord?.word || 'empty'}-${wordEpoch}`} className="mb-5 grid w-full grid-flow-col auto-cols-fr gap-1.5 sm:mb-7 sm:gap-2">{shuffledLetters.map((slot, index) => <div key={`${wordEpoch}-${slot.originalIndex}-${slot.char}`} className="relative aspect-square min-w-0"><AnimatePresence>{!slot.isUsed && status !== 'skipped' && <motion.button aria-label={`Буква ${slot.char}, вариант ${index + 1}`} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleLetterClick(slot.char, index)} className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-indigo-600 text-[clamp(1.1rem,6vw,1.5rem)] font-bold text-white shadow-md">{slot.char}</motion.button>}</AnimatePresence><div className="absolute inset-0 rounded-xl border-2 border-dashed border-gray-200 bg-gray-100" /></div>)}</div>
-    {message && <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} aria-live="polite" className={`mb-4 text-center text-sm font-bold sm:mb-5 ${status === 'success' ? 'text-green-600' : status === 'error' || status === 'skipped' ? 'text-rose-600' : 'text-indigo-500'}`}>{message}</motion.div>}
-    {status === 'skipped' ? <button type="button" onClick={pickNewWord} className="w-full rounded-xl bg-indigo-600 px-3 py-3 text-sm font-black text-white sm:text-base">Следующее слово</button> : <div className="grid w-full grid-cols-2 gap-2"><button type="button" onClick={() => { setShuffledLetters(previous => previous.map(slot => ({ ...slot, isUsed: false }))); setUserGuess([]); }} disabled={status !== 'playing'} className="rounded-xl bg-gray-100 px-2 py-3 text-sm font-bold text-gray-600 disabled:opacity-50 sm:text-base">Сброс</button><button type="button" onClick={skipWord} disabled={status !== 'playing'} className="rounded-xl bg-rose-50 px-2 py-3 text-sm font-bold text-rose-600 disabled:opacity-50 sm:text-base">Не знаю</button></div>}
+    {message && <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} aria-live="polite" className={`mb-4 text-center text-sm font-bold sm:mb-5 ${status === 'success' ? 'text-green-600' : status === 'error' || status === 'skipped' || incorrectGuessPositions.length > 0 ? 'text-rose-600' : 'text-indigo-500'}`}>{message}</motion.div>}
+    {status === 'skipped' ? <button type="button" onClick={pickNewWord} className="w-full rounded-xl bg-indigo-600 px-3 py-3 text-sm font-black text-white sm:text-base">Следующее слово</button> : <div className="grid w-full grid-cols-2 gap-2"><button type="button" onClick={() => { setShuffledLetters(previous => previous.map(slot => ({ ...slot, isUsed: false }))); setUserGuess([]); setIncorrectGuessPositions([]); setMessage(''); }} disabled={status !== 'playing'} className="rounded-xl bg-gray-100 px-2 py-3 text-sm font-bold text-gray-600 disabled:opacity-50 sm:text-base">Сброс</button><button type="button" onClick={skipWord} disabled={status !== 'playing'} className="rounded-xl bg-rose-50 px-2 py-3 text-sm font-bold text-rose-600 disabled:opacity-50 sm:text-base">Не знаю</button></div>}
     <GameResultOverlay isOpen={status === 'finished'} status="completed" title="Игра завершена" subtitle={`Счёт сессии: ${score}`} emoji="🏁" pet={showKidsRewards ? userProfile.pet : undefined} xpGained={showKidsRewards ? xpEarned : 0} coinsGained={showKidsRewards ? coinsEarned : 0} primaryLabel="Играть снова" secondaryLabel="В меню" scoreboard={<PersonalScoreboard gameId="anagrams" userKey={userProfile.username} value={solvedCount} direction="higher" unit="слов" />} onPrimary={restartSession} onSecondary={onBack} details={<span>Угадано: <b>{solvedCount}</b> · Не знаю: <b>{skippedCount}</b>{showKidsRewards ? <> · Получено монет: <b>{coinsEarned}</b></> : null}</span>} />
   </div>;
 };
