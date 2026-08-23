@@ -180,10 +180,15 @@ jobs:
             --cores 1 \
             --memory 512M \
             --execution-timeout 30s \
-            --concurrency 16 \
+            --concurrency 8 \
             --environment NODE_ENV=production \
             --environment PORT=8080 \
             --environment DATABASE_URL="$DATABASE_URL" \
+            --environment PGPOOL_MAX=8 \
+            --environment PGPOOL_CONNECTION_TIMEOUT_MS=3000 \
+            --environment DB_SLOW_QUERY_MS=300 \
+            --environment DB_SLOW_POOL_WAIT_MS=100 \
+            --environment AUTH_USER_CACHE_TTL_MS=120000 \
             --environment SESSION_SECRET="$SESSION_SECRET" \
             --environment JWT_SECRET="$JWT_SECRET" \
             --environment COOKIE_SECRET="$COOKIE_SECRET" \

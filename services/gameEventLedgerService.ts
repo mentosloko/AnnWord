@@ -35,6 +35,48 @@ const randomId = (): string => {
 const normalizeWord = (word: string): string => word.trim().toUpperCase();
 const modeFromReward = (input: GameRewardInput): string => input.type;
 
+const EVENT_BATCH_SIZE = 100;
+const EVENT_FLUSH_DELAY_MS = 400;
+let queuedEvents: GameLedgerEvent[] = [];
+let flushTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
+let flushPromise: Promise<void> | null = null;
+
+const flushQueuedEvents = async (): Promise<void> => {
+  if (flushPromise) return flushPromise;
+  if (flushTimer) {
+    globalThis.clearTimeout(flushTimer);
+    flushTimer = null;
+  }
+  flushPromise = (async () => {
+    while (queuedEvents.length) {
+      const batch = queuedEvents.splice(0, EVENT_BATCH_SIZE);
+      try {
+        await backendApiRequest('/api/game-events/events', {
+          method: 'POST',
+          body: { events: batch },
+        });
+      } catch (error) {
+        queuedEvents = [...batch, ...queuedEvents];
+        throw error;
+      }
+    }
+  })().finally(() => {
+    flushPromise = null;
+  });
+  return flushPromise;
+};
+
+const scheduleEventFlush = (): Promise<void> => {
+  if (queuedEvents.length >= 20) return flushQueuedEvents();
+  if (!flushTimer) {
+    flushTimer = globalThis.setTimeout(() => {
+      flushTimer = null;
+      void flushQueuedEvents().catch(error => console.error('Failed to flush game event batch', error));
+    }, EVENT_FLUSH_DELAY_MS);
+  }
+  return Promise.resolve();
+};
+
 export const gameEventLedgerService = {
   createWordPracticeEvent(userId: string, word: string, result: WordPracticeResult, context: WordLedgerContext): GameLedgerEvent | null {
     const normalizedWord = normalizeWord(word);
@@ -86,10 +128,11 @@ export const gameEventLedgerService = {
   async sendNow(events: Array<GameLedgerEvent | null | undefined>): Promise<void> {
     const safeEvents = events.filter((event): event is GameLedgerEvent => Boolean(event));
     if (!safeEvents.length) return;
+    queuedEvents.push(...safeEvents);
+    await scheduleEventFlush();
+  },
 
-    await backendApiRequest('/api/game-events/events', {
-      method: 'POST',
-      body: { events: safeEvents },
-    });
+  async flush(): Promise<void> {
+    await flushQueuedEvents();
   },
 };

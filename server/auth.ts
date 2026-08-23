@@ -2,9 +2,11 @@ import { createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from
 import type { NextFunction, Request, Response } from "express";
 import { query } from "./db";
 import { readRequiredEnv } from "./config";
+import { measureServerTiming } from "./performanceTelemetry";
 
 const SESSION_COOKIE_NAME = "annword_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
+const AUTH_USER_CACHE_TTL_MS = Number.parseInt(process.env.AUTH_USER_CACHE_TTL_MS || "60000", 10);
 
 type SessionPayload = {
   sub: string;
@@ -22,6 +24,22 @@ export type BackendUser = {
 
 export type AuthenticatedRequest = Request & {
   user?: BackendUser;
+};
+
+type CachedBackendUser = { user: BackendUser; expiresAt: number };
+const authUserCache = new Map<string, CachedBackendUser>();
+const authUserInflight = new Map<string, Promise<BackendUser | null>>();
+
+const cacheBackendUser = (user: BackendUser): BackendUser => {
+  authUserCache.set(user.id, { user, expiresAt: Date.now() + AUTH_USER_CACHE_TTL_MS });
+  if (authUserCache.size > 1000) {
+    const now = Date.now();
+    for (const [key, value] of authUserCache) {
+      if (value.expiresAt <= now) authUserCache.delete(key);
+      if (authUserCache.size <= 750) break;
+    }
+  }
+  return user;
 };
 
 function base64urlJson(value: unknown): string {
@@ -68,6 +86,7 @@ export function verifyPassword(password: string, storedHash: string): boolean {
 }
 
 export function createSessionToken(user: BackendUser): string {
+  cacheBackendUser(user);
   const now = Math.floor(Date.now() / 1000);
   const payload: SessionPayload = {
     sub: user.id,
@@ -170,16 +189,16 @@ export async function findUserByEmail(email: string): Promise<(BackendUser & { p
     return null;
   }
 
-  return {
+  const user = cacheBackendUser({
     id: row.id,
     email: row.email,
     name: row.full_name || undefined,
-    passwordHash: row.password_hash,
     passwordResetRequired: row.password_reset_required,
-  };
+  });
+  return { ...user, passwordHash: row.password_hash };
 }
 
-export async function findUserById(userId: string): Promise<BackendUser | null> {
+async function loadUserById(userId: string): Promise<BackendUser | null> {
   const result = await query<{
     id: string;
     email: string;
@@ -192,16 +211,26 @@ export async function findUserById(userId: string): Promise<BackendUser | null> 
     [userId],
   );
   const row = result.rows[0];
-  if (!row) {
-    return null;
-  }
-
-  return {
+  if (!row) return null;
+  return cacheBackendUser({
     id: row.id,
     email: row.email,
     name: row.full_name || undefined,
     passwordResetRequired: row.password_reset_required,
-  };
+  });
+}
+
+export async function findUserById(userId: string): Promise<BackendUser | null> {
+  const cached = authUserCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) return cached.user;
+  if (cached) authUserCache.delete(userId);
+
+  const pending = authUserInflight.get(userId);
+  if (pending) return pending;
+
+  const request = loadUserById(userId).finally(() => authUserInflight.delete(userId));
+  authUserInflight.set(userId, request);
+  return request;
 }
 
 export function validateNewUserInput(email: string, password: string, name?: string): { email: string; passwordHash: string; name: string } {
@@ -241,7 +270,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     return;
   }
 
-  const user = await findUserById(payload.sub);
+  const user = await measureServerTiming("auth", () => findUserById(payload.sub));
   if (!user) {
     res.status(401).json({ error: "Unauthorized" });
     return;

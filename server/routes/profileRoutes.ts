@@ -3,9 +3,16 @@ import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { requireParentAccessForKids } from "../parentAccess";
-import { applyGameResult, getOrCreateProfile, incrementProfileCoins, updateProfileDictionary, updateProfilePet, updateProfileStats } from "../profileRepository";
+import { getOrCreateProfile, updateProfileDictionary, updateProfilePet } from "../profileRepository";
 import { getBootstrapProfile } from "../profileBootstrapRepository";
-import { reconcileProfileMood, syncProfileStateServerAuthoritative, useProfileItemServerAuthoritative } from "../petMoodRepository";
+import {
+  applyGameResultAndReconcileProfile,
+  incrementCoinsAndReconcileProfile,
+  reconcileProfileMood,
+  syncProfileStateServerAuthoritative,
+  updateStatsAndReconcileProfile,
+  useProfileItemServerAuthoritative,
+} from "../petMoodRepository";
 import { getWeeklyReportPreferenceStatus, updateWeeklyReportEmailPreference } from "../weeklyReportProfileRepository";
 import { getParentContactEmail, updateParentContactEmail } from "../parentContactRepository";
 import { listDictionaryCollections, saveDictionaryCollection } from "../dictionaryCollectionRepository";
@@ -13,6 +20,7 @@ import { purchaseProfileItem } from "../purchaseRepository";
 import { getOrCreateDailyQuest } from "../dailyQuestRepository";
 import { insertAnalyticsEvents, insertGameEvents } from "../activityEventRepository";
 import { assignedWordsRouter } from "./assignedWordsRoutes";
+import { measureServerTiming } from "../performanceTelemetry";
 
 export const profileRouter = Router();
 
@@ -40,8 +48,8 @@ profileRouter.get("/bootstrap", async (req: AuthenticatedRequest, res) => {
     }
     const username = user.name || user.email.split("@")[0] || "Пользователь";
     const [profile, quest] = await Promise.all([
-      getBootstrapProfile(user.id, username),
-      getOrCreateDailyQuest(user.id),
+      measureServerTiming("bootstrap_profile", () => getBootstrapProfile(user.id, username)),
+      measureServerTiming("bootstrap_quest", () => getOrCreateDailyQuest(user.id)),
     ]);
     const completedAt = Date.now();
     res.setHeader("Server-Timing", `bootstrap_total;dur=${completedAt - startedAt}`);
@@ -126,8 +134,7 @@ profileRouter.patch("/dictionary", requireParentAccessForKids, async (req: Authe
 
 profileRouter.patch("/stats", async (req: AuthenticatedRequest, res) => {
   try {
-    await updateProfileStats(req.user!.id, req.body?.stats);
-    const profile = await reconcileProfileMood(req.user!.id);
+    const profile = await updateStatsAndReconcileProfile(req.user!.id, req.body?.stats);
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "stats_update_failed", error: error instanceof Error ? error.message : "Stats update failed" });
@@ -156,8 +163,7 @@ profileRouter.patch("/pet", async (req: AuthenticatedRequest, res) => {
 
 profileRouter.post("/coins", async (req: AuthenticatedRequest, res) => {
   try {
-    await incrementProfileCoins(req.user!.id, Number(req.body?.amount || 0));
-    const profile = await reconcileProfileMood(req.user!.id);
+    const profile = await incrementCoinsAndReconcileProfile(req.user!.id, Number(req.body?.amount || 0));
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "coins_update_failed", error: error instanceof Error ? error.message : "Coins update failed" });
@@ -230,9 +236,14 @@ profileRouter.post("/sync-state", async (req: AuthenticatedRequest, res) => {
 
 profileRouter.post("/game-result", async (req: AuthenticatedRequest, res) => {
   try {
-    await applyGameResult(req.user!.id, req.body?.stats, req.body?.pet, Number(req.body?.coinsDelta || 0));
-    await persistActivitySafely(req.user!.id, req.body?.analyticsEvents, req.body?.gameEvents);
-    const profile = await reconcileProfileMood(req.user!.id, true);
+    const profile = await applyGameResultAndReconcileProfile(
+      req.user!.id,
+      req.body?.stats,
+      req.body?.pet,
+      Number(req.body?.coinsDelta || 0),
+      req.body?.analyticsEvents,
+      req.body?.gameEvents,
+    );
     res.json({ profile });
   } catch (error) {
     res.status(400).json({ code: "game_result_update_failed", error: error instanceof Error ? error.message : "Game result update failed" });

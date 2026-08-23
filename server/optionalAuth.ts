@@ -1,5 +1,6 @@
 import type { NextFunction, Response } from "express";
 import { findUserById, readBearerOrCookieToken, verifySessionToken, type AuthenticatedRequest } from "./auth";
+import { measureServerTiming } from "./performanceTelemetry";
 
 /**
  * Resolves a valid AnnWord session when present, but keeps anonymous requests
@@ -10,7 +11,7 @@ export async function optionalAuth(req: AuthenticatedRequest, _res: Response, ne
   try {
     const token = readBearerOrCookieToken(req);
     const payload = token ? verifySessionToken(token) : null;
-    req.user = payload ? await findUserById(payload.sub) || undefined : undefined;
+    req.user = payload ? await measureServerTiming("auth", () => findUserById(payload.sub)) || undefined : undefined;
   } catch (error) {
     console.warn("Optional auth resolution failed", error);
     req.user = undefined;
