@@ -83,7 +83,7 @@ function getPool(): Pool | undefined {
   if (!pool) {
     const createdPool = new Pool({
       connectionString: normalizeDatabaseConnectionString(runtimeConfig.databaseUrl),
-      ssl: { rejectUnauthorized: false },
+      ssl: process.env.PGSSL === "disable" ? false : { rejectUnauthorized: false },
       max: Number.parseInt(process.env.PGPOOL_MAX || "8", 10),
       idleTimeoutMillis: Number.parseInt(process.env.PGPOOL_IDLE_TIMEOUT_MS || "30000", 10),
       connectionTimeoutMillis: Number.parseInt(process.env.PGPOOL_CONNECTION_TIMEOUT_MS || "5000", 10),
