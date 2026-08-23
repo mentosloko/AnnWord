@@ -2,6 +2,7 @@ import type { PoolClient } from "pg";
 import { query, transaction } from "./db";
 import { mapProfileFromDB, normalizeDictionaryField, normalizeInventory, normalizePet, normalizeStats } from "../services/profileMapper";
 import type { AccountMode, PetState, UserProfile, UserStats } from "../types";
+import { hydrateProfileAssignments } from "./profileHydration";
 
 export const PROFILE_COLUMNS = `
   id,
@@ -48,10 +49,6 @@ const DEFAULT_STATS: UserStats = {
   wordLearningHistory: {},
 };
 
-const cleanWords = (value: unknown): string[] => Array.isArray(value)
-  ? Array.from(new Set(value.filter((word): word is string => typeof word === "string").map((word) => word.trim().toUpperCase()).filter(Boolean)))
-  : [];
-
 const mergeNumberMaps = (current: Record<string, number> = {}, incoming: Record<string, number> = {}): Record<string, number> => {
   const next = { ...current };
   Object.entries(incoming).forEach(([key, value]) => {
@@ -60,7 +57,7 @@ const mergeNumberMaps = (current: Record<string, number> = {}, incoming: Record<
   return next;
 };
 
-const mergeStatsForSave = (currentRaw: unknown, incomingRaw: unknown): UserStats => {
+export const mergeStatsForSave = (currentRaw: unknown, incomingRaw: unknown): UserStats => {
   const current = normalizeStats(currentRaw || DEFAULT_STATS);
   const incoming = normalizeStats(incomingRaw || DEFAULT_STATS);
   return {
@@ -81,7 +78,7 @@ const mergeStatsForSave = (currentRaw: unknown, incomingRaw: unknown): UserStats
   };
 };
 
-const mergePetForSave = (currentRaw: unknown, incomingRaw: unknown): PetState => {
+export const mergePetForSave = (currentRaw: unknown, incomingRaw: unknown): PetState => {
   const current = normalizePet(currentRaw || DEFAULT_PET);
   const incoming = normalizePet(incomingRaw || DEFAULT_PET);
   const currentWorldAt = current.activeWorldDate ? Date.parse(current.activeWorldDate) : Number.NaN;
@@ -138,28 +135,8 @@ async function applyAccountModeWithClient(client: PoolClient, userId: string, mo
   return mapProfileFromDB(result.rows[0]);
 }
 
-
-async function addAssignedWords(userId: string, profile: UserProfile): Promise<UserProfile> {
-  const result = await query<{ words: string[] }>(
-    `select coalesce(words, '{}') as words
-       from assigned_word_sets
-      where learner_user_id = $1
-        and archived_at is null
-      order by created_at desc
-      limit 1`,
-    [userId],
-  );
-  const assignedWords = cleanWords(result.rows[0]?.words);
-  if (!assignedWords.length) return profile;
-  return {
-    ...profile,
-    assignedWords,
-    customDictionaryEn: Array.from(new Set([...(profile.customDictionaryEn || []), ...assignedWords])),
-  };
-}
-
 async function mapProfile(userId: string, row: unknown): Promise<UserProfile> {
-  return addAssignedWords(userId, mapProfileFromDB(row));
+  return hydrateProfileAssignments(userId, mapProfileFromDB(row));
 }
 
 export async function getProfileById(userId: string): Promise<UserProfile | null> {
