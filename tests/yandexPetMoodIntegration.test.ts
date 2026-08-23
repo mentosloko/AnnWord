@@ -4,11 +4,14 @@ import { describe, expect, it } from 'vitest';
 const read = (path: string) => readFileSync(path, 'utf8');
 
 describe('Yandex pet mood integration', () => {
-  it('reconciles mood on profile reads and after game writes', () => {
+  it('reconciles mood on profile reads and inside the optimized game-result transaction', () => {
     const routes = read('server/routes/profileRoutes.ts');
+    const repository = read('server/petMoodRepository.ts');
     expect(routes).toContain('const profile = await reconcileProfileMood(user.id);');
-    expect(routes).toContain('const profile = await reconcileProfileMood(req.user!.id, true);');
-    expect(routes.indexOf('await applyGameResult')).toBeLessThan(routes.lastIndexOf('reconcileProfileMood(req.user!.id, true)'));
+    expect(routes).toContain('applyGameResultAndReconcileProfile');
+    expect(repository).toContain('export const applyGameResultAndReconcileProfile');
+    expect(repository).toContain('const nextPet = reconcilePet(mergedPet, serverNowMs(row), true);');
+    expect(repository).toContain('markServerPetActivity(clock.pet, today, previousMoscowDateKey(nowMs))');
   });
 
   it('uses a server-authoritative item endpoint in Yandex production', () => {
