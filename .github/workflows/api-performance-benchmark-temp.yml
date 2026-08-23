@@ -1,0 +1,46 @@
+name: API Performance Benchmark
+
+on:
+  push:
+    branches:
+      - agent/api-performance-pass
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: annword_perf
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d annword_perf"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/annword_perf
+      PGSSL: disable
+      JWT_SECRET: annword-api-performance-benchmark-secret
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - name: Typecheck
+        run: npm run lint
+      - name: Unit and regression tests
+        run: npm run test:run
+      - name: Cold-warm API benchmark and starvation smoke
+        run: npx tsx scripts/api-performance-benchmark.ts
