@@ -23,10 +23,16 @@ describe('API performance regression guards', () => {
     expect(routes).not.toContain('await applyGameResult(');
   });
 
-  it('keeps production runtime DDL out of the cold-start path', () => {
+  it('keeps runtime DDL out of request startup while applying private migrations before API start', () => {
     const api = source('server/yandex-api.ts');
+    const dockerfile = source('Dockerfile.api');
+    const migrate = source('scripts/yandex-db-migrate.ts');
     expect(api).toContain('RUNTIME_SCHEMA_ENSURE');
     expect(api).toContain('Runtime schema DDL skipped');
+    expect(dockerfile).toContain('db:yandex:migrate && npm run api:start');
+    expect(migrate).toContain('pg_advisory_lock');
+    expect(migrate).toContain('pg_advisory_unlock');
+    expect(migrate).toContain('GITHUB_ACTIONS');
   });
 
   it('aligns Yandex request concurrency with the database pool', () => {
@@ -35,14 +41,31 @@ describe('API performance regression guards', () => {
     expect(workflow).toContain('--environment PGPOOL_MAX=8');
   });
 
-  it('has a covering active assignment index and existing event/quest indexes', () => {
+  it('keeps unbounded assignment words out of B-tree indexes', () => {
     const migration = source('db/yandex/20260824_api_performance_indexes.sql');
+    const correctiveMigration = source('db/yandex/20260824_api_performance_index_fix.sql');
     const activity = source('db/yandex/005_activity_services.sql');
-    expect(migration).toContain('include (words)');
+    expect(migration).toContain('assigned_word_sets_learner_active_idx');
+    expect(migration).not.toContain('include (words)');
     expect(migration).toContain('where archived_at is null');
+    expect(correctiveMigration).toContain('drop index if exists public.assigned_word_sets_learner_active_cover_idx');
+    expect(correctiveMigration).toContain('analytics_events_performance_time_idx');
     expect(activity).toContain('primary key (user_id, quest_date)');
     expect(activity).toContain('game_events_user_time_idx');
     expect(activity).toContain('analytics_events_user_time_idx');
+  });
+
+  it('keeps admin performance analytics filterable by period release and warm state', () => {
+    const routes = source('server/routes/analyticsRoutes.ts');
+    const adminScreen = source('components/screens/AdminAnalyticsScreen.tsx');
+    expect(routes).toContain('performanceDays');
+    expect(routes).toContain('performanceRelease');
+    expect(routes).toContain('performanceWarmState');
+    expect(routes).toContain("payload->>'coldStart'");
+    expect(routes).toContain("payload->>'releaseSha'");
+    expect(adminScreen).toContain('Cold p95');
+    expect(adminScreen).toContain('Warm p95');
+    expect(adminScreen).toContain('Все релизы');
   });
 
   it('batches word-level ledger requests instead of posting every event immediately', () => {
@@ -64,10 +87,23 @@ describe('request timing telemetry', () => {
       return getServerTimingHeader();
     });
 
+    expect(header).toMatch(/cold_start;dur=[01]/);
     expect(header).toContain('auth;dur=12.3');
     expect(header).toContain('db_wait;dur=4.2');
     expect(header).toContain('db_query;dur=10.5;desc="2 ops"');
     expect(header).toContain('hydrate;dur=1.1');
+  });
+
+  it('tags request telemetry with the deployed release SHA', () => {
+    const previous = process.env.RELEASE_SHA;
+    process.env.RELEASE_SHA = '97a50b40f6d0902822444b8f6c72d5c1112af85e';
+    try {
+      const header = runWithRequestPerformance(() => getServerTimingHeader());
+      expect(header).toContain('release_97a50b40f6d0;dur=0');
+    } finally {
+      if (previous === undefined) delete process.env.RELEASE_SHA;
+      else process.env.RELEASE_SHA = previous;
+    }
   });
 });
 
