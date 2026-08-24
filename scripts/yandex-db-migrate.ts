@@ -10,6 +10,7 @@ const MIGRATION_WAIT_ATTEMPTS = 60;
 const MIGRATION_WAIT_MS = 250;
 
 const sleep = (durationMs: number): Promise<void> => new Promise(resolve => setTimeout(resolve, durationMs));
+const errorCode = (error: unknown): string | undefined => (error as { code?: string } | null)?.code;
 
 async function listMigrationFiles(): Promise<string[]> {
   return (await readdir(migrationsDir))
@@ -22,8 +23,7 @@ async function readAppliedVersions(): Promise<Set<string> | null> {
     const applied = await query<{ version: string }>("select version from public.annword_schema_migrations");
     return new Set(applied.rows.map(row => row.version));
   } catch (error) {
-    const code = (error as { code?: string } | null)?.code;
-    if (code === "42P01") return null;
+    if (errorCode(error) === "42P01") return null;
     throw error;
   }
 }
@@ -112,6 +112,17 @@ async function applyMigrationsWithLock(client: PoolClient, files: string[]): Pro
   console.log("Yandex PostgreSQL migrations applied.");
 }
 
+async function hasPendingMigrationsOnClient(client: PoolClient, files: string[]): Promise<boolean> {
+  try {
+    const applied = await client.query<{ version: string }>("select version from public.annword_schema_migrations");
+    const appliedVersions = new Set(applied.rows.map(row => row.version));
+    return files.some(file => !appliedVersions.has(file));
+  } catch (error) {
+    if (errorCode(error) === "42P01") return true;
+    throw error;
+  }
+}
+
 async function runMigrationsIfNeeded(): Promise<void> {
   const files = await listMigrationFiles();
   if (!files.length) {
@@ -141,9 +152,7 @@ async function runMigrationsIfNeeded(): Promise<void> {
       acquired = result.rows[0]?.acquired === true;
       if (acquired) {
         // Re-check after acquiring the lock because another instance may have finished first.
-        const applied = await client.query<{ version: string }>("select version from public.annword_schema_migrations").catch(() => ({ rows: [] } as any));
-        const appliedVersions = new Set(applied.rows.map(row => row.version));
-        if (files.some(file => !appliedVersions.has(file))) {
+        if (await hasPendingMigrationsOnClient(client, files)) {
           await applyMigrationsWithLock(client, files);
         }
         return;
