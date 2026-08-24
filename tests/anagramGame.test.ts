@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAnagramDictionary, getIncorrectGuessPositions } from '../components/AnagramGame';
+import { buildAnagramDictionary, getIncorrectGuessPositions, getIncorrectGuessPositionsAfterAttempt } from '../components/AnagramGame';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 
 describe('AnagramGame dictionary', () => {
@@ -32,5 +32,13 @@ describe('AnagramGame mistake feedback', () => {
 
   it('does not mark letters that already match the target position', () => {
     expect(getIncorrectGuessPositions('BOOK', 'BOOK')).toEqual([]);
+  });
+
+  it('does not highlight the first wrong attempt', () => {
+    expect(getIncorrectGuessPositionsAfterAttempt('BOKO', 'BOOK', 1)).toEqual([]);
+  });
+
+  it('highlights wrong positions after the second wrong attempt', () => {
+    expect(getIncorrectGuessPositionsAfterAttempt('BOKO', 'BOOK', 2)).toEqual([2, 3]);
   });
 });
