@@ -10,6 +10,8 @@ export type RequestLoadingMetric = {
   ok: boolean;
   timedOut: boolean;
   deduplicated: boolean;
+  coldStart: boolean | null;
+  releaseSha: string | null;
   serverTiming: ServerTimingMetric;
 };
 
