@@ -30,8 +30,10 @@ describe('API performance regression guards', () => {
     expect(api).toContain('RUNTIME_SCHEMA_ENSURE');
     expect(api).toContain('Runtime schema DDL skipped');
     expect(dockerfile).toContain('db:yandex:migrate && npm run api:start');
-    expect(migrate).toContain('pg_advisory_lock');
+    expect(migrate).toContain('Yandex PostgreSQL migrations already current.');
+    expect(migrate).toContain('pg_try_advisory_lock');
     expect(migrate).toContain('pg_advisory_unlock');
+    expect(migrate).toContain('Do not hold a database connection');
     expect(migrate).toContain('GITHUB_ACTIONS');
   });
 
@@ -58,6 +60,7 @@ describe('API performance regression guards', () => {
   it('keeps admin performance analytics filterable by period release and warm state', () => {
     const routes = source('server/routes/analyticsRoutes.ts');
     const adminScreen = source('components/screens/AdminAnalyticsScreen.tsx');
+    const analytics = source('services/analyticsService.ts');
     expect(routes).toContain('performanceDays');
     expect(routes).toContain('performanceRelease');
     expect(routes).toContain('performanceWarmState');
@@ -66,6 +69,9 @@ describe('API performance regression guards', () => {
     expect(adminScreen).toContain('Cold p95');
     expect(adminScreen).toContain('Warm p95');
     expect(adminScreen).toContain('Все релизы');
+    expect(analytics).toContain("'/api/profile/stats'");
+    expect(analytics).toContain("'/api/profile/game-result'");
+    expect(analytics).toContain("'/api/game-events/events'");
   });
 
   it('batches word-level ledger requests instead of posting every event immediately', () => {
