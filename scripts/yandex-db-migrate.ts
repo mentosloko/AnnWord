@@ -1,9 +1,10 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import { closeDatabasePool, query, transaction } from "../server/db";
+import { closeDatabasePool, query, requirePool, transaction } from "../server/db";
 
 const migrationsDir = path.resolve(process.cwd(), "db", "yandex");
 const historicalMigrationPattern = /^\d{3}_.+\.sql$/;
+const MIGRATION_ADVISORY_LOCK_ID = "7643829012456712";
 
 async function baselineExistingProductionSchema(files: string[], appliedVersions: Set<string>): Promise<void> {
   const schema = await query<{ has_app_users: boolean; has_profiles: boolean }>(`
@@ -40,12 +41,18 @@ async function baselineExistingProductionSchema(files: string[], appliedVersions
   console.log(`Existing Yandex schema baselined with ${historical.length} historical migration(s).`);
 }
 
-async function main(): Promise<void> {
-  if (process.env.GITHUB_ACTIONS === "true") {
-    console.log("Yandex PostgreSQL migrations are deferred to backend container startup because Managed PostgreSQL is private.");
-    return;
+async function withMigrationLock<T>(operation: () => Promise<T>): Promise<T> {
+  const client = await requirePool().connect();
+  try {
+    await client.query("select pg_advisory_lock($1::bigint)", [MIGRATION_ADVISORY_LOCK_ID]);
+    return await operation();
+  } finally {
+    await client.query("select pg_advisory_unlock($1::bigint)", [MIGRATION_ADVISORY_LOCK_ID]).catch(() => undefined);
+    client.release();
   }
+}
 
+async function runMigrations(): Promise<void> {
   const files = (await readdir(migrationsDir))
     .filter((file) => file.endsWith(".sql"))
     .sort((a, b) => a.localeCompare(b));
@@ -89,6 +96,15 @@ async function main(): Promise<void> {
   }
 
   console.log("Yandex PostgreSQL migrations applied.");
+}
+
+async function main(): Promise<void> {
+  if (process.env.GITHUB_ACTIONS === "true") {
+    console.log("Yandex PostgreSQL migrations are deferred to backend container startup because Managed PostgreSQL is private.");
+    return;
+  }
+
+  await withMigrationLock(runMigrations);
 }
 
 main()
