@@ -51,6 +51,9 @@ export const getIncorrectGuessPositions = (guess: string, solvedWord: string): n
   Array.from({ length: Math.max(guess.length, solvedWord.length) }, (_, index) => index)
     .filter(index => guess[index] !== solvedWord[index]);
 
+export const getIncorrectGuessPositionsAfterAttempt = (guess: string, solvedWord: string, wrongAttempts: number): number[] =>
+  wrongAttempts >= MAX_WRONG_ATTEMPTS ? getIncorrectGuessPositions(guess, solvedWord) : [];
+
 const loadSession = (username: string): SavedAnagramSession => {
   const parsed = legacySessionKeys(username).reduce(
     (session, key) => readStoredGameSession<SavedAnagramSession>(key, session),
@@ -168,7 +171,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     const guess = guessLetters.map(item => item.char).join('');
     setSkippedCount(previous => previous + 1);
     setStatus('skipped');
-    setIncorrectGuessPositions(getIncorrectGuessPositions(guess, solvedWord));
+    setIncorrectGuessPositions(getIncorrectGuessPositionsAfterAttempt(guess, solvedWord, MAX_WRONG_ATTEMPTS));
     setMessage(`Правильный ответ: ${solvedWord} — ${currentWord?.translation}. Две ошибки: слово добавлено для повторения.`);
     clearNextWordTimeout();
   };
@@ -200,7 +203,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     registerPractice(solvedWord, 'failed');
     const nextWrongAttempts = wrongAttempts + 1;
     setWrongAttempts(nextWrongAttempts);
-    setIncorrectGuessPositions(getIncorrectGuessPositions(guess, solvedWord));
+    setIncorrectGuessPositions(getIncorrectGuessPositionsAfterAttempt(guess, solvedWord, nextWrongAttempts));
     if (nextWrongAttempts >= MAX_WRONG_ATTEMPTS) {
       finishWordAfterLimit(solvedWord, guessLetters);
       return;
@@ -208,7 +211,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     clearNextWordTimeout();
     isCheckingRef.current = false;
     setStatus('playing');
-    setMessage(`Неверно. Исправьте подсвеченные буквы. Осталась ${MAX_WRONG_ATTEMPTS - nextWrongAttempts} попытка.`);
+    setMessage(`Неверно. Попробуйте ещё раз. Осталась ${MAX_WRONG_ATTEMPTS - nextWrongAttempts} попытка.`);
   };
 
   const handleLetterClick = (letter: string, index: number) => {
