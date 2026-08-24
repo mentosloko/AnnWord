@@ -33,29 +33,52 @@ jobs:
           yc config set cloud-id "$YC_CLOUD"
           yc config set folder-id "$YC_FOLDER"
 
-      - name: Read and summarize retained logs
+      - name: Read focused log sets
         env:
           CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
         run: |
           set -euo pipefail
           FROM="$(date -u -d '71 hours ago' +'%Y-%m-%dT%H:%M:%SZ')"
           UNTIL="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          echo "Reading logs from $FROM through $UNTIL"
-          yc logging read --resource-ids="$CONTAINER_ID" --since="$FROM" --until="$UNTIL" --limit=1000 --max-response-size=20MB --format=json > /tmp/logs.json
+          base=(--resource-ids="$CONTAINER_ID" --since="$FROM" --until="$UNTIL" --limit=1000 --max-response-size=20MB --format=json)
+          yc logging read "${base[@]}" --levels=WARN,ERROR,FATAL > /tmp/warn.json
+          yc logging read "${base[@]}" --filter='message: "Function Init Duration"' > /tmp/cold.json
+          yc logging read "${base[@]}" --filter='message: "db_pool_wait_slow"' > /tmp/pool.json
+          yc logging read "${base[@]}" --filter='message: "db_query_slow"' > /tmp/query.json
+          yc logging read "${base[@]}" --filter='message: "db_transaction_slow"' > /tmp/tx.json
           node <<'NODE'
           const fs=require('fs');
-          const raw=JSON.parse(fs.readFileSync('/tmp/logs.json','utf8'));
-          const rows=Array.isArray(raw)?raw:[];
+          const load=f=>{const x=JSON.parse(fs.readFileSync(f,'utf8'));return Array.isArray(x)?x:[]};
+          const warns=load('/tmp/warn.json'), cold=load('/tmp/cold.json'), pool=load('/tmp/pool.json'), query=load('/tmp/query.json'), tx=load('/tmp/tx.json');
           const p=e=>e.json_payload||e.jsonPayload||{};
-          const txt=e=>[e.message,JSON.stringify(p(e))].filter(Boolean).join(' ');
-          const scrub=s=>String(s||'').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'<email>').replace(/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/gi,'<id>').slice(0,1000);
-          const bad=rows.filter(e=>['WARN','ERROR','FATAL'].includes(String(e.level||'').toUpperCase())||/(timeout|timed out|deadline|504|503|502|500|econn|connection|pool|slow|postgres|database|deadlock|cancel|abort|socket|reset|unavailable|memory)/i.test(txt(e)));
-          const sig={};
-          for(const e of bad){const s=txt(e).replace(/\b\d+(?:\.\d+)?\s*(?:ms|s)\b/gi,'<duration>').replace(/\b\d{2,}\b/g,'<n>').replace(/\s+/g,' ').slice(0,300);sig[s]=(sig[s]||0)+1;}
-          console.log(JSON.stringify({total:rows.length,suspicious:bad.length},null,2));
-          console.log('TOP');
-          for(const [s,c] of Object.entries(sig).sort((a,b)=>b[1]-a[1]).slice(0,50)) console.log(`${c}x ${scrub(s)}`);
-          console.log('RECENT');
-          for(const e of bad.slice(-200)) console.log(`${e.timestamp||''} [${e.level||''}] ${scrub(txt(e))}`);
+          const text=e=>String(e.message||'');
+          const percentile=(a,pct)=>{if(!a.length)return null;const s=[...a].sort((a,b)=>a-b);return s[Math.min(s.length-1,Math.ceil(s.length*pct)-1)]};
+          const stats=a=>({count:a.length,min:a.length?Math.min(...a):null,p50:percentile(a,.5),p95:percentile(a,.95),max:a.length?Math.max(...a):null,avg:a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null});
+          const init=cold.map(e=>Number(text(e).match(/Function Init Duration:\s*([0-9.]+)/i)?.[1])).filter(Number.isFinite);
+          const waits=pool.map(e=>Number(text(e).match(/durationMs:\s*([0-9.]+)/i)?.[1])).filter(Number.isFinite);
+          const qs=query.map(e=>Number(text(e).match(/durationMs:\s*([0-9.]+)/i)?.[1])).filter(Number.isFinite);
+          const txs=tx.map(e=>Number(text(e).match(/durationMs:\s*([0-9.]+)/i)?.[1])).filter(Number.isFinite);
+          const httpStatuses={}, httpRoutes={}, errors={};
+          for(const e of warns){
+            const j=p(e), msg=text(e);
+            if(j.event==='http_request'){
+              const k=String(j.status??'unknown');httpStatuses[k]=(httpStatuses[k]||0)+1;
+              const rk=`${j.method||'?'} ${j.path||'?' } -> ${k}`;httpRoutes[rk]=(httpRoutes[rk]||0)+1;
+            }
+            let type='other';
+            if(j.event==='db_pool_idle_error'||/PostgreSQL idle client error/i.test(msg)) type='db_idle_reset';
+            else if(/Code:\s*499|request cancelled/i.test(msg)) type='platform_499';
+            else if(/Code:\s*504|timeout/i.test(msg)) type='platform_timeout';
+            else if(/Code:\s*5\d\d/i.test(msg)) type='platform_5xx';
+            else if(j.event==='http_request'&&Number(j.status)>=500) type='app_5xx';
+            else if(j.event==='http_request'&&Number(j.status)>=400) type='http_4xx';
+            errors[type]=(errors[type]||0)+1;
+          }
+          console.log('=== FOCUSED SUMMARY ===');
+          console.log(JSON.stringify({warnErrorFatal:warns.length,errorClasses:errors,httpStatuses,coldInitMs:stats(init),dbPoolWaitMs:stats(waits),slowQueryMs:stats(qs),slowTransactionMs:stats(txs)},null,2));
+          console.log('=== WARN/ERROR ROUTES ===');
+          for(const [k,v] of Object.entries(httpRoutes).sort((a,b)=>b[1]-a[1]).slice(0,40)) console.log(`${v}x ${k}`);
+          console.log('=== PLATFORM FAILURES ===');
+          for(const e of warns.filter(e=>/ERROR RequestID|Code:\s*49\d|Code:\s*5\d\d|request cancelled|timeout/i.test(text(e)))) console.log(`${e.timestamp||''} [${e.level||''}] ${text(e).replace(/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/gi,'<id>').slice(0,700)}`);
           NODE
-          rm -f /tmp/logs.json /tmp/key.json
+          rm -f /tmp/key.json /tmp/warn.json /tmp/cold.json /tmp/pool.json /tmp/query.json /tmp/tx.json
