@@ -196,6 +196,7 @@ app.use(
       callback(null, allowed);
     },
     credentials: true,
+    maxAge: 3600,
   }),
 );
 
