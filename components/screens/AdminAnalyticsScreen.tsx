@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { adminAnalyticsService, AdminAnalyticsSnapshot, AdminGameDateRange } from '../../services/adminAnalyticsService';
+import { adminAnalyticsService, AdminAnalyticsSnapshot, AdminGameDateRange, AdminLoadingPerformanceQuery } from '../../services/adminAnalyticsService';
 import { UserProfile } from '../../types';
 
 interface AdminAnalyticsScreenProps { userProfile: UserProfile; onBackHome: () => void; }
@@ -9,9 +9,11 @@ const formatEventName = (name: string): string => ({ game_started: 'Игра н�
 const PREMIUM_FUNNEL_EVENTS = ['premium_opened', 'premium_plan_selected', 'checkout_created', 'checkout_redirected', 'payment_return_pending', 'payment_return_success', 'premium_activated', 'payment_return_failed', 'payment_error'] as const;
 const formatDate = (value: string): string => { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' }); };
 const formatDuration = (value: number): string => value >= 1000 ? `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)} с` : `${Math.round(value)} мс`;
+const formatSplitDuration = (requests: number, p95: number): string => requests > 0 ? `${formatDuration(p95)} · ${requests}` : '—';
 const isoDate = (date: Date): string => date.toISOString().slice(0, 10);
 const shiftDate = (value: string, days: number): string => { const date = new Date(`${value}T00:00:00.000Z`); date.setUTCDate(date.getUTCDate() + days); return isoDate(date); };
 const initialGameRange = (): AdminGameDateRange => { const to = isoDate(new Date()); return { from: shiftDate(to, -6), to }; };
+const initialLoadingQuery = (): AdminLoadingPerformanceQuery => ({ days: 7, releaseSha: null, warmState: 'all' });
 const completionRate = (started: number, finished: number): string => started > 0 ? `${Math.min(100, Math.round((finished / started) * 100))}%` : '—';
 const StatCard: React.FC<{ label: string; value: number | string; hint?: string }> = ({ label, value, hint }) => <div className="rounded-3xl border border-indigo-100 bg-white p-5 shadow-sm"><div className="text-xs font-black uppercase tracking-widest text-indigo-300">{label}</div><div className="mt-2 text-3xl font-black text-indigo-950">{value}</div>{hint && <div className="mt-1 text-xs font-semibold text-gray-400">{hint}</div>}</div>;
 
@@ -22,6 +24,7 @@ export const AdminAnalyticsScreen: React.FC<AdminAnalyticsScreenProps> = ({ user
   const [isExporting, setIsExporting] = useState(false);
   const [gameRange, setGameRange] = useState<AdminGameDateRange>(() => initialGameRange());
   const [gameRangeDraft, setGameRangeDraft] = useState<AdminGameDateRange>(() => initialGameRange());
+  const [loadingQuery, setLoadingQuery] = useState<AdminLoadingPerformanceQuery>(() => initialLoadingQuery());
   const isAdmin = userProfile.role === 'admin';
 
   useEffect(() => {
@@ -29,12 +32,12 @@ export const AdminAnalyticsScreen: React.FC<AdminAnalyticsScreenProps> = ({ user
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    adminAnalyticsService.loadSnapshot(gameRange)
+    adminAnalyticsService.loadSnapshot(gameRange, loadingQuery)
       .then(data => { if (!cancelled) setSnapshot(data); })
       .catch(() => { if (!cancelled) setError('Не удалось загрузить аналитику'); })
       .finally(() => { if (!cancelled) setIsLoading(false); });
     return () => { cancelled = true; };
-  }, [gameRange.from, gameRange.to, isAdmin]);
+  }, [gameRange.from, gameRange.to, loadingQuery.days, loadingQuery.releaseSha, loadingQuery.warmState, isAdmin]);
 
   const totals = useMemo(() => {
     const gameRows = snapshot?.gameStats || [];
@@ -85,7 +88,19 @@ export const AdminAnalyticsScreen: React.FC<AdminAnalyticsScreenProps> = ({ user
 
       <section className="rounded-[2rem] border border-violet-100 bg-white p-5 shadow-sm"><div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-xl font-black text-indigo-950">Воронка Premium</h2><p className="mt-1 text-sm font-semibold text-gray-500">События последних 1000 записей аналитики.</p></div><div className="rounded-2xl bg-violet-50 px-4 py-2 text-sm font-black text-violet-700">{premiumFunnel.reduce((sum, item) => sum + item.count, 0)} событий</div></div><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{premiumFunnel.map(item => <div key={item.eventName} className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4"><div className="text-sm font-black text-indigo-950">{formatEventName(item.eventName)}</div><div className="mt-2 text-3xl font-black text-violet-700">{item.count}</div></div>)}</div></section>
 
-      <section className="rounded-[2rem] border border-sky-100 bg-white p-5 shadow-sm"><div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-xl font-black text-indigo-950">Скорость загрузки API</h2><p className="mt-1 text-sm font-semibold text-gray-500">Клиентское ожидание за последние 7 дней. p95 — время, быстрее которого завершились 95% запросов.</p></div><div className="rounded-2xl bg-sky-50 px-4 py-2 text-sm font-black text-sky-700">{snapshot.loadingPerformance.reduce((sum, row) => sum + row.requests, 0)} измерений</div></div><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="text-xs uppercase tracking-widest text-sky-400"><tr><th className="py-3">Маршрут</th><th>Запросов</th><th>Среднее</th><th>p95</th><th>Ошибок</th><th>Таймаутов</th><th>Объединено</th></tr></thead><tbody className="divide-y divide-sky-50 font-semibold text-gray-600">{snapshot.loadingPerformance.map(row => <tr key={row.path}><td className="py-3 font-mono text-xs font-black text-indigo-900">{row.path}</td><td>{row.requests}</td><td>{formatDuration(row.avg_duration_ms)}</td><td>{formatDuration(row.p95_duration_ms)}</td><td>{row.errors}</td><td>{row.timeouts}</td><td>{row.deduplicated}</td></tr>)}{snapshot.loadingPerformance.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-gray-400">Метрики появятся после использования новой версии приложения.</td></tr>}</tbody></table></div></section>
+      <section className="rounded-[2rem] border border-sky-100 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div><h2 className="text-xl font-black text-indigo-950">Скорость загрузки API</h2><p className="mt-1 text-sm font-semibold text-gray-500">Клиентское ожидание за последние {snapshot.loadingPerformanceFilters.days} дн. p95 — время, быстрее которого завершились 95% запросов.</p></div>
+          <div className="rounded-2xl bg-sky-50 px-4 py-2 text-sm font-black text-sky-700">{snapshot.loadingPerformance.reduce((sum, row) => sum + row.requests, 0)} измерений</div>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <label className="text-xs font-black uppercase tracking-widest text-sky-500">Период<select value={loadingQuery.days} onChange={event => setLoadingQuery(previous => ({ ...previous, days: Number(event.target.value) }))} className="mt-1 block w-full rounded-2xl border-2 border-sky-100 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-indigo-950 outline-none focus:border-sky-400"><option value={1}>1 день</option><option value={3}>3 дня</option><option value={7}>7 дней</option><option value={14}>14 дней</option><option value={30}>30 дней</option><option value={90}>90 дней</option></select></label>
+          <label className="text-xs font-black uppercase tracking-widest text-sky-500">Релиз<select value={loadingQuery.releaseSha || ''} onChange={event => setLoadingQuery(previous => ({ ...previous, releaseSha: event.target.value || null }))} className="mt-1 block w-full rounded-2xl border-2 border-sky-100 bg-white px-3 py-2.5 font-mono text-sm font-bold normal-case tracking-normal text-indigo-950 outline-none focus:border-sky-400"><option value="">Все релизы</option>{snapshot.loadingPerformanceFilters.releases.map(release => <option key={release.release_sha} value={release.release_sha}>{release.release_sha} · {release.requests}</option>)}</select></label>
+          <label className="text-xs font-black uppercase tracking-widest text-sky-500">Состояние<select value={loadingQuery.warmState} onChange={event => setLoadingQuery(previous => ({ ...previous, warmState: event.target.value as AdminLoadingPerformanceQuery['warmState'] }))} className="mt-1 block w-full rounded-2xl border-2 border-sky-100 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-indigo-950 outline-none focus:border-sky-400"><option value="all">Все запросы</option><option value="cold">Только cold start</option><option value="warm">Только warm</option></select></label>
+        </div>
+        <div className="mt-3 rounded-2xl bg-sky-50/70 px-4 py-3 text-xs font-semibold text-sky-800">Cold/warm и release SHA появляются начиная с этой версии. Старые измерения остаются в общей статистике, но не относятся к cold/warm.</div>
+        <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[1080px] text-left text-sm"><thead className="text-xs uppercase tracking-widest text-sky-400"><tr><th className="py-3">Маршрут</th><th>Запросов</th><th>Среднее</th><th>p95</th><th>Cold p95 · n</th><th>Warm p95 · n</th><th>Ошибок</th><th>Таймаутов</th><th>Объединено</th></tr></thead><tbody className="divide-y divide-sky-50 font-semibold text-gray-600">{snapshot.loadingPerformance.map(row => <tr key={row.path}><td className="py-3 font-mono text-xs font-black text-indigo-900">{row.path}</td><td>{row.requests}</td><td>{formatDuration(row.avg_duration_ms)}</td><td>{formatDuration(row.p95_duration_ms)}</td><td>{formatSplitDuration(row.cold_requests, row.cold_p95_duration_ms)}</td><td>{formatSplitDuration(row.warm_requests, row.warm_p95_duration_ms)}</td><td>{row.errors}</td><td>{row.timeouts}</td><td>{row.deduplicated}</td></tr>)}{snapshot.loadingPerformance.length === 0 && <tr><td colSpan={9} className="py-6 text-center text-gray-400">За выбранный период и фильтры измерений нет.</td></tr>}</tbody></table></div>
+      </section>
 
       <section className="rounded-[2rem] border border-indigo-100 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
