@@ -46,7 +46,7 @@ jobs:
           set -euo pipefail
           yc logging read \
             --resource-ids="$YC_SERVERLESS_CONTAINER_ID" \
-            --since='7d ago' \
+            --since='168h' \
             --limit=1000 \
             --max-response-size=20MB \
             --format=json > /tmp/annword-api-logs.json
