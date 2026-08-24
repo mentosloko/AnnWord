@@ -39,39 +39,83 @@ jobs:
           yc config set cloud-id "$YC_CLOUD_ID"
           yc config set folder-id "$YC_FOLDER_ID"
 
-      - name: Read API container logs
+      - name: Discover logging resources
         env:
-          YC_SERVERLESS_CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
+          CONFIGURED_CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
+        run: |
+          set -euo pipefail
+          yc serverless container list --format=json > /tmp/containers.json
+          yc logging group list --format=json > /tmp/log-groups.json
+          echo '=== SERVERLESS CONTAINERS ==='
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/containers.json','utf8'));
+          const a=Array.isArray(x)?x:(x.containers||x.items||[]);
+          for(const c of a) console.log(JSON.stringify({id:c.id,name:c.name,created_at:c.created_at||c.createdAt||null}));
+          NODE
+          echo '=== LOG GROUPS ==='
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/log-groups.json','utf8'));
+          const a=Array.isArray(x)?x:(x.groups||x.items||[]);
+          for(const g of a) console.log(JSON.stringify({id:g.id,name:g.name,retention_period:g.retention_period||g.retentionPeriod||null}));
+          NODE
+
+      - name: Read default log group
         run: |
           set -euo pipefail
           yc logging read \
-            --resource-ids="$YC_SERVERLESS_CONTAINER_ID" \
+            --group-name=default \
             --since='168h' \
             --limit=1000 \
             --max-response-size=20MB \
             --format=json > /tmp/annword-api-logs.json
-          node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("/tmp/annword-api-logs.json","utf8")); console.log(`Fetched ${Array.isArray(a)?a.length:0} log entries`);'
+          node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("/tmp/annword-api-logs.json","utf8")); console.log(`Fetched ${Array.isArray(a)?a.length:0} default-group log entries`);'
 
       - name: Summarize errors and timeouts
+        env:
+          CONFIGURED_CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs = require('fs');
           const logs = JSON.parse(fs.readFileSync('/tmp/annword-api-logs.json','utf8'));
           const entries = Array.isArray(logs) ? logs : [];
+          const containersRaw = JSON.parse(fs.readFileSync('/tmp/containers.json','utf8'));
+          const containers = Array.isArray(containersRaw) ? containersRaw : (containersRaw.containers || containersRaw.items || []);
+          const configured = process.env.CONFIGURED_CONTAINER_ID || '';
+          const annwordIds = new Set(containers.filter(c => /annword|api/i.test(String(c.name || ''))).map(c => String(c.id || '')));
+          if (configured) annwordIds.add(configured);
+          const resourceOf = (e) => e.resource || {};
+          const resourceId = (e) => String(resourceOf(e).id || resourceOf(e).resource_id || resourceOf(e).resourceId || '');
+          const resourceType = (e) => String(resourceOf(e).type || resourceOf(e).resource_type || resourceOf(e).resourceType || '');
+          const looksLikeAnnword = (e) => {
+            const id = resourceId(e);
+            const type = resourceType(e);
+            const payload = JSON.stringify(e.json_payload || e.jsonPayload || {});
+            const message = String(e.message || '');
+            return annwordIds.has(id) || /serverless\.container/i.test(type) || /annword-api|annword/i.test(message + ' ' + payload);
+          };
+          const scoped = entries.filter(looksLikeAnnword);
+          const data = scoped.length ? scoped : entries;
           const scrub = (value) => String(value ?? '')
             .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '<email>')
             .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, '<uuid>')
             .replace(/(Bearer\s+|X-AnnWord-Session[=:]\s*)[^\s,"']+/gi, '$1<redacted>')
-            .slice(0, 1200);
+            .slice(0, 1400);
           const text = (e) => [e.message, JSON.stringify(e.json_payload || e.jsonPayload || {})].filter(Boolean).join(' ');
           const suspiciousRe = /(error|fail|timeout|timed out|slow|pool|connect|connection|econn|postgres|database|deadlock|cancel|abort|5\d\d|too many|remaining connection|socket|reset|terminated|unavailable|deadline)/i;
           const routeRe = /\/api\/[A-Za-z0-9_./-]+/g;
-          const suspicious = entries.filter(e => suspiciousRe.test(text(e)) || ['ERROR','FATAL','WARN'].includes(String(e.level || '').toUpperCase()));
+          const suspicious = data.filter(e => suspiciousRe.test(text(e)) || ['ERROR','FATAL','WARN'].includes(String(e.level || '').toUpperCase()));
           const levels = {};
           const routes = {};
+          const resources = {};
           const signatures = {};
-          for (const e of entries) levels[e.level || 'UNSPECIFIED'] = (levels[e.level || 'UNSPECIFIED'] || 0) + 1;
+          for (const e of data) {
+            levels[e.level || 'UNSPECIFIED'] = (levels[e.level || 'UNSPECIFIED'] || 0) + 1;
+            const rk = `${resourceType(e)||'<none>'}:${resourceId(e)||'<none>'}`;
+            resources[rk] = (resources[rk] || 0) + 1;
+          }
           for (const e of suspicious) {
             const t = text(e);
             for (const r of (t.match(routeRe) || [])) routes[r] = (routes[r] || 0) + 1;
@@ -81,18 +125,20 @@ jobs:
               .replace(/\b\d{2,}\b/g,'<n>')
               .replace(/\s+/g,' ')
               .trim()
-              .slice(0,300);
+              .slice(0,360);
             if (sig) signatures[sig] = (signatures[sig] || 0) + 1;
           }
+          console.log('=== RESOURCE COUNTS ===');
+          for (const [r,c] of Object.entries(resources).sort((a,b)=>b[1]-a[1]).slice(0,30)) console.log(`${c}x ${r}`);
           console.log('=== SUMMARY ===');
-          console.log(JSON.stringify({ total: entries.length, suspicious: suspicious.length, levels }, null, 2));
+          console.log(JSON.stringify({ totalDefaultGroup: entries.length, scoped: scoped.length, analyzed: data.length, suspicious: suspicious.length, levels, configuredContainerMatched: entries.some(e=>resourceId(e)===configured) }, null, 2));
           console.log('=== SUSPICIOUS ROUTES ===');
           console.log(JSON.stringify(Object.entries(routes).sort((a,b)=>b[1]-a[1]).slice(0,30), null, 2));
           console.log('=== TOP SIGNATURES ===');
-          for (const [sig,count] of Object.entries(signatures).sort((a,b)=>b[1]-a[1]).slice(0,40)) console.log(`${count}x ${scrub(sig)}`);
+          for (const [sig,count] of Object.entries(signatures).sort((a,b)=>b[1]-a[1]).slice(0,50)) console.log(`${count}x ${scrub(sig)}`);
           console.log('=== RECENT SUSPICIOUS ENTRIES ===');
-          for (const e of suspicious.slice(-150)) {
-            console.log(`${e.timestamp || ''} [${e.level || 'UNSPECIFIED'}] ${scrub(text(e))}`);
+          for (const e of suspicious.slice(-200)) {
+            console.log(`${e.timestamp || ''} [${e.level || 'UNSPECIFIED'}] [${resourceType(e)}:${resourceId(e)}] ${scrub(text(e))}`);
           }
           NODE
 
@@ -101,6 +147,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: yandex-api-log-audit
-          path: /tmp/annword-api-logs.json
+          path: |
+            /tmp/annword-api-logs.json
+            /tmp/containers.json
+            /tmp/log-groups.json
           retention-days: 1
           if-no-files-found: ignore
