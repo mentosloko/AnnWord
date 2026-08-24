@@ -38,8 +38,9 @@ jobs:
           CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
         run: |
           set -euo pipefail
-          FROM="$(date -u -d '71 hours 50 minutes ago' +'%Y-%m-%dT%H:%M:%SZ')"
+          FROM="$(date -u -d '71 hours ago' +'%Y-%m-%dT%H:%M:%SZ')"
           UNTIL="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo "Reading logs from $FROM through $UNTIL"
           yc logging read --resource-ids="$CONTAINER_ID" --since="$FROM" --until="$UNTIL" --limit=1000 --max-response-size=20MB --format=json > /tmp/logs.json
           node <<'NODE'
           const fs=require('fs');
@@ -51,7 +52,7 @@ jobs:
           const bad=rows.filter(e=>['WARN','ERROR','FATAL'].includes(String(e.level||'').toUpperCase())||/(timeout|timed out|deadline|504|503|502|500|econn|connection|pool|slow|postgres|database|deadlock|cancel|abort|socket|reset|unavailable|memory)/i.test(txt(e)));
           const sig={};
           for(const e of bad){const s=txt(e).replace(/\b\d+(?:\.\d+)?\s*(?:ms|s)\b/gi,'<duration>').replace(/\b\d{2,}\b/g,'<n>').replace(/\s+/g,' ').slice(0,300);sig[s]=(sig[s]||0)+1;}
-          console.log(JSON.stringify({from:process.env.FROM,until:process.env.UNTIL,total:rows.length,suspicious:bad.length},null,2));
+          console.log(JSON.stringify({total:rows.length,suspicious:bad.length},null,2));
           console.log('TOP');
           for(const [s,c] of Object.entries(sig).sort((a,b)=>b[1]-a[1]).slice(0,50)) console.log(`${c}x ${scrub(s)}`);
           console.log('RECENT');
