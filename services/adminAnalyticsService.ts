@@ -9,11 +9,27 @@ export interface AdminGameStat {
   inferred_starts: number;
 }
 export interface AdminGameDateRange { from: string; to: string; }
+export type AdminLoadingWarmState = 'all' | 'cold' | 'warm';
+export interface AdminLoadingPerformanceQuery { days: number; releaseSha: string | null; warmState: AdminLoadingWarmState; }
+export interface AdminLoadingPerformanceRelease { release_sha: string; requests: number; }
+export interface AdminLoadingPerformanceFilters extends AdminLoadingPerformanceQuery { releases: AdminLoadingPerformanceRelease[]; }
 export interface AdminEconomyStat { day: string; coins_earned: number; coins_spent: number; purchases: number; items_used: number; }
 export interface AdminEconomyOverview { total_coins: number; users_with_coins: number; kids_accounts: number; }
 export interface AdminEventSummary { event_type: string; event_name: string; count: number; }
 export interface AdminUnsupportedDictionaryRow { userId: string; username: string; words: string[]; }
-export interface AdminLoadingPerformanceRow { path: string; requests: number; errors: number; avg_duration_ms: number; p95_duration_ms: number; deduplicated: number; timeouts: number; }
+export interface AdminLoadingPerformanceRow {
+  path: string;
+  requests: number;
+  errors: number;
+  avg_duration_ms: number;
+  p95_duration_ms: number;
+  deduplicated: number;
+  timeouts: number;
+  cold_requests: number;
+  cold_p95_duration_ms: number;
+  warm_requests: number;
+  warm_p95_duration_ms: number;
+}
 export interface AdminAnalyticsSnapshot {
   gameStats: AdminGameStat[];
   gameRange: AdminGameDateRange;
@@ -22,6 +38,7 @@ export interface AdminAnalyticsSnapshot {
   eventSummary: AdminEventSummary[];
   unsupportedDictionaryWords: AdminUnsupportedDictionaryRow[];
   loadingPerformance: AdminLoadingPerformanceRow[];
+  loadingPerformanceFilters: AdminLoadingPerformanceFilters;
 }
 
 const parseNumber = (value: unknown): number => Number(value || 0);
@@ -34,6 +51,13 @@ const safeGameRange = (range?: Partial<AdminGameDateRange> | null): AdminGameDat
   let to = /^\d{4}-\d{2}-\d{2}$/.test(range?.to || '') ? range!.to! : fallback.to;
   if (from > to) [from, to] = [to, from];
   return { from, to };
+};
+const safeLoadingQuery = (value?: Partial<AdminLoadingPerformanceQuery> | null): AdminLoadingPerformanceQuery => {
+  const parsedDays = Number(value?.days || 7);
+  const days = Number.isFinite(parsedDays) ? Math.min(90, Math.max(1, Math.round(parsedDays))) : 7;
+  const releaseSha = typeof value?.releaseSha === 'string' && /^[a-f0-9]{7,40}$/i.test(value.releaseSha) ? value.releaseSha : null;
+  const warmState: AdminLoadingWarmState = value?.warmState === 'cold' || value?.warmState === 'warm' ? value.warmState : 'all';
+  return { days, releaseSha, warmState };
 };
 
 const normalizeSnapshot = (value: Partial<AdminAnalyticsSnapshot> | null | undefined): AdminAnalyticsSnapshot => ({
@@ -76,7 +100,18 @@ const normalizeSnapshot = (value: Partial<AdminAnalyticsSnapshot> | null | undef
     p95_duration_ms: parseNumber(row.p95_duration_ms),
     deduplicated: parseNumber(row.deduplicated),
     timeouts: parseNumber(row.timeouts),
+    cold_requests: parseNumber(row.cold_requests),
+    cold_p95_duration_ms: parseNumber(row.cold_p95_duration_ms),
+    warm_requests: parseNumber(row.warm_requests),
+    warm_p95_duration_ms: parseNumber(row.warm_p95_duration_ms),
   })) : [],
+  loadingPerformanceFilters: {
+    ...safeLoadingQuery(value?.loadingPerformanceFilters),
+    releases: Array.isArray(value?.loadingPerformanceFilters?.releases) ? value!.loadingPerformanceFilters!.releases.map(row => ({
+      release_sha: String(row.release_sha || ''),
+      requests: parseNumber(row.requests),
+    })).filter(row => row.release_sha.length > 0) : [],
+  },
 });
 
 const downloadBlob = (blob: Blob, filename: string): void => {
@@ -91,9 +126,16 @@ const downloadBlob = (blob: Blob, filename: string): void => {
 };
 
 export const adminAnalyticsService = {
-  loadSnapshot: async (range?: AdminGameDateRange): Promise<AdminAnalyticsSnapshot> => {
+  loadSnapshot: async (range?: AdminGameDateRange, loadingQuery?: Partial<AdminLoadingPerformanceQuery>): Promise<AdminAnalyticsSnapshot> => {
     const selectedRange = safeGameRange(range);
-    const params = new URLSearchParams({ from: selectedRange.from, to: selectedRange.to });
+    const selectedLoading = safeLoadingQuery(loadingQuery);
+    const params = new URLSearchParams({
+      from: selectedRange.from,
+      to: selectedRange.to,
+      performanceDays: String(selectedLoading.days),
+      performanceWarmState: selectedLoading.warmState,
+    });
+    if (selectedLoading.releaseSha) params.set('performanceRelease', selectedLoading.releaseSha);
     return normalizeSnapshot(await backendApiRequest<AdminAnalyticsSnapshot>(`/api/analytics/admin?${params.toString()}`));
   },
 

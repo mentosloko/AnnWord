@@ -11,6 +11,8 @@ import { normalizeCustomDictionary, normalizeWord } from '../../services/diction
 export const analyticsRouter = Router();
 const GENERAL_DICTIONARY_WORDS = new Set(COMMON_WORDS_EN.map(entry => normalizeWord(entry.word)));
 
+type AdminLoadingWarmState = 'all' | 'cold' | 'warm';
+
 async function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   await requireAuth(req, res, async () => {
     try {
@@ -39,6 +41,7 @@ analyticsRouter.post('/events', optionalAuth, async (req: AuthenticatedRequest, 
 
 const csvCell = (value: unknown): string => `"${String(value ?? '').replace(/"/g, '""')}"`;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const RELEASE_SHA_PATTERN = /^[a-f0-9]{7,40}$/i;
 const isoDate = (date: Date): string => date.toISOString().slice(0, 10);
 const shiftIsoDate = (value: string, days: number): string => {
   const date = new Date(`${value}T00:00:00.000Z`);
@@ -53,6 +56,12 @@ const resolveAdminGameRange = (fromValue: unknown, toValue: unknown): { from: st
   if (from > to) [from, to] = [to, from];
   return { from, to };
 };
+const resolvePerformanceDays = (value: unknown): number => {
+  const parsed = typeof value === 'string' ? Number.parseInt(value, 10) : Number.NaN;
+  return Number.isFinite(parsed) ? Math.min(90, Math.max(1, parsed)) : 7;
+};
+const resolvePerformanceRelease = (value: unknown): string => typeof value === 'string' && RELEASE_SHA_PATTERN.test(value) ? value.slice(0, 40) : '';
+const resolvePerformanceWarmState = (value: unknown): AdminLoadingWarmState => value === 'cold' || value === 'warm' ? value : 'all';
 
 analyticsRouter.get('/admin/export.csv', requireAdmin, async (_req: AuthenticatedRequest, res) => {
   try {
@@ -115,7 +124,10 @@ analyticsRouter.get('/admin/export.csv', requireAdmin, async (_req: Authenticate
 analyticsRouter.get('/admin', requireAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const gameRange = resolveAdminGameRange(req.query?.from, req.query?.to);
-    const [gameStats, economyStats, eventSummary, dictionaries, loadingPerformance, economyOverview] = await Promise.all([
+    const performanceDays = resolvePerformanceDays(req.query?.performanceDays);
+    const performanceRelease = resolvePerformanceRelease(req.query?.performanceRelease);
+    const performanceWarmState = resolvePerformanceWarmState(req.query?.performanceWarmState);
+    const [gameStats, economyStats, eventSummary, dictionaries, loadingPerformance, loadingReleases, economyOverview] = await Promise.all([
       query<{
         game_type: string | null;
         games_started: number;
@@ -249,17 +261,32 @@ analyticsRouter.get('/admin', requireAdmin, async (req: AuthenticatedRequest, re
         p95_duration_ms: number;
         deduplicated: number;
         timeouts: number;
+        cold_requests: number;
+        cold_p95_duration_ms: number;
+        warm_requests: number;
+        warm_p95_duration_ms: number;
       }>(
         `with request_metrics as (
            select coalesce(nullif(payload->>'path', ''), 'unknown') as path,
                   event_name,
                   case when payload->>'durationMs' ~ '^[0-9]+(\\.[0-9]+)?$' then (payload->>'durationMs')::numeric else null end as duration_ms,
                   payload->>'deduplicated' = 'true' as was_deduplicated,
-                  payload->>'timedOut' = 'true' as was_timeout
+                  payload->>'timedOut' = 'true' as was_timeout,
+                  case
+                    when payload->>'coldStart' = 'true' then true
+                    when payload->>'coldStart' = 'false' then false
+                    else null
+                  end as cold_start
              from analytics_events
             where event_type = 'performance'
               and event_name in ('request_completed', 'request_failed')
-              and occurred_at >= now() - interval '7 days'
+              and occurred_at >= now() - ($1::int * interval '1 day')
+              and ($2::text = '' or payload->>'releaseSha' = $2::text)
+              and (
+                $3::text = 'all'
+                or ($3::text = 'cold' and payload->>'coldStart' = 'true')
+                or ($3::text = 'warm' and payload->>'coldStart' = 'false')
+              )
          )
          select path,
                 count(*)::int as requests,
@@ -267,11 +294,28 @@ analyticsRouter.get('/admin', requireAdmin, async (req: AuthenticatedRequest, re
                 coalesce(round(avg(duration_ms)), 0)::int as avg_duration_ms,
                 coalesce(round(percentile_cont(0.95) within group (order by duration_ms)), 0)::int as p95_duration_ms,
                 count(*) filter (where was_deduplicated)::int as deduplicated,
-                count(*) filter (where was_timeout)::int as timeouts
+                count(*) filter (where was_timeout)::int as timeouts,
+                count(*) filter (where cold_start is true)::int as cold_requests,
+                coalesce(round(percentile_cont(0.95) within group (order by duration_ms) filter (where cold_start is true)), 0)::int as cold_p95_duration_ms,
+                count(*) filter (where cold_start is false)::int as warm_requests,
+                coalesce(round(percentile_cont(0.95) within group (order by duration_ms) filter (where cold_start is false)), 0)::int as warm_p95_duration_ms
            from request_metrics
           group by path
           order by p95_duration_ms desc, requests desc
           limit 30`,
+        [performanceDays, performanceRelease, performanceWarmState],
+      ),
+      query<{ release_sha: string; requests: number }>(
+        `select payload->>'releaseSha' as release_sha,
+                count(*)::int as requests
+           from analytics_events
+          where event_type = 'performance'
+            and event_name in ('request_completed', 'request_failed')
+            and occurred_at >= now() - interval '90 days'
+            and coalesce(payload->>'releaseSha', '') <> ''
+          group by payload->>'releaseSha'
+          order by max(occurred_at) desc
+          limit 20`,
       ),
       query<{ total_coins: number; users_with_coins: number; kids_accounts: number }>(
         `select coalesce(sum(greatest(coins, 0)), 0)::int as total_coins,
@@ -302,6 +346,12 @@ analyticsRouter.get('/admin', requireAdmin, async (req: AuthenticatedRequest, re
       eventSummary: eventSummary.rows,
       unsupportedDictionaryWords,
       loadingPerformance: loadingPerformance.rows,
+      loadingPerformanceFilters: {
+        days: performanceDays,
+        releaseSha: performanceRelease || null,
+        warmState: performanceWarmState,
+        releases: loadingReleases.rows,
+      },
       economyOverview: economyOverview.rows[0] || { total_coins: 0, users_with_coins: 0, kids_accounts: 0 },
     });
   } catch (error) {

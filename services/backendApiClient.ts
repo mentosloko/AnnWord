@@ -98,6 +98,26 @@ type FetchResult<T> = {
   serverTiming: ServerTimingMetric;
 };
 
+type RequestServerMetadata = { coldStart: boolean | null; releaseSha: string | null };
+
+const serverMetadata = (timing: ServerTimingMetric): RequestServerMetadata => {
+  const coldValue = timing.cold_start;
+  const releaseMetric = Object.keys(timing).find(name => name.startsWith('release_'));
+  return {
+    coldStart: coldValue === 1 ? true : coldValue === 0 ? false : null,
+    releaseSha: releaseMetric ? releaseMetric.slice('release_'.length) || null : null,
+  };
+};
+
+const mergeServerMetadata = (current: RequestServerMetadata, next: RequestServerMetadata): RequestServerMetadata => ({
+  coldStart: current.coldStart === true || next.coldStart === true
+    ? true
+    : current.coldStart === false || next.coldStart === false
+      ? false
+      : null,
+  releaseSha: current.releaseSha || next.releaseSha,
+});
+
 const abortError = (path: string, timedOut: boolean): BackendApiError => new BackendApiError(
   timedOut ? `Сервер слишком долго отвечает (${path}). Попробуйте ещё раз.` : "Запрос отменён.",
   0,
@@ -162,6 +182,7 @@ async function executeBackendRequest<T>(path: string, options: BackendRequestOpt
   const attempts = canTryCookieOnly ? [false, true] : [true];
   let status = 0;
   let serverTiming: ServerTimingMetric = {};
+  let metadata: RequestServerMetadata = { coldStart: null, releaseSha: null };
 
   try {
     for (let index = 0; index < attempts.length; index += 1) {
@@ -169,6 +190,7 @@ async function executeBackendRequest<T>(path: string, options: BackendRequestOpt
       const result = await doFetch<T>(path, options, useHeaderToken);
       status = result.response.status;
       serverTiming = result.serverTiming;
+      metadata = mergeServerMetadata(metadata, serverMetadata(result.serverTiming));
 
       if (result.response.ok) {
         rememberBackendSession(result.payload);
@@ -180,6 +202,8 @@ async function executeBackendRequest<T>(path: string, options: BackendRequestOpt
           ok: true,
           timedOut: false,
           deduplicated: false,
+          coldStart: metadata.coldStart,
+          releaseSha: metadata.releaseSha,
           serverTiming,
         });
         return result.payload as T;
@@ -207,6 +231,8 @@ async function executeBackendRequest<T>(path: string, options: BackendRequestOpt
       ok: false,
       timedOut: isTimeoutError(error),
       deduplicated: false,
+      coldStart: metadata.coldStart,
+      releaseSha: metadata.releaseSha,
       serverTiming,
     });
     throw error;
@@ -236,6 +262,8 @@ export async function backendApiRequest<T>(path: string, options: BackendRequest
         ok: true,
         timedOut: false,
         deduplicated: true,
+        coldStart: null,
+        releaseSha: null,
         serverTiming: {},
       });
       return result;
@@ -248,6 +276,8 @@ export async function backendApiRequest<T>(path: string, options: BackendRequest
         ok: false,
         timedOut: isTimeoutError(error),
         deduplicated: true,
+        coldStart: null,
+        releaseSha: null,
         serverTiming: {},
       });
       throw error;

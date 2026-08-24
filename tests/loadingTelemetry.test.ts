@@ -23,6 +23,8 @@ describe('loading telemetry', () => {
       ok: true,
       timedOut: false,
       deduplicated: false,
+      coldStart: false,
+      releaseSha: 'test-release',
       serverTiming: { bootstrap_total: 900 },
     });
     loadingTelemetry.recordScreen({
@@ -32,7 +34,12 @@ describe('loading telemetry', () => {
     });
 
     expect(loadingTelemetry.getRecent()).toHaveLength(2);
-    expect(loadingTelemetry.getRecent()[0]).toMatchObject({ kind: 'request', path: '/api/profile/bootstrap' });
+    expect(loadingTelemetry.getRecent()[0]).toMatchObject({
+      kind: 'request',
+      path: '/api/profile/bootstrap',
+      coldStart: false,
+      releaseSha: 'test-release',
+    });
     expect(loadingTelemetry.getRecent()[1]).toMatchObject({ kind: 'screen', screen: 'adult_room', state: 'ready' });
   });
 });
