@@ -1,0 +1,60 @@
+name: Yandex Log Read Safe
+
+on:
+  push:
+    branches: [agent/yandex-log-audit]
+    paths: ['.github/workflows/yandex-log-read-safe.yml']
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/yandex-log-read-safe.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install yc
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+
+      - name: Configure yc
+        env:
+          YC_KEY: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          printf '%s' "$YC_KEY" > /tmp/key.json
+          yc config profile create log-reader
+          yc config set service-account-key /tmp/key.json
+          yc config set cloud-id "$YC_CLOUD"
+          yc config set folder-id "$YC_FOLDER"
+
+      - name: Read and summarize retained logs
+        env:
+          CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
+        run: |
+          set -euo pipefail
+          FROM="$(date -u -d '71 hours 50 minutes ago' +'%Y-%m-%dT%H:%M:%SZ')"
+          UNTIL="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          yc logging read --resource-ids="$CONTAINER_ID" --since="$FROM" --until="$UNTIL" --limit=1000 --max-response-size=20MB --format=json > /tmp/logs.json
+          node <<'NODE'
+          const fs=require('fs');
+          const raw=JSON.parse(fs.readFileSync('/tmp/logs.json','utf8'));
+          const rows=Array.isArray(raw)?raw:[];
+          const p=e=>e.json_payload||e.jsonPayload||{};
+          const txt=e=>[e.message,JSON.stringify(p(e))].filter(Boolean).join(' ');
+          const scrub=s=>String(s||'').replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'<email>').replace(/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/gi,'<id>').slice(0,1000);
+          const bad=rows.filter(e=>['WARN','ERROR','FATAL'].includes(String(e.level||'').toUpperCase())||/(timeout|timed out|deadline|504|503|502|500|econn|connection|pool|slow|postgres|database|deadlock|cancel|abort|socket|reset|unavailable|memory)/i.test(txt(e)));
+          const sig={};
+          for(const e of bad){const s=txt(e).replace(/\b\d+(?:\.\d+)?\s*(?:ms|s)\b/gi,'<duration>').replace(/\b\d{2,}\b/g,'<n>').replace(/\s+/g,' ').slice(0,300);sig[s]=(sig[s]||0)+1;}
+          console.log(JSON.stringify({from:process.env.FROM,until:process.env.UNTIL,total:rows.length,suspicious:bad.length},null,2));
+          console.log('TOP');
+          for(const [s,c] of Object.entries(sig).sort((a,b)=>b[1]-a[1]).slice(0,50)) console.log(`${c}x ${scrub(s)}`);
+          console.log('RECENT');
+          for(const e of bad.slice(-200)) console.log(`${e.timestamp||''} [${e.level||''}] ${scrub(txt(e))}`);
+          NODE
+          rm -f /tmp/logs.json /tmp/key.json
