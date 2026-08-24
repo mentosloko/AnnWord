@@ -8,7 +8,19 @@ const FLUSH_DELAY_MS = 3000;
 const MAX_BATCH_SIZE = 25;
 const MAX_STORED_EVENTS = 200;
 const MAX_FAILURE_BACKOFF_MS = 60_000;
-const IMPORTANT_LOADING_PATHS = new Set(['/api/profile/bootstrap', '/api/family/adult-room', '/api/mentor/learners', '/api/daily-quest/today']);
+const IMPORTANT_LOADING_PATHS = new Set([
+  '/api/profile/bootstrap',
+  '/api/profile/stats',
+  '/api/profile/coins',
+  '/api/profile/game-result',
+  '/api/profile/use-item',
+  '/api/profile/purchase',
+  '/api/game-events/events',
+  '/api/daily-quest/today',
+  '/api/daily-quest/result',
+  '/api/family/adult-room',
+  '/api/mentor/learners',
+]);
 
 export type AnalyticsEventType = 'game' | 'reward' | 'economy' | 'inventory' | 'character' | 'dictionary' | 'auth' | 'navigation' | 'performance' | 'premium' | 'payment';
 
