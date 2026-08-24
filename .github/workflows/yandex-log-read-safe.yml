@@ -33,52 +33,32 @@ jobs:
           yc config set cloud-id "$YC_CLOUD"
           yc config set folder-id "$YC_FOLDER"
 
-      - name: Read focused log sets
+      - name: Correlate request cancellations
         env:
           CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
         run: |
           set -euo pipefail
           FROM="$(date -u -d '71 hours ago' +'%Y-%m-%dT%H:%M:%SZ')"
           UNTIL="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          base=(--resource-ids="$CONTAINER_ID" --since="$FROM" --until="$UNTIL" --limit=1000 --max-response-size=20MB --format=json)
-          yc logging read "${base[@]}" --levels=WARN,ERROR,FATAL > /tmp/warn.json
-          yc logging read "${base[@]}" --filter='message: "Function Init Duration"' > /tmp/cold.json
-          yc logging read "${base[@]}" --filter='message: "db_pool_wait_slow"' > /tmp/pool.json
-          yc logging read "${base[@]}" --filter='message: "db_query_slow"' > /tmp/query.json
-          yc logging read "${base[@]}" --filter='message: "db_transaction_slow"' > /tmp/tx.json
-          node <<'NODE'
-          const fs=require('fs');
-          const load=f=>{const x=JSON.parse(fs.readFileSync(f,'utf8'));return Array.isArray(x)?x:[]};
-          const warns=load('/tmp/warn.json'), cold=load('/tmp/cold.json'), pool=load('/tmp/pool.json'), query=load('/tmp/query.json'), tx=load('/tmp/tx.json');
-          const p=e=>e.json_payload||e.jsonPayload||{};
-          const text=e=>String(e.message||'');
-          const percentile=(a,pct)=>{if(!a.length)return null;const s=[...a].sort((a,b)=>a-b);return s[Math.min(s.length-1,Math.ceil(s.length*pct)-1)]};
-          const stats=a=>({count:a.length,min:a.length?Math.min(...a):null,p50:percentile(a,.5),p95:percentile(a,.95),max:a.length?Math.max(...a):null,avg:a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null});
-          const init=cold.map(e=>Number(text(e).match(/Function Init Duration:\s*([0-9.]+)/i)?.[1])).filter(Number.isFinite);
-          const waits=pool.map(e=>Number(text(e).match(/durationMs:\s*([0-9.]+)/i)?.[1])).filter(Number.isFinite);
-          const qs=query.map(e=>Number(text(e).match(/durationMs:\s*([0-9.]+)/i)?.[1])).filter(Number.isFinite);
-          const txs=tx.map(e=>Number(text(e).match(/durationMs:\s*([0-9.]+)/i)?.[1])).filter(Number.isFinite);
-          const httpStatuses={}, httpRoutes={}, errors={};
-          for(const e of warns){
-            const j=p(e), msg=text(e);
-            if(j.event==='http_request'){
-              const k=String(j.status??'unknown');httpStatuses[k]=(httpStatuses[k]||0)+1;
-              const rk=`${j.method||'?'} ${j.path||'?' } -> ${k}`;httpRoutes[rk]=(httpRoutes[rk]||0)+1;
-            }
-            let type='other';
-            if(j.event==='db_pool_idle_error'||/PostgreSQL idle client error/i.test(msg)) type='db_idle_reset';
-            else if(/Code:\s*499|request cancelled/i.test(msg)) type='platform_499';
-            else if(/Code:\s*504|timeout/i.test(msg)) type='platform_timeout';
-            else if(/Code:\s*5\d\d/i.test(msg)) type='platform_5xx';
-            else if(j.event==='http_request'&&Number(j.status)>=500) type='app_5xx';
-            else if(j.event==='http_request'&&Number(j.status)>=400) type='http_4xx';
-            errors[type]=(errors[type]||0)+1;
-          }
-          console.log('=== FOCUSED SUMMARY ===');
-          console.log(JSON.stringify({warnErrorFatal:warns.length,errorClasses:errors,httpStatuses,coldInitMs:stats(init),dbPoolWaitMs:stats(waits),slowQueryMs:stats(qs),slowTransactionMs:stats(txs)},null,2));
-          console.log('=== WARN/ERROR ROUTES ===');
-          for(const [k,v] of Object.entries(httpRoutes).sort((a,b)=>b[1]-a[1]).slice(0,40)) console.log(`${v}x ${k}`);
-          console.log('=== PLATFORM FAILURES ===');
-          for(const e of warns.filter(e=>/ERROR RequestID|Code:\s*49\d|Code:\s*5\d\d|request cancelled|timeout/i.test(text(e)))) console.log(`${e.timestamp||''} [${e.level||''}] ${text(e).replace(/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/gi,'<id>').slice(0,700)}`);
+          yc logging read --resource-ids="$CONTAINER_ID" --since="$FROM" --until="$UNTIL" --limit=1000 --max-response-size=20MB --format=json --filter='message: "Request cancelled"' > /tmp/cancelled.json
+          node - <<'NODE' > /tmp/ids.txt
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/cancelled.json','utf8'));const a=Array.isArray(x)?x:[];
+          for(const e of a){const j=e.json_payload||e.jsonPayload||{};if(j.request_id) console.log(j.request_id)}
           NODE
-          rm -f /tmp/key.json /tmp/warn.json /tmp/cold.json /tmp/pool.json /tmp/query.json /tmp/tx.json
+          echo '=== 499 CORRELATION ==='
+          count=0
+          while IFS= read -r id; do
+            [ -z "$id" ] && continue
+            count=$((count+1))
+            yc logging read --resource-ids="$CONTAINER_ID" --since="$FROM" --until="$UNTIL" --limit=100 --max-response-size=2MB --format=json --filter="request_id = \"$id\"" > /tmp/one.json
+            N="$count" node <<'NODE'
+          const fs=require('fs');const rows=JSON.parse(fs.readFileSync('/tmp/one.json','utf8'));const a=Array.isArray(rows)?rows:[];
+          const p=e=>e.json_payload||e.jsonPayload||{};const n=process.env.N;
+          const http=a.filter(e=>p(e).event==='http_request').map(e=>({at:e.timestamp,method:p(e).method,path:p(e).path,status:p(e).status,durationMs:p(e).duration_ms,aborted:p(e).aborted}));
+          const reports=a.filter(e=>/REPORT RequestID/.test(String(e.message||''))).map(e=>{const m=String(e.message||'');return {at:e.timestamp,durationMs:Number(m.match(/Duration:\s*([0-9.]+)/)?.[1]||0),initMs:Number(m.match(/Function Init Duration:\s*([0-9.]+)/)?.[1]||0),queueMs:Number(m.match(/Queuing Duration:\s*([0-9.]+)/)?.[1]||0)}});
+          const db=a.filter(e=>/db_pool_wait_slow|db_query_slow|db_transaction_slow|db_connection_retry|PostgreSQL idle client error/i.test(String(e.message||''))).map(e=>String(e.message||'').replace(/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/gi,'<id>').slice(0,260));
+          console.log(JSON.stringify({n:Number(n),http,reports,dbSignals:db},null,0));
+          NODE
+          done < /tmp/ids.txt
+          echo "Correlated $count cancellations"
+          rm -f /tmp/key.json /tmp/cancelled.json /tmp/ids.txt /tmp/one.json
