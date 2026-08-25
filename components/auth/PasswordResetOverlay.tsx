@@ -32,6 +32,7 @@ export const PasswordResetOverlay: React.FC = () => {
     setBusy(true);
     try {
       const message = await passwordResetService.confirm(token, password);
+      clearResetToken();
       setSuccess(message);
       setPassword('');
       setConfirmation('');
@@ -43,7 +44,6 @@ export const PasswordResetOverlay: React.FC = () => {
   };
 
   const finish = () => {
-    clearResetToken();
     window.location.assign('/');
   };
 
