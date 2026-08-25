@@ -137,8 +137,9 @@ const installBackend = async (page: Page, initialSource: ActiveWordSource) => {
 };
 
 const openDictionarySelection = async (page: Page, currentLabel: string) => {
-  await expect(page.getByRole('button', { name: new RegExp(`Выбрать слова для игр\\. Сейчас: ${currentLabel}`, 'i') })).toBeVisible();
-  await page.getByRole('button', { name: new RegExp(`Выбрать слова для игр\\. Сейчас: ${currentLabel}`, 'i') }).click();
+  const trigger = page.getByRole('button', { name: new RegExp(`Выбрать слова для игр\\. Сейчас: ${currentLabel}`, 'i') });
+  await expect(trigger).toBeVisible();
+  await trigger.click();
   await expect(page.getByRole('heading', { name: 'Выбор словаря' })).toBeVisible();
 };
 
@@ -205,7 +206,7 @@ test.describe('dictionary integrity browser E2E', () => {
     const patchesBeforeDraft = backend.sourcePatchCount();
     await page.getByRole('button', { name: /Свой/ }).click();
     await expect(page.getByText('Изменения ещё не влияют на игры.')).toBeVisible();
-    await expect(page.getAllByText('Ваш список').first()).toBeVisible();
+    await expect(page.getByText('Ваш список').first()).toBeVisible();
 
     const staleProfile = makeProfile({
       source: 'premium',
@@ -221,7 +222,7 @@ test.describe('dictionary integrity browser E2E', () => {
     }, { userId: USER.id, profile: staleProfile });
 
     await expect(page.getByText('Изменения ещё не влияют на игры.')).toBeVisible();
-    await expect(page.getAllByText('Ваш список').first()).toBeVisible();
+    await expect(page.getByText('Ваш список').first()).toBeVisible();
     expect(backend.sourcePatchCount()).toBe(patchesBeforeDraft);
     expect(backend.activeSource()).toMatchObject({ source: 'premium', premiumDictionaryId: 'kids_animals' });
 
