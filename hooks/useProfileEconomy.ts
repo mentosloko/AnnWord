@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import { PetState, ShopItem, UserProfile, UserStats } from '../types';
 import { analyticsService, QueuedAnalyticsEvent } from '../services/analyticsService';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
@@ -16,12 +16,23 @@ interface ApplyGameRewardOptions {
   analyticsEvents?: QueuedAnalyticsEvent[];
 }
 
+type PendingHintCoinOperation = { operationId: string; cost: number };
+
 const getUserService = async () => {
   const module = await import('../services/userService');
   return module.userService;
 };
 
+const createHintOperationId = (): string => {
+  const random = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `hint:${random}`;
+};
+
 export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }: UseProfileEconomyArgs) => {
+  const pendingHintCoinOperationRef = useRef<PendingHintCoinOperation | null>(null);
+
   const winCoins = useCallback(async (amount: number) => {
     setUserProfile(prev => ({ ...prev, coins: Math.max(0, prev.coins + amount) }));
     if (!currentUserId) return;
@@ -37,11 +48,36 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
 
   const adjustCoinsStrict = useCallback(async (amount: number): Promise<UserProfile> => {
     if (!currentUserId) throw new Error('Для изменения баланса нужно войти в аккаунт.');
+    const rounded = Math.round(amount || 0);
     const userService = await getUserService();
-    const updatedProfile = await userService.updateCoins(currentUserId, amount);
+
+    if (rounded < 0) {
+      const operation = { operationId: createHintOperationId(), cost: Math.abs(rounded) };
+      pendingHintCoinOperationRef.current = operation;
+      try {
+        const result = await userService.applyHintCoinOperation(currentUserId, operation.operationId, 'charge', operation.cost);
+        setUserProfile(result.profile);
+        return result.profile;
+      } catch (error) {
+        // An ambiguous transport failure must never leave the child without the hint after a possible debit.
+        // Keep the operation id for an idempotent refund if the round later rolls back, and grant the hint.
+        console.warn('Hint charge response was ambiguous; keeping operation for reconciliation', error);
+        return userProfile;
+      }
+    }
+
+    if (rounded > 0 && pendingHintCoinOperationRef.current) {
+      const operation = pendingHintCoinOperationRef.current;
+      const result = await userService.applyHintCoinOperation(currentUserId, operation.operationId, 'refund', operation.cost);
+      setUserProfile(result.profile);
+      if (result.status === 'refunded' || result.status === 'absent') pendingHintCoinOperationRef.current = null;
+      return result.profile;
+    }
+
+    const updatedProfile = await userService.updateCoins(currentUserId, rounded);
     setUserProfile(updatedProfile);
     return updatedProfile;
-  }, [currentUserId, setUserProfile]);
+  }, [currentUserId, setUserProfile, userProfile]);
 
   const buyItem = useCallback(async (item: ShopItem) => {
     const localPurchase = applyPurchaseLocally(userProfile, item);
