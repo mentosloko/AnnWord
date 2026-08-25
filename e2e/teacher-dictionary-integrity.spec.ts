@@ -137,10 +137,10 @@ const loginAs = async (page: Page, email: string) => {
 
 const dismissRulesIfVisible = async (page: Page) => {
   const closeRules = page.getByRole('button', { name: 'Закрыть правила', exact: true });
-  if (await closeRules.isVisible().catch(() => false)) {
-    await closeRules.click();
-    await expect(closeRules).toBeHidden();
-  }
+  const appeared = await closeRules.waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false);
+  if (!appeared) return;
+  await closeRules.click();
+  await expect(closeRules).toBeHidden();
 };
 
 test('teacher PANDA/TIGER/ZEBRA assignment is playable in child 1-of-2 and Anagrams', async ({ page }) => {
