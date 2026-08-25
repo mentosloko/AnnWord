@@ -1,9 +1,10 @@
 import { GameRewardType, ViewState } from '../types';
-import { backendApiRequest } from './backendApiClient';
+import { backendApiRequest, BackendApiError } from './backendApiClient';
 import { loadingTelemetry, type LoadingMetric } from './loadingTelemetry';
 
 const ANALYTICS_SESSION_KEY = 'annword_analytics_session_id';
 const ANALYTICS_QUEUE_KEY = 'annword_analytics_queue_v1';
+const ANALYTICS_ENDPOINT = '/api/analytics/events';
 const FLUSH_DELAY_MS = 3000;
 const MAX_BATCH_SIZE = 25;
 const MAX_STORED_EVENTS = 200;
@@ -156,7 +157,7 @@ export const createAnalyticsEvent = ({ userId, eventType, eventName, gameType = 
 
 const sendEvents = async (events: QueuedAnalyticsEvent[]): Promise<void> => {
   if (events.length === 0) return;
-  await backendApiRequest('/api/analytics/events', {
+  await backendApiRequest(ANALYTICS_ENDPOINT, {
     method: 'POST',
     body: { events },
   });
@@ -165,6 +166,30 @@ const sendEvents = async (events: QueuedAnalyticsEvent[]): Promise<void> => {
 const getFlushDelay = (): number => {
   if (consecutiveFlushFailures <= 0) return FLUSH_DELAY_MS;
   return Math.min(MAX_FAILURE_BACKOFF_MS, FLUSH_DELAY_MS * 2 ** Math.min(consecutiveFlushFailures, 5));
+};
+
+const analyticsFailureReason = (error: unknown): string => {
+  if (error instanceof BackendApiError) return error.status > 0 ? `http_${error.status}:${error.message}` : error.message;
+  if (error instanceof Error) return `${error.name}:${error.message}`;
+  return String(error || 'unknown_error');
+};
+
+const logAnalyticsDeliveryFailure = (input: {
+  stage: 'background_flush' | 'immediate_send';
+  startedAt: number;
+  batchSize: number;
+  error: unknown;
+  retryInMs?: number;
+}): void => {
+  console.warn('Analytics delivery failed', {
+    endpoint: ANALYTICS_ENDPOINT,
+    stage: input.stage,
+    durationMs: Math.max(0, Date.now() - input.startedAt),
+    reason: analyticsFailureReason(input.error),
+    batchSize: input.batchSize,
+    consecutiveFailures: consecutiveFlushFailures,
+    retryInMs: input.retryInMs ?? null,
+  });
 };
 
 const scheduleFlush = (): void => {
@@ -176,6 +201,7 @@ const scheduleFlush = (): void => {
 };
 
 const flushBatchInBackground = async (batch: QueuedAnalyticsEvent[]): Promise<void> => {
+  const startedAt = Date.now();
   try {
     await sendEvents(batch);
     consecutiveFlushFailures = 0;
@@ -183,7 +209,7 @@ const flushBatchInBackground = async (batch: QueuedAnalyticsEvent[]): Promise<vo
     consecutiveFlushFailures += 1;
     queue = [...batch, ...readQueue()].slice(-MAX_STORED_EVENTS);
     persistQueue();
-    console.warn('Analytics flush failed', { error, consecutiveFlushFailures, retryInMs: getFlushDelay() });
+    logAnalyticsDeliveryFailure({ stage: 'background_flush', startedAt, batchSize: batch.length, error, retryInMs: getFlushDelay() });
   } finally {
     isFlushing = false;
     if (readQueue().length > 0) scheduleFlush();
@@ -220,6 +246,7 @@ export const analyticsService = {
   },
 
   sendNow: async (events: QueuedAnalyticsEvent[]): Promise<void> => {
+    const startedAt = Date.now();
     try {
       await sendEvents(events);
       consecutiveFlushFailures = 0;
@@ -227,14 +254,14 @@ export const analyticsService = {
       consecutiveFlushFailures += 1;
       queue = [...events, ...readQueue()].slice(-MAX_STORED_EVENTS);
       persistQueue();
-      console.warn('Analytics immediate send failed', { error, consecutiveFlushFailures });
+      logAnalyticsDeliveryFailure({ stage: 'immediate_send', startedAt, batchSize: events.length, error, retryInMs: getFlushDelay() });
     }
   },
 };
 
 const shouldForwardLoadingMetric = (metric: LoadingMetric): boolean => {
   if (metric.kind === 'screen') return true;
-  if (metric.path === '/api/analytics/events') return false;
+  if (metric.path === ANALYTICS_ENDPOINT) return false;
   return !metric.ok || metric.durationMs >= 750 || metric.deduplicated || IMPORTANT_LOADING_PATHS.has(metric.path);
 };
 
