@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { parentPinResetService } from '../../services/parentPinResetService';
 import { StableStatusSlot } from '../ui/StatusNotice';
 
@@ -18,11 +18,34 @@ const onlyDigits = (value: string): string => value.replace(/\D/g, '').slice(0, 
 
 export const ParentPinResetOverlay: React.FC = () => {
   const token = useMemo(readToken, []);
+  const [tokenState, setTokenState] = useState<'checking' | 'valid' | 'invalid'>(token ? 'checking' : 'invalid');
   const [pin, setPin] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    parentPinResetService.validate(token)
+      .then(result => {
+        if (cancelled) return;
+        if (result.valid) {
+          setTokenState('valid');
+          return;
+        }
+        clearToken();
+        setTokenState('invalid');
+        setError(result.error || 'Ссылка восстановления PIN истекла или уже использована.');
+      })
+      .catch(problem => {
+        if (cancelled) return;
+        setTokenState('invalid');
+        setError(problem instanceof Error ? problem.message : 'Не удалось проверить ссылку восстановления PIN.');
+      });
+    return () => { cancelled = true; };
+  }, [token]);
 
   if (!token) return null;
 
@@ -33,18 +56,24 @@ export const ParentPinResetOverlay: React.FC = () => {
     if (pin !== confirmation) { setError('PIN и повтор PIN не совпадают.'); return; }
     setBusy(true);
     try {
-      setSuccess(await parentPinResetService.confirm(token, pin));
+      const message = await parentPinResetService.confirm(token, pin);
+      clearToken();
+      setSuccess(message);
       setPin('');
       setConfirmation('');
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'Не удалось изменить PIN.');
+      const message = problem instanceof Error ? problem.message : 'Не удалось изменить PIN.';
+      if (/истек|использован|недействитель/i.test(message)) {
+        clearToken();
+        setTokenState('invalid');
+      }
+      setError(message);
     } finally {
       setBusy(false);
     }
   };
 
   const finish = () => {
-    clearToken();
     window.location.assign('/');
   };
 
@@ -53,7 +82,14 @@ export const ParentPinResetOverlay: React.FC = () => {
       <section role="dialog" aria-modal="true" aria-labelledby="parent-pin-reset-title" className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
         <div className="text-xs font-black uppercase tracking-widest text-purple-500">AnnWord Kids</div>
         <h1 id="parent-pin-reset-title" className="mt-2 text-2xl font-black text-indigo-950">Новый родительский PIN</h1>
-        {success ? (
+        {tokenState === 'checking' ? (
+          <div className="mt-5"><StableStatusSlot message="Проверяем ссылку восстановления PIN…" tone="info" /></div>
+        ) : tokenState === 'invalid' ? (
+          <div className="mt-5">
+            <StableStatusSlot message={error || 'Ссылка восстановления PIN истекла или уже использована.'} tone="error" role="alert" />
+            <button type="button" onClick={finish} className="mt-4 w-full rounded-2xl bg-indigo-600 px-4 py-3 font-black text-white">Вернуться в AnnWord</button>
+          </div>
+        ) : success ? (
           <div className="mt-5">
             <StableStatusSlot message={success} tone="success" />
             <button type="button" onClick={finish} className="mt-4 w-full rounded-2xl bg-indigo-600 px-4 py-3 font-black text-white">Вернуться в AnnWord</button>

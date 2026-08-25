@@ -32,6 +32,7 @@ export async function loadManagedLearners(userId: string): Promise<ManagedLearne
             limit 1
          ) latest_set on true
         where l.adult_user_id = $1
+          and l.revoked_at is null
      ), self_child as (
        select p.id,
               coalesce(p.child_display_name, p.username, 'Ребёнок') as name,

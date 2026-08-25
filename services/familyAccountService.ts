@@ -9,6 +9,13 @@ export interface ChildSetupResult {
   childSlotsLimit: number;
 }
 
+export interface TeacherConnection {
+  teacherId: string;
+  name: string;
+  email: string;
+  connectedAt: string;
+}
+
 type ChildRpcResponse = {
   child_name?: string;
   childName?: string;
@@ -26,6 +33,16 @@ type AdultRoomResponse = {
   ok?: boolean;
   learners?: unknown[];
   backendReady?: boolean;
+};
+
+type TeacherInviteResponse = {
+  ok?: boolean;
+  code?: string;
+  expiresIn?: number;
+};
+
+type TeacherConnectionsResponse = {
+  connections?: TeacherConnection[];
 };
 
 const normalizeChildSetupResult = (data: ChildRpcResponse | null): ChildSetupResult => {
@@ -98,6 +115,27 @@ export const familyAccountService = {
       body: { accessCode: normalizedPin },
     });
     return data.ok === true;
+  },
+
+  async createTeacherInvite(): Promise<string> {
+    const result = await backendApiRequest<TeacherInviteResponse>('/api/family/teacher-invite', {
+      method: 'POST',
+      body: {},
+    });
+    if (!result.code) throw new Error('Сервер не вернул код преподавателя.');
+    return result.code;
+  },
+
+  async loadTeacherConnections(): Promise<TeacherConnection[]> {
+    const result = await backendApiRequest<TeacherConnectionsResponse>('/api/family/teacher-connections');
+    return Array.isArray(result.connections) ? result.connections : [];
+  },
+
+  async revokeTeacherConnection(teacherId: string): Promise<void> {
+    await backendApiRequest(`/api/family/teacher-connections/${encodeURIComponent(teacherId)}/revoke`, {
+      method: 'POST',
+      body: {},
+    });
   },
 };
 

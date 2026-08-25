@@ -27,12 +27,14 @@ export const MagicLinkOverlay: React.FC = () => {
     magicLinkService.confirm(token)
       .then(result => {
         if (cancelled) return;
+        clearToken();
         setMessage(result.message);
         setAccountMode(result.accountMode || null);
         setStatus('success');
       })
       .catch(problem => {
         if (cancelled) return;
+        clearToken();
         setMessage(problem instanceof Error ? problem.message : 'Ссылка недействительна или уже использована.');
         setStatus('error');
       });
@@ -42,7 +44,6 @@ export const MagicLinkOverlay: React.FC = () => {
   if (!token) return null;
 
   const finish = () => {
-    clearToken();
     clearRegistrationIntent();
     const entryPath = registrationEntryPathForMode(accountMode);
     window.location.assign(entryPath === 'home' ? '/' : `/${entryPath}`);

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { passwordResetService } from '../../services/passwordResetService';
 import { StableStatusSlot } from '../ui/StatusNotice';
 
@@ -16,11 +16,34 @@ const clearResetToken = (): void => {
 
 export const PasswordResetOverlay: React.FC = () => {
   const token = useMemo(readResetToken, []);
+  const [tokenState, setTokenState] = useState<'checking' | 'valid' | 'invalid'>(token ? 'checking' : 'invalid');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    passwordResetService.validate(token)
+      .then(result => {
+        if (cancelled) return;
+        if (result.valid) {
+          setTokenState('valid');
+          return;
+        }
+        clearResetToken();
+        setTokenState('invalid');
+        setError(result.error || 'Ссылка восстановления истекла или уже использована.');
+      })
+      .catch(problem => {
+        if (cancelled) return;
+        setTokenState('invalid');
+        setError(problem instanceof Error ? problem.message : 'Не удалось проверить ссылку восстановления.');
+      });
+    return () => { cancelled = true; };
+  }, [token]);
 
   if (!token) return null;
 
@@ -32,18 +55,23 @@ export const PasswordResetOverlay: React.FC = () => {
     setBusy(true);
     try {
       const message = await passwordResetService.confirm(token, password);
+      clearResetToken();
       setSuccess(message);
       setPassword('');
       setConfirmation('');
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'Не удалось изменить пароль.');
+      const message = problem instanceof Error ? problem.message : 'Не удалось изменить пароль.';
+      if (/истек|использован|недействитель/i.test(message)) {
+        clearResetToken();
+        setTokenState('invalid');
+      }
+      setError(message);
     } finally {
       setBusy(false);
     }
   };
 
   const finish = () => {
-    clearResetToken();
     window.location.assign('/');
   };
 
@@ -52,7 +80,14 @@ export const PasswordResetOverlay: React.FC = () => {
       <section role="dialog" aria-modal="true" aria-labelledby="password-reset-title" className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
         <div className="text-xs font-black uppercase tracking-widest text-indigo-500">AnnWord</div>
         <h1 id="password-reset-title" className="mt-2 text-2xl font-black text-indigo-950">Новый пароль</h1>
-        {success ? (
+        {tokenState === 'checking' ? (
+          <div className="mt-5"><StableStatusSlot message="Проверяем ссылку восстановления…" tone="info" /></div>
+        ) : tokenState === 'invalid' ? (
+          <div className="mt-5">
+            <StableStatusSlot message={error || 'Ссылка восстановления истекла или уже использована.'} tone="error" role="alert" />
+            <button type="button" onClick={finish} className="mt-4 w-full rounded-2xl bg-indigo-600 px-4 py-3 font-black text-white">Перейти ко входу</button>
+          </div>
+        ) : success ? (
           <div className="mt-5">
             <p role="status" className="rounded-2xl bg-green-50 p-4 text-sm font-bold text-green-800">{success}</p>
             <button type="button" onClick={finish} className="mt-4 w-full rounded-2xl bg-indigo-600 px-4 py-3 font-black text-white">Перейти ко входу</button>

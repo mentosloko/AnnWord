@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
@@ -6,15 +6,22 @@ import { query, transaction } from "../db";
 import { readRequiredEnv } from "../config";
 import { loadManagedLearners } from "../mentorRepository";
 import { updateProfileAccountMode } from "../profileRepository";
-import { writeParentAccessCookie } from "../parentAccess";
+import { requireParentAccess, writeParentAccessCookie } from "../parentAccess";
 
 export const familyRouter = Router();
 
 const text = (value: unknown): string => String(value || "").trim();
 const digest = (value: string): string => createHmac("sha256", readRequiredEnv("COOKIE_SECRET")).update(value).digest("hex");
 const same = (left: string, right: string): boolean => { const a = Buffer.from(left); const b = Buffer.from(right); return a.length === b.length && timingSafeEqual(a, b); };
-const randomCode = (): string => Math.random().toString(36).slice(2, 8).toUpperCase();
+const inviteHash = (code: string): string => createHash("sha256").update(code).digest("hex");
 const childConsentVersion = "2026-07-15";
+const TEACHER_INVITE_TTL_HOURS = 24;
+const TEACHER_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+const randomCode = (): string => {
+  const bytes = randomBytes(6);
+  return Array.from(bytes, byte => TEACHER_CODE_ALPHABET[byte % TEACHER_CODE_ALPHABET.length]).join("");
+};
 
 const hasValidChildConsent = (value: unknown): boolean => {
   if (!value || typeof value !== "object") return false;
@@ -26,6 +33,30 @@ const verifyAccessCode = async (userId: string, accessCode: string): Promise<boo
   const result = await query<{ access_digest: string | null }>("select access_digest from profiles where id = $1", [userId]);
   const stored = result.rows[0]?.access_digest || "";
   return Boolean(stored && same(stored, digest(accessCode)));
+};
+
+const createTeacherInvite = async (client: { query: (text: string, params?: unknown[]) => Promise<{ rows: unknown[] }> }, learnerUserId: string): Promise<string> => {
+  await client.query(
+    "update teacher_connection_invites set expires_at = now() where learner_user_id = $1 and used_at is null and expires_at > now()",
+    [learnerUserId],
+  );
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const code = randomCode();
+    try {
+      await client.query(
+        `insert into teacher_connection_invites (learner_user_id, code_hash, expires_at)
+         values ($1, $2, now() + interval '${TEACHER_INVITE_TTL_HOURS} hours')`,
+        [learnerUserId, inviteHash(code)],
+      );
+      await client.query("update profiles set child_share_code = $2, updated_at = now() where id = $1", [learnerUserId, code]);
+      return code;
+    } catch (error) {
+      const codeValue = typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code || "") : "";
+      if (codeValue !== "23505") throw error;
+    }
+  }
+  throw new Error("Не удалось создать уникальный код преподавателя. Попробуйте ещё раз.");
 };
 
 familyRouter.use(requireAuth);
@@ -64,22 +95,16 @@ familyRouter.post("/child", async (req: AuthenticatedRequest, res) => {
         throw error;
       }
 
-      let nextShareCode = randomCode();
-      for (let i = 0; i < 5; i += 1) {
-        const exists = await client.query("select 1 from profiles where child_share_code = $1 limit 1", [nextShareCode]);
-        if (!exists.rows.length) break;
-        nextShareCode = randomCode();
-      }
       await client.query(
-        "update profiles set child_display_name = $2, child_share_code = $3, child_slots_limit = 1, access_digest = $4, role = 'parent', account_mode = 'parent', feature_flags = jsonb_set(coalesce(feature_flags, '{}'::jsonb), '{adultRoom}', 'true'::jsonb, true), updated_at = now() where id = $1",
-        [req.user!.id, childName, nextShareCode, digest(accessCode)],
+        "update profiles set child_display_name = $2, child_share_code = null, child_slots_limit = 1, access_digest = $3, role = 'parent', account_mode = 'parent', feature_flags = jsonb_set(coalesce(feature_flags, '{}'::jsonb), '{adultRoom}', 'true'::jsonb, true), updated_at = now() where id = $1",
+        [req.user!.id, childName, digest(accessCode)],
       );
       await client.query(
         `insert into user_consents (user_id, consent_type, granted, document_version, source, context)
          values ($1, 'child_personal_data', true, $2, 'web', $3::jsonb)`,
         [req.user!.id, childConsentVersion, JSON.stringify({ childProfile: "primary", legalRepresentativeConfirmed: true })],
       );
-      return nextShareCode;
+      return createTeacherInvite(client, req.user!.id);
     });
 
     res.json({ childName, childShareCode: shareCode, childSlotsLimit: 1 });
@@ -128,5 +153,82 @@ familyRouter.post("/access-check", async (req: AuthenticatedRequest, res) => {
     res.json({ ok, parentAccessExpiresIn: ok ? 15 * 60 : 0 });
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : "Access check failed" });
+  }
+});
+
+familyRouter.post("/teacher-invite", requireParentAccess, async (req: AuthenticatedRequest, res) => {
+  try {
+    const code = await transaction(client => createTeacherInvite(client, req.user!.id));
+    res.setHeader("Cache-Control", "private, no-store");
+    res.json({ ok: true, code, expiresIn: TEACHER_INVITE_TTL_HOURS * 60 * 60 });
+  } catch (error) {
+    console.error("Teacher invite create failed", error);
+    res.status(400).json({ code: "teacher_invite_create_failed", error: error instanceof Error ? error.message : "Не удалось создать код преподавателя." });
+  }
+});
+
+familyRouter.get("/teacher-connections", requireParentAccess, async (req: AuthenticatedRequest, res) => {
+  try {
+    const result = await query<{
+      teacher_id: string;
+      teacher_name: string | null;
+      teacher_email: string;
+      connected_at: Date | string;
+    }>(
+      `select l.adult_user_id as teacher_id,
+              coalesce(u.full_name, p.username) as teacher_name,
+              u.email as teacher_email,
+              l.created_at as connected_at
+         from adult_learner_links l
+         join app_users u on u.id = l.adult_user_id
+         join profiles p on p.id = l.adult_user_id
+        where l.learner_user_id = $1
+          and l.relation_role = 'teacher'
+          and l.revoked_at is null
+        order by l.created_at desc`,
+      [req.user!.id],
+    );
+    res.setHeader("Cache-Control", "private, no-store");
+    res.json({
+      connections: result.rows.map(row => ({
+        teacherId: row.teacher_id,
+        name: row.teacher_name || row.teacher_email,
+        email: row.teacher_email,
+        connectedAt: row.connected_at,
+      })),
+    });
+  } catch (error) {
+    console.error("Teacher connections load failed", error);
+    res.status(500).json({ code: "teacher_connections_load_failed", error: "Не удалось загрузить подключённых преподавателей." });
+  }
+});
+
+familyRouter.post("/teacher-connections/:teacherId/revoke", requireParentAccess, async (req: AuthenticatedRequest, res) => {
+  try {
+    const teacherId = text(req.params.teacherId);
+    if (!teacherId) { res.status(400).json({ code: "teacher_id_required", error: "Не выбран преподаватель." }); return; }
+    const revoked = await transaction(async (client) => {
+      const link = await client.query(
+        `update adult_learner_links
+            set revoked_at = now()
+          where learner_user_id = $1
+            and adult_user_id = $2
+            and relation_role = 'teacher'
+            and revoked_at is null
+        returning adult_user_id`,
+        [req.user!.id, teacherId],
+      );
+      if (!link.rows.length) return false;
+      await client.query(
+        "update assigned_word_sets set archived_at = now() where learner_user_id = $1 and adult_user_id = $2 and archived_at is null",
+        [req.user!.id, teacherId],
+      );
+      return true;
+    });
+    if (!revoked) { res.status(404).json({ code: "teacher_connection_not_found", error: "Подключение преподавателя уже отозвано или не найдено." }); return; }
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Teacher connection revoke failed", error);
+    res.status(400).json({ code: "teacher_connection_revoke_failed", error: error instanceof Error ? error.message : "Не удалось отозвать доступ преподавателя." });
   }
 });
