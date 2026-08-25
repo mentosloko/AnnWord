@@ -35,6 +35,14 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     }
   }, [currentUserId, setUserProfile, userProfile]);
 
+  const adjustCoinsStrict = useCallback(async (amount: number): Promise<UserProfile> => {
+    if (!currentUserId) throw new Error('Для изменения баланса нужно войти в аккаунт.');
+    const userService = await getUserService();
+    const updatedProfile = await userService.updateCoins(currentUserId, amount);
+    setUserProfile(updatedProfile);
+    return updatedProfile;
+  }, [currentUserId, setUserProfile]);
+
   const buyItem = useCallback(async (item: ShopItem) => {
     const localPurchase = applyPurchaseLocally(userProfile, item);
     if (!localPurchase.ok || !localPurchase.profile) {
@@ -267,6 +275,7 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
 
   return {
     winCoins,
+    adjustCoinsStrict,
     buyItem,
     useItem,
     updateCharacter,
