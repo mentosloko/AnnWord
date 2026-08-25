@@ -1,19 +1,17 @@
 import type { UserProfile } from '../types';
 import { mapProfileFromDB } from '../services/profileMapper';
 import { query } from './db';
+import { mergeAssignedWordsIntoProfile } from './profileHydration';
 import { getOrCreateProfile } from './profileRepository';
-
-const cleanWords = (value: unknown): string[] => Array.isArray(value)
-  ? Array.from(new Set(value.filter((word): word is string => typeof word === 'string').map(word => word.trim().toUpperCase()).filter(Boolean)))
-  : [];
 
 export async function getBootstrapProfile(userId: string, username: string): Promise<UserProfile> {
   const result = await query(
     `select p.*,
-            coalesce(latest_set.words, '{}'::text[]) as assigned_words
+            coalesce(latest_set.words, '{}'::text[]) as assigned_words,
+            coalesce(latest_set.word_translations, '{}'::jsonb) as assigned_word_translations
        from profiles p
        left join lateral (
-         select s.words
+         select s.words, s.word_translations
            from assigned_word_sets s
           where s.learner_user_id = p.id
             and s.archived_at is null
@@ -27,12 +25,9 @@ export async function getBootstrapProfile(userId: string, username: string): Pro
   const row = result.rows[0] as Record<string, unknown> | undefined;
   if (!row) return getOrCreateProfile(userId, username);
 
-  const profile = mapProfileFromDB(row);
-  const assignedWords = cleanWords(row.assigned_words);
-  if (!assignedWords.length) return profile;
-  return {
-    ...profile,
-    assignedWords,
-    customDictionaryEn: Array.from(new Set([...(profile.customDictionaryEn || []), ...assignedWords])),
-  };
+  return mergeAssignedWordsIntoProfile(
+    mapProfileFromDB(row),
+    row.assigned_words,
+    row.assigned_word_translations,
+  );
 }
