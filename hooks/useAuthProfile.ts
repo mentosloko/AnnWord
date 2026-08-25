@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { authService, AuthEventName, AuthBootstrapResult, type AuthUser } from '../services/authService';
 import { backendApiRequest, isBackendApiConfigured } from '../services/backendApiClient';
 import { GUEST_PROFILE } from '../constants/profileDefaults';
-import { DictionarySource, DifficultyLevel, GameSettings, UserProfile, WordLength } from '../types';
+import { GameSettings, UserProfile, WordLength } from '../types';
+import { applyActiveWordSourceToSettings } from '../services/activeWordSource';
 import { profileCache } from '../services/profileCache';
 import { mergeProfileUpdateForOwner, resolveOwnedProfileUpdate } from '../services/profileAccessState';
 import { legalConsentService } from '../services/legalConsentService';
@@ -12,11 +13,9 @@ import { readOwnedProfileUpdateEvent } from '../services/profileUpdateEvent';
 export type AuthMode = 'login' | 'register';
 export type AuthBootstrapStatus = 'loading' | 'ready' | 'error';
 
-type PersistedGameSettings = Partial<Pick<GameSettings, 'wordLength' | 'useCustomDictionary' | 'dictionarySource' | 'difficulty' | 'activePremiumDictionaryId'>>;
+type PersistedGameSettings = Partial<Pick<GameSettings, 'wordLength'>>;
 const SETTINGS_STORAGE_PREFIX = 'annword_game_settings_v1:';
 const isWordLength = (value: unknown): value is WordLength => value === 4 || value === 5 || value === 6;
-const isDictionarySource = (value: unknown): value is DictionarySource => value === 'builtin' || value === 'custom' || value === 'premium';
-const isDifficulty = (value: unknown): value is DifficultyLevel => value === 'ALL' || value === 'A1' || value === 'A2' || value === 'B1' || value === 'B2' || value === 'C1' || value === 'C2';
 const isPaymentReturn = (): boolean => {
   if (typeof window === 'undefined') return false;
   const payment = new URLSearchParams(window.location.search).get('payment');
@@ -62,13 +61,7 @@ const readStoredSettings = (userId: string | null): PersistedGameSettings => {
     const raw = window.localStorage.getItem(`${SETTINGS_STORAGE_PREFIX}${userId}`);
     const parsed = raw ? JSON.parse(raw) : null;
     if (!parsed || typeof parsed !== 'object') return {};
-    const next: PersistedGameSettings = {};
-    if (isWordLength(parsed.wordLength)) next.wordLength = parsed.wordLength;
-    if (typeof parsed.useCustomDictionary === 'boolean') next.useCustomDictionary = parsed.useCustomDictionary;
-    if (isDictionarySource(parsed.dictionarySource)) next.dictionarySource = parsed.dictionarySource;
-    if (isDifficulty(parsed.difficulty)) next.difficulty = parsed.difficulty;
-    if (typeof parsed.activePremiumDictionaryId === 'string') next.activePremiumDictionaryId = parsed.activePremiumDictionaryId;
-    return next;
+    return isWordLength(parsed.wordLength) ? { wordLength: parsed.wordLength } : {};
   } catch {
     return {};
   }
@@ -76,13 +69,7 @@ const readStoredSettings = (userId: string | null): PersistedGameSettings => {
 const writeStoredSettings = (userId: string | null, settings: GameSettings): void => {
   if (!userId || typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(`${SETTINGS_STORAGE_PREFIX}${userId}`, JSON.stringify({
-      wordLength: settings.wordLength,
-      useCustomDictionary: settings.useCustomDictionary,
-      dictionarySource: settings.dictionarySource,
-      difficulty: settings.difficulty,
-      activePremiumDictionaryId: settings.activePremiumDictionaryId,
-    }));
+    window.localStorage.setItem(`${SETTINGS_STORAGE_PREFIX}${userId}`, JSON.stringify({ wordLength: settings.wordLength }));
   } catch {
     // Local preference persistence must not break auth/profile loading.
   }
@@ -113,7 +100,7 @@ export const useAuthProfile = () => {
   const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus>('loading');
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
-  const [settings, setSettings] = useState<GameSettings>(() => ({ ...createInitialSettings(), ...readStoredSettings(initialCachedUserId), username: initialProfile.username }));
+  const [settings, setSettings] = useState<GameSettings>(() => applyActiveWordSourceToSettings({ ...createInitialSettings(), ...readStoredSettings(initialCachedUserId), username: initialProfile.username }, initialProfile.activeWordSource));
   const [userProfile, setUserProfileState] = useState<UserProfile>(initialProfile);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [cachedUserId, setCachedUserId] = useState<string | null>(initialCachedUserId);
@@ -127,34 +114,65 @@ export const useAuthProfile = () => {
   const initialSessionCheckedRef = useRef(false);
   const currentUserIdRef = useRef<string | null>(initialCachedUserId);
   const profileOwnerUserIdRef = useRef<string | null>(initialCachedUserId);
+  const userProfileRef = useRef<UserProfile>(initialProfile);
   const isCurrentProfileOwner = useCallback((ownerUserId: string | null): boolean => Boolean(ownerUserId && currentUserIdRef.current === ownerUserId), []);
-  const setUserProfileForUser = useCallback((ownerUserId: string, next: UserProfile | ((prev: UserProfile) => UserProfile)): void => {
-    setUserProfileState(prev => {
-      if (currentUserIdRef.current !== ownerUserId) return prev;
-      const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(prev) : next;
-      const safeProfile = resolveOwnedProfileUpdate(currentUserIdRef.current, ownerUserId, profileOwnerUserIdRef.current, prev, resolved);
-      if (!safeProfile) return prev;
-      profileOwnerUserIdRef.current = ownerUserId;
-      profileCache.write(safeProfile, ownerUserId);
-      return safeProfile;
-    });
+  const setUserProfileForUser = useCallback((ownerUserId: string, next: UserProfile | ((prev: UserProfile) => UserProfile)): UserProfile | null => {
+    if (currentUserIdRef.current !== ownerUserId) return null;
+    const previous = userProfileRef.current;
+    const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(previous) : next;
+    const safeProfile = resolveOwnedProfileUpdate(currentUserIdRef.current, ownerUserId, profileOwnerUserIdRef.current, previous, resolved);
+    if (!safeProfile) return null;
+    userProfileRef.current = safeProfile;
+    profileOwnerUserIdRef.current = ownerUserId;
+    profileCache.write(safeProfile, ownerUserId);
+    setUserProfileState(safeProfile);
+    return safeProfile;
   }, []);
-  const setUserProfile = useCallback((next: UserProfile | ((prev: UserProfile) => UserProfile)) => { setUserProfileState(prev => { const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(prev) : next; const safeProfile = mergeProfileUpdateForOwner(profileOwnerUserIdRef.current, currentUserIdRef.current, prev, resolved); profileOwnerUserIdRef.current = currentUserIdRef.current; profileCache.write(safeProfile, currentUserIdRef.current); return safeProfile; }); }, []);
-  useEffect(() => { if (typeof window === 'undefined') return; const handle = (event: Event) => { const update = readOwnedProfileUpdateEvent((event as CustomEvent<unknown>).detail); if (!update || !isUserProfile(update.profile) || !isCurrentProfileOwner(update.userId)) return; setUserProfileForUser(update.userId, update.profile); setSettings(previous => ({ ...previous, username: update.profile.username })); }; window.addEventListener('annword:profile-updated', handle as EventListener); return () => window.removeEventListener('annword:profile-updated', handle as EventListener); }, [isCurrentProfileOwner, setUserProfileForUser]);
-  const resetToGuest = useCallback(() => { currentUserIdRef.current = null; profileOwnerUserIdRef.current = null; setCachedUserId(null); setCurrentUser(null); profileCache.clear(); setUserProfileState(GUEST_PROFILE); setSettings(createInitialSettings()); }, []);
+  const setUserProfile = useCallback((next: UserProfile | ((prev: UserProfile) => UserProfile)): UserProfile => {
+    const previous = userProfileRef.current;
+    const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(previous) : next;
+    const safeProfile = mergeProfileUpdateForOwner(profileOwnerUserIdRef.current, currentUserIdRef.current, previous, resolved);
+    userProfileRef.current = safeProfile;
+    profileOwnerUserIdRef.current = currentUserIdRef.current;
+    profileCache.write(safeProfile, currentUserIdRef.current);
+    setUserProfileState(safeProfile);
+    return safeProfile;
+  }, []);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handle = (event: Event) => {
+      const update = readOwnedProfileUpdateEvent((event as CustomEvent<unknown>).detail);
+      if (!update || !isUserProfile(update.profile) || !isCurrentProfileOwner(update.userId)) return;
+      const acceptedProfile = setUserProfileForUser(update.userId, update.profile);
+      if (!acceptedProfile) return;
+      setSettings(previous => applyActiveWordSourceToSettings({ ...previous, username: acceptedProfile.username }, acceptedProfile.activeWordSource));
+    };
+    window.addEventListener('annword:profile-updated', handle as EventListener);
+    return () => window.removeEventListener('annword:profile-updated', handle as EventListener);
+  }, [isCurrentProfileOwner, setUserProfileForUser]);
+  const resetToGuest = useCallback(() => {
+    currentUserIdRef.current = null;
+    profileOwnerUserIdRef.current = null;
+    userProfileRef.current = GUEST_PROFILE;
+    setCachedUserId(null);
+    setCurrentUser(null);
+    profileCache.clear();
+    setUserProfileState(GUEST_PROFILE);
+    setSettings(createInitialSettings());
+  }, []);
   const loadProfileForUser = useCallback(async (user: AuthUser): Promise<boolean> => {
     currentUserIdRef.current = user.id;
     const { userService } = await import('../services/userService');
     const profile = await userService.getOrCreateProfile(user.id, user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Пользователь', user.email || undefined);
     if (!isCurrentProfileOwner(user.id)) return false;
-    setUserProfileForUser(user.id, profile);
-    if (!isCurrentProfileOwner(user.id)) return false;
-    setSettings(prev => ({ ...prev, ...readStoredSettings(user.id), username: profile.username }));
+    const acceptedProfile = setUserProfileForUser(user.id, profile);
+    if (!acceptedProfile || !isCurrentProfileOwner(user.id)) return false;
+    setSettings(prev => applyActiveWordSourceToSettings({ ...prev, ...readStoredSettings(user.id), username: acceptedProfile.username }, acceptedProfile.activeWordSource));
     return true;
   }, [isCurrentProfileOwner, setUserProfileForUser]);
   useEffect(() => { let cancelled = false; const paymentReturn = paymentReturnRef.current; const finishInitialCheck = (status: AuthBootstrapStatus, error: string | null = null) => { if (cancelled) return; initialSessionCheckedRef.current = true; bootstrapCompleteRef.current = true; setBootstrapStatus(status); setBootstrapError(error); setIsRestoringSession(false); }; const keepCachedProfileReady = (): boolean => { if (!hasCachedProfile || !initialCachedUserId) return false; currentUserIdRef.current = initialCachedUserId; setCachedUserId(initialCachedUserId); finishInitialCheck('ready'); return true; }; const failInitialCheck = (error: unknown, fallbackMessage: string) => { console.error(fallbackMessage, error); if ((paymentReturn && keepCachedProfileReady()) || (hasCachedProfile && cachedProfileHasEstablishedAccess)) finishInitialCheck('ready'); else finishInitialCheck('error', getAuthErrorMessage(error, fallbackMessage)); }; getInitialSessionWithPaymentRetry(paymentReturn).then(async ({ user }) => { if (cancelled) return; if (!user) { if (paymentReturn && keepCachedProfileReady()) return; resetToGuest(); finishInitialCheck('ready'); return; } currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); const loaded = await loadProfileForUser(user); if (!loaded || cancelled) return; finishInitialCheck('ready'); }).catch(error => failInitialCheck(error, 'Не удалось восстановить сессию.')); const silentlySyncAuthenticatedUser = async (event: AuthEventName, user: AuthUser) => { const isFreshLogin = event === 'SIGNED_IN' && currentUserIdRef.current !== user.id; try { if (event === 'TOKEN_REFRESHED') { currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return; } if (isFreshLogin) { const loaded = await loadProfileForUser(user); if (cancelled || !loaded || !isCurrentProfileOwner(user.id)) return; setCachedUserId(user.id); setCurrentUser(user); return; } currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); if (event === 'SIGNED_IN' || event === 'USER_UPDATED') await loadProfileForUser(user); } catch (error: unknown) { console.error('Не удалось синхронизировать профиль пользователя.', error); if (isFreshLogin && !cancelled) setAuthError(getAuthErrorMessage(error, 'Не удалось загрузить профиль пользователя.')); } finally { if (event === 'SIGNED_IN' && !cancelled) setIsAuthLoading(false); } }; const unsubscribe = authService.onAuthStateChange((event, _session, user) => { if (event === 'INITIAL_SESSION') return; if (event === 'SIGNED_OUT' || !user) { setIsAuthLoading(false); if (paymentReturn && keepCachedProfileReady()) return; resetToGuest(); if (!initialSessionCheckedRef.current) finishInitialCheck('ready'); return; } if (!initialSessionCheckedRef.current) return; void silentlySyncAuthenticatedUser(event, user); }); return () => { cancelled = true; unsubscribe(); }; }, [cachedProfileHasEstablishedAccess, hasCachedProfile, initialCachedUserId, isCurrentProfileOwner, loadProfileForUser, resetToGuest]);
   useEffect(() => { if (!currentUser) return; setTempUsername(''); setTempPassword(''); }, [currentUser]);
-  useEffect(() => { if (isRestoringSession) return; writeStoredSettings(currentUser?.id || cachedUserId, settings); }, [cachedUserId, currentUser?.id, isRestoringSession, settings]);
+  useEffect(() => { if (isRestoringSession) return; writeStoredSettings(currentUser?.id || cachedUserId, settings); }, [cachedUserId, currentUser?.id, isRestoringSession, settings.wordLength]);
   const openLoginMode = useCallback(() => { clearRegistrationIntent(); setAuthMode('login'); setAuthError(null); setRegistrationConfirmationEmail(null); setTempPassword(''); }, []);
   const openRegisterMode = useCallback(() => { setAuthMode('register'); setAuthError(null); setTempPassword(''); }, []);
   const submitEmailAuth = useCallback(async () => {

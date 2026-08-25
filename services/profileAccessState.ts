@@ -10,6 +10,15 @@ const latestWorld = (previous: UserProfile, next: UserProfile) => {
     : { activeWorldId: next.pet.activeWorldId, activeWorldDate: next.pet.activeWorldDate };
 };
 
+const latestActiveWordSource = (previous: UserProfile, next: UserProfile) => {
+  const previousAt = previous.activeWordSource?.updatedAt ? Date.parse(previous.activeWordSource.updatedAt) : Number.NaN;
+  const nextAt = next.activeWordSource?.updatedAt ? Date.parse(next.activeWordSource.updatedAt) : Number.NaN;
+  const preservePrevious = Boolean(previous.activeWordSource)
+    && !Number.isNaN(previousAt)
+    && (Number.isNaN(nextAt) || previousAt > nextAt);
+  return preservePrevious ? previous.activeWordSource : next.activeWordSource;
+};
+
 /**
  * Network responses can arrive out of order. Keep irreversible onboarding and
  * append-only rewards monotonic while still allowing normal mutable fields
@@ -18,6 +27,7 @@ const latestWorld = (previous: UserProfile, next: UserProfile) => {
 export const preserveEstablishedAccountAccess = (previous: UserProfile, next: UserProfile): UserProfile => {
   const preserveAccess = Boolean(previous.accountMode && !next.accountMode);
   const world = latestWorld(previous, next);
+  const activeWordSource = latestActiveWordSource(previous, next);
   return {
     ...next,
     ...(preserveAccess ? {
@@ -34,6 +44,7 @@ export const preserveEstablishedAccountAccess = (previous: UserProfile, next: Us
       dictionaryCollections: previous.dictionaryCollections,
       weeklyReportEmail: previous.weeklyReportEmail,
     } : {}),
+    activeWordSource,
     pet: {
       ...next.pet,
       characterOnboarded: previous.pet.characterOnboarded === true || next.pet.characterOnboarded === true,

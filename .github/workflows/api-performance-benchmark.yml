@@ -8,6 +8,7 @@ on:
       - 'hooks/**'
       - 'db/yandex/**'
       - 'scripts/api-performance-benchmark.ts'
+      - 'scripts/active-word-source-integration-smoke.ts'
       - 'tests/apiPerformanceRegression.test.ts'
       - '.github/workflows/yandex-deploy.yml'
       - '.github/workflows/api-performance-benchmark.yml'
@@ -51,3 +52,5 @@ jobs:
         run: npm run test:run
       - name: Cold-warm API benchmark and starvation smoke
         run: npx tsx scripts/api-performance-benchmark.ts
+      - name: Active word source persistence smoke
+        run: npx tsx scripts/active-word-source-integration-smoke.ts

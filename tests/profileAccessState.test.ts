@@ -12,6 +12,7 @@ const profile = (overrides: Partial<UserProfile> = {}): UserProfile => ({
   childShareCode: 'ABC12345',
   childSlotsLimit: 1,
   featureFlags: { adultRoom: true, premiumDictionaries: true },
+  activeWordSource: { source: 'builtin', difficulty: 'ALL', updatedAt: '2026-08-25T10:00:00.000Z' },
   dictionaryCollections: [],
   customDictionaryEn: [],
   stats: { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} },
@@ -77,5 +78,24 @@ describe('preserveEstablishedAccountAccess', () => {
     const previous = profile({ pet: { ...profile().pet, activeWorldId: 'theatre', activeWorldDate: '2026-08-05' } });
     const stale = profile({ pet: { ...profile().pet, activeWorldId: 'default_room', activeWorldDate: undefined } });
     expect(preserveEstablishedAccountAccess(previous, stale).pet).toMatchObject({ activeWorldId: 'theatre', activeWorldDate: '2026-08-05' });
+  });
+
+  it('keeps a newer active word source when an older hydration response arrives later', () => {
+    const previous = profile({
+      activeWordSource: { source: 'premium', difficulty: 'ALL', premiumDictionaryId: 'kids_animals', updatedAt: '2026-08-25T10:02:00.000Z' },
+    });
+    const stale = profile({
+      activeWordSource: { source: 'builtin', difficulty: 'ALL', updatedAt: '2026-08-25T10:01:00.000Z' },
+      coins: 12,
+    });
+    const merged = preserveEstablishedAccountAccess(previous, stale);
+    expect(merged.activeWordSource).toEqual(previous.activeWordSource);
+    expect(merged.coins).toBe(12);
+  });
+
+  it('accepts a newer server word source selection', () => {
+    const previous = profile({ activeWordSource: { source: 'builtin', difficulty: 'ALL', updatedAt: '2026-08-25T10:01:00.000Z' } });
+    const newer = profile({ activeWordSource: { source: 'custom', difficulty: 'ALL', updatedAt: '2026-08-25T10:03:00.000Z' } });
+    expect(preserveEstablishedAccountAccess(previous, newer).activeWordSource).toEqual(newer.activeWordSource);
   });
 });

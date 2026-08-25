@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { DictionarySource, DifficultyLevel, GameSettings, UserProfile } from '../../types';
+import { activeWordSourceFromSettings, activeWordSourceKey } from '../../services/activeWordSource';
 import { getKidsDictionaryCatalog } from '../../services/kidsDictionaryCatalog';
 import { isKidsMode } from '../../services/modeFlags';
 import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
@@ -20,7 +21,7 @@ interface DictionarySettingsScreenProps {
   userProfile: UserProfile;
   customDictionaryWords: string[];
   isAuthenticated: boolean;
-  onSettingsChange: (settings: GameSettings) => void;
+  onCommitSettings: (settings: GameSettings) => Promise<void>;
   onOpenDictionaryStudio: () => void;
   onOpenPremium: () => void;
   onBack: () => void;
@@ -64,7 +65,7 @@ const readStoredSpotlightSelection = (username: string): SpotlightSelection => {
 const storeSpotlightSelection = (username: string, selection: SpotlightSelection): void => {
   if (typeof window === 'undefined') return;
   try { window.localStorage.setItem(`${SPOTLIGHT_STORAGE_PREFIX}${username || 'guest'}`, JSON.stringify(selection)); }
-  catch { /* A local preference must not block dictionary selection. */ }
+  catch { /* Local fallback must not block the canonical server selection. */ }
 };
 
 export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> = ({
@@ -72,26 +73,29 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
   userProfile,
   customDictionaryWords,
   isAuthenticated,
-  onSettingsChange,
+  onCommitSettings,
   onOpenDictionaryStudio,
   onOpenPremium,
   onBack,
 }) => {
+  const [draftSettings, setDraftSettings] = useState<GameSettings>(settings);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const kidsMode = isKidsMode(userProfile, isAuthenticated);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
-  const source = settings.dictionarySource;
+  const source = draftSettings.dictionarySource;
   const practicePremiumCatalog = getPremiumDictionaryCatalog();
   const spotlightMeta = practicePremiumCatalog.find(item => item.id === SPOTLIGHT_PREMIUM_DICTIONARY_ID);
   const premiumCatalog = kidsMode
     ? [...(spotlightMeta ? [spotlightMeta] : []), ...getKidsDictionaryCatalog()]
     : practicePremiumCatalog;
-  const selectedTopic = premiumCatalog.find(item => item.id === settings.activePremiumDictionaryId) || premiumCatalog[0];
+  const selectedTopic = premiumCatalog.find(item => item.id === draftSettings.activePremiumDictionaryId) || premiumCatalog[0];
   const storedSpotlightSelection = useMemo(() => readStoredSpotlightSelection(userProfile.username), [userProfile.username]);
-  const spotlightGrade = (getSpotlightGrades().includes(settings.activeSpotlightGrade as SpotlightGradeNumber)
-    ? settings.activeSpotlightGrade
+  const spotlightGrade = (getSpotlightGrades().includes(draftSettings.activeSpotlightGrade as SpotlightGradeNumber)
+    ? draftSettings.activeSpotlightGrade
     : storedSpotlightSelection.grade) as SpotlightGradeNumber;
-  const spotlightSectionId = settings.activeSpotlightSectionId || storedSpotlightSelection.sectionId;
-  const spotlightActive = source === 'premium' && settings.activePremiumDictionaryId === SPOTLIGHT_PREMIUM_DICTIONARY_ID;
+  const spotlightSectionId = draftSettings.activeSpotlightSectionId || storedSpotlightSelection.sectionId;
+  const spotlightActive = source === 'premium' && draftSettings.activePremiumDictionaryId === SPOTLIGHT_PREMIUM_DICTIONARY_ID;
   const [spotlightLoadState, setSpotlightLoadState] = useState<SpotlightLoadState>('idle');
   const [spotlightRevision, setSpotlightRevision] = useState(0);
   const [mobileWizardOpen, setMobileWizardOpen] = useState(false);
@@ -100,6 +104,14 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
   const selectedSpotlightSectionId = spotlightSectionId === SPOTLIGHT_ALL_SECTIONS_ID || spotlightSections.some(section => section.id === spotlightSectionId)
     ? spotlightSectionId
     : SPOTLIGHT_ALL_SECTIONS_ID;
+  const draftKey = activeWordSourceKey(activeWordSourceFromSettings(draftSettings));
+  const activeKey = activeWordSourceKey(userProfile.activeWordSource);
+  const dirty = draftKey !== activeKey;
+
+  useEffect(() => {
+    setDraftSettings(settings);
+    setSaveError(null);
+  }, [settings.dictionarySource, settings.difficulty, settings.activePremiumDictionaryId, settings.activeSpotlightGrade, settings.activeSpotlightSectionId]);
 
   useEffect(() => {
     if (!spotlightActive) return;
@@ -116,15 +128,16 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
   }, [spotlightActive]);
 
   const chooseSource = (nextSource: DictionarySource) => {
+    setSaveError(null);
     if ((nextSource === 'custom' || nextSource === 'premium') && (!isAuthenticated || !hasPremium)) {
       onOpenPremium();
       return;
     }
     const nextPremiumId = nextSource === 'premium'
-      ? settings.activePremiumDictionaryId || premiumCatalog[0]?.id
-      : settings.activePremiumDictionaryId;
+      ? draftSettings.activePremiumDictionaryId || premiumCatalog[0]?.id
+      : draftSettings.activePremiumDictionaryId;
     const nextSettings: GameSettings = {
-      ...settings,
+      ...draftSettings,
       dictionarySource: nextSource,
       useCustomDictionary: nextSource === 'custom',
       activePremiumDictionaryId: nextPremiumId,
@@ -132,20 +145,19 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
     if (nextSource === 'premium' && nextPremiumId === SPOTLIGHT_PREMIUM_DICTIONARY_ID) {
       nextSettings.activeSpotlightGrade = spotlightGrade;
       nextSettings.activeSpotlightSectionId = selectedSpotlightSectionId;
-      storeSpotlightSelection(userProfile.username, { grade: spotlightGrade, sectionId: selectedSpotlightSectionId });
     }
-    onSettingsChange(nextSettings);
+    setDraftSettings(nextSettings);
   };
 
   const selectPremiumDictionary = (id: string) => {
+    setSaveError(null);
     if (id !== SPOTLIGHT_PREMIUM_DICTIONARY_ID) {
-      onSettingsChange({ ...settings, dictionarySource: 'premium', useCustomDictionary: false, activePremiumDictionaryId: id });
+      setDraftSettings({ ...draftSettings, dictionarySource: 'premium', useCustomDictionary: false, activePremiumDictionaryId: id, activeSpotlightGrade: undefined, activeSpotlightSectionId: undefined });
       return;
     }
     const selection = { grade: spotlightGrade, sectionId: selectedSpotlightSectionId };
-    storeSpotlightSelection(userProfile.username, selection);
-    onSettingsChange({
-      ...settings,
+    setDraftSettings({
+      ...draftSettings,
       dictionarySource: 'premium',
       useCustomDictionary: false,
       activePremiumDictionaryId: id,
@@ -155,10 +167,9 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
   };
 
   const selectSpotlightGrade = (grade: SpotlightGradeNumber) => {
-    const selection = { grade, sectionId: SPOTLIGHT_ALL_SECTIONS_ID };
-    storeSpotlightSelection(userProfile.username, selection);
-    onSettingsChange({
-      ...settings,
+    setSaveError(null);
+    setDraftSettings({
+      ...draftSettings,
       dictionarySource: 'premium',
       useCustomDictionary: false,
       activePremiumDictionaryId: SPOTLIGHT_PREMIUM_DICTIONARY_ID,
@@ -168,10 +179,9 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
   };
 
   const selectSpotlightSection = (sectionId: string) => {
-    const selection = { grade: spotlightGrade, sectionId };
-    storeSpotlightSelection(userProfile.username, selection);
-    onSettingsChange({
-      ...settings,
+    setSaveError(null);
+    setDraftSettings({
+      ...draftSettings,
       dictionarySource: 'premium',
       useCustomDictionary: false,
       activePremiumDictionaryId: SPOTLIGHT_PREMIUM_DICTIONARY_ID,
@@ -198,7 +208,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
     setMobileStep(nextSource === 'builtin' ? 'difficulty' : nextSource === 'premium' ? 'premium' : 'custom');
   };
   const chooseMobileDifficulty = (difficulty: DifficultyLevel) => {
-    onSettingsChange({ ...settings, dictionarySource: 'builtin', useCustomDictionary: false, difficulty });
+    setDraftSettings({ ...draftSettings, dictionarySource: 'builtin', useCustomDictionary: false, difficulty });
     closeMobileWizard();
   };
   const chooseMobilePremium = (id: string) => {
@@ -209,23 +219,41 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
   const chooseMobileSpotlightGrade = (grade: SpotlightGradeNumber) => { selectSpotlightGrade(grade); setMobileStep('spotlight_section'); };
   const chooseMobileSpotlightSection = (sectionId: string) => { selectSpotlightSection(sectionId); closeMobileWizard(); };
 
+  const commit = async () => {
+    if (saving) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onCommitSettings(draftSettings);
+      if (draftSettings.dictionarySource === 'premium' && draftSettings.activePremiumDictionaryId === SPOTLIGHT_PREMIUM_DICTIONARY_ID) {
+        storeSpotlightSelection(userProfile.username, { grade: spotlightGrade, sectionId: selectedSpotlightSectionId });
+      }
+      onBack();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Не удалось сохранить выбор словаря.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const currentLabel = source === 'custom'
     ? 'Ваш список'
     : source === 'premium'
-      ? settings.activePremiumDictionaryId === SPOTLIGHT_PREMIUM_DICTIONARY_ID
+      ? draftSettings.activePremiumDictionaryId === SPOTLIGHT_PREMIUM_DICTIONARY_ID
         ? `Школьные (Spotlight) · ${getSpotlightSelectionLabel(spotlightGrade, selectedSpotlightSectionId)}`
         : selectedTopic?.title || 'Тематический словарь'
-      : kidsMode ? 'Детский словарь' : `General English · ${settings.difficulty === 'ALL' ? 'все уровни' : settings.difficulty}`;
+      : kidsMode ? 'Детский словарь' : `General English · ${draftSettings.difficulty === 'ALL' ? 'все уровни' : draftSettings.difficulty}`;
 
   return <ScreenContainer className="max-w-4xl pb-20 pt-3 sm:pt-4">
     <header className="mb-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
-      <button type="button" onClick={onBack} aria-label="Назад" className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button>
+      <button type="button" onClick={onBack} aria-label="Назад без сохранения" className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button>
       <div className="min-w-0 text-center"><div className="text-[10px] font-black uppercase tracking-widest text-indigo-400 sm:text-xs">Слова для игр</div><h1 className="truncate text-2xl font-black text-indigo-950 sm:text-3xl">Выбор словаря</h1></div>
       <div className="h-11 w-11" />
     </header>
 
     <section className="rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:p-6">
-      <div className="rounded-2xl bg-indigo-50 px-4 py-3"><div className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Выбрано сейчас</div><div className="mt-1 text-lg font-black text-indigo-950">{currentLabel}</div></div>
+      <div className="rounded-2xl bg-indigo-50 px-4 py-3"><div className="text-[10px] font-black uppercase tracking-widest text-indigo-400">{dirty ? 'Будет выбрано после сохранения' : 'Выбрано сейчас'}</div><div className="mt-1 text-lg font-black text-indigo-950">{currentLabel}</div>{dirty && <div className="mt-1 text-xs font-bold text-amber-700">Изменения ещё не влияют на игры.</div>}</div>
+      {saveError && <div role="alert" className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{saveError}</div>}
 
       <div className="mt-4 md:hidden">
         <p className="text-sm font-bold leading-6 text-slate-500">Сначала выберите источник слов, затем уровень, тему или свой список.</p>
@@ -247,14 +275,14 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
         {source === 'builtin' && <section className="mt-4 rounded-3xl border-2 border-indigo-100 bg-indigo-50/45 p-4">
           <h2 className="text-lg font-black text-indigo-950">{kidsMode ? 'Детский словарь' : 'General English'}</h2>
           <p className="mt-1 text-sm font-bold text-slate-500">Выберите сложность только для общего словаря. На тематические наборы этот уровень не влияет.</p>
-          <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7" role="group" aria-label="Уровень сложности">{DIFFICULTIES.map(level => <button type="button" key={level.value} aria-pressed={settings.difficulty === level.value} onClick={() => onSettingsChange({ ...settings, dictionarySource: 'builtin', useCustomDictionary: false, difficulty: level.value })} className={`rounded-xl py-2.5 text-sm font-black ${settings.difficulty === level.value ? 'bg-indigo-600 text-white' : 'border-2 border-indigo-100 bg-white text-indigo-700'}`}>{level.short}</button>)}</div>
+          <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7" role="group" aria-label="Уровень сложности">{DIFFICULTIES.map(level => <button type="button" key={level.value} aria-pressed={draftSettings.difficulty === level.value} onClick={() => setDraftSettings({ ...draftSettings, dictionarySource: 'builtin', useCustomDictionary: false, difficulty: level.value })} className={`rounded-xl py-2.5 text-sm font-black ${draftSettings.difficulty === level.value ? 'bg-indigo-600 text-white' : 'border-2 border-indigo-100 bg-white text-indigo-700'}`}>{level.short}</button>)}</div>
         </section>}
 
         {source === 'premium' && hasPremium && <section className="mt-4 rounded-3xl border-2 border-amber-100 bg-amber-50/55 p-4">
           <h2 className="text-lg font-black text-indigo-950">Какую тему тренировать</h2>
           <p className="mt-1 text-sm font-bold text-slate-500">Выберите набор. Для школьного словаря затем укажите класс и модуль.</p>
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5" role="group" aria-label="Тематический словарь">{premiumCatalog.map(item => {
-            const active = settings.activePremiumDictionaryId === item.id;
+            const active = draftSettings.activePremiumDictionaryId === item.id;
             return <button type="button" key={item.id} aria-pressed={active} aria-expanded={item.id === SPOTLIGHT_PREMIUM_DICTIONARY_ID ? spotlightActive : undefined} onClick={() => selectPremiumDictionary(item.id)} className={`rounded-2xl border-2 bg-white p-3 text-left transition ${active ? 'border-amber-400 shadow-sm' : 'border-transparent hover:border-amber-200'}`}><div className="text-2xl" aria-hidden="true">{item.icon}</div><div className="mt-2 text-sm font-black leading-tight text-indigo-950">{item.shortTitle}</div>{item.id === SPOTLIGHT_PREMIUM_DICTIONARY_ID && <div className="mt-1 text-[11px] font-bold text-amber-700">класс и модуль</div>}</button>;
           })}</div>
 
@@ -278,7 +306,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
         </section>}
       </div>
 
-      <button type="button" onClick={onBack} className="mt-5 w-full rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white transition hover:bg-indigo-700">Готово</button>
+      <button type="button" disabled={saving || !dirty} onClick={() => void commit()} className="mt-5 w-full rounded-2xl bg-indigo-600 px-6 py-4 font-black text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">{saving ? 'Сохраняю…' : dirty ? 'Готово' : 'Уже сохранено'}</button>
     </section>
 
     <AccessibleDialog open={mobileWizardOpen} titleId="mobile-dictionary-title" descriptionId="mobile-dictionary-description" onEscape={closeMobileWizard} overlayClassName="md:hidden" className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto rounded-[2rem] bg-white p-5 shadow-2xl">
@@ -286,7 +314,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
       <p id="mobile-dictionary-description" className="mt-2 text-sm font-bold leading-6 text-slate-500">{mobileStep === 'source' ? 'Выберите один источник. На следующем шаге можно уточнить уровень, тему или свой список.' : mobileStep === 'difficulty' ? 'Уровень влияет только на общий словарь.' : mobileStep === 'premium' ? 'Выберите школьный или тематический набор.' : mobileStep === 'spotlight_grade' ? 'Выберите класс учебника Spotlight.' : mobileStep === 'spotlight_section' ? 'Можно играть по всему классу или по одному модулю.' : 'Используются слова из вашего собственного списка.'}</p>
 
       {mobileStep === 'source' && <div className="mt-5 grid gap-3">{SOURCE_OPTIONS.map(option => { const locked = option.source !== 'builtin' && !hasPremium; return <button key={option.source} type="button" onClick={() => chooseMobileSource(option.source)} className="rounded-2xl border-2 border-indigo-100 bg-white p-4 text-left"><div className="flex items-start gap-3"><span className="text-3xl" aria-hidden="true">{option.icon}</span><div className="min-w-0"><div className="text-lg font-black text-indigo-950">{option.title}{locked ? ' · Premium' : ''}</div><div className="mt-1 text-sm font-bold leading-5 text-slate-500">{option.source === 'builtin' ? (kidsMode ? 'Бесплатный детский словарь для ежедневных игр.' : 'Общий английский словарь с выбором уровня A1–C2.') : option.source === 'premium' ? 'Школьные и тематические подборки.' : 'Слова из школы, курса или собственного списка.'}</div></div></div></button>; })}</div>}
-      {mobileStep === 'difficulty' && <div className="mt-5 grid grid-cols-2 gap-3">{DIFFICULTIES.map(level => <button type="button" key={level.value} onClick={() => chooseMobileDifficulty(level.value)} className={`rounded-2xl border-2 p-4 text-left ${settings.difficulty === level.value ? 'border-indigo-500 bg-indigo-50' : 'border-indigo-100 bg-white'}`}><div className="text-xl font-black text-indigo-950">{level.short}</div><div className="mt-1 text-xs font-bold text-slate-500">{level.value === 'ALL' ? 'Слова всех уровней' : `Уровень ${level.value}`}</div></button>)}</div>}
+      {mobileStep === 'difficulty' && <div className="mt-5 grid grid-cols-2 gap-3">{DIFFICULTIES.map(level => <button type="button" key={level.value} onClick={() => chooseMobileDifficulty(level.value)} className={`rounded-2xl border-2 p-4 text-left ${draftSettings.difficulty === level.value ? 'border-indigo-500 bg-indigo-50' : 'border-indigo-100 bg-white'}`}><div className="text-xl font-black text-indigo-950">{level.short}</div><div className="mt-1 text-xs font-bold text-slate-500">{level.value === 'ALL' ? 'Слова всех уровней' : `Уровень ${level.value}`}</div></button>)}</div>}
       {mobileStep === 'premium' && <div className="mt-5 grid gap-3">{premiumCatalog.map(item => <button type="button" key={item.id} onClick={() => chooseMobilePremium(item.id)} className="rounded-2xl border-2 border-amber-100 bg-amber-50/60 p-4 text-left"><div className="flex gap-3"><span className="text-3xl" aria-hidden="true">{item.icon}</span><div><div className="text-lg font-black text-indigo-950">{item.title}</div><div className="mt-1 text-sm font-bold leading-5 text-slate-500">{item.id === SPOTLIGHT_PREMIUM_DICTIONARY_ID ? 'Школьные слова для 2–11 классов с выбором модуля.' : 'Тематическая подборка слов для тренировок.'}</div></div></div></button>)}</div>}
       {mobileStep === 'spotlight_grade' && <div className="mt-5 grid grid-cols-3 gap-3">{getSpotlightGrades().map(grade => <button type="button" key={grade} onClick={() => chooseMobileSpotlightGrade(grade)} className={`rounded-2xl border-2 p-4 text-center text-xl font-black ${spotlightGrade === grade ? 'border-amber-400 bg-amber-100 text-amber-950' : 'border-indigo-100 bg-white text-indigo-800'}`}>{grade} класс</button>)}</div>}
       {mobileStep === 'spotlight_section' && <div className="mt-5 grid gap-2">{spotlightLoadState === 'loading' && spotlightSections.length === 0 && <div className="rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-800">Загружаю модули…</div>}{spotlightLoadState === 'error' && <button type="button" onClick={retrySpotlightLoad} className="rounded-2xl bg-rose-50 p-4 text-left text-sm font-black text-rose-700">Не удалось загрузить. Нажмите, чтобы повторить.</button>}<button type="button" onClick={() => chooseMobileSpotlightSection(SPOTLIGHT_ALL_SECTIONS_ID)} className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-4 text-left"><div className="text-lg font-black text-indigo-950">Весь {spotlightGrade} класс</div><div className="mt-1 text-sm font-bold text-slate-500">Все основные и дополнительные слова выбранного класса.</div></button>{spotlightSections.map(section => <button type="button" key={section.id} onClick={() => chooseMobileSpotlightSection(section.id)} className="rounded-2xl border-2 border-indigo-100 bg-white p-4 text-left"><div className="text-base font-black text-indigo-950">{section.title}</div><div className="mt-1 text-xs font-bold text-slate-500">{section.wordCount} слов</div></button>)}</div>}
