@@ -1,5 +1,6 @@
 import { query, transaction } from "./db";
 import type { CustomDictionaryCollection } from "../types";
+import { normalizeDictionaryTranslations, resolveDictionaryWordTranslations } from "../services/masterDictionaryLookup";
 import { getProfileById } from "./profileRepository";
 
 const SOURCES = new Set(["manual", "ocr", "class", "topic"]);
@@ -23,6 +24,7 @@ const normalizeCollection = (value: any): CustomDictionaryCollection | null => {
     title: readText(value?.title) || "Словарь",
     source: SOURCES.has(value?.source) ? value.source : "manual",
     words,
+    wordTranslations: normalizeDictionaryTranslations(value?.wordTranslations || value?.word_translations),
     classLabel: readText(value?.classLabel) || readText(value?.class_label),
     theme: readText(value?.theme),
     createdAt: readText(value?.createdAt) || readText(value?.created_at) || new Date().toISOString(),
@@ -56,11 +58,25 @@ export async function saveDictionaryCollection(userId: string, draft: Partial<Cu
       ? current.findIndex(item => item.id === explicitId)
       : current.findIndex(item => titleKey(item.title) === titleKey(title) || sameWords(item.words, words));
     const previous = existingIndex >= 0 ? current[existingIndex] : null;
+    const isTeacher = profile.role === "teacher" || profile.account_mode === "teacher";
+    const isAdmin = profile.role === "admin";
+    const providedTranslations = {
+      ...(previous?.wordTranslations || {}),
+      ...normalizeDictionaryTranslations(draft.wordTranslations),
+    };
+    const teacherResolution = isTeacher
+      ? await resolveDictionaryWordTranslations(words, providedTranslations)
+      : null;
+    if (teacherResolution?.missingWords.length) {
+      throw new Error(`Добавьте русский перевод для: ${teacherResolution.missingWords.join(", ")}.`);
+    }
+    const wordTranslations = teacherResolution?.translations || normalizeDictionaryTranslations(providedTranslations);
     const nextCollection: CustomDictionaryCollection = {
       id: previous?.id || explicitId || crypto.randomUUID(),
       title,
       source: SOURCES.has(draft.source) ? draft.source! : previous?.source || "manual",
       words,
+      wordTranslations,
       classLabel: readText(draft.classLabel) || previous?.classLabel,
       theme: readText(draft.theme) || previous?.theme,
       createdAt: previous?.createdAt || now,
@@ -68,8 +84,6 @@ export async function saveDictionaryCollection(userId: string, draft: Partial<Cu
     const nextCollections = existingIndex >= 0
       ? [nextCollection, ...current.filter((_, index) => index !== existingIndex)]
       : [nextCollection, ...current];
-    const isTeacher = profile.role === "teacher" || profile.account_mode === "teacher";
-    const isAdmin = profile.role === "admin";
     await client.query(
       `update profiles
           set dictionary_collections = $2::jsonb,
