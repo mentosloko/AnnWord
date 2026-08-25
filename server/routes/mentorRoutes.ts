@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Router, type NextFunction, type Response } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
+import { resolveDictionaryWordTranslations } from "../../services/masterDictionaryLookup";
 import { query, transaction } from "../db";
 import { loadManagedLearners } from "../mentorRepository";
 import { sendPostboxEmail } from "../postboxEmailService";
@@ -12,6 +13,7 @@ const text = (value: unknown): string => String(value || "").trim();
 const wordsOf = (value: unknown): string[] => Array.isArray(value) ? Array.from(new Set(value.filter((word): word is string => typeof word === "string").map(word => word.trim().toUpperCase()).filter(Boolean))) : [];
 const inviteHash = (code: string): string => createHash("sha256").update(code).digest("hex");
 const escapeHtml = (value: string): string => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const MIN_ASSIGNABLE_WORDS = 3;
 
 const requireTeacherAccount = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   const result = await query<{ role: string | null; account_mode: string | null }>(
@@ -117,13 +119,41 @@ mentorRouter.post("/assign", async (req: AuthenticatedRequest, res) => {
     if (!collection) { res.status(404).json({ code: "dictionary_not_found", error: "Словарь не найден." }); return; }
     const words = wordsOf(collection.words);
     if (!words.length) { res.status(400).json({ code: "dictionary_empty", error: "В словаре нет слов для назначения." }); return; }
-    await query("update assigned_word_sets set archived_at = now() where learner_user_id = $1 and archived_at is null", [learnerId]);
-    await query(
-      `insert into assigned_word_sets (adult_user_id, learner_user_id, title, class_label, theme, source, words)
-       values ($1, $2, $3, $4, $5, $6, $7::text[])`,
-      [req.user!.id, learnerId, String(collection.title || "Словарь"), collection.classLabel || collection.class_label || null, collection.theme || null, collection.source || "manual", words],
-    );
-    res.json({ ok: true });
+
+    const resolution = await resolveDictionaryWordTranslations(words, collection.wordTranslations || collection.word_translations);
+    if (resolution.missingWords.length) {
+      res.status(400).json({
+        code: "dictionary_translation_required",
+        error: `Сначала добавьте русский перевод для: ${resolution.missingWords.join(", ")}.`,
+      });
+      return;
+    }
+    if (resolution.readyWords.length < MIN_ASSIGNABLE_WORDS) {
+      res.status(400).json({
+        code: "dictionary_too_small_for_games",
+        error: `Для назначения нужно минимум ${MIN_ASSIGNABLE_WORDS} слова с переводом. Сейчас готово: ${resolution.readyWords.length}.`,
+      });
+      return;
+    }
+
+    await transaction(async client => {
+      await client.query("update assigned_word_sets set archived_at = now() where learner_user_id = $1 and archived_at is null", [learnerId]);
+      await client.query(
+        `insert into assigned_word_sets (adult_user_id, learner_user_id, title, class_label, theme, source, words, word_translations)
+         values ($1, $2, $3, $4, $5, $6, $7::text[], $8::jsonb)`,
+        [
+          req.user!.id,
+          learnerId,
+          String(collection.title || "Словарь"),
+          collection.classLabel || collection.class_label || null,
+          collection.theme || null,
+          collection.source || "manual",
+          resolution.readyWords,
+          JSON.stringify(resolution.translations),
+        ],
+      );
+    });
+    res.json({ ok: true, readyWords: resolution.readyWords.length });
   } catch (error) {
     console.error("Dictionary assignment failed", error);
     res.status(400).json({ code: "dictionary_assignment_failed", error: error instanceof Error ? error.message : "Не удалось назначить словарь." });
