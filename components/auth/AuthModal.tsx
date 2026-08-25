@@ -24,6 +24,7 @@ interface AuthModalProps {
 const LoaderIcon = () => <svg className="h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>;
 const RequiredMark = () => <><span aria-hidden="true" className="ml-1 text-rose-500">*</span><span className="sr-only"> Обязательное согласие.</span></>;
 const legalLinkClassName = 'font-bold text-indigo-700 underline decoration-indigo-200 underline-offset-2 transition hover:text-indigo-900 hover:decoration-indigo-500';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const isRussianEmailDomain = (value: string): boolean => { const domain = value.trim().toLowerCase().split('@').pop() || ''; return domain.endsWith('.ru') || domain.endsWith('.рф') || domain.endsWith('.xn--p1ai') || domain === 'xn--p1ai'; };
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, mode, email, password, error, isLoading, onClose, onModeChange, onEmailChange, onPasswordChange, onSubmit, onYandexLogin }) => {
@@ -38,6 +39,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, mode, email, passw
   const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
   useEffect(() => {
@@ -49,6 +51,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, mode, email, passw
     setRecoveryMessage(null);
     setRecoveryError(null);
     setShowPassword(false);
+    setSubmitAttempted(false);
   }, [isOpen, mode]);
   useBodyScrollLock(isOpen);
   useEffect(() => {
@@ -70,21 +73,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, mode, email, passw
 
   if (!isOpen) return null;
   const title = recoveryMode ? 'Восстановление пароля' : mode === 'login' ? 'Войти в AnnWord' : 'Создать аккаунт';
-  const emailHasDomain = email.includes('@') && email.split('@').pop()!.includes('.');
-  const invalidRegistrationDomain = mode === 'register' && emailHasDomain && !isRussianEmailDomain(email);
+  const trimmedEmail = email.trim();
+  const emailValid = EMAIL_RE.test(trimmedEmail);
+  const invalidRegistrationDomain = mode === 'register' && emailValid && !isRussianEmailDomain(trimmedEmail);
+  const passwordValid = mode === 'register' ? password.length >= 8 : password.length > 0;
   const requiredConsentsMissing = mode === 'register' && (!termsAccepted || !personalDataAccepted);
+  const formValid = emailValid && passwordValid && !invalidRegistrationDomain && !requiredConsentsMissing;
+  const emailError = submitAttempted && !emailValid ? 'Введите корректную электронную почту.' : invalidRegistrationDomain ? 'Используйте адрес в зоне .ru или .рф.' : null;
+  const passwordError = submitAttempted && !passwordValid ? (mode === 'register' ? 'Пароль должен содержать не менее 8 символов.' : 'Введите пароль.') : null;
+  const consentError = submitAttempted && requiredConsentsMissing ? 'Примите два обязательных согласия для регистрации.' : null;
   const authMessageIsInfo = Boolean(error && /отправлено письмо|подтверд|проверьте почту/i.test(error));
   const visibleMessage = recoveryError || recoveryMessage || (!recoveryMode ? error : null);
   const visibleTone = recoveryError ? 'error' : recoveryMessage || authMessageIsInfo ? 'info' : 'error';
 
   const submit = () => {
-    if (invalidRegistrationDomain || requiredConsentsMissing) return;
+    setSubmitAttempted(true);
+    if (!formValid || isLoading) return;
     if (mode === 'register') legalConsentService.setRegistrationConsents({ termsAccepted, personalDataAccepted, marketingEmailsAccepted });
     onSubmit();
   };
   const requestRecovery = async (event: React.FormEvent) => {
     event.preventDefault(); setRecoveryError(null); setRecoveryMessage(null);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setRecoveryError('Введите корректную электронную почту.'); return; }
+    if (!EMAIL_RE.test(email.trim())) { setRecoveryError('Введите корректную электронную почту.'); return; }
     setRecoveryBusy(true);
     try { setRecoveryMessage(await passwordResetService.request(email)); }
     catch (problem) { setRecoveryError(problem instanceof Error ? problem.message : 'Не удалось отправить письмо.'); }
@@ -101,13 +111,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, mode, email, passw
         <button type="submit" disabled={recoveryBusy} className={`flex w-full items-center justify-center gap-2 ${experienceUi.primaryButton}`}>{recoveryBusy && <LoaderIcon />}{recoveryBusy ? 'Отправляю…' : 'Отправить ссылку'}</button>
         <button type="button" disabled={recoveryBusy} onClick={() => { setRecoveryMode(false); setRecoveryMessage(null); setRecoveryError(null); }} className={`w-full ${experienceUi.secondaryButton}`}>Вернуться ко входу</button>
       </form> : <>
-        <button type="button" disabled={isLoading} onClick={onYandexLogin} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-red-100 bg-white px-5 py-3 font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-60"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-sm text-white">Я</span>{mode === 'login' ? 'Продолжить через Яндекс' : 'Зарегистрироваться через Яндекс'}</button>
+        <button type="button" disabled={isLoading} onClick={onYandexLogin} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-red-100 bg-white px-5 py-3 font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-60"><span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-sm text-white">Я</span>{isLoading ? 'Подождите…' : mode === 'login' ? 'Продолжить через Яндекс' : 'Зарегистрироваться через Яндекс'}</button>
         <div className="my-4 flex items-center gap-3 text-xs font-bold uppercase tracking-wide text-slate-400"><span className="h-px flex-1 bg-slate-200" /><span>или по email</span><span className="h-px flex-1 bg-slate-200" /></div>
-        <form onSubmit={event => { event.preventDefault(); submit(); }} className="space-y-4">
-          <label className="block"><span className="mb-1 block text-sm font-bold text-slate-700">Электронная почта</span><input ref={emailRef} required type="email" autoComplete="email" value={email} onChange={event => onEmailChange(event.target.value)} placeholder="user@example.ru" aria-invalid={invalidRegistrationDomain || undefined} className={`w-full rounded-xl border-2 p-3 focus:outline-none ${invalidRegistrationDomain ? 'border-rose-300 bg-rose-50 focus:border-rose-500' : 'border-slate-200 focus:border-indigo-500'}`} />{invalidRegistrationDomain && <span className="mt-2 block text-xs font-medium leading-relaxed text-rose-600">Используйте адрес в зоне .ru или .рф.</span>}</label>
-          <label className="block"><span className="mb-1 block text-sm font-bold text-slate-700">Пароль</span><div className="relative"><input required type={showPassword ? 'text' : 'password'} minLength={mode === 'register' ? 8 : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={event => onPasswordChange(event.target.value)} placeholder={mode === 'login' ? 'Ваш пароль' : 'Минимум 8 символов'} className="w-full rounded-xl border-2 border-slate-200 p-3 pr-24 focus:border-indigo-500 focus:outline-none" /><button type="button" onClick={() => setShowPassword(value => !value)} className="absolute inset-y-1 right-1 rounded-lg px-3 text-xs font-bold text-indigo-600">{showPassword ? 'Скрыть' : 'Показать'}</button></div>{mode === 'login' && <button type="button" disabled={isLoading} onClick={() => { setRecoveryMode(true); setRecoveryError(null); setRecoveryMessage(null); }} className="mt-2 text-sm font-bold text-indigo-600">Забыли пароль?</button>}</label>
-          {mode === 'register' && <fieldset className="space-y-2.5 rounded-2xl bg-indigo-50/70 p-4"><label className="flex items-start gap-3 text-xs font-medium leading-5 text-slate-700"><input type="checkbox" required checked={termsAccepted} onChange={event => setTermsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded" /><span>Принимаю <a href={LEGAL_DOCUMENTS.userAgreement} {...LEGAL_LINK_PROPS} className={legalLinkClassName}>Пользовательское соглашение</a>.<RequiredMark /></span></label><label className="flex items-start gap-3 text-xs font-medium leading-5 text-slate-700"><input type="checkbox" required checked={personalDataAccepted} onChange={event => setPersonalDataAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded" /><span>Согласен на <a href={LEGAL_DOCUMENTS.personalDataConsent} {...LEGAL_LINK_PROPS} className={legalLinkClassName}>обработку персональных данных</a>.<RequiredMark /></span></label><label className="flex items-start gap-3 text-xs font-medium leading-5 text-slate-700"><input type="checkbox" checked={marketingEmailsAccepted} onChange={event => setMarketingEmailsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded" /><span>Хочу получать новости и предложения по условиям <a href={LEGAL_DOCUMENTS.marketingConsent} {...LEGAL_LINK_PROPS} className={legalLinkClassName}>согласия на рассылку</a>.</span></label></fieldset>}
-          <button type="submit" disabled={isLoading || invalidRegistrationDomain || requiredConsentsMissing} className={`flex w-full items-center justify-center gap-2 ${experienceUi.primaryButton}`}>{isLoading && <LoaderIcon />}{mode === 'login' ? 'Войти' : 'Создать аккаунт'}</button>
+        <form onSubmit={event => { event.preventDefault(); submit(); }} className="space-y-4" noValidate>
+          <label className="block"><span className="mb-1 block text-sm font-bold text-slate-700">Электронная почта</span><input ref={emailRef} required type="email" autoComplete="email" value={email} onChange={event => { onEmailChange(event.target.value); setSubmitAttempted(false); }} placeholder="user@example.ru" aria-invalid={Boolean(emailError)} aria-describedby={emailError ? 'auth-email-error' : undefined} className={`w-full rounded-xl border-2 p-3 focus:outline-none ${emailError ? 'border-rose-300 bg-rose-50 focus:border-rose-500' : 'border-slate-200 focus:border-indigo-500'}`} />{emailError && <span id="auth-email-error" role="alert" className="mt-2 block text-xs font-medium leading-relaxed text-rose-600">{emailError}</span>}</label>
+          <label className="block"><span className="mb-1 block text-sm font-bold text-slate-700">Пароль</span><div className="relative"><input required type={showPassword ? 'text' : 'password'} minLength={mode === 'register' ? 8 : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={event => { onPasswordChange(event.target.value); setSubmitAttempted(false); }} placeholder={mode === 'login' ? 'Ваш пароль' : 'Минимум 8 символов'} aria-invalid={Boolean(passwordError)} aria-describedby={passwordError ? 'auth-password-error' : undefined} className={`w-full rounded-xl border-2 p-3 pr-24 focus:outline-none ${passwordError ? 'border-rose-300 bg-rose-50 focus:border-rose-500' : 'border-slate-200 focus:border-indigo-500'}`} /><button type="button" onClick={() => setShowPassword(value => !value)} className="absolute inset-y-1 right-1 rounded-lg px-3 text-xs font-bold text-indigo-600">{showPassword ? 'Скрыть' : 'Показать'}</button></div>{passwordError && <span id="auth-password-error" role="alert" className="mt-2 block text-xs font-medium leading-relaxed text-rose-600">{passwordError}</span>}{mode === 'login' && <button type="button" disabled={isLoading} onClick={() => { setRecoveryMode(true); setRecoveryError(null); setRecoveryMessage(null); }} className="mt-2 text-sm font-bold text-indigo-600">Забыли пароль?</button>}</label>
+          {mode === 'register' && <fieldset aria-describedby={consentError ? 'auth-consent-error' : undefined} className="space-y-2.5 rounded-2xl bg-indigo-50/70 p-4"><label className="flex items-start gap-3 text-xs font-medium leading-5 text-slate-700"><input type="checkbox" required checked={termsAccepted} onChange={event => { setTermsAccepted(event.target.checked); setSubmitAttempted(false); }} className="mt-0.5 h-5 w-5 shrink-0 rounded" /><span>Принимаю <a href={LEGAL_DOCUMENTS.userAgreement} {...LEGAL_LINK_PROPS} className={legalLinkClassName}>Пользовательское соглашение</a>.<RequiredMark /></span></label><label className="flex items-start gap-3 text-xs font-medium leading-5 text-slate-700"><input type="checkbox" required checked={personalDataAccepted} onChange={event => { setPersonalDataAccepted(event.target.checked); setSubmitAttempted(false); }} className="mt-0.5 h-5 w-5 shrink-0 rounded" /><span>Согласен на <a href={LEGAL_DOCUMENTS.personalDataConsent} {...LEGAL_LINK_PROPS} className={legalLinkClassName}>обработку персональных данных</a>.<RequiredMark /></span></label><label className="flex items-start gap-3 text-xs font-medium leading-5 text-slate-700"><input type="checkbox" checked={marketingEmailsAccepted} onChange={event => setMarketingEmailsAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded" /><span>Хочу получать новости и предложения по условиям <a href={LEGAL_DOCUMENTS.marketingConsent} {...LEGAL_LINK_PROPS} className={legalLinkClassName}>согласия на рассылку</a>.</span></label>{consentError && <p id="auth-consent-error" role="alert" className="text-xs font-bold text-rose-600">{consentError}</p>}</fieldset>}
+          <button type="submit" disabled={isLoading || !formValid} className={`flex w-full items-center justify-center gap-2 ${experienceUi.primaryButton}`}>{isLoading && <LoaderIcon />}{isLoading ? (mode === 'login' ? 'Входим…' : 'Создаём аккаунт…') : mode === 'login' ? 'Войти' : 'Создать аккаунт'}</button>
         </form>
         <button type="button" disabled={isLoading} onClick={() => onModeChange(mode === 'login' ? 'register' : 'login')} className="mt-4 w-full text-sm font-bold text-indigo-600">{mode === 'login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}</button>
       </>}
