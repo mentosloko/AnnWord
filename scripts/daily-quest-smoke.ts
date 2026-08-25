@@ -39,9 +39,10 @@ function runNormalizerSmoke(): void {
     questDate: '2026-06-24',
     kind: 'all_five_games',
     completed: false,
-    progress: { variant_key: 'all_five_games', completed_modes: ['wordle', 'memory'] },
+    progress: { variant_key: 'all_five_games', completed_modes: ['letter_square', 'memory'] },
   });
   assert(progressPayload?.progressLabel.startsWith('2/5'), 'All-games daily quest progress label was not normalized.');
+  assert(progressPayload?.completedModes?.join(',') === 'letter_square,memory', 'Typed all-games progress was not preserved.');
 }
 
 async function fetchJson(url: string, init?: RequestInit): Promise<Json> {
@@ -81,7 +82,7 @@ async function runOptionalApiSmoke(): Promise<void> {
       sprint_twelve: { type: 'sprint', guessedWords: 99 },
       memory_sixteen: { type: 'memory', clicks: 1 },
       hangman_clean: { type: 'hangman', won: true, mistakes: 0, maxMistakes: 7 },
-      all_five_games: { type: 'memory', clicks: 1 },
+      all_five_games: { type: 'memory', moves: 6 },
     };
     const result = await fetchJson(`${apiUrl}/api/daily-quest/result`, {
       method: 'POST',

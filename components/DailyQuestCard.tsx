@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { DailyQuestCompletionReward, DailyQuestState } from '../types';
+import { DailyQuestCompletedMode, DailyQuestCompletionReward, DailyQuestState } from '../types';
 import { assetUrl } from '../services/assetUrl';
 import { getShopImageUrl } from '../services/petAssets';
 import { getWorld } from '../services/premiumFeatureCatalog';
@@ -11,16 +11,25 @@ const MYSTERY_BOX_IMAGE = assetUrl('/assets/rewards/mystery-box.webp');
 const moscowDateKey = (date: Date): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 const getDailyQuestCountdown = (): string => { const now = new Date(), key = moscowDateKey(now); let minutes = 1; for (; minutes <= 1500; minutes += 1) if (moscowDateKey(new Date(now.getTime() + minutes * 60000)) !== key) break; return `${Math.floor(minutes / 60)} ч ${String(minutes % 60).padStart(2, '0')} мин`; };
 const streakLabel = (days: number): string => { const value = Math.max(0, Math.round(days || 0)), mod10 = value % 10, mod100 = value % 100; const noun = mod10 === 1 && mod100 !== 11 ? 'день подряд' : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? 'дня подряд' : 'дней подряд'; return `${value} ${noun}`; };
+const adventureSteps: Array<{ mode: DailyQuestCompletedMode; label: string }> = [
+  { mode: 'letter_square', label: 'Змейка · 6 слов' },
+  { mode: 'hangman', label: 'Виселица · победа' },
+  { mode: 'memory', label: 'Память · завершить' },
+  { mode: 'anagram', label: 'Анаграммы · 5 слов' },
+  { mode: 'sprint', label: 'Спринт · 6 слов' },
+];
 
 export const DailyQuestCard: React.FC<{ quest: DailyQuestState; onStart?: (quest: DailyQuestState) => void; variant?: 'kids' | 'practice'; onOpenPetRoom?: () => void; onOpenShop?: () => void; streakDays?: number }> = ({ quest, onStart, variant = 'kids', onOpenPetRoom, streakDays = 0 }) => {
   const [countdown, setCountdown] = useState(getDailyQuestCountdown);
   const isPractice = variant === 'practice';
   const safeStreak = Math.max(0, Math.round(streakDays || 0));
+  const completedModes = new Set(quest.completedModes || []);
   useEffect(() => { const timer = window.setInterval(() => setCountdown(getDailyQuestCountdown()), 60000); return () => window.clearInterval(timer); }, []);
   return <section className={`mt-5 rounded-3xl p-4 ring-1 sm:p-5 ${quest.completed ? 'bg-emerald-50/70 ring-emerald-100' : 'bg-purple-50/70 ring-purple-100'}`} aria-label="Ежедневное задание">
     <div className="flex items-start justify-between gap-3"><div><p className={`text-xs font-bold uppercase tracking-wider ${quest.completed ? 'text-emerald-600' : 'text-purple-600'}`}>{isPractice ? 'Ежедневная практика' : 'Задание от питомца'}</p><h2 className="mt-1 text-xl font-bold text-indigo-950">{quest.title}</h2></div>{quest.completed ? <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold text-emerald-700">✓</span> : <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-bold text-purple-700">{countdown}</span>}</div>
     <p className="mt-2 text-sm font-medium leading-relaxed text-slate-600">{quest.description}</p>
-    {quest.kind === 'all_five_games' && !quest.completed && <p className="mt-2 text-xs font-bold text-purple-700">Прогресс: {quest.progressLabel}</p>}
+    {quest.kind === 'all_five_games' && <div className="mt-3 rounded-2xl bg-white/80 p-3" aria-label="Прогресс Большого приключения"><div className="mb-2 flex items-center justify-between gap-2 text-xs font-bold text-purple-700"><span>Прогресс</span><span>{quest.completedModes?.length || 0}/5</span></div><div className="grid gap-1.5 sm:grid-cols-2">{adventureSteps.map(step => { const done = quest.completed || completedModes.has(step.mode); return <div key={step.mode} className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold ${done ? 'bg-emerald-50 text-emerald-700' : 'bg-purple-50 text-purple-800'}`}><span aria-hidden="true">{done ? '✓' : '○'}</span><span>{step.label}</span></div>; })}</div></div>}
+    {quest.kind === 'all_five_games' && !quest.completed && !quest.completedModes?.length && <p className="mt-2 text-xs font-bold text-purple-700">{quest.progressLabel}</p>}
     {quest.completed && safeStreak > 0 && <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-emerald-700"><span aria-hidden="true">🔥</span>{streakLabel(safeStreak)}</div>}
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-3"><div className="min-w-0"><div className="font-bold text-indigo-950">{quest.completed ? 'Задание выполнено' : 'Короткая тренировка'}</div><div className="mt-1 text-xs font-medium text-slate-500">{quest.completed ? isPractice ? 'Можно выбрать любую другую игру.' : 'Награда уже добавлена.' : 'Начните с рекомендованного режима.'}</div></div>{!quest.completed && onStart && <button type="button" onClick={() => onStart(quest)} className={experienceUi.primaryButton}>Играть</button>}{quest.completed && !isPractice && onOpenPetRoom && <button type="button" onClick={onOpenPetRoom} className={experienceUi.secondaryButton}>К питомцу</button>}</div>
   </section>;

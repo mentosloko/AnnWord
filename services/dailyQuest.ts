@@ -1,4 +1,4 @@
-import { DailyQuestKind, DailyQuestState, PetWorldId } from '../types';
+import { DailyQuestCompletedMode, DailyQuestKind, DailyQuestState, PetWorldId } from '../types';
 import type { GameRewardInput } from './gamificationRules';
 
 type QuestCopy = Pick<DailyQuestState, 'title' | 'description'>;
@@ -31,6 +31,7 @@ export const DAILY_QUEST_DEFINITIONS: Record<string, QuestCopy> = {
 
 const modeLabels: Record<string, string> = { wordle: 'Классика', sprint: 'Спринт', anagram: 'Анаграммы', memory: 'Память', hangman: 'Виселица', letterSquare: 'Змейка', letter_square: 'Змейка' };
 const validWorldIds: PetWorldId[] = ['default_room', 'theatre', 'amusement_park', 'ice_rink', 'opera', 'sausage_fridge'];
+const validCompletedModes: DailyQuestCompletedMode[] = ['letter_square', 'sprint', 'anagram', 'memory', 'hangman'];
 
 export const getDailyQuestTargetModes = (quest?: Pick<DailyQuestState, 'kind' | 'title' | 'description'> | null): DailyQuestTargetMode[] => {
   if (!quest) return [];
@@ -53,9 +54,11 @@ const dateKeyOrNull = (value: unknown): string | null => {
   if (typeof value !== 'string' || !value.trim()) return null;
   return value.slice(0, 10);
 };
-const readCompletedModes = (value: any): string[] => {
+const readCompletedModes = (value: any): DailyQuestCompletedMode[] => {
   const raw = firstDefined(value?.completedModes, value?.completed_modes, value?.progress?.completed_modes);
-  return Array.isArray(raw) ? raw.filter((mode): mode is string => typeof mode === 'string') : [];
+  return Array.isArray(raw)
+    ? Array.from(new Set(raw.filter((mode): mode is DailyQuestCompletedMode => typeof mode === 'string' && validCompletedModes.includes(mode as DailyQuestCompletedMode))))
+    : [];
 };
 
 export const normalizeDailyQuest = (value: any): DailyQuestState | null => {
@@ -82,6 +85,7 @@ export const normalizeDailyQuest = (value: any): DailyQuestState | null => {
     title: stringOrNull(value.title) || definition.title,
     description: stringOrNull(value.description) || definition.description,
     progressLabel,
+    completedModes: kind === 'all_five_games' ? completedModes : undefined,
     completed,
     completedAt: stringOrNull(firstDefined(value.completedAt, value.completed_at)),
     rewardItemId: stringOrNull(firstDefined(value.rewardItemId, value.reward_item_id)),
@@ -94,7 +98,7 @@ const truthy = (value: unknown): boolean => value === true || value === 'true';
 export const getMemoryMovesFromResult = (input: Pick<GameRewardInput, 'moves' | 'clicks'>): number => typeof input.moves === 'number'
   ? Math.max(0, Math.round(input.moves))
   : Math.max(0, Math.ceil(numeric(input.clicks) / 2));
-export type AllFiveQuestCompletedMode = 'letter_square' | 'sprint' | 'anagram' | 'memory' | 'hangman';
+export type AllFiveQuestCompletedMode = DailyQuestCompletedMode;
 export const getAllFiveQuestCompletedMode = (input: GameRewardInput): AllFiveQuestCompletedMode | null => {
   if (input.type === 'letterSquare' && numeric(input.guessedWords) >= 6) return 'letter_square';
   if (input.type === 'sprint' && numeric(input.guessedWords) >= 6) return 'sprint';
@@ -102,10 +106,6 @@ export const getAllFiveQuestCompletedMode = (input: GameRewardInput): AllFiveQue
   if (input.type === 'memory' && getMemoryMovesFromResult(input) > 0) return 'memory';
   if (input.type === 'hangman' && truthy(input.won)) return 'hangman';
   return null;
-};
-const completedModeLabel = (input: GameRewardInput): string | null => {
-  const mode = getAllFiveQuestCompletedMode(input);
-  return mode ? modeLabels[mode] || mode : null;
 };
 
 export const doesGameResultCompleteDailyQuest = (quest: DailyQuestState | null | undefined, input: GameRewardInput): boolean => {
@@ -125,9 +125,8 @@ export const doesGameResultCompleteDailyQuest = (quest: DailyQuestState | null |
   }
   if (quest.kind === 'hangman_clean') return input.type === 'hangman' && truthy(input.won);
   if (quest.kind === 'all_five_games') {
-    const mode = completedModeLabel(input);
-    const completedCount = Number(quest.progressLabel.match(/^(\d+)\/5/)?.[1] || 0);
-    return Boolean(mode && completedCount >= 4 && !quest.progressLabel.toLowerCase().includes(mode.toLowerCase()));
+    const mode = getAllFiveQuestCompletedMode(input);
+    return Boolean(mode && !quest.completedModes?.includes(mode) && (quest.completedModes?.length || 0) >= 4);
   }
   return false;
 };

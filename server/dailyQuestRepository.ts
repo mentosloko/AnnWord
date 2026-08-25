@@ -1,7 +1,7 @@
 import { query, transaction } from "./db";
 import { reconcileProfileMood } from "./petMoodRepository";
 import { normalizeInventory } from "../services/profileMapper";
-import type { DailyQuestCompletionReward, DailyQuestKind, DailyQuestState, InventoryItem, ShopItem, UserProfile } from "../types";
+import type { DailyQuestCompletedMode, DailyQuestCompletionReward, DailyQuestKind, DailyQuestState, InventoryItem, ShopItem, UserProfile } from "../types";
 import type { GameRewardInput } from "../services/gamificationRules";
 import { DAILY_QUEST_DEFINITIONS, getAllFiveQuestCompletedMode, getMemoryMovesFromResult } from "../services/dailyQuest";
 import { pickDailyQuestRewardChoice } from "../services/dailyQuestRewardPolicy";
@@ -78,9 +78,10 @@ function getVariantKey(progress: Record<string, unknown>, kind: DailyQuestKind):
   return typeof progress.variant_key === "string" ? progress.variant_key : kind;
 }
 
-function readCompletedModes(progress: Record<string, unknown>): string[] {
+function readCompletedModes(progress: Record<string, unknown>): DailyQuestCompletedMode[] {
+  const allowed = new Set<DailyQuestCompletedMode>(["letter_square", "sprint", "anagram", "memory", "hangman"]);
   return Array.isArray(progress.completed_modes)
-    ? Array.from(new Set(progress.completed_modes.filter((mode): mode is string => typeof mode === "string")))
+    ? Array.from(new Set(progress.completed_modes.filter((mode): mode is DailyQuestCompletedMode => typeof mode === "string" && allowed.has(mode as DailyQuestCompletedMode))))
     : [];
 }
 
@@ -97,6 +98,7 @@ function toQuest(row: DailyQuestRow): DailyQuestWithVariant {
     progressLabel: row.kind === "all_five_games"
       ? `${completedModes.length}/5: ${completedModes.map((mode) => modeLabels[mode] || mode).join(", ") || "начни с любой игры"}`
       : row.completed ? "Испытание выполнено" : "Ещё не выполнено",
+    completedModes: row.kind === "all_five_games" ? completedModes : undefined,
     completed: Boolean(row.completed),
     completedAt: formatDateTime(row.completed_at),
     rewardItemId: row.reward_item_id,
@@ -117,7 +119,7 @@ export async function getOrCreateDailyQuest(userId: string): Promise<DailyQuestW
 
   const variant = pickVariant(userId, questDate);
   const progress = variant.kind === "all_five_games"
-    ? { variant_key: variant.variantKey, completed_modes: [] }
+    ? { variant_key: variant.variantKey, completed_modes: [], anagram_solved: 0 }
     : { variant_key: variant.variantKey };
   const created = await query<DailyQuestRow>(
     `insert into daily_quests (user_id, quest_date, kind, progress)
@@ -137,7 +139,6 @@ function numberFrom(value: unknown, fallback = 0): number {
 function boolFrom(value: unknown): boolean {
   return value === true || value === "true";
 }
-
 
 const memoryMoveTarget = (variantKey: string): number => variantKey === "memory_twelve" ? 8
   : variantKey === "memory_fourteen" ? 9
@@ -185,9 +186,19 @@ for update`,
       const row = rowResult.rows[0];
       if (!row) throw new Error("Daily quest not found");
       if (row.completed) return { quest: toQuest(row), completedModes: readCompletedModes(row.progress || {}) };
-      const progress = row.progress || { variant_key: "all_five_games", completed_modes: [] };
-      const mode = getAllFiveQuestCompletedMode(input);
-      const completedModes = mode ? Array.from(new Set([...readCompletedModes(progress), mode])) : readCompletedModes(progress);
+      const progress = row.progress || { variant_key: "all_five_games", completed_modes: [], anagram_solved: 0 };
+      const existingModes = readCompletedModes(progress);
+      let mode = getAllFiveQuestCompletedMode(input);
+
+      if (input.type === "anagram" && !existingModes.includes("anagram")) {
+        const solvedBefore = Math.max(0, Math.round(numberFrom(progress.anagram_solved)));
+        const solvedDelta = Math.max(0, Math.round(numberFrom(input.guessedWords)));
+        const solvedAfter = Math.min(5, solvedBefore + solvedDelta);
+        progress.anagram_solved = solvedAfter;
+        if (solvedAfter >= 5) mode = "anagram";
+      }
+
+      const completedModes = mode ? Array.from(new Set([...existingModes, mode])) : existingModes;
       progress.completed_modes = completedModes;
       const updatedProgress = await client.query<DailyQuestRow>(
         `update daily_quests
