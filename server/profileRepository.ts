@@ -1,7 +1,8 @@
 import type { PoolClient } from "pg";
 import { query, transaction } from "./db";
 import { mapProfileFromDB, normalizeDictionaryField, normalizeInventory, normalizePet, normalizeStats } from "../services/profileMapper";
-import type { AccountMode, PetState, UserProfile, UserStats } from "../types";
+import { normalizeActiveWordSource } from "../services/activeWordSource";
+import type { AccountMode, ActiveWordSource, PetState, UserProfile, UserStats } from "../types";
 import { hydrateProfileAssignments } from "./profileHydration";
 
 export const PROFILE_COLUMNS = `
@@ -14,6 +15,7 @@ export const PROFILE_COLUMNS = `
   kids_trial_started_at,
   kids_trial_expires_at,
   feature_flags,
+  active_word_source,
   dictionary_collections,
   weekly_report_email,
   child_display_name,
@@ -205,6 +207,23 @@ export async function getOrCreateProfile(userId: string, username: string): Prom
     ],
   );
 
+  return mapProfile(userId, result.rows[0]);
+}
+
+export async function updateActiveWordSource(userId: string, value: ActiveWordSource): Promise<UserProfile> {
+  const activeWordSource = normalizeActiveWordSource(value);
+  if (activeWordSource.source === "premium" && !activeWordSource.premiumDictionaryId) {
+    throw new Error("Выберите тематический словарь.");
+  }
+  const result = await query(
+    `update profiles
+        set active_word_source = $2::jsonb,
+            updated_at = now()
+      where id = $1
+      returning ${PROFILE_COLUMNS}`,
+    [userId, JSON.stringify(activeWordSource)],
+  );
+  if (!result.rows[0]) throw new Error("Profile not found");
   return mapProfile(userId, result.rows[0]);
 }
 
