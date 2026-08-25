@@ -147,7 +147,8 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
       clearSavedSessions();
       return;
     }
-    if (sessionOwnerId && currentWord && dictionary.length > 0) {
+    if (currentWord && dictionary.length > 0) {
+      const resumableTurn = status === 'playing' && !isCheckingRef.current;
       persistGameSession(sessionOwnerId, {
         gameType: 'anagrams',
         dictionaryId,
@@ -158,10 +159,10 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
           solvedCount,
           skippedCount,
           coinsEarned: showKidsRewards ? coinsEarned : 0,
-          wrongAttempts,
-          activeWord: currentWord.word,
-          shuffledLetters: shuffledLetters.map(slot => slot.char),
-          userGuess,
+          wrongAttempts: resumableTurn ? wrongAttempts : 0,
+          activeWord: resumableTurn ? currentWord.word : undefined,
+          shuffledLetters: resumableTurn ? shuffledLetters.map(slot => slot.char) : undefined,
+          userGuess: resumableTurn ? userGuess : undefined,
         },
         score: { solvedCount, skippedCount, coinsEarned: showKidsRewards ? coinsEarned : 0 },
         rewardState: 'active',
