@@ -10,7 +10,7 @@ const base = (value: string): string => value.replace(/\/+$/, "");
 const read = (value: unknown): string => typeof value === "string" ? value.trim() : "";
 const yandexPasswordHash = "oauth$yandex";
 
-type UserRow = { id: string; email: string; full_name: string | null; password_reset_required: boolean };
+type UserRow = { id: string; email: string; full_name: string | null; password_reset_required: boolean; session_version: number };
 type TokenResponse = { access_token?: string; error?: string; error_description?: string };
 type YandexProfile = {
   id?: string;
@@ -52,7 +52,13 @@ function nameOf(profile: YandexProfile, email: string): string {
 }
 
 function toUser(row: UserRow, fallbackName?: string): BackendUser {
-  return { id: row.id, email: row.email, name: row.full_name || fallbackName || undefined, passwordResetRequired: row.password_reset_required };
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.full_name || fallbackName || undefined,
+    passwordResetRequired: row.password_reset_required,
+    sessionVersion: row.session_version,
+  };
 }
 
 async function exchangeCode(req: Request, code: string): Promise<string> {
@@ -92,16 +98,16 @@ async function upsertUser(profile: YandexProfile): Promise<BackendUser> {
   if (!yandexId) throw new Error("Yandex account did not return an id");
 
   return transaction(async (client) => {
-    const existing = await client.query<UserRow>("select id, email, full_name, password_reset_required from app_users where yandex_id = $1 or lower(email) = lower($2) order by case when yandex_id = $1 then 0 else 1 end limit 1", [yandexId, email]);
+    const existing = await client.query<UserRow>("select id, email, full_name, password_reset_required, session_version from app_users where yandex_id = $1 or lower(email) = lower($2) order by case when yandex_id = $1 then 0 else 1 end limit 1", [yandexId, email]);
     if (existing.rows[0]) {
-      await client.query("update app_users set provider = 'yandex', yandex_id = coalesce(yandex_id, $2), full_name = coalesce(full_name, nullif($3, '')), email_confirmed_at = coalesce(email_confirmed_at, now()), updated_at = now() where id = $1", [existing.rows[0].id, yandexId, name]);
+      const updated = await client.query<UserRow>("update app_users set provider = 'yandex', yandex_id = coalesce(yandex_id, $2), full_name = coalesce(full_name, nullif($3, '')), email_confirmed_at = coalesce(email_confirmed_at, now()), updated_at = now() where id = $1 returning id, email, full_name, password_reset_required, session_version", [existing.rows[0].id, yandexId, name]);
       await client.query("insert into profiles (id, username) values ($1, $2) on conflict (id) do nothing", [existing.rows[0].id, name]);
-      return toUser(existing.rows[0], name);
+      return toUser(updated.rows[0], name);
     }
 
     assertRussianRegistrationEmail(email);
     const id = newUserId();
-    const created = await client.query<UserRow>("insert into app_users (id, email, password_hash, full_name, provider, yandex_id, email_confirmed_at) values ($1, $2, $3, $4, 'yandex', $5, now()) returning id, email, full_name, password_reset_required", [id, email, yandexPasswordHash, name, yandexId]);
+    const created = await client.query<UserRow>("insert into app_users (id, email, password_hash, full_name, provider, yandex_id, email_confirmed_at) values ($1, $2, $3, $4, 'yandex', $5, now()) returning id, email, full_name, password_reset_required, session_version", [id, email, yandexPasswordHash, name, yandexId]);
     await createProfileForUser(client, id, name);
     return toUser(created.rows[0], name);
   });
