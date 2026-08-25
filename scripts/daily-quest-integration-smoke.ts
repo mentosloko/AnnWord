@@ -55,7 +55,7 @@ async function main(): Promise<void> {
   await pool.query(
     `insert into daily_quests (user_id, quest_date, kind, progress, completed)
      values ($1, $2, 'all_five_games', $3::jsonb, false)`,
-    [user.id, questDate, JSON.stringify({ variant_key: 'all_five_games', completed_modes: [] })],
+    [user.id, questDate, JSON.stringify({ variant_key: 'all_five_games', completed_modes: [], anagram_solved: 0 })],
   );
 
   const token = signSession(user.id, user.email, user.session_version);
@@ -74,22 +74,37 @@ async function main(): Promise<void> {
     if (first.quest?.kind !== 'all_five_games' || second.quest?.kind !== 'all_five_games' || first.quest?.questDate !== second.quest?.questDate) throw new Error('Daily quest changed between reloads.');
     if (JSON.stringify(first.quest?.completedModes || []) !== '[]') throw new Error(`Unexpected initial progress: ${JSON.stringify(first.quest)}`);
 
-    const steps = [
+    const firstThree = [
       { input: { type: 'letterSquare', guessedWords: 6 }, mode: 'letter_square' },
       { input: { type: 'hangman', won: true, mistakes: 2, maxMistakes: 7 }, mode: 'hangman' },
       { input: { type: 'memory', moves: 8 }, mode: 'memory' },
-      { input: { type: 'anagram', guessedWords: 5, statsOnly: true }, mode: 'anagram' },
-      { input: { type: 'sprint', guessedWords: 6 }, mode: 'sprint' },
     ];
 
-    for (let index = 0; index < steps.length; index += 1) {
-      const result = await jsonRequest(token, '/api/daily-quest/result', { method: 'POST', body: JSON.stringify(steps[index].input) });
+    for (let index = 0; index < firstThree.length; index += 1) {
+      const result = await jsonRequest(token, '/api/daily-quest/result', { method: 'POST', body: JSON.stringify(firstThree[index].input) });
       const expectedCount = index + 1;
-      if ((result.quest?.completedModes || []).length !== expectedCount || !result.quest?.completedModes?.includes(steps[index].mode)) {
+      if ((result.quest?.completedModes || []).length !== expectedCount || !result.quest?.completedModes?.includes(firstThree[index].mode)) {
         throw new Error(`Step ${expectedCount} progress mismatch: ${JSON.stringify(result.quest)}`);
       }
-      if (index < steps.length - 1 && result.quest?.completed) throw new Error(`Quest completed too early at step ${expectedCount}`);
-      if (index === steps.length - 1 && !result.quest?.completed) throw new Error('Quest did not complete after all five modes.');
+      if (result.quest?.completed) throw new Error(`Quest completed too early at step ${expectedCount}`);
+    }
+
+    for (let solved = 1; solved <= 5; solved += 1) {
+      const result = await jsonRequest(token, '/api/daily-quest/result', {
+        method: 'POST',
+        body: JSON.stringify({ type: 'anagram', guessedWords: 1, coinsAdjustment: 0 }),
+      });
+      const modes = result.quest?.completedModes || [];
+      if (solved < 5 && modes.includes('anagram')) throw new Error(`Anagram checkpoint completed too early after ${solved} reachable solves.`);
+      if (solved === 5 && (!modes.includes('anagram') || modes.length !== 4)) {
+        throw new Error(`Fifth reachable Anagram solve did not complete the checkpoint: ${JSON.stringify(result.quest)}`);
+      }
+      if (result.quest?.completed) throw new Error(`Quest completed before Sprint after Anagram solve ${solved}`);
+    }
+
+    const final = await jsonRequest(token, '/api/daily-quest/result', { method: 'POST', body: JSON.stringify({ type: 'sprint', guessedWords: 6 }) });
+    if (!final.quest?.completed || (final.quest?.completedModes || []).length !== 5 || !final.quest?.completedModes?.includes('sprint')) {
+      throw new Error(`Quest did not complete after the fifth mode: ${JSON.stringify(final.quest)}`);
     }
 
     const reload = await jsonRequest(token, '/api/daily-quest/today');
@@ -97,7 +112,7 @@ async function main(): Promise<void> {
     const repeat = await jsonRequest(token, '/api/daily-quest/result', { method: 'POST', body: JSON.stringify({ type: 'sprint', guessedWords: 6 }) });
     if (!repeat.quest?.completed || repeat.reward !== null) throw new Error(`Repeated completion was not idempotent: ${JSON.stringify(repeat)}`);
 
-    console.log('DAILY_QUEST_INTEGRATION_REPORT {"stableReload":"ok","fiveSteps":"ok","completedReload":"ok","idempotentReward":"ok"}');
+    console.log('DAILY_QUEST_INTEGRATION_REPORT {"stableReload":"ok","reachableAnagrams":"ok","fiveModes":"ok","completedReload":"ok","idempotentReward":"ok"}');
   } finally {
     child.kill('SIGTERM');
     await new Promise(resolve => setTimeout(resolve, 250));
