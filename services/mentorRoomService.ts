@@ -47,6 +47,9 @@ export const normalizeMentorRoomResult = (data: BackendLearnersResponse): Mentor
   backendReady: data.backendReady !== false,
 });
 
+export const normalizeTeacherConnectionCode = (code: string): string => code.trim().toUpperCase();
+export const isValidTeacherConnectionCode = (code: string): boolean => /^[A-Z0-9]{6}$/.test(normalizeTeacherConnectionCode(code));
+
 const isFresh = (payload: CachedLearnersPayload | null): payload is CachedLearnersPayload => Boolean(payload && Date.now() - payload.savedAt < LEARNERS_CACHE_TTL_MS);
 
 const readSessionCache = (): CachedLearnersPayload | null => {
@@ -103,8 +106,9 @@ export const mentorRoomService = {
   },
 
   async connectByChildCode(code: string): Promise<void> {
-    const normalized = code.trim().toUpperCase();
+    const normalized = normalizeTeacherConnectionCode(code);
     if (!normalized) throw new Error('Введите код ребёнка.');
+    if (!isValidTeacherConnectionCode(normalized)) throw new Error('Код должен состоять ровно из 6 латинских букв или цифр.');
 
     await backendApiRequest<{ ok: boolean }>('/api/mentor/connect', {
       method: 'POST',

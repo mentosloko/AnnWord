@@ -18,6 +18,7 @@ interface AppShellProps {
   isAuthLoading: boolean;
   onHomeClick: () => void;
   onLoginClick: () => void;
+  onRegisterClick?: () => void;
   onLogoutClick: () => Promise<void>;
   onProfileClick: () => void;
   onShopClick: () => void;
@@ -46,13 +47,21 @@ const navigateToDictionarySelection = (fallback?: () => void): void => {
   window.dispatchEvent(new PopStateEvent('popstate'));
 };
 
-export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onHomeClick, onLoginClick, onLogoutClick, onProfileClick, onShopClick, onAdminClick, onAdultRoomClick, onDictionaryStudioClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => {
+export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onHomeClick, onLoginClick, onRegisterClick, onLogoutClick, onProfileClick, onShopClick, onAdminClick, onAdultRoomClick, onDictionaryStudioClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => {
   const isGameRoute = GAME_ROUTES.includes(route);
   const showMobileNav = isAuthenticated && !isGameRoute;
   const isTeacher = userProfile.role === 'teacher' || userProfile.accountMode === 'teacher';
   const onDictionaryClick = isTeacher
     ? onDictionaryStudioClick
     : () => navigateToDictionarySelection(onDictionaryStudioClick);
+  // `onLoginClick` is the only integration callback that opens the auth modal in AppV2.
+  // Open it first, then switch the already-open modal to registration so the final
+  // batched auth mode cannot be overwritten back to `login`.
+  const openRegistration = onRegisterClick || (() => { onLoginClick(); onAuthModeChange('register'); });
+  const closeAuth = () => {
+    onCloseLogin();
+    if (!isAuthenticated && authMode === 'register') onHomeClick();
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
@@ -63,6 +72,7 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
           isAuthenticated={isAuthenticated}
           onHomeClick={onHomeClick}
           onLoginClick={onLoginClick}
+          onRegisterClick={openRegistration}
           onLogoutClick={onLogoutClick}
           onProfileClick={onProfileClick}
           onShopClick={onShopClick}
@@ -82,7 +92,7 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
         tempPassword={tempPassword}
         authError={authError}
         isAuthLoading={isAuthLoading}
-        onCloseLogin={onCloseLogin}
+        onCloseLogin={closeAuth}
         onCloseRules={onCloseRules}
         onAuthModeChange={onAuthModeChange}
         onUsernameChange={onUsernameChange}
