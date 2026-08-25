@@ -58,6 +58,8 @@ export const getIncorrectGuessPositions = (guess: string, solvedWord: string): n
 export const getIncorrectGuessPositionsAfterAttempt = (guess: string, solvedWord: string, wrongAttempts: number): number[] =>
   wrongAttempts >= MAX_WRONG_ATTEMPTS ? getIncorrectGuessPositions(guess, solvedWord) : [];
 
+export const getAnagramSessionScore = (solvedCount: number): number => Math.max(0, Math.round(Number(solvedCount) || 0));
+
 const normalizeSession = (value: unknown): SavedAnagramSession => {
   const parsed = value && typeof value === 'object' && !Array.isArray(value) ? value as Partial<SavedAnagramSession> : emptySession;
   return {
@@ -125,7 +127,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
   const [wordEpoch, setWordEpoch] = useState(0);
   const [incorrectGuessPositions, setIncorrectGuessPositions] = useState<number[]>([]);
 
-  const score = solvedCount - skippedCount;
+  const score = getAnagramSessionScore(solvedCount);
   const xpEarned = solvedCount * 5;
   const activeWordLength = currentWord?.word.length || shuffledLetters.length || 1;
   const attemptsLeft = Math.max(0, MAX_WRONG_ATTEMPTS - wrongAttempts);
@@ -322,6 +324,6 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
     <div key={`letters-${currentWord?.word || 'empty'}-${wordEpoch}`} className="mb-5 grid w-full grid-flow-col auto-cols-fr gap-1.5 sm:mb-7 sm:gap-2">{shuffledLetters.map((slot, index) => <div key={`${wordEpoch}-${slot.originalIndex}-${slot.char}`} className="relative aspect-square min-w-0"><AnimatePresence>{!slot.isUsed && status !== 'skipped' && <motion.button aria-label={`Буква ${slot.char}, вариант ${index + 1}`} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleLetterClick(slot.char, index)} className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-indigo-600 text-[clamp(1.1rem,6vw,1.5rem)] font-bold text-white shadow-md">{slot.char}</motion.button>}</AnimatePresence><div className="absolute inset-0 rounded-xl border-2 border-dashed border-gray-200 bg-gray-100" /></div>)}</div>
     {message && <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} aria-live="polite" className={`mb-4 text-center text-sm font-bold sm:mb-5 ${status === 'success' ? 'text-green-600' : status === 'error' || status === 'skipped' || incorrectGuessPositions.length > 0 ? 'text-rose-600' : 'text-indigo-500'}`}>{message}</motion.div>}
     {status === 'skipped' ? <button type="button" onClick={pickNewWord} className="w-full rounded-xl bg-indigo-600 px-3 py-3 text-sm font-black text-white sm:text-base">Следующее слово</button> : <div className="grid w-full grid-cols-2 gap-2"><button type="button" onClick={() => { setShuffledLetters(previous => previous.map(slot => ({ ...slot, isUsed: false }))); setUserGuess([]); setIncorrectGuessPositions([]); setMessage(''); }} disabled={status !== 'playing'} className="rounded-xl bg-gray-100 px-2 py-3 text-sm font-bold text-gray-600 disabled:opacity-50 sm:text-base">Сброс</button><button type="button" onClick={skipWord} disabled={status !== 'playing'} className="rounded-xl bg-rose-50 px-2 py-3 text-sm font-bold text-rose-600 disabled:opacity-50 sm:text-base">Не знаю</button></div>}
-    <GameResultOverlay isOpen={status === 'finished'} status="completed" title="Игра завершена" subtitle={`Счёт сессии: ${score}`} emoji="🏁" pet={showKidsRewards ? userProfile.pet : undefined} xpGained={showKidsRewards ? xpEarned : 0} coinsGained={showKidsRewards ? coinsEarned : 0} primaryLabel="Играть снова" secondaryLabel="В меню" scoreboard={<PersonalScoreboard gameId="anagrams" userKey={userProfile.username} value={solvedCount} direction="higher" unit="слов" />} onPrimary={restartSession} onSecondary={onBack} details={<span>Угадано: <b>{solvedCount}</b> · Не знаю: <b>{skippedCount}</b>{showKidsRewards ? <> · Получено монет: <b>{coinsEarned}</b></> : null}</span>} />
+    <GameResultOverlay isOpen={status === 'finished'} status="completed" title="Игра завершена" subtitle={`Счёт сессии: ${score}`} emoji="🏁" pet={showKidsRewards ? userProfile.pet : undefined} xpGained={showKidsRewards ? xpEarned : 0} coinsGained={showKidsRewards ? coinsEarned : 0} primaryLabel="Играть снова" secondaryLabel="В меню" scoreboard={<PersonalScoreboard gameId="anagrams" userKey={userProfile.username} value={score} direction="higher" unit="слов" />} onPrimary={restartSession} onSecondary={onBack} details={<span>Угадано: <b>{solvedCount}</b> · Не знаю: <b>{skippedCount}</b>{showKidsRewards ? <> · Получено монет: <b>{coinsEarned}</b></> : null}</span>} />
   </div>;
 };
