@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { familyAccountService } from '../../services/familyAccountService';
+import { familyAccountService, type TeacherConnection } from '../../services/familyAccountService';
 import { parentPinResetService } from '../../services/parentPinResetService';
 import { mentorRoomService } from '../../services/mentorRoomService';
 import { formatPremiumAccessPeriod, isPremiumActive } from '../../services/premiumAccess';
@@ -24,8 +24,10 @@ export const ParentDashboardScreen: React.FC<Props> = ({ userProfile, onBackHome
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
   const [busy, setBusy] = useState<'unlock' | 'reset' | 'load' | null>(null);
+  const [teacherBusy, setTeacherBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [learners, setLearners] = useState<ManagedLearner[]>([]);
+  const [teacherConnections, setTeacherConnections] = useState<TeacherConnection[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
@@ -49,7 +51,12 @@ export const ParentDashboardScreen: React.FC<Props> = ({ userProfile, onBackHome
     catch (error) { setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить данные ребёнка.'); }
     finally { setBusy(null); }
   };
+  const loadTeacherConnections = async () => {
+    try { setTeacherConnections(await familyAccountService.loadTeacherConnections()); }
+    catch (error) { setNotice(error instanceof Error ? error.message : 'Не удалось загрузить подключения преподавателей.'); }
+  };
   useEffect(() => { if (unlocked && !learners.length && !loadError && busy !== 'load') void load(); }, [unlocked]);
+  useEffect(() => { if (unlocked) void loadTeacherConnections(); }, [unlocked]);
 
   const unlock = async () => {
     setPinError(null); setNotice(null);
@@ -67,8 +74,28 @@ export const ParentDashboardScreen: React.FC<Props> = ({ userProfile, onBackHome
   };
   const copyCode = async () => {
     if (!learner?.childShareCode) return;
-    try { await navigator.clipboard.writeText(learner.childShareCode); setNotice('Код скопирован. Передайте его преподавателю.'); }
+    try { await navigator.clipboard.writeText(learner.childShareCode); setNotice('Одноразовый код скопирован. После подключения преподавателя он перестанет действовать.'); }
     catch { setNotice('Не удалось скопировать код. Выделите его вручную.'); }
+  };
+  const createTeacherCode = async () => {
+    if (!premium) { setNotice('Код преподавателя доступен в Kids Premium.'); return; }
+    setTeacherBusy('invite'); setNotice(null);
+    try {
+      const code = await familyAccountService.createTeacherInvite();
+      setLearners(current => current.map(item => item.id === learner?.id ? { ...item, childShareCode: code } : item));
+      setNotice('Новый одноразовый код создан. Он действует 24 часа и только до первого подключения.');
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Не удалось создать код преподавателя.'); }
+    finally { setTeacherBusy(null); }
+  };
+  const revokeTeacher = async (connection: TeacherConnection) => {
+    setTeacherBusy(connection.teacherId); setNotice(null);
+    try {
+      await familyAccountService.revokeTeacherConnection(connection.teacherId);
+      setTeacherConnections(current => current.filter(item => item.teacherId !== connection.teacherId));
+      setNotice(`Доступ преподавателя «${connection.name}» отозван.`);
+      await load(true);
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Не удалось отозвать доступ преподавателя.'); }
+    finally { setTeacherBusy(null); }
   };
 
   if (!unlocked) return <ScreenContainer className="max-w-md pb-24 pt-5"><button type="button" onClick={onBackHome} className={experienceUi.secondaryButton}>← Назад</button><SectionCard className="mt-4"><form onSubmit={event => { event.preventDefault(); void unlock(); }}><div className={experienceUi.eyebrow}>Для взрослого</div><h1 className="mt-1 text-3xl font-bold text-indigo-950">Кабинет родителя</h1><p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">Введите PIN, созданный при добавлении ребёнка. Он защищает отчёты и настройки от случайного входа.</p><div className="mt-3"><StableStatusSlot message={pinError || notice} tone={pinError ? 'error' : 'info'} role={pinError ? 'alert' : 'status'} /></div><input value={pin} onChange={event => { setPin(event.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(null); }} type="password" inputMode="numeric" autoComplete="off" aria-label="PIN родителя" maxLength={4} placeholder="••••" className="mt-3 w-full rounded-2xl border-2 border-indigo-100 p-4 text-center text-2xl font-bold tracking-[0.5em] focus:border-indigo-500 focus:outline-none" /><button type="submit" disabled={Boolean(busy)} className={`mt-4 w-full ${experienceUi.primaryButton}`}>{busy === 'unlock' ? 'Открываю…' : 'Открыть кабинет'}</button><button type="button" disabled={Boolean(busy)} onClick={() => void resetPin()} className={`mt-2 w-full ${experienceUi.secondaryButton}`}>{busy === 'reset' ? 'Отправляю письмо…' : 'Забыли PIN? Восстановить по email'}</button></form></SectionCard></ScreenContainer>;
@@ -93,6 +120,6 @@ export const ParentDashboardScreen: React.FC<Props> = ({ userProfile, onBackHome
 
     {learner && tab === 'words' && <div className="mt-5 grid gap-5 lg:grid-cols-2"><SectionCard><div className="text-xs font-bold uppercase tracking-wider text-rose-500">Нужно закрепить</div><h2 className="mt-1 text-xl font-bold text-indigo-950">Слова для повторения</h2><p className="mt-2 text-sm font-medium text-slate-500">Нажмите на слово, чтобы увидеть перевод.</p>{learning.activeReview.length ? <ReviewWordList words={learning.activeReview.map(item => item.word)} className="mt-4" /> : <div className="mt-4"><ExperienceState compact kind="success" title="Активных ошибок нет" /></div>}</SectionCard><SectionCard><div className="text-xs font-bold uppercase tracking-wider text-emerald-600">Уже получается</div><h2 className="mt-1 text-xl font-bold text-indigo-950">Недавно исправлено</h2><div className="mt-4 flex flex-wrap gap-2">{fixed.length ? fixed.map(item => <span key={item.word} className="rounded-full bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">{item.word}</span>) : <ExperienceState compact title="Пока нет исправленных слов" />}</div></SectionCard><SectionCard className="lg:col-span-2"><div className={experienceUi.eyebrow}>Чаще всего встречались</div><div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{encountered.length ? encountered.slice(0, 12).map(word => <div key={word.word} className="rounded-2xl bg-indigo-50/70 p-3"><div className="font-bold text-indigo-950">{word.word}</div><div className="mt-1 text-xs font-medium text-indigo-500">{attempts(word)} попыток · точность {accuracy(word)}%</div></div>) : <ExperienceState compact title="Статистика появится после игр" />}</div></SectionCard></div>}
 
-    {learner && tab === 'settings' && <div className="mt-5 grid gap-5 lg:grid-cols-2"><SectionCard><div className={experienceUi.eyebrow}>Слова и задания</div><h2 className="mt-1 text-xl font-bold text-indigo-950">Управление словарями</h2><p className="mt-2 text-sm font-medium text-slate-500">Добавьте школьные слова или выберите тематическую подборку.</p><button type="button" onClick={onOpenDictionaryStudio} className={`mt-4 w-full ${experienceUi.primaryButton}`}>Открыть словари</button></SectionCard><SectionCard><div className={experienceUi.eyebrow}>Преподаватель</div>{premium && learner.childShareCode ? <><div className="mt-3 rounded-2xl bg-purple-50 p-4 text-center text-2xl font-bold tracking-widest text-purple-800">{learner.childShareCode}</div><p className="mt-2 text-sm font-medium text-slate-500">Передайте этот код преподавателю.</p><button type="button" onClick={() => void copyCode()} className={`mt-4 w-full ${experienceUi.secondaryButton}`}>Скопировать код</button></> : <ExperienceState title="Код доступен в Kids Premium" description="Он позволяет преподавателю видеть прогресс и назначать словари." />}</SectionCard><div className="lg:col-span-2"><WeeklyReportSettingsCard userProfile={userProfile} premiumActive={premium} /></div></div>}
+    {learner && tab === 'settings' && <div className="mt-5 grid gap-5 lg:grid-cols-2"><SectionCard><div className={experienceUi.eyebrow}>Слова и задания</div><h2 className="mt-1 text-xl font-bold text-indigo-950">Управление словарями</h2><p className="mt-2 text-sm font-medium text-slate-500">Добавьте школьные слова или выберите тематическую подборку.</p><button type="button" onClick={onOpenDictionaryStudio} className={`mt-4 w-full ${experienceUi.primaryButton}`}>Открыть словари</button></SectionCard><SectionCard><div className={experienceUi.eyebrow}>Преподаватель</div>{premium ? <>{learner.childShareCode ? <><div className="mt-3 rounded-2xl bg-purple-50 p-4 text-center text-2xl font-bold tracking-widest text-purple-800">{learner.childShareCode}</div><p className="mt-2 text-sm font-medium text-slate-500">Одноразовый код действует 24 часа и перестаёт работать после первого подключения.</p><div className="mt-3 grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void copyCode()} className={experienceUi.secondaryButton}>Скопировать код</button><button type="button" disabled={teacherBusy === 'invite'} onClick={() => void createTeacherCode()} className={experienceUi.secondaryButton}>{teacherBusy === 'invite' ? 'Создаю…' : 'Создать новый код'}</button></div></> : <><ExperienceState compact title="Активного кода нет" description="Создайте одноразовый код, когда хотите подключить преподавателя." /><button type="button" disabled={teacherBusy === 'invite'} onClick={() => void createTeacherCode()} className={`mt-3 w-full ${experienceUi.primaryButton}`}>{teacherBusy === 'invite' ? 'Создаю…' : 'Создать одноразовый код'}</button></>}</> : <ExperienceState title="Код доступен в Kids Premium" description="Подключённых ранее преподавателей можно отозвать ниже независимо от подписки." />}{teacherConnections.length ? <div className="mt-5 border-t border-slate-100 pt-4"><h3 className="text-sm font-bold text-indigo-950">Подключённые преподаватели</h3><div className="mt-3 space-y-2">{teacherConnections.map(connection => <div key={connection.teacherId} className="rounded-2xl bg-slate-50 p-3"><div className="font-bold text-slate-900">{connection.name}</div><div className="mt-1 break-all text-xs font-medium text-slate-500">{connection.email}</div><div className="mt-1 text-xs text-slate-400">Подключён {new Date(connection.connectedAt).toLocaleDateString('ru-RU')}</div><button type="button" disabled={teacherBusy === connection.teacherId} onClick={() => void revokeTeacher(connection)} className="mt-3 rounded-xl border border-rose-200 px-3 py-2 text-sm font-bold text-rose-700 disabled:opacity-50">{teacherBusy === connection.teacherId ? 'Отзываю…' : 'Отозвать доступ'}</button></div>)}</div></div> : <p className="mt-4 text-sm font-medium text-slate-500">Подключённых преподавателей пока нет.</p>}</SectionCard><div className="lg:col-span-2"><WeeklyReportSettingsCard userProfile={userProfile} premiumActive={premium} /></div></div>}
   </ScreenContainer>;
 };
