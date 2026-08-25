@@ -9,6 +9,7 @@ on:
       - 'db/yandex/**'
       - 'scripts/api-performance-benchmark.ts'
       - 'scripts/active-word-source-integration-smoke.ts'
+      - 'scripts/daily-quest-integration-smoke.ts'
       - 'tests/apiPerformanceRegression.test.ts'
       - '.github/workflows/yandex-deploy.yml'
       - '.github/workflows/api-performance-benchmark.yml'
@@ -54,3 +55,5 @@ jobs:
         run: npx tsx scripts/api-performance-benchmark.ts
       - name: Active word source persistence smoke
         run: npx tsx scripts/active-word-source-integration-smoke.ts
+      - name: Daily quest full-adventure persistence smoke
+        run: npx tsx scripts/daily-quest-integration-smoke.ts
