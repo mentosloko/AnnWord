@@ -17,6 +17,7 @@ const fulfillJson = (route: Route, body: unknown, status = 200) => route.fulfill
 const installBackend = async (page: Page) => {
   let coins = 5;
   let coinWrites = 0;
+  const hintOperations = new Map<string, { status: 'charged' | 'refunded'; cost: number }>();
   const makeProfile = () => ({
     username: 'Parent',
     role: 'parent',
@@ -51,6 +52,38 @@ const installBackend = async (page: Page) => {
     }
     if (path === '/api/profile/bootstrap') {
       await fulfillJson(route, { user: USER, profile: makeProfile(), quest: null });
+      return;
+    }
+    if (path === '/api/profile/hint-coins') {
+      const body = request.postDataJSON() as { operationId?: string; action?: 'charge' | 'refund'; cost?: number };
+      const operationId = String(body.operationId || '');
+      const cost = Math.max(1, Math.round(Number(body.cost) || 1));
+      const existing = hintOperations.get(operationId);
+      if (body.action === 'refund') {
+        if (!existing) {
+          await fulfillJson(route, { status: 'absent', profile: makeProfile() });
+          return;
+        }
+        if (existing.status === 'charged') {
+          coins += existing.cost;
+          coinWrites += 1;
+          existing.status = 'refunded';
+        }
+        await fulfillJson(route, { status: 'refunded', profile: makeProfile() });
+        return;
+      }
+      if (existing) {
+        await fulfillJson(route, { status: existing.status, profile: makeProfile() });
+        return;
+      }
+      if (coins < cost) {
+        await fulfillJson(route, { status: 'insufficient', profile: makeProfile() });
+        return;
+      }
+      coins -= cost;
+      coinWrites += 1;
+      hintOperations.set(operationId, { status: 'charged', cost });
+      await fulfillJson(route, { status: 'charged', profile: makeProfile() });
       return;
     }
     if (path === '/api/profile/coins') {
