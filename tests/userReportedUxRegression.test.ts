@@ -12,7 +12,9 @@ describe('user-reported UX regressions', () => {
     expect(modal).not.toContain('Согласия</legend>');
     expect(modal).not.toContain('tracking-[0.2em] text-indigo-500">AnnWord');
     expect(modal).toContain('visibleMessage && <StableStatusSlot');
-    expect(modal).toContain('invalidRegistrationDomain && <span');
+    expect(modal).toContain("const invalidRegistrationDomain = mode === 'register' && emailValid");
+    expect(modal).toContain("id=\"auth-email-error\" role=\"alert\"");
+    expect(modal).toContain("aria-describedby={emailError ? 'auth-email-error' : undefined}");
     expect(modal).toContain('text-xs font-medium leading-5');
   });
 
