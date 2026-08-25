@@ -1,7 +1,7 @@
 import { query, transaction } from "./db";
 import { reconcileProfileMood } from "./petMoodRepository";
 import { normalizeInventory } from "../services/profileMapper";
-import type { DailyQuestCompletionReward, DailyQuestKind, DailyQuestState, InventoryItem, ShopItem, UserProfile } from "../types";
+import type { DailyQuestCompletedMode, DailyQuestCompletionReward, DailyQuestKind, DailyQuestState, InventoryItem, ShopItem, UserProfile } from "../types";
 import type { GameRewardInput } from "../services/gamificationRules";
 import { DAILY_QUEST_DEFINITIONS, getAllFiveQuestCompletedMode, getMemoryMovesFromResult } from "../services/dailyQuest";
 import { pickDailyQuestRewardChoice } from "../services/dailyQuestRewardPolicy";
@@ -78,9 +78,10 @@ function getVariantKey(progress: Record<string, unknown>, kind: DailyQuestKind):
   return typeof progress.variant_key === "string" ? progress.variant_key : kind;
 }
 
-function readCompletedModes(progress: Record<string, unknown>): string[] {
+function readCompletedModes(progress: Record<string, unknown>): DailyQuestCompletedMode[] {
+  const allowed = new Set<DailyQuestCompletedMode>(["letter_square", "sprint", "anagram", "memory", "hangman"]);
   return Array.isArray(progress.completed_modes)
-    ? Array.from(new Set(progress.completed_modes.filter((mode): mode is string => typeof mode === "string")))
+    ? Array.from(new Set(progress.completed_modes.filter((mode): mode is DailyQuestCompletedMode => typeof mode === "string" && allowed.has(mode as DailyQuestCompletedMode))))
     : [];
 }
 
@@ -97,6 +98,7 @@ function toQuest(row: DailyQuestRow): DailyQuestWithVariant {
     progressLabel: row.kind === "all_five_games"
       ? `${completedModes.length}/5: ${completedModes.map((mode) => modeLabels[mode] || mode).join(", ") || "начни с любой игры"}`
       : row.completed ? "Испытание выполнено" : "Ещё не выполнено",
+    completedModes: row.kind === "all_five_games" ? completedModes : undefined,
     completed: Boolean(row.completed),
     completedAt: formatDateTime(row.completed_at),
     rewardItemId: row.reward_item_id,
@@ -137,7 +139,6 @@ function numberFrom(value: unknown, fallback = 0): number {
 function boolFrom(value: unknown): boolean {
   return value === true || value === "true";
 }
-
 
 const memoryMoveTarget = (variantKey: string): number => variantKey === "memory_twelve" ? 8
   : variantKey === "memory_fourteen" ? 9
