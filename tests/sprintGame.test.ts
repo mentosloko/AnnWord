@@ -3,6 +3,7 @@ import { buildSprintDictionary, pickSprintRoundWord } from '../components/Sprint
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import type { EnrichedWord } from '../types';
 
+// UAT 2.3/2.4: keep this suite in the PR merge-ref so Sprint/Anagram fixes are revalidated after earlier checklist sections land.
 describe('SprintGame dictionary', () => {
   it('keeps builtin dictionary values when custom dictionary is empty', () => {
     expect(buildSprintDictionary([], COMMON_WORDS_EN)).toEqual(COMMON_WORDS_EN);
