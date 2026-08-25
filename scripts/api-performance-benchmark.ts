@@ -1,4 +1,4 @@
-import { createHmac, randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomUUID } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -23,7 +23,7 @@ const percentile = (values: number[], ratio: number): number => {
 const signSession = (userId: string, email: string): string => {
   const now = Math.floor(Date.now() / 1000);
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-  const body = Buffer.from(JSON.stringify({ sub: userId, email, iat: now, exp: now + 3600 })).toString('base64url');
+  const body = Buffer.from(JSON.stringify({ sub: userId, email, ver: 1, iat: now, exp: now + 3600 })).toString('base64url');
   const unsigned = `${header}.${body}`;
   const signature = createHmac('sha256', jwtSecret).update(unsigned).digest('base64url');
   return `${unsigned}.${signature}`;
@@ -76,6 +76,19 @@ async function waitForApi(child: ChildProcess): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   throw new Error('API did not become healthy within 15s');
+}
+
+async function rawRequest(user: SeedUser, endpoint: string, init: RequestInit = {}): Promise<{ status: number; body: any }> {
+  const response = await fetch(`${apiBase}${endpoint}`, {
+    ...init,
+    headers: {
+      Accept: 'application/json',
+      'X-AnnWord-Session': user.token,
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(init.headers || {}),
+    },
+  });
+  return { status: response.status, body: await response.json().catch(() => null) };
 }
 
 async function request(label: string, user: SeedUser, endpoint: string, init: RequestInit = {}): Promise<{ bench: BenchResult; body: any }> {
@@ -202,6 +215,75 @@ async function runBenchmark(users: SeedUser[]): Promise<void> {
   if (concurrentP95 > 2000 || concurrentWallMs > 2500) throw new Error(`Concurrent profile requests show pool starvation: p95=${concurrentP95} wall=${concurrentWallMs}`);
 }
 
+async function runSecuritySmoke(users: SeedUser[]): Promise<void> {
+  const parent = users[0];
+  const teacherA = users[1];
+  const teacherB = users[2];
+
+  await pool.query("update profiles set role = 'parent', account_mode = 'parent' where id = $1", [parent.id]);
+  await pool.query("update profiles set role = 'teacher', account_mode = 'teacher' where id = any($1::uuid[])", [[teacherA.id, teacherB.id]]);
+  // Avoid a real Postbox call in the local integration environment. The production path is
+  // still exercised up to the notification branch, but an empty DB email skips delivery.
+  await pool.query("update app_users set email = '' where id = $1", [parent.id]);
+
+  const inviteCode = 'ABC234';
+  const inviteCodeHash = createHash('sha256').update(inviteCode).digest('hex');
+  await pool.query(
+    "insert into teacher_connection_invites (learner_user_id, code_hash, expires_at) values ($1, $2, now() + interval '1 hour')",
+    [parent.id, inviteCodeHash],
+  );
+
+  const firstConnect = await rawRequest(teacherA, '/api/mentor/connect', {
+    method: 'POST',
+    body: JSON.stringify({ code: inviteCode }),
+  });
+  if (firstConnect.status !== 200) throw new Error(`First teacher invite use failed: ${firstConnect.status} ${JSON.stringify(firstConnect.body)}`);
+
+  const reusedConnect = await rawRequest(teacherB, '/api/mentor/connect', {
+    method: 'POST',
+    body: JSON.stringify({ code: inviteCode }),
+  });
+  if (reusedConnect.status !== 404 || reusedConnect.body?.code !== 'learner_invite_unavailable') {
+    throw new Error(`One-time invite was reusable: ${reusedConnect.status} ${JSON.stringify(reusedConnect.body)}`);
+  }
+
+  const beforeRevoke = await rawRequest(teacherA, '/api/mentor/learners');
+  if (beforeRevoke.status !== 200 || !Array.isArray(beforeRevoke.body?.learners) || beforeRevoke.body.learners.length !== 1) {
+    throw new Error(`Connected teacher cannot read expected learner: ${beforeRevoke.status} ${JSON.stringify(beforeRevoke.body)}`);
+  }
+
+  await pool.query(
+    "update adult_learner_links set revoked_at = now() where adult_user_id = $1 and learner_user_id = $2 and relation_role = 'teacher'",
+    [teacherA.id, parent.id],
+  );
+
+  const afterRevoke = await rawRequest(teacherA, '/api/mentor/learners');
+  if (afterRevoke.status !== 200 || !Array.isArray(afterRevoke.body?.learners) || afterRevoke.body.learners.length !== 0) {
+    throw new Error(`Revoked teacher can still read learner data: ${afterRevoke.status} ${JSON.stringify(afterRevoke.body)}`);
+  }
+  const assignAfterRevoke = await rawRequest(teacherA, '/api/mentor/assign', {
+    method: 'POST',
+    body: JSON.stringify({ learnerId: parent.id, collectionId: 'does-not-matter' }),
+  });
+  if (assignAfterRevoke.status !== 403 || assignAfterRevoke.body?.code !== 'learner_unavailable') {
+    throw new Error(`Revoked teacher can still assign dictionary: ${assignAfterRevoke.status} ${JSON.stringify(assignAfterRevoke.body)}`);
+  }
+
+  await pool.query("update app_users set password_hash = 'changed-parent-password' where id = $1", [parent.id]);
+  await pool.query("update app_users set password_hash = 'changed-teacher-password' where id = $1", [teacherA.id]);
+
+  const revokedParentSession = await rawRequest(parent, '/api/profile/bootstrap');
+  if (revokedParentSession.status !== 401 || revokedParentSession.body?.code !== 'session_revoked') {
+    throw new Error(`Parent session survived password change: ${revokedParentSession.status} ${JSON.stringify(revokedParentSession.body)}`);
+  }
+  const revokedTeacherSession = await rawRequest(teacherA, '/api/mentor/learners');
+  if (revokedTeacherSession.status !== 401 || revokedTeacherSession.body?.code !== 'session_revoked') {
+    throw new Error(`Teacher session survived password change: ${revokedTeacherSession.status} ${JSON.stringify(revokedTeacherSession.body)}`);
+  }
+
+  console.log('SECURITY_INTEGRATION_REPORT {"sessionRevocation":"ok","oneTimeTeacherInvite":"ok","teacherRevocation":"ok"}');
+}
+
 async function main(): Promise<void> {
   await resetDatabase();
   const users = await seedUsers();
@@ -230,6 +312,7 @@ async function main(): Promise<void> {
   try {
     await waitForApi(child);
     await runBenchmark(users);
+    await runSecuritySmoke(users);
   } finally {
     child.kill('SIGTERM');
     await new Promise(resolve => setTimeout(resolve, 250));
