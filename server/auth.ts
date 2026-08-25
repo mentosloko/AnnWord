@@ -11,6 +11,7 @@ const AUTH_USER_CACHE_TTL_MS = Number.parseInt(process.env.AUTH_USER_CACHE_TTL_M
 type SessionPayload = {
   sub: string;
   email: string;
+  ver?: number;
   iat: number;
   exp: number;
 };
@@ -20,6 +21,7 @@ export type BackendUser = {
   email: string;
   name?: string;
   passwordResetRequired: boolean;
+  sessionVersion?: number;
 };
 
 export type AuthenticatedRequest = Request & {
@@ -91,6 +93,7 @@ export function createSessionToken(user: BackendUser): string {
   const payload: SessionPayload = {
     sub: user.id,
     email: user.email,
+    ver: user.sessionVersion ?? 1,
     iat: now,
     exp: now + SESSION_TTL_SECONDS,
   };
@@ -178,8 +181,9 @@ export async function findUserByEmail(email: string): Promise<(BackendUser & { p
     full_name: string | null;
     password_hash: string;
     password_reset_required: boolean;
+    session_version: number;
   }>(
-    `select id, email, full_name, password_hash, password_reset_required
+    `select id, email, full_name, password_hash, password_reset_required, session_version
        from app_users
       where email = $1`,
     [normalizedEmail],
@@ -194,6 +198,7 @@ export async function findUserByEmail(email: string): Promise<(BackendUser & { p
     email: row.email,
     name: row.full_name || undefined,
     passwordResetRequired: row.password_reset_required,
+    sessionVersion: row.session_version,
   });
   return { ...user, passwordHash: row.password_hash };
 }
@@ -204,8 +209,9 @@ async function loadUserById(userId: string): Promise<BackendUser | null> {
     email: string;
     full_name: string | null;
     password_reset_required: boolean;
+    session_version: number;
   }>(
-    `select id, email, full_name, password_reset_required
+    `select id, email, full_name, password_reset_required, session_version
        from app_users
       where id = $1`,
     [userId],
@@ -217,6 +223,7 @@ async function loadUserById(userId: string): Promise<BackendUser | null> {
     email: row.email,
     name: row.full_name || undefined,
     passwordResetRequired: row.password_reset_required,
+    sessionVersion: row.session_version,
   });
 }
 
@@ -231,6 +238,14 @@ export async function findUserById(userId: string): Promise<BackendUser | null> 
   const request = loadUserById(userId).finally(() => authUserInflight.delete(userId));
   authUserInflight.set(userId, request);
   return request;
+}
+
+async function sessionVersionMatches(userId: string, tokenVersion: number): Promise<boolean> {
+  const result = await query<{ session_version: number }>(
+    "select session_version from app_users where id = $1",
+    [userId],
+  );
+  return result.rows[0]?.session_version === tokenVersion;
 }
 
 export function validateNewUserInput(email: string, password: string, name?: string): { email: string; passwordHash: string; name: string } {
@@ -267,6 +282,14 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
   const payload = token ? verifySessionToken(token) : null;
   if (!payload) {
     res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const tokenVersion = Number.isInteger(payload.ver) ? Number(payload.ver) : 1;
+  const validVersion = await measureServerTiming("auth_session", () => sessionVersionMatches(payload.sub, tokenVersion));
+  if (!validVersion) {
+    clearSessionCookie(res);
+    res.status(401).json({ code: "session_revoked", error: "Session revoked" });
     return;
   }
 
