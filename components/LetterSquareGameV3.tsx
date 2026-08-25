@@ -3,13 +3,33 @@ import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { applyGameRewardToCharacter, calculateGameReward, CharacterProgressResult, GameRewardInput } from '../services/gamificationRules';
 import { buildPlayableGameDictionary, pickAdaptiveSessionWord, updateReviewPriorities, WordPracticeResult } from '../services/gameSessionEngine';
+import { clearPersistedGameSession, isPersistedSessionFor, persistGameSession, readPersistedGameSession } from '../services/gameSessionStore';
 import { isKidsMode } from '../services/modeFlags';
 import { GameResultOverlay } from './GameResultOverlay';
 
 type Coord = { row: number; col: number };
 type Cell = Coord & { letter: string };
 type Round = { word: EnrichedWord; grid: Cell[][]; path: Coord[] };
-type Props = { onBack: () => void; userProfile: UserProfile; onGameReward: (input: GameRewardInput) => void | Promise<void>; onWordPractice?: (word: string, result: WordPracticeResult) => void | Promise<void> };
+type Props = {
+  onBack: () => void;
+  userProfile: UserProfile;
+  onGameReward: (input: GameRewardInput) => void | Promise<void>;
+  onWordPractice?: (word: string, result: WordPracticeResult) => void | Promise<void>;
+  sessionOwnerId?: string | null;
+  dictionaryId?: string;
+  dictionaryLabel?: string;
+  dictionaryIcon?: string;
+};
+type SavedLetterSquareState = {
+  round: Round;
+  selected: Coord[];
+  score: number;
+  answered: number;
+  feedback: 'correct' | 'wrong' | null;
+  message: string;
+  hint: boolean;
+  usedWords: string[];
+};
 const SIZE = 5, LIMIT = 8, ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const keyOf = (coord: Coord) => `${coord.row}:${coord.col}`;
 const same = (a: Coord, b: Coord) => a.row === b.row && a.col === b.col;
@@ -42,18 +62,46 @@ const makeRound = (pool: EnrichedWord[], previous?: string | null, review: Recor
   path.forEach((coord, index) => { grid[coord.row][coord.col] = { ...coord, letter: word.word[index] || 'A' }; });
   return { word, grid, path };
 };
+const validCoord = (value: unknown): value is Coord => Boolean(value) && typeof value === 'object' && !Array.isArray(value) && Number.isInteger((value as Coord).row) && Number.isInteger((value as Coord).col) && (value as Coord).row >= 0 && (value as Coord).row < SIZE && (value as Coord).col >= 0 && (value as Coord).col < SIZE;
+const normalizeSavedState = (value: unknown, dictionary: EnrichedWord[]): SavedLetterSquareState | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const raw = value as Partial<SavedLetterSquareState>;
+  const savedRound = raw.round;
+  if (!savedRound?.word?.word || !Array.isArray(savedRound.grid) || savedRound.grid.length !== SIZE || savedRound.grid.some(row => !Array.isArray(row) || row.length !== SIZE) || !Array.isArray(savedRound.path)) return null;
+  const canonicalWord = dictionary.find(entry => entry.word === savedRound.word.word);
+  if (!canonicalWord || !savedRound.path.every(validCoord)) return null;
+  const grid = savedRound.grid.map(row => row.map(cell => ({ row: Number(cell.row), col: Number(cell.col), letter: String(cell.letter || '').slice(0, 1).toUpperCase() }))) as Cell[][];
+  if (grid.some(row => row.some(cell => !/^[A-Z]$/.test(cell.letter) || !validCoord(cell)))) return null;
+  const selected = Array.isArray(raw.selected) ? raw.selected.filter(validCoord).slice(0, canonicalWord.word.length) : [];
+  const usedWords = Array.isArray(raw.usedWords) ? raw.usedWords.filter((word): word is string => typeof word === 'string' && dictionary.some(entry => entry.word === word)) : [];
+  return {
+    round: { word: canonicalWord, grid, path: savedRound.path },
+    selected,
+    score: Math.max(0, Number(raw.score) || 0),
+    answered: Math.max(0, Number(raw.answered) || 0),
+    feedback: raw.feedback === 'correct' || raw.feedback === 'wrong' ? raw.feedback : null,
+    message: typeof raw.message === 'string' && raw.message ? raw.message : 'Соберите слово из соседних клеток. Диагонали нельзя.',
+    hint: raw.hint === true,
+    usedWords: Array.from(new Set(usedWords)),
+  };
+};
 
-export const LetterSquareGameV3: React.FC<Props> = ({ onBack, userProfile, onGameReward, onWordPractice }) => {
+export const LetterSquareGameV3: React.FC<Props> = ({ onBack, userProfile, onGameReward, onWordPractice, sessionOwnerId, dictionaryId = 'live', dictionaryLabel, dictionaryIcon }) => {
   const dictionary = useMemo(() => buildLetterSquareDictionary(userProfile.customDictionaryEn), [userProfile.customDictionaryEn]);
+  const restored = useMemo(() => {
+    const session = readPersistedGameSession(sessionOwnerId);
+    return isPersistedSessionFor(session, 'letter_square', dictionaryId) ? normalizeSavedState(session?.state, dictionary) : null;
+  }, [dictionary, dictionaryId, sessionOwnerId]);
   const [review, setReview] = useState<Record<string, number>>({ ...(userProfile.stats.wordsToReview || {}) });
-  const usedWordsRef = useRef<Set<string>>(new Set());
+  const usedWordsRef = useRef<Set<string>>(new Set(restored?.usedWords || []));
   const [round, setRound] = useState<Round | null>(() => {
+    if (restored?.round) return restored.round;
     const initial = makeRound(dictionary, null, userProfile.stats.wordsToReview || {}, usedWordsRef.current);
     if (initial) usedWordsRef.current.add(initial.word.word);
     return initial;
   });
-  const [selected, setSelected] = useState<Coord[]>([]), [score, setScore] = useState(0), [answered, setAnswered] = useState(0);
-  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null), [message, setMessage] = useState('Соберите слово из соседних клеток. Диагонали нельзя.'), [hint, setHint] = useState(false), [done, setDone] = useState(false);
+  const [selected, setSelected] = useState<Coord[]>(restored?.selected || []), [score, setScore] = useState(restored?.score || 0), [answered, setAnswered] = useState(restored?.answered || 0);
+  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(restored?.feedback || null), [message, setMessage] = useState(restored?.message || 'Соберите слово из соседних клеток. Диагонали нельзя.'), [hint, setHint] = useState(restored?.hint || false), [done, setDone] = useState(false);
   const [resultProgress, setResultProgress] = useState<CharacterProgressResult | null>(null);
   const rewardApplied = useRef(false), kids = isKidsMode(userProfile);
   const sessionLimit = Math.min(LIMIT, dictionary.length);
@@ -73,12 +121,27 @@ export const LetterSquareGameV3: React.FC<Props> = ({ onBack, userProfile, onGam
   const choose = (cell: Coord) => { if (!round || feedback || done) return; const last = selected[selected.length - 1]; if (last && same(last, cell)) { setSelected(value => value.slice(0, -1)); return; } if (selected.some(coord => same(coord, cell))) { setMessage('Эта клетка уже выбрана. Нажмите «Стереть».'); return; } if (last && !side(last, cell)) { setMessage('Можно двигаться только вверх, вниз, влево или вправо.'); return; } if (selected.length >= round.word.word.length) return; const nextSelected = [...selected, cell]; setSelected(nextSelected); if (nextSelected.length === round.word.word.length) window.setTimeout(() => evaluate(nextSelected), 120); };
   const goNext = () => { if (!round || !feedback) return; if (answered >= sessionLimit) setDone(true); else next(round.word.word); };
   const restart = () => {
+    clearPersistedGameSession(sessionOwnerId, 'letter_square');
     rewardApplied.current = false;
     usedWordsRef.current.clear();
     const initial = makeRound(dictionary, null, review, usedWordsRef.current);
     if (initial) usedWordsRef.current.add(initial.word.word);
     setScore(0); setAnswered(0); setDone(false); setResultProgress(null); setSelected([]); setFeedback(null); setHint(false); setRound(initial); setMessage('Соберите слово из соседних клеток. Диагонали нельзя.');
   };
+  useEffect(() => {
+    if (!sessionOwnerId || !round || done) return;
+    persistGameSession(sessionOwnerId, {
+      gameType: 'letter_square',
+      dictionaryId,
+      dictionaryWords: dictionary.map(entry => entry.word),
+      dictionaryLabel,
+      dictionaryIcon,
+      state: { round, selected, score, answered, feedback, message, hint, usedWords: Array.from(usedWordsRef.current) },
+      score: { correct: score, answered },
+      rewardState: 'active',
+    });
+  }, [answered, dictionary, dictionaryIcon, dictionaryId, dictionaryLabel, done, feedback, hint, message, round, score, selected, sessionOwnerId]);
+  useEffect(() => { if (done) clearPersistedGameSession(sessionOwnerId, 'letter_square'); }, [done, sessionOwnerId]);
   useEffect(() => { if (!done || rewardApplied.current) return; rewardApplied.current = true; setResultProgress(kids ? applyGameRewardToCharacter(userProfile.pet, reward) : null); void Promise.resolve(onGameReward({ type: 'letterSquare', guessedWords: score })).catch(error => console.error('Failed to save Snake result', error)); }, [done, kids, onGameReward, reward, score, userProfile.pet]);
   if (!round) return <div className="rounded-3xl bg-white p-8 text-center shadow-xl"><div className="text-5xl">🔠</div><h2 className="mt-3 text-2xl font-bold">Нет доступных слов</h2><p className="mt-2 text-sm font-medium text-gray-500">Нужны слова из 3–10 букв с переводом.</p><button onClick={onBack} className="mt-5 rounded-2xl bg-indigo-600 px-5 py-3 font-bold text-white">Назад</button></div>;
   const start = round.path[0];
