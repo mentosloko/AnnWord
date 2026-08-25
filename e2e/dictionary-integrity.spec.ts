@@ -14,6 +14,7 @@ type MockProfile = ReturnType<typeof makeProfile>;
 const API_ORIGIN = 'http://127.0.0.1:8787';
 const APP_ORIGIN = 'http://127.0.0.1:4173';
 const USER = { id: 'parent-e2e', email: 'parent@example.ru', name: 'Parent' };
+const EMPTY_STATS = { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} };
 
 const makeProfile = (activeWordSource: ActiveWordSource, overrides: Record<string, unknown> = {}) => ({
   username: 'Parent',
@@ -26,7 +27,7 @@ const makeProfile = (activeWordSource: ActiveWordSource, overrides: Record<strin
   customDictionaryEn: ['PANDA', 'TIGER', 'ZEBRA'],
   assignedWords: [],
   dictionaryCollections: [],
-  stats: { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} },
+  stats: EMPTY_STATS,
   pet: {
     name: 'Рэй',
     type: 'Puppy',
@@ -59,8 +60,10 @@ const installBackend = async (page: Page, initialSource: ActiveWordSource) => {
   let signedIn = true;
   let source: ActiveWordSource = { ...initialSource };
   let sourcePatchCount = 0;
+  let coins = 10;
 
-  const currentProfile = (): MockProfile => makeProfile(source);
+  const currentProfile = (): MockProfile => makeProfile(source, { coins });
+  const learner = () => ({ id: 'child-e2e', name: 'Child', stats: EMPTY_STATS, assignedWords: [] });
 
   await page.route(`${API_ORIGIN}/api/**`, async route => {
     const request = route.request();
@@ -94,6 +97,28 @@ const installBackend = async (page: Page, initialSource: ActiveWordSource) => {
         updatedAt: new Date(Date.now() + sourcePatchCount * 1000).toISOString(),
       };
       await fulfillJson(route, { profile: currentProfile() });
+      return;
+    }
+
+    if (path === '/api/profile/coins' && request.method() === 'POST') {
+      const payload = request.postDataJSON() as { amount?: number };
+      coins = Math.max(0, coins + Number(payload.amount || 0));
+      await fulfillJson(route, { profile: currentProfile() });
+      return;
+    }
+
+    if (path === '/api/family/adult-room' && request.method() === 'POST') {
+      await fulfillJson(route, { ok: true, learners: [learner()], backendReady: true });
+      return;
+    }
+
+    if (path === '/api/mentor/learners') {
+      await fulfillJson(route, { learners: [learner()], backendReady: true });
+      return;
+    }
+
+    if (path === '/api/family/teacher-connections') {
+      await fulfillJson(route, { connections: [] });
       return;
     }
 
@@ -133,6 +158,7 @@ const installBackend = async (page: Page, initialSource: ActiveWordSource) => {
     profile: currentProfile,
     activeSource: () => source,
     sourcePatchCount: () => sourcePatchCount,
+    coins: () => coins,
   };
 };
 
@@ -153,8 +179,14 @@ const loginAgain = async (page: Page) => {
   await expect(page.getByRole('heading', { name: /Поиграем со словами|Серия:/i })).toBeVisible();
 };
 
+const dismissFirstLaunchRules = async (page: Page, title: string) => {
+  const dialog = page.getByRole('dialog', { name: new RegExp(`Как играть в «${title}»`, 'i') });
+  const visible = await dialog.waitFor({ state: 'visible', timeout: 2_000 }).then(() => true).catch(() => false);
+  if (visible) await dialog.getByRole('button', { name: 'Начать игру' }).click();
+};
+
 test.describe('dictionary integrity browser E2E', () => {
-  test('Animals survives save, logout/login, home, profile and game chrome', async ({ page }) => {
+  test('Animals survives save, viewer uses only active theme, logout/login keeps source', async ({ page }) => {
     const backend = await installBackend(page, {
       source: 'builtin',
       difficulty: 'ALL',
@@ -178,9 +210,21 @@ test.describe('dictionary integrity browser E2E', () => {
     await page.getByRole('button', { name: '← На главную' }).click();
 
     await page.getByRole('button', { name: /^Анаграммы/ }).click();
-    await expect(page.getByRole('button', { name: /Открыть словарь: Животные/ })).toBeVisible();
     const startGameButton = page.getByRole('button', { name: 'Начать игру' });
     if (await startGameButton.isVisible().catch(() => false)) await startGameButton.click();
+    await dismissFirstLaunchRules(page, 'Анаграммы');
+
+    const peekButton = page.getByRole('button', { name: /Открыть словарь: Животные/ });
+    await expect(peekButton).toBeVisible();
+    await peekButton.click();
+    const viewer = page.getByRole('dialog', { name: 'Животные' });
+    await expect(viewer).toBeVisible();
+    await expect(viewer.getByText('TIGER', { exact: true })).toBeVisible();
+    await expect(viewer.getByText('ZEBRA', { exact: true })).toBeVisible();
+    await expect(viewer.getByText('APPLE', { exact: true })).toHaveCount(0);
+    await expect(viewer.getByText('SCHOOL', { exact: true })).toHaveCount(0);
+    expect(backend.coins()).toBe(9);
+    await viewer.getByRole('button', { name: 'Закрыть словарь' }).click();
     await page.getByRole('button', { name: 'Назад' }).first().click();
 
     await page.getByRole('button', { name: /Открыть меню аккаунта Parent/ }).click();
@@ -235,5 +279,30 @@ test.describe('dictionary integrity browser E2E', () => {
     await openDictionarySelection(page, 'Животные');
     await expect(page.getByText('Выбрано сейчас')).toBeVisible();
     await expect(page.getByText('Изменения ещё не влияют на игры.')).toHaveCount(0);
+  });
+
+  test('parent workspace -> dictionary -> Back returns to parent workspace', async ({ page }) => {
+    await installBackend(page, {
+      source: 'premium',
+      difficulty: 'ALL',
+      premiumDictionaryId: 'kids_animals',
+      updatedAt: '2026-08-25T10:10:00.000Z',
+    });
+
+    await page.goto('/kids');
+    await page.getByRole('button', { name: /Для родителя|Кабинет родителя/ }).click();
+    await expect(page.getByRole('heading', { name: 'Кабинет родителя' })).toBeVisible();
+    await page.getByLabel('PIN родителя').fill('1234');
+    await page.getByRole('button', { name: 'Открыть кабинет' }).click();
+    await expect(page.getByRole('button', { name: 'Слова ребёнка' })).toBeVisible();
+    await expect(page).toHaveURL(/\/workspace$/);
+
+    await page.getByRole('button', { name: 'Слова ребёнка' }).click();
+    await expect(page.getByRole('heading', { name: 'Выбор словаря' })).toBeVisible();
+    await expect(page).toHaveURL(/\/dictionary$/);
+
+    await page.getByRole('button', { name: 'Назад без сохранения' }).click();
+    await expect(page.getByRole('heading', { name: 'Кабинет родителя' })).toBeVisible();
+    await expect(page).toHaveURL(/\/workspace$/);
   });
 });

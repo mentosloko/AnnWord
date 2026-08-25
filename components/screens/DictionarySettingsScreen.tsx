@@ -118,6 +118,14 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
     return () => { cancelled = true; };
   }, [spotlightActive]);
 
+  const leaveDictionarySettings = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1 && window.location.pathname === '/dictionary') {
+      window.history.back();
+      return;
+    }
+    onBack();
+  };
+
   const chooseSource = (nextSource: DictionarySource) => {
     setSaveError(null);
     if ((nextSource === 'custom' || nextSource === 'premium') && (!isAuthenticated || !hasPremium)) {
@@ -219,7 +227,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
       if (draftSettings.dictionarySource === 'premium' && draftSettings.activePremiumDictionaryId === SPOTLIGHT_PREMIUM_DICTIONARY_ID) {
         storeSpotlightSelection(userProfile.username, { grade: spotlightGrade, sectionId: selectedSpotlightSectionId });
       }
-      onBack();
+      leaveDictionarySettings();
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'Не удалось сохранить выбор словаря.');
     } finally {
@@ -237,7 +245,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
 
   return <ScreenContainer className="max-w-4xl pb-20 pt-3 sm:pt-4">
     <header className="mb-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
-      <button type="button" onClick={onBack} aria-label="Назад без сохранения" className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button>
+      <button type="button" onClick={leaveDictionarySettings} aria-label="Назад без сохранения" className="flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-indigo-100 bg-white text-2xl font-black text-indigo-700">←</button>
       <div className="min-w-0 text-center"><div className="text-[10px] font-black uppercase tracking-widest text-indigo-400 sm:text-xs">Слова для игр</div><h1 className="truncate text-2xl font-black text-indigo-950 sm:text-3xl">Выбор словаря</h1></div>
       <div className="h-11 w-11" />
     </header>
