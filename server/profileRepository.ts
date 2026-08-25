@@ -16,6 +16,7 @@ export const PROFILE_COLUMNS = `
   kids_trial_expires_at,
   feature_flags,
   active_word_source,
+  active_word_source_updated_at,
   dictionary_collections,
   weekly_report_email,
   child_display_name,
@@ -218,10 +219,11 @@ export async function updateActiveWordSource(userId: string, value: ActiveWordSo
   const result = await query(
     `update profiles
         set active_word_source = $2::jsonb,
+            active_word_source_updated_at = now(),
             updated_at = now()
       where id = $1
       returning ${PROFILE_COLUMNS}`,
-    [userId, JSON.stringify(activeWordSource)],
+    [userId, JSON.stringify({ ...activeWordSource, updatedAt: undefined })],
   );
   if (!result.rows[0]) throw new Error("Profile not found");
   return mapProfile(userId, result.rows[0]);
