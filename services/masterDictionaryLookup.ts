@@ -7,6 +7,8 @@ export type DictionaryTranslationMap = Record<string, string>;
 export interface DictionaryTranslationResolution {
   translations: DictionaryTranslationMap;
   readyWords: string[];
+  canonicalWords: string[];
+  manualWords: string[];
   missingWords: string[];
 }
 
@@ -63,22 +65,32 @@ export const resolveDictionaryWordTranslations = async (
   const seen = new Set<string>();
   const translations: DictionaryTranslationMap = {};
   const readyWords: string[] = [];
+  const canonicalWords: string[] = [];
+  const manualWords: string[] = [];
   const missingWords: string[] = [];
 
   words.forEach(rawWord => {
     const word = normalizeWord(rawWord);
     if (!word || seen.has(word)) return;
     seen.add(word);
-    const translation = master.get(word) || provided[word];
-    if (translation && hasRussianTranslation(translation)) {
-      translations[word] = translation;
+    const canonicalTranslation = master.get(word);
+    if (canonicalTranslation && hasRussianTranslation(canonicalTranslation)) {
+      translations[word] = canonicalTranslation;
       readyWords.push(word);
-    } else {
-      missingWords.push(word);
+      canonicalWords.push(word);
+      return;
     }
+    const manualTranslation = provided[word];
+    if (manualTranslation && hasRussianTranslation(manualTranslation)) {
+      translations[word] = manualTranslation;
+      readyWords.push(word);
+      manualWords.push(word);
+      return;
+    }
+    missingWords.push(word);
   });
 
-  return { translations, readyWords, missingWords };
+  return { translations, readyWords, canonicalWords, manualWords, missingWords };
 };
 
 export const getCanonicalTranslation = async (word: string): Promise<string | null> => {
