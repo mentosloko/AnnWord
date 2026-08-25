@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppHeader } from '../components/layout/AppHeader';
+import { AppShell } from '../components/AppShell';
 import { AuthModal } from '../components/auth/AuthModal';
 import { FamilySetupScreen } from '../components/screens/FamilySetupScreen';
 import { GUEST_PROFILE } from '../constants/profileDefaults';
@@ -11,6 +12,37 @@ const AuthHarness = ({ mode = 'register', loading = false }: { mode?: 'login' | 
   const [email, setEmail] = useState(mode === 'login' ? 'parent@example.ru' : '');
   const [password, setPassword] = useState(mode === 'login' ? 'password123' : '');
   return <AuthModal isOpen mode={mode} email={email} password={password} error={null} isLoading={loading} onClose={vi.fn()} onModeChange={vi.fn()} onEmailChange={setEmail} onPasswordChange={setPassword} onSubmit={vi.fn()} onYandexLogin={vi.fn()} />;
+};
+
+const ShellRegistrationHarness = () => {
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  return <AppShell
+    route="landing"
+    userProfile={GUEST_PROFILE}
+    isAuthenticated={false}
+    showLoginModal={open}
+    showRulesModal={false}
+    authMode={mode}
+    tempUsername={email}
+    tempPassword={password}
+    authError={null}
+    isAuthLoading={false}
+    onHomeClick={vi.fn()}
+    onLoginClick={() => { setMode('login'); setOpen(true); }}
+    onLogoutClick={async () => undefined}
+    onProfileClick={vi.fn()}
+    onShopClick={vi.fn()}
+    onCloseLogin={() => setOpen(false)}
+    onCloseRules={vi.fn()}
+    onAuthModeChange={setMode}
+    onUsernameChange={setEmail}
+    onPasswordChange={setPassword}
+    onAuthSubmit={async () => undefined}
+    onYandexLogin={async () => undefined}
+  ><div>Landing body</div></AppShell>;
 };
 
 describe('acquisition and forms integrity', () => {
@@ -28,6 +60,12 @@ describe('acquisition and forms integrity', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Начать бесплатно' }));
     expect(login).toHaveBeenCalledTimes(1);
     expect(register).toHaveBeenCalledTimes(1);
+  });
+
+  it('AppShell header CTA opens registration even through the integration fallback', () => {
+    render(<ShellRegistrationHarness />);
+    fireEvent.click(screen.getByRole('button', { name: 'Начать бесплатно' }));
+    expect(screen.getByRole('dialog', { name: 'Создать аккаунт' })).toBeVisible();
   });
 
   it('registration CTA remains disabled until required fields and consents are valid', () => {
