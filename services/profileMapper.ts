@@ -112,6 +112,7 @@ export const normalizeInventory = (value: unknown): InventoryItem[] => Array.isA
 
 export const mapProfileFromDB = (data: any): UserProfile => {
   const featureFlags = normalizeFeatureFlags(data?.feature_flags);
+  const rawActiveWordSource = isPlainObject(data?.active_word_source) ? data.active_word_source : {};
   return {
     username: typeof data?.username === 'string' && data.username.trim() ? data.username : 'Гость',
     role: ['admin', 'parent', 'teacher'].includes(String(data?.role)) ? data.role : 'user',
@@ -124,7 +125,7 @@ export const mapProfileFromDB = (data: any): UserProfile => {
     childShareCode: typeof data?.child_share_code === 'string' ? data.child_share_code : undefined,
     childSlotsLimit: typeof data?.child_slots_limit === 'number' ? data.child_slots_limit : 1,
     featureFlags,
-    activeWordSource: normalizeActiveWordSource(data?.active_word_source),
+    activeWordSource: normalizeActiveWordSource({ ...rawActiveWordSource, updatedAt: data?.active_word_source_updated_at }),
     customDictionaryEn: normalizeDictionaryField(data?.custom_dictionary_en),
     dictionaryCollections: Array.isArray(data?.dictionary_collections) ? data.dictionary_collections : [],
     managedLearners: Array.isArray(data?.managed_learners) ? data.managed_learners : [],
