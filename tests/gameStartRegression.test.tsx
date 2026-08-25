@@ -45,6 +45,7 @@ const setupProps = {
   isUploadingDictionary: false,
   isAuthenticated: true,
   onFileUpload: vi.fn(),
+  onCommitDictionarySettings: vi.fn().mockResolvedValue(undefined),
   onOpenDictionaryStudio: vi.fn(),
   onOpenPremium: vi.fn(),
   onBack: vi.fn(),
@@ -54,6 +55,7 @@ const setupProps = {
 describe('game start regressions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    setupProps.onCommitDictionarySettings.mockResolvedValue(undefined);
     dictionaryRuntimeMock.getModeWords.mockReturnValue(['APPLE']);
     dictionaryRuntimeMock.ensureReady.mockImplementation(() => new Promise<void>(() => undefined));
   });
@@ -80,7 +82,7 @@ describe('game start regressions', () => {
     expect(dictionaryRuntimeMock.ensureReady).toHaveBeenCalled();
   });
 
-  it('falls back to the built-in dictionary when a saved Premium source has expired', async () => {
+  it('does not silently overwrite the canonical source when saved Premium access has expired', async () => {
     const onStartGame = vi.fn().mockResolvedValue(undefined);
     const onSettingsChange = vi.fn();
     const onAutoStartComplete = vi.fn();
@@ -92,27 +94,24 @@ describe('game start regressions', () => {
       customDictionaryEn: ['APPLE'],
     };
 
-    const Harness = () => {
-      const [currentSettings, setCurrentSettings] = React.useState<GameSettings>({ ...settings, dictionarySource: 'custom', useCustomDictionary: true });
-      const [autoStart, setAutoStart] = React.useState(true);
-      return <SetupScreen
+    render(
+      <SetupScreen
         {...setupProps}
-        settings={currentSettings}
+        settings={{ ...settings, dictionarySource: 'custom', useCustomDictionary: true }}
         customDictionaryWords={['APPLE']}
         userProfile={expiredProfile}
-        onSettingsChange={next => { onSettingsChange(next); setCurrentSettings(next); }}
+        onSettingsChange={onSettingsChange}
         onStartGame={onStartGame}
-        autoStart={autoStart}
-        onAutoStartComplete={() => { onAutoStartComplete(); setAutoStart(false); }}
-      />;
-    };
+        autoStart
+        onAutoStartComplete={onAutoStartComplete}
+      />,
+    );
 
-    render(<Harness />);
-
-    await waitFor(() => expect(onSettingsChange).toHaveBeenCalledWith(expect.objectContaining({ dictionarySource: 'builtin', useCustomDictionary: false })));
-    await waitFor(() => expect(onStartGame).toHaveBeenCalledWith(['APPLE']));
     await waitFor(() => expect(onAutoStartComplete).toHaveBeenCalledTimes(1));
-    expect(screen.queryByText(/Готовим «Классика»/i)).not.toBeInTheDocument();
+    expect(onSettingsChange).not.toHaveBeenCalled();
+    expect(setupProps.onCommitDictionarySettings).not.toHaveBeenCalled();
+    expect(onStartGame).not.toHaveBeenCalled();
+    expect(screen.getByText(/В выбранном списке пока нет слов/i)).toBeInTheDocument();
   });
 
   it('starts Classic from the prepared snapshot even when saved settings point to another length', () => {
