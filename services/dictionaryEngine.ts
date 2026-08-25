@@ -37,22 +37,31 @@ const getTranslatedWordByKey = (): Map<string, EnrichedWord> => {
   return translatedWordByKey;
 };
 
-/** Playable custom words must have a real Russian translation in the common dictionary and must not be blacklisted. */
-export const getCustomWordsAvailableInBuiltinDictionary = (words: string[] = []): string[] => {
-  const translated = getTranslatedWordByKey();
-  return normalizeCustomDictionary(words).filter(word => translated.has(word) && !isBlacklistedWord(word));
+const explicitTranslationFor = (word: string, translations: Record<string, string> = {}): string | null => {
+  const direct = translations[word] || translations[normalizeWord(word)];
+  return hasRussianTranslation(direct) ? direct.trim() : null;
 };
 
-export const getCustomWordsMissingTranslation = (words: string[] = []): string[] => {
+/** Playable custom words need either a built-in translation or an explicit validated translation. */
+export const getCustomWordsAvailableInBuiltinDictionary = (words: string[] = [], explicitTranslations: Record<string, string> = {}): string[] => {
   const translated = getTranslatedWordByKey();
-  return normalizeCustomDictionary(words).filter(word => !translated.has(word) && !isBlacklistedWord(word));
+  return normalizeCustomDictionary(words).filter(word => (translated.has(word) || explicitTranslationFor(word, explicitTranslations)) && !isBlacklistedWord(word));
 };
 
-export const toCustomEnrichedWords = (words: string[] = []): EnrichedWord[] => {
+export const getCustomWordsMissingTranslation = (words: string[] = [], explicitTranslations: Record<string, string> = {}): string[] => {
   const translated = getTranslatedWordByKey();
-  return getCustomWordsAvailableInBuiltinDictionary(words)
-    .map(word => translated.get(word))
-    .filter((entry): entry is EnrichedWord => Boolean(entry))
+  return normalizeCustomDictionary(words).filter(word => !translated.has(word) && !explicitTranslationFor(word, explicitTranslations) && !isBlacklistedWord(word));
+};
+
+export const toCustomEnrichedWords = (words: string[] = [], explicitTranslations: Record<string, string> = {}): EnrichedWord[] => {
+  const translated = getTranslatedWordByKey();
+  return getCustomWordsAvailableInBuiltinDictionary(words, explicitTranslations)
+    .map(word => translated.get(word) || {
+      word,
+      translation: explicitTranslationFor(word, explicitTranslations) || '',
+      level: CUSTOM_LEVEL,
+    })
+    .filter((entry): entry is EnrichedWord => Boolean(entry) && hasRussianTranslation(entry.translation))
     .map(entry => ({ ...entry, level: CUSTOM_LEVEL }));
 };
 
@@ -75,8 +84,8 @@ export const getBuiltinSecretWordPool = (selection: Pick<DictionarySelection, 'w
   return pool.filter(item => item.word.length === selection.wordLength && isAllowedSecretWord(item.word));
 };
 
-export const getCustomSecretWordPool = (customWords: string[] = [], wordLength: WordLength): EnrichedWord[] =>
-  toCustomEnrichedWords(customWords).filter(item => item.word.length === wordLength && isAllowedSecretWord(item.word));
+export const getCustomSecretWordPool = (customWords: string[] = [], wordLength: WordLength, explicitTranslations: Record<string, string> = {}): EnrichedWord[] =>
+  toCustomEnrichedWords(customWords, explicitTranslations).filter(item => item.word.length === wordLength && isAllowedSecretWord(item.word));
 
 export const getSecretWordPool = (selection: DictionarySelection): EnrichedWord[] => {
   if (selection.source === 'custom' && normalizeCustomDictionary(selection.customDictionaryEn).length > 0) return getCustomSecretWordPool(selection.customDictionaryEn, selection.wordLength);
