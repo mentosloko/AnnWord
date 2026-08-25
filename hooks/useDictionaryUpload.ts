@@ -1,8 +1,10 @@
 import { useCallback, useState, type ChangeEvent } from 'react';
 import { DictionaryImportDiagnostics, readDictionaryFile } from '../services/dictionaryUpload';
+import type { DictionarySource } from '../types';
 
 interface UseDictionaryUploadArgs {
   updateDictionary: (dictionary: string[]) => Promise<void>;
+  setDictionarySource?: (source: DictionarySource) => void;
 }
 
 export const useDictionaryUpload = ({ updateDictionary }: UseDictionaryUploadArgs) => {
@@ -28,6 +30,8 @@ export const useDictionaryUpload = ({ updateDictionary }: UseDictionaryUploadArg
         }
 
         await updateDictionary(result.words);
+        // Importing changes the contents of "Свой", but activation is a separate
+        // canonical selection action and must not happen as a local side effect.
         setDictionaryUploadWarnings(result.warnings);
         setLastImportDiagnostics(result.diagnostics);
       })
