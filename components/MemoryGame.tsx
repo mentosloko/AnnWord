@@ -51,7 +51,7 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
   useEffect(() => { if (cards.length === 0 && dictionary.length > 0) initializeGame(); }, [cards.length, dictionary.length, initializeGame]);
   useEffect(() => clearTimers, [clearTimers]);
   useEffect(() => {
-    if (!sessionOwnerId || !cards.length || isWon) return;
+    if (!cards.length || isWon) return;
     persistGameSession(sessionOwnerId, {
       gameType: 'memory',
       dictionaryId,
