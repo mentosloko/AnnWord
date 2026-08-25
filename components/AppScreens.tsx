@@ -191,7 +191,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
     onRouteChange('setup');
   };
   const startSelectedMode = (snapshotWords?: string[]) => {
-    const words = Array.from(new Set((snapshotWords || modeWords).map(word => word.trim().toUpperCase()).filter(Boolean)));
+    const words: string[] = Array.from(new Set<string>((snapshotWords || modeWords).map(word => word.trim().toUpperCase()).filter(Boolean)));
     clearPersistedGameSession(sessionOwnerId);
     if (selectedPlayMode === 'anagrams') clearSavedAnagramSession(userProfile.username);
     const snapshot: GameDictionarySnapshot = { words, label: activeDictionaryName, icon: activeDictionaryIcon, key: currentDictionaryId };
