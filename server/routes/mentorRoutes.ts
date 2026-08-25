@@ -1,17 +1,33 @@
 import { createHash } from "node:crypto";
-import { Router } from "express";
+import { Router, type NextFunction, type Response } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { query, transaction } from "../db";
 import { loadManagedLearners } from "../mentorRepository";
+import { sendPostboxEmail } from "../postboxEmailService";
 
 export const mentorRouter = Router();
 
 const text = (value: unknown): string => String(value || "").trim();
 const wordsOf = (value: unknown): string[] => Array.isArray(value) ? Array.from(new Set(value.filter((word): word is string => typeof word === "string").map(word => word.trim().toUpperCase()).filter(Boolean))) : [];
 const inviteHash = (code: string): string => createHash("sha256").update(code).digest("hex");
+const escapeHtml = (value: string): string => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+const requireTeacherAccount = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  const result = await query<{ role: string | null; account_mode: string | null }>(
+    "select role, account_mode from profiles where id = $1",
+    [req.user!.id],
+  );
+  const profile = result.rows[0];
+  if (profile?.role !== "teacher" && profile?.account_mode !== "teacher") {
+    res.status(403).json({ code: "teacher_account_required", error: "Доступно только в кабинете преподавателя." });
+    return;
+  }
+  next();
+};
 
 mentorRouter.use(requireAuth);
+mentorRouter.use(requireTeacherAccount);
 
 mentorRouter.get("/learners", async (req: AuthenticatedRequest, res) => {
   const startedAt = Date.now();
@@ -35,7 +51,7 @@ mentorRouter.post("/connect", async (req: AuthenticatedRequest, res) => {
       return;
     }
 
-    const learnerId = await transaction(async (client) => {
+    const connected = await transaction(async (client) => {
       const invite = await client.query<{ id: string; learner_user_id: string }>(
         `select id, learner_user_id
            from teacher_connection_invites
@@ -63,13 +79,24 @@ mentorRouter.post("/connect", async (req: AuthenticatedRequest, res) => {
         [row.id, req.user!.id],
       );
       await client.query("update profiles set child_share_code = null, updated_at = now() where id = $1", [row.learner_user_id]);
-      return row.learner_user_id;
+      const parent = await client.query<{ email: string }>("select email from app_users where id = $1", [row.learner_user_id]);
+      return { learnerId: row.learner_user_id, parentEmail: parent.rows[0]?.email || "" };
     });
 
-    if (!learnerId) {
+    if (!connected) {
       res.status(404).json({ code: "learner_invite_unavailable", error: "Код недействителен, уже использован или истёк. Попросите родителя создать новый код." });
       return;
     }
+
+    if (connected.parentEmail) {
+      const teacherLabel = req.user!.name || req.user!.email;
+      await sendPostboxEmail(connected.parentEmail, {
+        subject: "Преподаватель подключён к AnnWord Kids",
+        text: `К профилю ребёнка в AnnWord подключён преподаватель: ${teacherLabel}. Если вы не ожидали это подключение, откройте кабинет родителя и нажмите «Отозвать доступ».`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172554;line-height:1.5"><h1 style="font-size:24px">Преподаватель подключён</h1><p>К профилю ребёнка подключён преподаватель: <strong>${escapeHtml(teacherLabel)}</strong>.</p><p>Если вы не ожидали это подключение, откройте кабинет родителя AnnWord и нажмите «Отозвать доступ».</p></div>`,
+      }).catch(error => console.error("Teacher connection parent notification failed", { learnerId: connected.learnerId, error }));
+    }
+
     res.json({ ok: true });
   } catch (error) {
     console.error("Learner connect failed", error);
