@@ -1,4 +1,5 @@
 import type { ViewState } from '../types';
+import { getCurrentProfileOwnerId } from './profileUpdateEvent';
 
 export const GAME_SESSION_SCHEMA_VERSION = 1 as const;
 
@@ -38,6 +39,7 @@ const getStore = (): Storage | null => {
   return (window as unknown as Record<string, Storage>)[STORAGE_FIELD] || null;
 };
 
+const resolveOwnerId = (ownerId?: string | null): string | null => ownerId || getCurrentProfileOwnerId();
 const keyFor = (ownerId: string): string => `${STORAGE_PREFIX}${ownerId}`;
 const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const normalizeWords = (value: unknown): string[] => Array.isArray(value)
@@ -70,8 +72,9 @@ const parseSession = (value: unknown): PersistedGameSession | null => {
 
 export const readPersistedGameSession = (ownerId?: string | null): PersistedGameSession | null => {
   const store = getStore();
-  if (!store || !ownerId) return null;
-  const key = keyFor(ownerId);
+  const resolvedOwnerId = resolveOwnerId(ownerId);
+  if (!store || !resolvedOwnerId) return null;
+  const key = keyFor(resolvedOwnerId);
   try {
     const raw = store.getItem(key);
     if (!raw) return null;
@@ -89,7 +92,8 @@ export const persistGameSession = <TState extends Record<string, unknown>, TScor
   input: PersistGameSessionInput<TState, TScore>,
 ): PersistedGameSession<TState, TScore> | null => {
   const store = getStore();
-  if (!store || !ownerId) return null;
+  const resolvedOwnerId = resolveOwnerId(ownerId);
+  if (!store || !resolvedOwnerId) return null;
   const dictionaryWords = normalizeWords(input.dictionaryWords);
   if (!dictionaryWords.length || !input.dictionaryId.trim()) return null;
   const session: PersistedGameSession<TState, TScore> = {
@@ -104,20 +108,21 @@ export const persistGameSession = <TState extends Record<string, unknown>, TScor
     rewardState: input.rewardState || 'active',
     updatedAt: new Date().toISOString(),
   };
-  try { store.setItem(keyFor(ownerId), JSON.stringify(session)); }
+  try { store.setItem(keyFor(resolvedOwnerId), JSON.stringify(session)); }
   catch { return null; }
   return session;
 };
 
 export const clearPersistedGameSession = (ownerId?: string | null, expectedGameType?: PersistedGameType): void => {
   const store = getStore();
-  if (!store || !ownerId) return;
+  const resolvedOwnerId = resolveOwnerId(ownerId);
+  if (!store || !resolvedOwnerId) return;
   try {
     if (expectedGameType) {
-      const current = readPersistedGameSession(ownerId);
+      const current = readPersistedGameSession(resolvedOwnerId);
       if (current && current.gameType !== expectedGameType) return;
     }
-    store.removeItem(keyFor(ownerId));
+    store.removeItem(keyFor(resolvedOwnerId));
   } catch {
     // Local persistence must never block gameplay.
   }
