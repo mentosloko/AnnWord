@@ -68,7 +68,7 @@ export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ on
   const reward = useMemo(() => calculateGameReward({ type: 'translation', guessedWords: score }), [score]);
 
   useEffect(() => {
-    if (!sessionOwnerId || !question || finished) return;
+    if (!question || finished) return;
     persistGameSession(sessionOwnerId, {
       gameType: 'translation',
       dictionaryId,
