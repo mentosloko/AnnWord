@@ -179,6 +179,12 @@ const loginAgain = async (page: Page) => {
   await expect(page.getByRole('heading', { name: /Поиграем со словами|Серия:/i })).toBeVisible();
 };
 
+const dismissFirstLaunchRules = async (page: Page, title: string) => {
+  const dialog = page.getByRole('dialog', { name: new RegExp(`Как играть в «${title}»`, 'i') });
+  const visible = await dialog.waitFor({ state: 'visible', timeout: 2_000 }).then(() => true).catch(() => false);
+  if (visible) await dialog.getByRole('button', { name: 'Начать игру' }).click();
+};
+
 test.describe('dictionary integrity browser E2E', () => {
   test('Animals survives save, viewer uses only active theme, logout/login keeps source', async ({ page }) => {
     const backend = await installBackend(page, {
@@ -206,6 +212,7 @@ test.describe('dictionary integrity browser E2E', () => {
     await page.getByRole('button', { name: /^Анаграммы/ }).click();
     const startGameButton = page.getByRole('button', { name: 'Начать игру' });
     if (await startGameButton.isVisible().catch(() => false)) await startGameButton.click();
+    await dismissFirstLaunchRules(page, 'Анаграммы');
 
     const peekButton = page.getByRole('button', { name: /Открыть словарь: Животные/ });
     await expect(peekButton).toBeVisible();
