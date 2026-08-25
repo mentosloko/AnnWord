@@ -24,6 +24,7 @@ describe('DailyQuestCard all-five progress', () => {
     expect(progress).toHaveTextContent('✓Змейка · 6 слов');
     expect(progress).toHaveTextContent('✓Память · завершить');
     expect(progress).toHaveTextContent('○Спринт · 6 слов');
+    expect(progress).toHaveTextContent('○Анаграммы · 5 слов');
   });
 
   it('shows every step completed when server quest is completed', () => {
