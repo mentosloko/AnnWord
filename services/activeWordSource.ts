@@ -20,7 +20,8 @@ export const normalizeActiveWordSource = (value: unknown): ActiveWordSource => {
   const source = record.source === 'custom' || record.source === 'premium' ? record.source : 'builtin';
   const difficulty = readDifficulty(record.difficulty);
   const updatedAt = readUpdatedAt(record.updatedAt);
-  if (source !== 'premium') return { source, difficulty, updatedAt };
+  const initialized = record.initialized === true;
+  if (source !== 'premium') return { source, difficulty, updatedAt, initialized };
 
   const premiumDictionaryId = typeof record.premiumDictionaryId === 'string' && record.premiumDictionaryId.trim()
     ? record.premiumDictionaryId.trim()
@@ -31,7 +32,7 @@ export const normalizeActiveWordSource = (value: unknown): ActiveWordSource => {
   const spotlightSectionId = typeof record.spotlightSectionId === 'string' && record.spotlightSectionId.trim()
     ? record.spotlightSectionId.trim()
     : undefined;
-  return { source, difficulty, premiumDictionaryId, spotlightGrade, spotlightSectionId, updatedAt };
+  return { source, difficulty, premiumDictionaryId, spotlightGrade, spotlightSectionId, updatedAt, initialized };
 };
 
 export const activeWordSourceFromSettings = (settings: GameSettings): ActiveWordSource => normalizeActiveWordSource({
