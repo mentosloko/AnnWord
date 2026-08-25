@@ -75,10 +75,12 @@ describe('deep recent regression audit', () => {
     expect(overlay).toContain('clearRegistrationIntent();');
   });
 
-  it('uses teacher-assigned words in the Kids custom pool and selected translations in Wordle', () => {
+  it('uses teacher-assigned words and their validated translations in the Kids pool and Wordle', () => {
     const pools = read('hooks/useDictionaryPools.ts');
     const app = read('AppV2.tsx');
-    expect(pools).toContain('toCustomEnrichedWords([...(userProfile.customDictionaryEn || []), ...assignedWords])');
+    expect(pools).toContain('const assignedTranslations = userProfile.assignedWordTranslations || {}');
+    expect(pools).toContain('toCustomEnrichedWords([...(userProfile.customDictionaryEn || []), ...assignedWords], assignedTranslations)');
+    expect(pools).toContain('toCustomEnrichedWords(assignedWords, assignedTranslations)');
     expect(pools).toContain("settings.dictionarySource === 'premium'");
     expect(app).toContain('getModeWords, getWordTranslation');
     expect(app).toContain('getModeWords, getWordTranslation, onRouteChange');

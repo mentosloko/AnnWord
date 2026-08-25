@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { browserOcrService } from '../../services/browserOcr';
+import { resolveDictionaryWordTranslations, type DictionaryTranslationResolution } from '../../services/masterDictionaryLookup';
 import { PremiumDictionaryDraft } from '../../services/premiumDictionaryService';
+import { hasRussianTranslation } from '../../services/wordNormalization';
 import { CustomDictionaryCollection, UserProfile } from '../../types';
 import { useProfileFreshness } from '../../hooks/useProfileFreshness';
 import { ScreenContainer } from '../layout/ScreenContainer';
@@ -49,6 +51,9 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
   const [theme, setTheme] = useState(activeTeacherCollection?.theme || '');
   const [source, setSource] = useState<PremiumDictionaryDraft['source']>(activeTeacherCollection?.source || 'manual');
   const [draft, setDraft] = useState(originalDraft);
+  const [manualTranslations, setManualTranslations] = useState<Record<string, string>>(activeTeacherCollection?.wordTranslations || {});
+  const [translationResolution, setTranslationResolution] = useState<DictionaryTranslationResolution | null>(null);
+  const [translationChecking, setTranslationChecking] = useState(false);
   const [ocrProgress, setOcrProgress] = useState<number | null>(null);
   const [ocrMessage, setOcrMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -60,10 +65,33 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
     setTheme(activeTeacherCollection?.theme || '');
     setSource(activeTeacherCollection?.source || 'manual');
     setDraft(originalDraft);
-  }, [activeTeacherCollection?.classLabel, activeTeacherCollection?.source, activeTeacherCollection?.theme, activeTeacherCollection?.title, editorSourceKey, isTeacher, originalDraft]);
+    setManualTranslations(activeTeacherCollection?.wordTranslations || {});
+  }, [activeTeacherCollection?.classLabel, activeTeacherCollection?.source, activeTeacherCollection?.theme, activeTeacherCollection?.title, activeTeacherCollection?.wordTranslations, editorSourceKey, isTeacher, originalDraft]);
 
   const words = useMemo(() => parseWords(draft), [draft]);
+  const wordsKey = words.join('|');
   const preview = useMemo(() => parsePreview(draft), [draft]);
+
+  useEffect(() => {
+    if (!isTeacher) {
+      setTranslationResolution(null);
+      setTranslationChecking(false);
+      return;
+    }
+    let cancelled = false;
+    setTranslationChecking(true);
+    void resolveDictionaryWordTranslations(words, manualTranslations)
+      .then(result => { if (!cancelled) setTranslationResolution(result); })
+      .catch(() => { if (!cancelled) setTranslationResolution({ translations: {}, readyWords: [], canonicalWords: [], manualWords: [], missingWords: words }); })
+      .finally(() => { if (!cancelled) setTranslationChecking(false); });
+    return () => { cancelled = true; };
+  }, [isTeacher, wordsKey, manualTranslations]);
+
+  const editableTranslationWords = useMemo(() => {
+    if (!isTeacher || !translationResolution) return [];
+    const canonical = new Set(translationResolution.canonicalWords);
+    return words.filter(word => !canonical.has(word));
+  }, [isTeacher, translationResolution, wordsKey]);
 
   const runOcr = async (file: File | undefined) => {
     if (!file || !canUseOcr) return;
@@ -107,9 +135,18 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
     }
     setIsSaving(true);
     try {
+      const resolvedTranslations = isTeacher
+        ? await resolveDictionaryWordTranslations(words, manualTranslations)
+        : null;
+      if (resolvedTranslations?.missingWords.length) {
+        setTranslationResolution(resolvedTranslations);
+        setNotice(`Добавьте русский перевод для: ${resolvedTranslations.missingWords.join(', ')}.`);
+        return;
+      }
       await onSaveDictionary({
         title: title.trim() || (isTeacher ? 'Словарь для ученика' : 'Мой словарь'),
         words,
+        wordTranslations: resolvedTranslations?.translations,
         source,
         classLabel: isTeacher ? classLabel.trim() || undefined : undefined,
         theme: isTeacher ? theme.trim() || undefined : undefined,
@@ -126,9 +163,14 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
 
   const resetDraft = () => {
     setDraft(originalDraft);
+    setManualTranslations(activeTeacherCollection?.wordTranslations || {});
     setSource(activeTeacherCollection?.source || 'manual');
     setNotice('Редактор возвращён к текущему сохранённому списку слов.');
   };
+
+  const teacherMissingCount = translationResolution?.missingWords.length || 0;
+  const teacherReadyCount = translationResolution?.readyWords.length || 0;
+  const teacherCanSave = !isTeacher || (!translationChecking && Boolean(translationResolution) && teacherMissingCount === 0);
 
   return <ScreenContainer className="max-w-5xl pb-20">
     <header className="mb-5 flex items-center justify-between gap-3">
@@ -157,7 +199,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
 
     {isTeacher && <div className="mb-5 rounded-3xl border-2 border-indigo-100 bg-indigo-50 p-5">
       <h2 className="text-xl font-black text-indigo-950">Словари для учеников</h2>
-      <p className="mt-2 text-sm font-bold text-indigo-700">Редактор открывает последний сохранённый словарь преподавателя. Создайте или обновите список, затем назначьте его ученику в разделе «Ученики».</p>
+      <p className="mt-2 text-sm font-bold text-indigo-700">AnnWord сначала ищет каждое слово в основном и детском словарях. Если готового русского перевода нет, добавьте его вручную — только после этого слово попадёт в игры.</p>
       {activeTeacherCollection && <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-black text-indigo-700">Открыт словарь: {activeTeacherCollection.title}</p>}
     </div>}
 
@@ -166,7 +208,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         <h2 className="text-xl font-black text-indigo-950">{isTeacher ? 'Соберите словарь для ученика' : 'Дополните текущий “Мой словарь”'}</h2>
         <p className="mt-2 text-sm font-bold text-indigo-700">
           {isTeacher
-            ? 'Добавьте слова в редактор, по одному слову в строке. После сохранения словарь можно будет назначить ученику.'
+            ? 'Добавьте слова по одному в строке. Переводы из AnnWord подставятся автоматически; для неизвестных слов появятся поля ниже.'
             : 'В редакторе уже открыт текущий список. Добавьте новые слова, удалите лишние и сохраните — этот список будет использоваться в играх как “Мой словарь”.'}
         </p>
       </div>
@@ -197,6 +239,23 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
         disabled={!canCreate || accessChecking}
         className="mt-3 h-72 w-full rounded-2xl border-2 border-indigo-100 p-4 font-mono text-sm font-bold uppercase text-indigo-950 disabled:bg-gray-50 disabled:text-gray-400"
       />
+
+      {isTeacher && words.length > 0 && <section className="mt-4 rounded-3xl border-2 border-emerald-100 bg-emerald-50/60 p-4" aria-label="Готовность словаря к играм">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div><div className="text-xs font-black uppercase tracking-widest text-emerald-700">Готовность к играм</div><p className="mt-1 text-sm font-bold text-slate-600">Перевод проверяется до сохранения и ещё раз на сервере перед назначением.</p></div>
+          {translationChecking ? <span role="status" className="rounded-full bg-white px-3 py-2 text-xs font-black text-indigo-600">Проверяем…</span> : <div className="flex gap-2"><span className="rounded-full bg-white px-3 py-2 text-xs font-black text-emerald-700">Готовы: {teacherReadyCount}</span><span className={`rounded-full bg-white px-3 py-2 text-xs font-black ${teacherMissingCount ? 'text-rose-700' : 'text-emerald-700'}`}>Нужен перевод: {teacherMissingCount}</span></div>}
+        </div>
+        {!translationChecking && translationResolution && translationResolution.canonicalWords.length > 0 && <div className="mt-3 rounded-2xl bg-white p-3 text-xs font-bold text-emerald-800">Из словаря AnnWord: {translationResolution.canonicalWords.slice(0, 10).map(word => `${word} — ${translationResolution.translations[word]}`).join(' · ')}{translationResolution.canonicalWords.length > 10 ? '…' : ''}</div>}
+        {!translationChecking && editableTranslationWords.length > 0 && <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {editableTranslationWords.map(word => {
+            const value = manualTranslations[word] || '';
+            const invalid = Boolean(value.trim()) && !hasRussianTranslation(value);
+            return <label key={word} className="rounded-2xl bg-white p-3"><span className="block text-sm font-black text-indigo-950">{word}</span><span className="mt-1 block text-xs font-bold text-slate-500">Русский перевод</span><input value={value} onChange={event => setManualTranslations(previous => ({ ...previous, [word]: event.target.value }))} placeholder="Введите перевод" aria-label={`Русский перевод для ${word}`} aria-invalid={invalid || undefined} className={`mt-2 w-full rounded-xl border-2 px-3 py-2 text-sm font-bold outline-none ${invalid ? 'border-rose-300 bg-rose-50' : 'border-indigo-100 focus:border-indigo-400'}`} />{invalid && <span className="mt-1 block text-xs font-bold text-rose-600">Перевод должен содержать русские буквы.</span>}</label>;
+          })}
+        </div>}
+        {!translationChecking && teacherMissingCount === 0 && teacherReadyCount > 0 && teacherReadyCount < 3 && <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">Словарь можно сохранить, но для назначения ученику нужно минимум 3 игровых слова с переводом.</p>}
+      </section>}
+
       <section className="mt-4 rounded-3xl border-2 border-indigo-50 bg-indigo-50/50 p-4" aria-label="Предпросмотр словаря">
         <div className="text-xs font-black uppercase tracking-widest text-indigo-400">Проверка перед сохранением</div>
         <p className="mt-2 text-sm font-bold text-indigo-800">Слова из 4–6 букв будут использоваться во всех игровых режимах с ограничением длины. Остальные останутся доступны в режимах без ограничения.</p>
@@ -210,9 +269,9 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
       {accessChecking ? <p className="mt-2 text-xs font-bold text-indigo-500">Сохранение станет доступно после проверки профиля.</p> : !canCreate && <p className="mt-2 text-xs font-bold text-gray-500">Сохранение заблокировано до подключения Premium.</p>}
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <button type="button" onClick={() => void save()} disabled={!canCreate || accessChecking || isSaving || !words.length} className="rounded-xl bg-indigo-600 px-6 py-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{isSaving ? 'Сохраняю...' : isTeacher ? 'Сохранить словарь преподавателя' : 'Сохранить мой словарь'}</button>
+        <button type="button" onClick={() => void save()} disabled={!canCreate || accessChecking || isSaving || !words.length || !teacherCanSave} className="rounded-xl bg-indigo-600 px-6 py-3 font-black text-white disabled:bg-gray-200 disabled:text-gray-400">{isSaving ? 'Сохраняю...' : isTeacher ? 'Сохранить словарь преподавателя' : 'Сохранить мой словарь'}</button>
         <button type="button" onClick={resetDraft} disabled={!canCreate || accessChecking} className="rounded-xl border-2 border-indigo-100 px-5 py-3 font-black text-indigo-700 disabled:text-gray-300">Сбросить изменения</button>
-        <button type="button" onClick={() => { setDraft(''); setSource('manual'); }} disabled={!canCreate || accessChecking} className="rounded-xl border-2 border-indigo-100 px-5 py-3 font-black text-indigo-700 disabled:text-gray-300">Очистить</button>
+        <button type="button" onClick={() => { setDraft(''); setManualTranslations({}); setSource('manual'); }} disabled={!canCreate || accessChecking} className="rounded-xl border-2 border-indigo-100 px-5 py-3 font-black text-indigo-700 disabled:text-gray-300">Очистить</button>
       </div>
     </main>
   </ScreenContainer>;

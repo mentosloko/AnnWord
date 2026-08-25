@@ -38,18 +38,30 @@ interface LockedProfileRow {
   pet: unknown;
   inventory: unknown;
   assigned_words: unknown;
+  assigned_word_translations: unknown;
   server_now: Date | string;
   [key: string]: unknown;
 }
+
+type AssignmentSnapshot = {
+  words: unknown;
+  translations: unknown;
+};
+
+const assignmentsFromRow = (row: LockedProfileRow): AssignmentSnapshot => ({
+  words: row.assigned_words,
+  translations: row.assigned_word_translations,
+});
 
 const lockProfile = async (client: PoolClient, userId: string): Promise<LockedProfileRow> => {
   const result = await client.query<LockedProfileRow>(
     `select p.*,
             coalesce(latest_set.words, '{}'::text[]) as assigned_words,
+            coalesce(latest_set.word_translations, '{}'::jsonb) as assigned_word_translations,
             now() as server_now
        from profiles p
        left join lateral (
-         select s.words
+         select s.words, s.word_translations
            from assigned_word_sets s
           where s.learner_user_id = p.id
             and s.archived_at is null
@@ -71,22 +83,27 @@ const serverNowMs = (row: LockedProfileRow): number => {
   return parsed;
 };
 
-const mapProfileWithAssignments = (row: unknown, assignedWords: unknown): UserProfile => {
+const mapProfileWithAssignments = (row: unknown, assignments: AssignmentSnapshot): UserProfile => {
   const startedAt = performance.now();
   try {
-    return mergeAssignedWordsIntoProfile(mapProfileFromDB(row), assignedWords);
+    return mergeAssignedWordsIntoProfile(mapProfileFromDB(row), assignments.words, assignments.translations);
   } finally {
     addServerTiming('hydrate', performance.now() - startedAt);
   }
 };
 
-const persistPet = async (client: PoolClient, userId: string, pet: PetState, assignedWords: unknown): Promise<UserProfile> => {
+const persistPet = async (
+  client: PoolClient,
+  userId: string,
+  pet: PetState,
+  assignments: AssignmentSnapshot,
+): Promise<UserProfile> => {
   const updated = await client.query(
     `update profiles set pet = $2::jsonb, updated_at = now() where id = $1 returning ${PROFILE_COLUMNS}`,
     [userId, JSON.stringify(pet)],
   );
   if (!updated.rows[0]) throw new Error('Профиль не найден.');
-  return mapProfileWithAssignments(updated.rows[0], assignedWords);
+  return mapProfileWithAssignments(updated.rows[0], assignments);
 };
 
 const persistPetAndInventory = async (
@@ -94,7 +111,7 @@ const persistPetAndInventory = async (
   userId: string,
   pet: PetState,
   inventory: InventoryItem[],
-  assignedWords: unknown,
+  assignments: AssignmentSnapshot,
 ): Promise<UserProfile> => {
   const updated = await client.query(
     `update profiles
@@ -106,7 +123,7 @@ const persistPetAndInventory = async (
     [userId, JSON.stringify(pet), JSON.stringify(inventory)],
   );
   if (!updated.rows[0]) throw new Error('Профиль не найден.');
-  return mapProfileWithAssignments(updated.rows[0], assignedWords);
+  return mapProfileWithAssignments(updated.rows[0], assignments);
 };
 
 const withServerMood = (row: LockedProfileRow) => {
@@ -125,6 +142,7 @@ const reconcilePet = (petRaw: unknown, nowMs: number, markActivity: boolean): Pe
 
 export const reconcileProfileMood = async (userId: string, markActivity = false): Promise<UserProfile> => transaction(async client => {
   const row = await lockProfile(client, userId);
+  const assignments = assignmentsFromRow(row);
   const { nowMs, clock } = withServerMood(row);
   const today = moscowDateKey(new Date(nowMs));
   const nextPet = markActivity
@@ -135,12 +153,13 @@ export const reconcileProfileMood = async (userId: string, markActivity = false)
     || nextPet.dailyStreak !== clock.pet.dailyStreak
     || !sameStringSet(nextPet.earnedStickerIds, clock.pet.earnedStickerIds);
   return changed
-    ? persistPet(client, userId, nextPet, row.assigned_words)
-    : mapProfileWithAssignments(row, row.assigned_words);
+    ? persistPet(client, userId, nextPet, assignments)
+    : mapProfileWithAssignments(row, assignments);
 });
 
 export const updateStatsAndReconcileProfile = async (userId: string, stats: UserStats): Promise<UserProfile> => transaction(async client => {
   const row = await lockProfile(client, userId);
+  const assignments = assignmentsFromRow(row);
   const mergedStats = mergeStatsForSave(row.stats, stats);
   const nextPet = reconcilePet(row.pet, serverNowMs(row), false);
   const updated = await client.query(
@@ -153,11 +172,12 @@ export const updateStatsAndReconcileProfile = async (userId: string, stats: User
     [userId, JSON.stringify(mergedStats), JSON.stringify(nextPet)],
   );
   if (!updated.rows[0]) throw new Error('Профиль не найден.');
-  return mapProfileWithAssignments(updated.rows[0], row.assigned_words);
+  return mapProfileWithAssignments(updated.rows[0], assignments);
 });
 
 export const incrementCoinsAndReconcileProfile = async (userId: string, amount: number): Promise<UserProfile> => transaction(async client => {
   const row = await lockProfile(client, userId);
+  const assignments = assignmentsFromRow(row);
   const nextPet = reconcilePet(row.pet, serverNowMs(row), false);
   const updated = await client.query(
     `update profiles
@@ -169,7 +189,7 @@ export const incrementCoinsAndReconcileProfile = async (userId: string, amount: 
     [userId, Math.round(amount || 0), JSON.stringify(nextPet)],
   );
   if (!updated.rows[0]) throw new Error('Профиль не найден.');
-  return mapProfileWithAssignments(updated.rows[0], row.assigned_words);
+  return mapProfileWithAssignments(updated.rows[0], assignments);
 });
 
 export const applyGameResultAndReconcileProfile = async (
@@ -181,6 +201,7 @@ export const applyGameResultAndReconcileProfile = async (
   gameEvents: unknown = [],
 ): Promise<UserProfile> => transaction(async client => {
   const row = await lockProfile(client, userId);
+  const assignments = assignmentsFromRow(row);
   const mergedStats = mergeStatsForSave(row.stats, stats);
   const mergedPet = mergePetForSave(row.pet, pet);
   const nextPet = reconcilePet(mergedPet, serverNowMs(row), true);
@@ -198,7 +219,7 @@ export const applyGameResultAndReconcileProfile = async (
 
   await insertAnalyticsEvents(userId, analyticsEvents, 100, client);
   await insertGameEvents(userId, gameEvents, 100, client);
-  return mapProfileWithAssignments(updated.rows[0], row.assigned_words);
+  return mapProfileWithAssignments(updated.rows[0], assignments);
 });
 
 const inventoryQuantity = (inventory: InventoryItem[], itemId: string): number => inventory.find(item => item.id === itemId)?.quantity || 0;
@@ -243,6 +264,7 @@ export const syncProfileStateServerAuthoritative = async (
   incomingInventory: unknown,
 ): Promise<UserProfile> => transaction(async client => {
   const row = await lockProfile(client, userId);
+  const assignments = assignmentsFromRow(row);
   const { nowMs, clock } = withServerMood(row);
   const currentInventory = normalizeInventory(row.inventory);
   const requestedInventory = normalizeInventory(incomingInventory);
@@ -259,11 +281,12 @@ export const syncProfileStateServerAuthoritative = async (
     inventory = decrementInventory(currentInventory, foodId);
   }
 
-  return persistPetAndInventory(client, userId, pet, inventory, row.assigned_words);
+  return persistPetAndInventory(client, userId, pet, inventory, assignments);
 });
 
 export const useProfileItemServerAuthoritative = async (userId: string, itemId: string): Promise<UserProfile> => transaction(async client => {
   const row = await lockProfile(client, userId);
+  const assignments = assignmentsFromRow(row);
   const { nowMs, clock } = withServerMood(row);
   const inventory = normalizeInventory(row.inventory);
   const owned = inventory.find(item => item.id === itemId && item.quantity > 0);
@@ -294,5 +317,5 @@ export const useProfileItemServerAuthoritative = async (userId: string, itemId: 
     pet = applyServerMoodIncrease({ ...pet, moodScore: 0 }, 80, nowMs);
   }
 
-  return persistPetAndInventory(client, userId, pet, nextInventory, row.assigned_words);
+  return persistPetAndInventory(client, userId, pet, nextInventory, assignments);
 });
