@@ -136,8 +136,11 @@ const loginAs = async (page: Page, email: string) => {
 };
 
 const dismissRulesIfVisible = async (page: Page) => {
-  const start = page.getByRole('button', { name: 'Начать игру' });
-  if (await start.isVisible().catch(() => false)) await start.click();
+  const rulesDialog = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Закрыть правила' }) });
+  if (await rulesDialog.isVisible().catch(() => false)) {
+    await rulesDialog.getByRole('button', { name: 'Начать игру', exact: true }).click();
+    await expect(rulesDialog).toBeHidden();
+  }
 };
 
 test('teacher PANDA/TIGER/ZEBRA assignment is playable in child 1-of-2 and Anagrams', async ({ page }) => {
