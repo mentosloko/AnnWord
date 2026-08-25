@@ -23,7 +23,7 @@ interface Props {
   onDelete: () => void;
   onEnter: () => void;
   onHint: () => void;
-  onRestart: () => void;
+  onRestart: (dictionarySnapshot?: string[]) => void;
   onBackHome: () => void;
   onRegister?: () => void;
   onDictionaryPeek?: () => boolean | Promise<boolean>;
@@ -33,8 +33,9 @@ const blur = () => { if (typeof document !== 'undefined' && document.activeEleme
 const inferAuth = (profile: UserProfile): boolean => profile.username !== 'Гость' || Boolean(profile.role) || Boolean(profile.accountMode);
 const getActiveWordLength = (gameState: GameState, fallback: WordLength): WordLength => (gameState.secretWord?.length === 4 || gameState.secretWord?.length === 5 || gameState.secretWord?.length === 6 ? gameState.secretWord.length as WordLength : fallback);
 const hasSeenRules = (key: string): boolean => { try { return typeof window !== 'undefined' && window.localStorage.getItem(key) === 'true'; } catch { return true; } };
+const normalizeSnapshot = (words: string[]): string[] => Array.from(new Set(words.map(word => word.trim().toUpperCase()).filter(Boolean)));
 
-export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userProfile, isAuthenticated, rulesViewerKey = 'guest', keyStatuses, shakeRowIndex, onChar, onDelete, onEnter, onHint, onRestart, onBackHome, onRegister }) => {
+export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userProfile, isAuthenticated, rulesViewerKey = 'guest', keyStatuses, shakeRowIndex, dictionaryWords = [], onChar, onDelete, onEnter, onHint, onRestart, onBackHome, onRegister }) => {
   const authenticated = isAuthenticated ?? inferAuth(userProfile);
   const showKidsRewards = isKidsMode(userProfile, authenticated);
   const rulesStorageKey = useMemo(() => `annword:game-intro:v1:${rulesViewerKey}:classic`, [rulesViewerKey]);
@@ -66,7 +67,11 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
   };
   const clickHint = () => { if (!authenticated) return; blur(); setShowRules(false); setShowHint(true); if (!gameState.hint && !gameState.loadingHint && !hintUsed) onHint(); };
   const register = () => { blur(); if (onRegister) onRegister(); else onBackHome(); };
-  const restart = () => { if (!finished && gameState.secretWord && gameState.guesses.length > 0 && !window.confirm('Начать заново? Текущий прогресс попытки будет потерян.')) return; onRestart(); };
+  const restart = () => {
+    if (!finished && gameState.secretWord && gameState.guesses.length > 0 && !window.confirm('Начать заново? Текущий прогресс попытки будет потерян.')) return;
+    const snapshot = normalizeSnapshot(dictionaryWords);
+    onRestart(snapshot.length ? snapshot : undefined);
+  };
 
   return (
     <ScreenContainer compact className="h-[100dvh] min-h-[100svh] max-w-none overflow-hidden px-1.5 py-1.5 sm:px-3 sm:py-2 lg:px-5">
@@ -89,7 +94,7 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
 
       {showRules && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-indigo-950/55 p-3 backdrop-blur-sm" role="presentation"><div role="dialog" aria-modal="true" aria-labelledby="classic-rules-title" className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-[2rem] border-2 border-indigo-100 bg-white p-5 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><div className="text-xs font-black uppercase tracking-widest text-indigo-400">Первый запуск</div><h2 id="classic-rules-title" className="mt-1 text-2xl font-black text-indigo-950">Как играть в «Классику»</h2></div><button type="button" aria-label="Закрыть правила" onClick={closeRules} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xl font-black text-indigo-500">×</button></div><ul className="mt-5 space-y-3"><li className="flex gap-3 rounded-2xl bg-indigo-50/70 px-4 py-3 text-sm font-bold text-indigo-950"><span aria-hidden="true" className="text-indigo-500">✓</span><span>Угадайте английское слово за шесть попыток.</span></li><li className="flex gap-3 rounded-2xl bg-indigo-50/70 px-4 py-3 text-sm font-bold text-indigo-950"><span aria-hidden="true" className="text-indigo-500">✓</span><span>Зелёная буква стоит верно, жёлтая есть в слове, серая отсутствует.</span></li><li className="flex gap-3 rounded-2xl bg-indigo-50/70 px-4 py-3 text-sm font-bold text-indigo-950"><span aria-hidden="true" className="text-indigo-500">✓</span><span>Введите слово на клавиатуре и нажмите «Ввод».</span></li></ul><button type="button" onClick={closeRules} className="mt-5 w-full rounded-2xl bg-indigo-600 px-5 py-4 font-black text-white">Начать игру</button><p className="mt-3 text-center text-xs font-bold text-gray-400">Правила всегда можно открыть снова кнопкой «?».</p></div></div>}
 
-      {finished && reward && <GameResultOverlay isOpen status={gameState.gameStatus === 'won' ? 'won' : 'lost'} title={gameState.gameStatus === 'won' ? 'Победа!' : 'Почти получилось'} subtitle={authenticated ? (gameState.gameStatus === 'won' ? 'Слово угадано.' : 'Попробуем ещё раз?') : 'Создайте аккаунт в Kids или Practice, чтобы сохранять прогресс и открыть словари.'} emoji={gameState.gameStatus === 'won' ? '🎉' : '💪'} pet={progress?.pet} xpGained={showKidsRewards ? reward.xp : 0} coinsGained={showKidsRewards ? reward.coins : 0} primaryLabel={authenticated ? 'Играть снова' : 'Создать аккаунт'} secondaryLabel={authenticated ? 'В меню' : 'На главную'} onPrimary={authenticated ? onRestart : register} onSecondary={onBackHome} scoreboard={authenticated ? <PersonalScoreboard gameId="classic" userKey={userProfile.username} value={Math.max(1, gameState.guesses.length)} direction="lower" unit="попыток" record={gameState.gameStatus === 'won'} /> : undefined} details={<span>Слово: <b>{gameState.secretWord}</b>{gameState.secretWordData?.translation ? ` · ${gameState.secretWordData.translation}` : ''}{spent && showKidsRewards ? ` · подсказка: −${spent} ${spent === 1 ? 'монета' : 'монеты'}` : ''}</span>} />}
+      {finished && reward && <GameResultOverlay isOpen status={gameState.gameStatus === 'won' ? 'won' : 'lost'} title={gameState.gameStatus === 'won' ? 'Победа!' : 'Почти получилось'} subtitle={authenticated ? (gameState.gameStatus === 'won' ? 'Слово угадано.' : 'Попробуем ещё раз?') : 'Создайте аккаунт в Kids или Practice, чтобы сохранять прогресс и открыть словари.'} emoji={gameState.gameStatus === 'won' ? '🎉' : '💪'} pet={progress?.pet} xpGained={showKidsRewards ? reward.xp : 0} coinsGained={showKidsRewards ? reward.coins : 0} primaryLabel={authenticated ? 'Играть снова' : 'Создать аккаунт'} secondaryLabel={authenticated ? 'В меню' : 'На главную'} onPrimary={authenticated ? restart : register} onSecondary={onBackHome} scoreboard={authenticated ? <PersonalScoreboard gameId="classic" userKey={userProfile.username} value={Math.max(1, gameState.guesses.length)} direction="lower" unit="попыток" record={gameState.gameStatus === 'won'} /> : undefined} details={<span>Слово: <b>{gameState.secretWord}</b>{gameState.secretWordData?.translation ? ` · ${gameState.secretWordData.translation}` : ''}{spent && showKidsRewards ? ` · подсказка: −${spent} ${spent === 1 ? 'монета' : 'монеты'}` : ''}</span>} />}
     </ScreenContainer>
   );
 };
