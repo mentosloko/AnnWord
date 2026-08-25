@@ -33,7 +33,9 @@ export const ParentPinResetOverlay: React.FC = () => {
     if (pin !== confirmation) { setError('PIN и повтор PIN не совпадают.'); return; }
     setBusy(true);
     try {
-      setSuccess(await parentPinResetService.confirm(token, pin));
+      const message = await parentPinResetService.confirm(token, pin);
+      clearToken();
+      setSuccess(message);
       setPin('');
       setConfirmation('');
     } catch (problem) {
@@ -44,7 +46,6 @@ export const ParentPinResetOverlay: React.FC = () => {
   };
 
   const finish = () => {
-    clearToken();
     window.location.assign('/');
   };
 
