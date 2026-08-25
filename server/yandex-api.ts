@@ -16,6 +16,7 @@ import { authRouter } from "./routes/authRoutes";
 import { profileRouter } from "./routes/profileRoutes";
 import { paymentRouter } from "./routes/paymentRoutes";
 import { parentPinRecoveryRouter } from "./routes/parentPinRecoveryRoutes";
+import { actionTokenStatusRouter } from "./routes/actionTokenStatusRoutes";
 import { familyRouter } from "./routes/familyRoutes";
 import { mentorRouter } from "./routes/mentorRoutes";
 import { dailyQuestRouter } from "./routes/dailyQuestRoutes";
@@ -88,8 +89,9 @@ async function consumeYandexHandoff(code: string): Promise<BackendUser | null> {
       email: string;
       full_name: string | null;
       password_reset_required: boolean;
+      session_version: number;
     }>(
-      `select h.code_hash, u.id, u.email, u.full_name, u.password_reset_required
+      `select h.code_hash, u.id, u.email, u.full_name, u.password_reset_required, u.session_version
          from oauth_handoffs h
          join app_users u on u.id = h.user_id
         where h.code_hash = $1
@@ -106,6 +108,7 @@ async function consumeYandexHandoff(code: string): Promise<BackendUser | null> {
       email: row.email,
       name: row.full_name || undefined,
       passwordResetRequired: row.password_reset_required,
+      sessionVersion: row.session_version,
     } satisfies BackendUser;
   });
 }
@@ -279,6 +282,7 @@ app.post("/api/auth/yandex/exchange", async (req: Request, res: Response) => {
   }
 });
 
+app.use("/api", actionTokenStatusRouter);
 app.use("/api/auth", pendingEmailSessionRouter);
 app.use("/api/auth", magicLinkRouter);
 app.use("/api/auth", authRouter);
