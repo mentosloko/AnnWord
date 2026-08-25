@@ -1,80 +1,53 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppShell } from './components/AppShell';
-import { AppScreens, PlayableModeRoute } from './components/AppScreens';
 import { AuthBootstrapGate } from './components/AuthBootstrapGate';
+import { AppShell } from './components/AppShell';
+import { AppScreens, type PlayableModeRoute } from './components/AppScreens';
+import { InfoModal } from './components/ui/InfoModal';
 import { useAuthProfile } from './hooks/useAuthProfile';
 import { useClassicGameController } from './hooks/useClassicGameController';
 import { useDictionaryPools } from './hooks/useDictionaryPools';
 import { useDictionaryUpload } from './hooks/useDictionaryUpload';
 import { useProfileEconomy } from './hooks/useProfileEconomy';
-import { AccountMode, DailyQuestCompletionReward, DailyQuestState, DictionarySource, GameRewardType, PetState, ShopItem, UserProfile, UserStats, ViewState, WordLearningHistory } from './types';
 import { analyticsService } from './services/analyticsService';
-import { calculateGameReward, GameRewardInput } from './services/gamificationRules';
-import { updateReviewPriorities, WordPracticeResult } from './services/gameSessionEngine';
-import { preloadAppAssetsForProfile } from './services/assetPreloader';
-import { WORDLE_HINT_COST, getWordleHintBalanceDelta } from './services/wordleEconomy';
+import { clearRegistrationIntent, readRegistrationIntent, rememberRegistrationIntent } from './services/registrationIntent';
+import { familyAccountService, type ChildSetupResult } from './services/familyAccountService';
 import { dailyQuestService } from './services/dailyQuestService';
 import { doesGameResultCompleteDailyQuest } from './services/dailyQuest';
-import { premiumDictionaryService, PremiumDictionaryDraft } from './services/premiumDictionaryService';
-import { ChildSetupResult, familyAccountService } from './services/familyAccountService';
 import { getDefaultPremiumDictionaryId } from './services/premiumDictionaryCatalog';
-import { ClientEntryPath } from './services/clientEntryPath';
-import { getClientLocationFromPathname, getClientRouteUrl, getInitialClientLocation } from './services/clientRoute';
+import { normalizePracticeWord, updateReviewPriorities, updateWordLearningHistory } from './services/wordReviewEngine';
 import { gameEventLedgerService } from './services/gameEventLedgerService';
-import { clearRegistrationIntent, readRegistrationIntent, rememberRegistrationIntent } from './services/registrationIntent';
-import { markRewardEducation, readRewardEducation, type RewardEducationKind } from './services/rewardEducation';
-import { InfoModal } from './components/modals/InfoModal';
+import { premiumDictionaryService, type PremiumDictionaryDraft } from './services/premiumDictionaryService';
+import { paymentReturnStatus as normalizePaymentReturnStatus } from './services/paymentReturn';
+import { getInitialClientLocation, type ClientEntryPath } from './services/clientEntryPath';
+import { analyticsRouteForPath, pathForClientRoute, routeForClientPath } from './services/clientRouting';
+import { readRewardEducation, markRewardEducation, type RewardEducationKind } from './services/rewardEducation';
+import { loadingNow, loadingTelemetry } from './services/loadingTelemetry';
+import { type AccountMode, type DailyQuestCompletionReward, type DailyQuestState, type PetState, type ShopItem, type UserProfile, type UserStats, type ViewState, type WordLength } from './types';
+import { calculateGameReward, type GameRewardInput, type GameRewardType } from './services/gamificationRules';
+import type { WordPracticeResult } from './services/gameSessionEngine';
 
-const LENGTH_AGNOSTIC_MODES = new Set<PlayableModeRoute>(['anagrams', 'translation', 'sprint', 'memory', 'letter_square']);
-const PAYMENT_ORDER_STORAGE_KEY = 'annword_pending_payment_order_id';
+const PAYMENT_ORDER_STORAGE_KEY = 'annword_last_payment_order_id';
 const PENDING_ROUTE_STORAGE_KEY = 'annword_pending_route_v1';
-const isLengthAgnosticMode = (mode: PlayableModeRoute): boolean => LENGTH_AGNOSTIC_MODES.has(mode);
-const toAnalyticsGameType = (mode: PlayableModeRoute): GameRewardType => mode === 'game' ? 'wordle' : mode === 'anagrams' ? 'anagram' : mode === 'letter_square' ? 'letterSquare' : mode;
+const BACKEND_TOKEN_STORAGE_KEY = 'annword_backend_access_token_v1';
+const WORDLE_HINT_COST = 1;
+
+const isLengthAgnosticMode = (mode: PlayableModeRoute): boolean => mode === 'anagrams' || mode === 'translation' || mode === 'sprint' || mode === 'memory' || mode === 'letter_square';
+const randomWordLength = (): WordLength => ([4, 5, 6] as WordLength[])[Math.floor(Math.random() * 3)];
+const toAnalyticsGameType = (mode: PlayableModeRoute): GameRewardType => mode === 'game' ? 'wordle' : mode === 'anagrams' ? 'anagram' : mode === 'translation' ? 'translation' : mode === 'letter_square' ? 'letterSquare' : mode;
 const toWordLedgerMode = (route: ViewState): string => route === 'game' ? 'wordle' : route === 'anagrams' ? 'anagram' : route === 'letter_square' ? 'letterSquare' : route;
-const isRewardStatWin = (input: GameRewardInput): boolean => {
-  if ('wonForStats' in input && typeof input.wonForStats === 'boolean') return input.wonForStats;
-  if (input.type === 'wordle' || input.type === 'hangman') return Boolean(input.won);
-  if (input.type === 'sprint' || input.type === 'anagram' || input.type === 'translation' || input.type === 'letterSquare') return Math.max(0, Math.round(input.guessedWords || 0)) > 0;
-  if (input.type === 'memory') return Math.max(0, Math.round(input.clicks || 0)) > 0;
-  return false;
+const getWordleHintBalanceDelta = (): number => -WORDLE_HINT_COST;
+const hasStoredBackendSession = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  try { return Boolean(window.localStorage.getItem(BACKEND_TOKEN_STORAGE_KEY)); }
+  catch { return false; }
 };
-const shouldCountRewardInStats = (input: GameRewardInput): boolean => input.type !== 'other' && (input.type !== 'anagram' || Boolean(input.statsOnly));
+
 const addRewardToStats = (stats: UserStats, input: GameRewardInput): UserStats => {
-  if (!shouldCountRewardInStats(input)) return stats;
-  const next: UserStats = {
-    ...stats,
-    wordsGuessed: { ...stats.wordsGuessed },
-    wordsToReview: { ...(stats.wordsToReview || {}) },
-    wordPerformance: stats.wordPerformance ? { ...stats.wordPerformance } : undefined,
-    wordLearningHistory: stats.wordLearningHistory ? { ...stats.wordLearningHistory } : undefined,
-  };
-  next.gamesPlayed += 1;
-  if (isRewardStatWin(input)) next.gamesWon += 1;
-  return next;
-};
-const normalizePracticeWord = (word: string) => word.trim().toUpperCase();
-const MAX_WORD_HISTORY_EVENTS = 80;
-const updateWordLearningHistory = (stats: UserStats, word: string, result: WordPracticeResult, nextReview: Record<string, number>, at: string): Record<string, WordLearningHistory> => {
-  const mastered = result === 'mastered';
-  const previous = stats.wordLearningHistory?.[word] || { word, mistakeCount: 0, resolvedCount: 0, currentReviewPriority: Math.max(0, Math.round(stats.wordsToReview?.[word] || 0)), events: [] };
-  const previousPriority = Math.max(0, Math.round(stats.wordsToReview?.[word] ?? previous.currentReviewPriority ?? 0));
-  const nextPriority = Math.max(0, Math.round(nextReview[word] || 0));
-  const wasDifficult = previousPriority > 0 || previous.mistakeCount > 0;
-  const eventType = mastered ? (wasDifficult ? 'resolved' : 'mastered') : 'mistake';
-  const nextEvents = [...(previous.events || []), { at, type: eventType, reviewPriorityAfter: nextPriority }].slice(-MAX_WORD_HISTORY_EVENTS);
+  if (input.statsOnly) return stats;
   return {
-    ...(stats.wordLearningHistory || {}),
-    [word]: {
-      ...previous,
-      word,
-      firstMistakeAt: !mastered && !previous.firstMistakeAt ? at : previous.firstMistakeAt,
-      lastMistakeAt: mastered ? previous.lastMistakeAt : at,
-      lastResolvedAt: mastered && wasDifficult ? at : previous.lastResolvedAt,
-      mistakeCount: previous.mistakeCount + (mastered ? 0 : 1),
-      resolvedCount: previous.resolvedCount + (mastered && wasDifficult ? 1 : 0),
-      currentReviewPriority: nextPriority,
-      events: nextEvents,
-    },
+    ...stats,
+    gamesPlayed: stats.gamesPlayed + 1,
+    gamesWon: stats.gamesWon + (input.won === true || (input.type !== 'wordle' && (input.guessedWords || 0) > 0) ? 1 : 0),
   };
 };
 const addPracticeWordToStats = (stats: UserStats, word: string, result: WordPracticeResult): UserStats => {
@@ -105,7 +78,7 @@ const addPracticeWordToStats = (stats: UserStats, word: string, result: WordPrac
 };
 const hasInitialOAuthCode = (): boolean => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('oauth_code');
 const rememberPaymentOrder = (orderId: string | null): void => { if (!orderId || typeof window === 'undefined') return; try { window.localStorage.setItem(PAYMENT_ORDER_STORAGE_KEY, orderId); } catch { /* ignore */ } };
-const paymentReturnStatus = (value: string | null): 'success' | 'pending' | 'error' | 'fail' | null => value === 'success' || value === 'pending' || value === 'error' || value === 'fail' ? value : null;
+const paymentReturnStatus = (value: string | null): 'success' | 'pending' | 'error' | 'fail' | null => normalizePaymentReturnStatus(value);
 const rememberPendingRoute = (route: ViewState): void => { if (typeof window === 'undefined' || route === 'landing') return; try { window.sessionStorage.setItem(PENDING_ROUTE_STORAGE_KEY, route); } catch { /* ignore */ } };
 const consumePendingRoute = (): ViewState | null => {
   if (typeof window === 'undefined') return null;
@@ -128,7 +101,7 @@ const AppV2: React.FC = () => {
   const [dailyQuest, setDailyQuest] = useState<DailyQuestState | null>(null);
   const [dailyQuestReward, setDailyQuestReward] = useState<DailyQuestCompletionReward | null>(null);
   const [rewardEducation, setRewardEducation] = useState<RewardEducationKind | null>(null);
-  const [blockGuestShellOnBootstrap] = useState(() => hasInitialOAuthCode());
+  const [blockGuestShellOnBootstrap] = useState(() => hasInitialOAuthCode() || (initialLocation.entryPath !== 'home' && hasStoredBackendSession()));
   const authProfile = useAuthProfile();
   const { bootstrapStatus, bootstrapError, settings, setSettings, userProfile, setUserProfile, setUserProfileForUser, isCurrentProfileOwner, currentUser, cachedUserId, isAuthenticated, authMode, tempUsername, setTempUsername, tempPassword, setTempPassword, authError, setAuthError, registrationConfirmationEmail, clearRegistrationConfirmation, isAuthLoading, openLoginMode, openRegisterMode, submitEmailAuth, loginWithYandex, logout } = authProfile;
   const currentUserId = currentUser?.id ?? cachedUserId ?? null;
@@ -148,35 +121,32 @@ const AppV2: React.FC = () => {
   const canUseDailyQuest = isAuthenticated && (isPractice || (isKids && userProfile.pet.characterOnboarded));
   const hasKidsProfileShell = Boolean(userProfile.childDisplayName || userProfile.childShareCode || userProfile.pet.characterOnboarded);
 
-  const writeRouteUrl = useCallback((nextRoute: ViewState, nextEntryPath: ClientEntryPath, replace = false) => {
-    if (typeof window === 'undefined') return;
-    const nextUrl = getClientRouteUrl(nextRoute, nextEntryPath);
-    if (window.location.pathname === nextUrl && !window.location.search) return;
-    window.history[replace ? 'replaceState' : 'pushState']({}, '', nextUrl);
-  }, []);
+  useEffect(() => { wordReviewStatsRef.current = userProfile.stats; }, [userProfile.stats]);
 
-  const navigateRoute = useCallback((nextRoute: ViewState, replace = false) => {
-    const previousRoute = routeRef.current;
-    routeRef.current = nextRoute;
-    setRouteState(nextRoute);
-    writeRouteUrl(nextRoute, entryPathRef.current, replace);
-    if (previousRoute !== nextRoute) {
-      analyticsService.trackEvent({ userId: currentUserId, eventType: 'navigation', eventName: 'route_changed', route: nextRoute, payload: { previousRoute, nextRoute } });
-      if (typeof window !== 'undefined') window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
+  const setRoute = useCallback((next: ViewState) => {
+    routeRef.current = next;
+    setRouteState(next);
+    if (typeof window !== 'undefined') {
+      const path = pathForClientRoute(next, entryPathRef.current);
+      if (window.location.pathname !== path) window.history.pushState({}, '', path);
     }
-  }, [currentUserId, writeRouteUrl]);
-  const setRoute = useCallback((nextRoute: ViewState) => navigateRoute(nextRoute, false), [navigateRoute]);
-  const replaceRoute = useCallback((nextRoute: ViewState) => navigateRoute(nextRoute, true), [navigateRoute]);
-
-  const setEntryPath = useCallback((nextEntryPath: ClientEntryPath) => {
-    entryPathRef.current = nextEntryPath;
-    setEntryPathState(nextEntryPath);
-    if (routeRef.current === 'landing') writeRouteUrl('landing', nextEntryPath, false);
-  }, [writeRouteUrl]);
+  }, []);
+  const replaceRoute = useCallback((next: ViewState) => {
+    routeRef.current = next;
+    setRouteState(next);
+    if (typeof window !== 'undefined') {
+      const path = pathForClientRoute(next, entryPathRef.current);
+      if (window.location.pathname !== path) window.history.replaceState({}, '', path);
+    }
+  }, []);
+  const setEntryPath = useCallback((next: ClientEntryPath) => {
+    entryPathRef.current = next;
+    setEntryPathState(next);
+  }, []);
 
   useEffect(() => {
     const onPopState = () => {
-      const next = getClientLocationFromPathname(window.location.pathname);
+      const next = routeForClientPath(window.location.pathname);
       routeRef.current = next.route;
       entryPathRef.current = next.entryPath;
       setRouteState(next.route);
@@ -185,67 +155,34 @@ const AppV2: React.FC = () => {
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
-
-  useEffect(() => { wordReviewStatsRef.current = userProfile.stats; }, [userProfile.stats]);
-  const goRoot = useCallback(() => { setEntryPath('home'); setRoute('landing'); }, [setEntryPath, setRoute]);
-  const openDictionaryArea = useCallback(() => setRoute(isKids ? 'dictionary_settings' : isAdmin || isTeacher ? 'dictionary_studio' : 'dictionary_settings'), [isAdmin, isKids, isTeacher, setRoute]);
-  const setDictionarySource = useCallback((source: DictionarySource) => setSettings(previous => ({ ...previous, dictionarySource: source, useCustomDictionary: source === 'custom' })), [setSettings]);
-  const dictionaryUpload = useDictionaryUpload({ updateDictionary: profileEconomy.updateDictionary, setDictionarySource });
-
-  useEffect(() => { if (isAuthenticated || registrationConfirmationEmail) setShowLoginModal(false); }, [isAuthenticated, registrationConfirmationEmail]);
   useEffect(() => {
-    if (bootstrapStatus !== 'ready' || !isAuthenticated || userProfile.role === 'admin' || userProfile.accountMode || registrationIntentApplyingRef.current) return;
-    const intent = readRegistrationIntent();
-    const applyingUserId = currentUserId;
-    if (!intent || !applyingUserId) return;
-    registrationIntentApplyingRef.current = true;
-    void familyAccountService.selectAccountMode(intent.accountMode)
-      .then(serverProfile => {
-        if (!isCurrentProfileOwner(applyingUserId)) return;
-        const nextEntryPath: ClientEntryPath = intent.accountMode === 'parent' ? 'kids' : intent.accountMode === 'teacher' ? 'teacher' : 'practice';
-        setEntryPath(nextEntryPath);
-        if (serverProfile) setUserProfileForUser(applyingUserId, serverProfile);
-        else setUserProfileForUser(applyingUserId, previous => ({ ...previous, accountMode: intent.accountMode, role: intent.accountMode === 'parent' ? 'parent' : intent.accountMode === 'teacher' ? 'teacher' : 'user' }));
-        if (!isCurrentProfileOwner(applyingUserId)) return;
-        clearRegistrationIntent();
-        replaceRoute(intent.accountMode === 'teacher' ? 'adult_room' : intent.accountMode === 'parent' ? 'family_setup' : 'landing');
-      })
-      .catch(error => console.error('Failed to apply saved registration format', error))
-      .finally(() => { registrationIntentApplyingRef.current = false; });
-  }, [bootstrapStatus, currentUserId, isAuthenticated, isCurrentProfileOwner, replaceRoute, setEntryPath, setUserProfileForUser, userProfile.accountMode, userProfile.role]);
-  useEffect(() => { if (bootstrapStatus === 'ready' && isAuthenticated && userProfile.accountMode) clearRegistrationIntent(); }, [bootstrapStatus, isAuthenticated, userProfile.accountMode]);
-  useEffect(() => { if (bootstrapStatus === 'ready' && isKids) preloadAppAssetsForProfile(userProfile); }, [bootstrapStatus, isKids, userProfile.pet.type, userProfile.pet.characterOnboarded]);
+    analyticsService.trackEvent({ userId: currentUserId, eventType: 'navigation', eventName: 'route_changed', route, payload: { path: analyticsRouteForPath(window.location.pathname) } });
+  }, [currentUserId, route]);
+
   useEffect(() => {
     if (bootstrapStatus !== 'ready') return;
-    if (!isAuthenticated && routeRef.current !== 'landing') {
-      rememberPendingRoute(routeRef.current);
-      entryPathRef.current = 'home';
-      setEntryPathState('home');
-      replaceRoute('landing');
-      return;
-    }
-    if (isAuthenticated && (userProfile.accountMode || userProfile.role === 'admin') && routeRef.current === 'landing') {
-      const pending = consumePendingRoute();
-      if (pending && pending !== 'landing') setRoute(pending);
-    }
-  }, [bootstrapStatus, isAuthenticated, replaceRoute, setRoute, userProfile.accountMode, userProfile.role]);
+    const intent = readRegistrationIntent();
+    if (!intent || registrationIntentApplyingRef.current) return;
+    const accountMode: AccountMode = intent === 'kids' ? 'parent' : intent === 'teacher' ? 'teacher' : 'player';
+    if (userProfile.accountMode === accountMode) { clearRegistrationIntent(); return; }
+    if (!isAuthenticated || userProfile.accountMode) return;
+    registrationIntentApplyingRef.current = true;
+    void familyAccountService.setAccountMode(accountMode).then(profile => {
+      if (!isCurrentProfileOwner(currentUserId)) return;
+      setUserProfile(profile);
+      clearRegistrationIntent();
+    }).catch(error => console.error('Failed to apply registration intent', error)).finally(() => { registrationIntentApplyingRef.current = false; });
+  }, [bootstrapStatus, currentUserId, isAuthenticated, isCurrentProfileOwner, setUserProfile, userProfile.accountMode]);
+
   useEffect(() => {
-    if (bootstrapStatus !== 'ready' || !isAuthenticated) return;
-    if (userProfile.role !== 'admin' && !userProfile.accountMode) {
-      if (registrationIntentApplyingRef.current) return;
-      if (route !== 'account_mode_setup') replaceRoute('account_mode_setup');
+    if (bootstrapStatus !== 'ready') return;
+    if (isAdmin) { if (route !== 'admin' && route !== 'landing') replaceRoute('admin'); return; }
+    if (!isAuthenticated) {
+      if (route !== 'landing' && route !== 'premium') replaceRoute('landing');
       return;
     }
-    if (isKids) {
-      if (!hasKidsProfileShell) {
-        if (route !== 'family_setup') replaceRoute('family_setup');
-        return;
-      }
-      if (!userProfile.pet.characterOnboarded) {
-        if (route !== 'character_onboarding' && route !== 'premium' && route !== 'premium_success') replaceRoute('character_onboarding');
-        return;
-      }
-    }
+    if (userProfile.accountMode === 'parent' && !hasKidsProfileShell && route !== 'family_setup') { replaceRoute('family_setup'); return; }
+    if (userProfile.accountMode === 'parent' && hasKidsProfileShell && !userProfile.pet.characterOnboarded && route !== 'character_onboarding') { replaceRoute('character_onboarding'); return; }
     if (isTeacher) {
       if (route !== 'landing' && route !== 'adult_room' && route !== 'dictionary_studio' && route !== 'profile') replaceRoute('adult_room');
       return;
@@ -346,7 +283,12 @@ const AppV2: React.FC = () => {
     if (!isKids) return;
     await profileEconomy.adjustCoinsStrict(WORDLE_HINT_COST);
   }, [isKids, profileEconomy]);
-  const chargeDictionaryPeek = useCallback(async (): Promise<boolean> => chargeWordleHint(), [chargeWordleHint]);
+  const chargeDictionaryPeek = useCallback(async (): Promise<boolean> => {
+    if (!isKids) return true;
+    if (userProfile.coins < WORDLE_HINT_COST) return false;
+    await profileEconomy.adjustCoinsStrict(getWordleHintBalanceDelta());
+    return true;
+  }, [isKids, profileEconomy, userProfile.coins]);
   const classicGame = useClassicGameController({ route, settings, sessionOwnerId: currentUserId, getSecretWordPool, getValidationPool, getModeWords, getWordTranslation, onRouteChange: setRoute, onStatsUpdate: updateClassicStats, onDailyQuestResult: submitClassicDailyQuestResult, availableCoins: isKids ? userProfile.coins : Number.MAX_SAFE_INTEGER, onHintCharge: chargeWordleHint, onHintRefund: refundWordleHint });
   const modeIgnoresWordLength = route === 'setup' ? isLengthAgnosticMode(selectedPlayMode) : route === 'anagrams' || route === 'translation' || route === 'sprint' || route === 'memory' || route === 'letter_square';
   const modeWords = useMemo(() => getModeWords({ respectWordLength: !modeIgnoresWordLength }), [getModeWords, modeIgnoresWordLength]);
@@ -358,23 +300,13 @@ const AppV2: React.FC = () => {
     const collection = await premiumDictionaryService.saveCollection(draft);
     if (!requestUserId || !isCurrentProfileOwner(requestUserId)) return;
     setUserProfileForUser(requestUserId, previous => ({ ...previous, customDictionaryEn: previous.role === 'teacher' ? previous.customDictionaryEn : collection.words, dictionaryCollections: [collection, ...(previous.dictionaryCollections || []).filter(item => item.id !== collection.id)] }));
-    if (!isTeacher) setDictionarySource('custom');
-  }, [currentUserId, isCurrentProfileOwner, isTeacher, setDictionarySource, setUserProfileForUser]);
+    if (!isTeacher) setSettings(previous => ({ ...previous, dictionarySource: 'custom', useCustomDictionary: true }));
+  }, [currentUserId, isCurrentProfileOwner, isTeacher, setSettings, setUserProfileForUser]);
   const handleTestUnlockPremium = useCallback(() => {
     setUserProfile(previous => ({ ...previous, subscriptionTier: 'premium', premiumExpiresAt: undefined, featureFlags: { ...(previous.featureFlags || {}), premiumDictionaries: true } }));
     setSettings(previous => ({ ...previous, dictionarySource: 'premium', useCustomDictionary: false, activePremiumDictionaryId: previous.activePremiumDictionaryId || getDefaultPremiumDictionaryId() }));
-    setRoute('dictionary_settings');
-  }, [setRoute, setSettings, setUserProfile]);
-  const handleSelectAccountMode = useCallback(async (mode: AccountMode) => {
-    const requestUserId = currentUserId;
-    const serverProfile = await familyAccountService.selectAccountMode(mode);
-    if (!requestUserId || !isCurrentProfileOwner(requestUserId)) return;
-    const nextEntryPath: ClientEntryPath = mode === 'parent' ? 'kids' : mode === 'teacher' ? 'teacher' : 'practice';
-    setEntryPath(nextEntryPath);
-    if (serverProfile) setUserProfileForUser(requestUserId, serverProfile);
-    else setUserProfileForUser(requestUserId, previous => ({ ...previous, accountMode: mode, role: mode === 'parent' ? 'parent' : mode === 'teacher' ? 'teacher' : 'user', featureFlags: mode === 'player' ? previous.featureFlags : { ...(previous.featureFlags || {}), adultRoom: true } }));
-    setRoute(mode === 'teacher' ? 'adult_room' : mode === 'parent' ? 'family_setup' : 'landing');
-  }, [currentUserId, isCurrentProfileOwner, setEntryPath, setRoute, setUserProfileForUser]);
+  }, [setSettings, setUserProfile]);
+  const handleSelectAccountMode = useCallback(async (mode: AccountMode) => { const requestUserId = currentUserId; const updated = await familyAccountService.setAccountMode(mode); if (!requestUserId || !isCurrentProfileOwner(requestUserId)) return; setUserProfile(updated); setEntryPath(mode === 'parent' ? 'kids' : mode === 'teacher' ? 'teacher' : 'practice'); replaceRoute(mode === 'parent' ? 'family_setup' : 'landing'); }, [currentUserId, isCurrentProfileOwner, replaceRoute, setEntryPath, setUserProfile]);
   const handleCreateChild = useCallback(async (childName: string, pin: string): Promise<ChildSetupResult> => {
     const requestUserId = currentUserId;
     const result = await familyAccountService.createChild(childName, pin);
@@ -422,7 +354,7 @@ const AppV2: React.FC = () => {
   const canRenderWhileBootstrapping = bootstrapStatus === 'loading' && !blockGuestShellOnBootstrap && (route === 'landing' || Boolean(userProfile.accountMode) || userProfile.role === 'admin');
   if (bootstrapStatus === 'error') return <AuthBootstrapGate error={bootstrapError} onRetry={() => window.location.reload()} />;
   if (bootstrapStatus !== 'ready' && !canRenderWhileBootstrapping) return <AuthBootstrapGate mode="blocking" />;
-  const shell = <AppShell route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} showLoginModal={showLoginModal} showRulesModal={showRulesModal} authMode={authMode} tempUsername={tempUsername} tempPassword={tempPassword} authError={authError} isAuthLoading={isAuthLoading} onHomeClick={goRoot} onLoginClick={openLogin} onLogoutClick={handleLogout} onProfileClick={() => setRoute('profile')} onShopClick={() => setRoute('shop')} onAdminClick={() => setRoute('admin')} onAdultRoomClick={() => setRoute('adult_room')} onDictionaryStudioClick={openDictionaryArea} onCloseLogin={closeAuthModal} onCloseRules={() => setShowRulesModal(false)} onAuthModeChange={handleAuthModeChange} onUsernameChange={updateEmail} onPasswordChange={updatePassword} onAuthSubmit={submitEmailAuth} onYandexLogin={loginWithYandex}><AppScreens route={route} entryPath={entryPath} selectedPlayMode={selectedPlayMode} userProfile={userProfile} isAuthenticated={isAuthenticated} dailyQuest={dailyQuest} dailyQuestReward={dailyQuestReward} onCloseDailyQuestReward={() => setDailyQuestReward(null)} settings={settings} modeWords={modeWords} activeDictionaryWordCount={activeDictionaryWordCount} classicGame={classicGame} dictionaryUpload={{ isUploadingDictionary: dictionaryUpload.isUploadingDictionary, error: dictionaryUpload.dictionaryUploadError, onFileUpload: dictionaryUpload.handleDictionaryFileUpload }} onRouteChange={setRoute} onEntryPathChange={setEntryPath} onSelectedPlayModeChange={setSelectedPlayMode} onSettingsChange={setSettings} onOpenLogin={openLogin} onOpenRegister={openRegister} onOpenRules={() => setShowRulesModal(true)} onBuy={handleBuy} onUseItem={handleUseItem} onUpdatePet={profileEconomy.updateCharacter} onSaveDictionary={handleSaveDictionary} onSelectAccountMode={handleSelectAccountMode} onCreateChild={handleCreateChild} onChildSetupComplete={handleChildSetupComplete} onGameReward={handleGameReward} onWordPractice={handleWordPractice} onCharacterOnboardingComplete={handleCharacterOnboardingComplete} onGameStarted={startTrackedGame} onTestUnlockPremium={handleTestUnlockPremium} onDictionaryPeek={chargeDictionaryPeek} /></AppShell>;
+  const shell = <AppShell route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} showLoginModal={showLoginModal} showRulesModal={showRulesModal} authMode={authMode} tempUsername={tempUsername} tempPassword={tempPassword} authError={authError} isAuthLoading={isAuthLoading} onHomeClick={() => { setEntryPath('home'); setRoute('landing'); }} onLoginClick={openLogin} onLogoutClick={handleLogout} onProfileClick={() => setRoute('profile')} onShopClick={() => setRoute('shop')} onAdminClick={() => setRoute('admin')} onAdultRoomClick={() => setRoute('adult_room')} onDictionaryStudioClick={() => setRoute(isTeacher ? 'dictionary_studio' : 'dictionary_settings')} onCloseLogin={closeAuthModal} onCloseRules={() => setShowRulesModal(false)} onAuthModeChange={handleAuthModeChange} onUsernameChange={updateEmail} onPasswordChange={updatePassword} onAuthSubmit={submitEmailAuth} onYandexLogin={loginWithYandex}><AppScreens route={route} entryPath={entryPath} selectedPlayMode={selectedPlayMode} userProfile={userProfile} isAuthenticated={isAuthenticated} sessionOwnerId={currentUserId} dailyQuest={dailyQuest} dailyQuestReward={dailyQuestReward} onCloseDailyQuestReward={() => setDailyQuestReward(null)} settings={settings} modeWords={modeWords} activeDictionaryWordCount={activeDictionaryWordCount} classicGame={classicGame} dictionaryUpload={{ isUploadingDictionary: dictionaryUpload.isUploadingDictionary, error: dictionaryUpload.dictionaryUploadError, onFileUpload: dictionaryUpload.handleDictionaryFileUpload }} onRouteChange={setRoute} onEntryPathChange={setEntryPath} onSelectedPlayModeChange={setSelectedPlayMode} onSettingsChange={setSettings} onOpenLogin={openLogin} onOpenRegister={openRegister} onOpenRules={() => setShowRulesModal(true)} onBuy={handleBuy} onUseItem={handleUseItem} onUpdatePet={profileEconomy.updateCharacter} onSaveDictionary={handleSaveDictionary} onSelectAccountMode={handleSelectAccountMode} onCreateChild={handleCreateChild} onChildSetupComplete={handleChildSetupComplete} onGameReward={handleGameReward} onWordPractice={handleWordPractice} onCharacterOnboardingComplete={handleCharacterOnboardingComplete} onGameStarted={startTrackedGame} onTestUnlockPremium={handleTestUnlockPremium} onDictionaryPeek={chargeDictionaryPeek} /></AppShell>;
   const rewardEducationDescription = rewardEducation === 'coins_and_xp'
     ? <>Монеты нужны для лакомств, предметов и подсказок. Опыт повышает уровень питомца и открывает новые возможности.</>
     : rewardEducation === 'coins'
