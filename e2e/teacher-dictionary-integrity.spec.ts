@@ -172,14 +172,14 @@ test('teacher PANDA/TIGER/ZEBRA assignment is playable in child 1-of-2 and Anagr
 
   await page.getByRole('button', { name: /^1 из 2/ }).click();
   await dismissRulesIfVisible(page);
-  await expect(page.getByRole('heading', { name: '1 из 2' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '1 из 2', exact: true })).toBeVisible();
   await expect(page.getByText('Нет доступных слов')).toHaveCount(0);
   await expect(page.getByText(/^(панда|тигр|зебра)$/)).toBeVisible();
   await page.getByRole('button', { name: 'Назад' }).first().click();
 
   await page.getByRole('button', { name: /^Анаграммы/ }).click();
   await dismissRulesIfVisible(page);
-  await expect(page.getByRole('heading', { name: 'Анаграммы' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Анаграммы', exact: true })).toBeVisible();
   await expect(page.getByText('Нет доступных слов')).toHaveCount(0);
   await expect(page.getByText('На это слово — 2 попытки')).toBeVisible();
 });
