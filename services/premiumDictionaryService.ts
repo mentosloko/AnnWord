@@ -1,11 +1,13 @@
 import type { CustomDictionaryCollection, UserProfile } from '../types';
 import { backendApiRequest } from './backendApiClient';
+import { normalizeDictionaryTranslations } from './masterDictionaryLookup';
 import { dispatchOwnedProfileUpdate, getCurrentProfileOwnerId } from './profileUpdateEvent';
 
 export interface PremiumDictionaryDraft {
   id?: string;
   title: string;
   words: string[];
+  wordTranslations?: Record<string, string>;
   source: CustomDictionaryCollection['source'];
   classLabel?: string;
   theme?: string;
@@ -35,6 +37,7 @@ const normalizeCollection = (data: any, draft: PremiumDictionaryDraft, words: st
   title: String(data?.title || draft.title || 'Новый словарь'),
   source: normalizeSource(data?.source, draft.source),
   words,
+  wordTranslations: normalizeDictionaryTranslations(data?.wordTranslations || data?.word_translations || draft.wordTranslations),
   classLabel: readString(data, 'classLabel', 'class_label') || draft.classLabel,
   theme: readString(data, 'theme') || draft.theme,
   createdAt: readString(data, 'createdAt', 'created_at') || new Date().toISOString(),
@@ -47,6 +50,7 @@ const normalizeStoredCollection = (data: any): CustomDictionaryCollection | null
     title: readString(data, 'title') || 'Словарь для ученика',
     source: normalizeSource(data?.source),
     words,
+    wordTranslations: normalizeDictionaryTranslations(data?.wordTranslations || data?.word_translations),
     classLabel: readString(data, 'classLabel', 'class_label'),
     theme: readString(data, 'theme'),
     createdAt: readString(data, 'createdAt', 'created_at') || new Date().toISOString(),
@@ -72,6 +76,7 @@ export const premiumDictionaryService = {
         id: draft.id || null,
         title: draft.title,
         words,
+        wordTranslations: normalizeDictionaryTranslations(draft.wordTranslations),
         source: draft.source,
         classLabel: draft.classLabel || null,
         theme: draft.theme || null,
