@@ -8,7 +8,10 @@ on:
       - 'components/**'
       - 'hooks/**'
       - 'services/**'
+      - 'server/**'
+      - 'db/yandex/**'
       - 'e2e/dictionary-integrity.spec.ts'
+      - 'e2e/teacher-dictionary-integrity.spec.ts'
       - 'playwright.config.ts'
       - '.github/workflows/dictionary-integrity-e2e.yml'
   workflow_dispatch:
@@ -38,4 +41,4 @@ jobs:
           VITE_API_URL: http://127.0.0.1:8787
         run: npm run build
       - name: Run dictionary integrity browser E2E
-        run: npx playwright test e2e/dictionary-integrity.spec.ts --project=chromium-desktop
+        run: npx playwright test e2e/dictionary-integrity.spec.ts e2e/teacher-dictionary-integrity.spec.ts --project=chromium-desktop
