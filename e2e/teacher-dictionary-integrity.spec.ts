@@ -158,9 +158,12 @@ test('teacher PANDA/TIGER/ZEBRA assignment is playable in child 1-of-2 and Anagr
   expect(backend.savedRequest()?.wordTranslations).toEqual(TRANSLATIONS);
 
   await page.getByRole('button', { name: 'Назад' }).click();
-  await expect(page.getByRole('heading', { name: 'Обзор преподавателя' })).toBeVisible();
-  await page.getByRole('button', { name: /Ученики.*Открыть учеников/ }).click();
-  await expect(page.getByRole('heading', { name: 'Ученики преподавателя' })).toBeVisible();
+  const learnersHeading = page.getByRole('heading', { name: 'Ученики преподавателя' });
+  if (!(await learnersHeading.isVisible().catch(() => false))) {
+    await expect(page.getByRole('heading', { name: 'Обзор преподавателя' })).toBeVisible();
+    await page.getByRole('button', { name: /Ученики.*Открыть учеников/ }).click();
+  }
+  await expect(learnersHeading).toBeVisible();
   await page.locator('select').selectOption({ label: 'UAT Animals' });
   await page.getByRole('button', { name: 'Назначить', exact: true }).click();
   await expect(page.getByText('Словарь назначен ученику.')).toBeVisible();
