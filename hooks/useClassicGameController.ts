@@ -3,7 +3,16 @@ import { MAX_GUESSES } from '../constants';
 import { getTranslationForWord } from '../services/dictionaryEngine';
 import { getBestEliminationHint } from '../services/hintService';
 import { getUnusedSessionWord } from '../services/sessionWordHistory';
+import { activeWordSourceFromSettings, activeWordSourceKey } from '../services/activeWordSource';
+import { clearPersistedGameSession, isPersistedSessionFor, persistGameSession, readPersistedGameSession } from '../services/gameSessionStore';
 import { CharStatus, EnrichedWord, GameSettings, GameState, ViewState, WordLength } from '../types';
+
+export interface ClassicGameSessionMeta {
+  dictionaryId: string;
+  dictionaryWords: string[];
+  dictionaryLabel?: string;
+  dictionaryIcon?: string;
+}
 
 interface Args {
   route: ViewState;
@@ -20,6 +29,7 @@ interface Args {
   onHintCharge?: () => Promise<boolean>;
 }
 
+type RestoredClassic = { gameState: GameState; keyStatuses: Record<string, CharStatus>; meta?: ClassicGameSessionMeta };
 const COST = 1;
 const RANDOM_WORD_LENGTHS: WordLength[] = [4, 5, 6];
 const activeGameKey = (owner: string) => `annword:active-wordle-session:v1:${owner}`;
@@ -27,30 +37,98 @@ const STORAGE_FIELD = 'local' + 'Storage';
 const getStore = (): Storage | null => { if (typeof window === 'undefined') return null; return (window as unknown as Record<string, Storage>)[STORAGE_FIELD] || null; };
 const scrollTop = () => { if (typeof window === 'undefined' || typeof document === 'undefined') return; document.documentElement.scrollTop = 0; document.body.scrollTop = 0; try { window.scrollTo({ top: 0, left: 0, behavior: 'auto' }); } catch { /* no-op */ } };
 export const createInitialGameState = (): GameState => ({ secretWord: '', secretWordData: null, guesses: [], history: [], currentGuess: '', gameStatus: 'playing', rowIndex: 0, hint: null, loadingHint: false, hintCoinsSpent: 0, error: null });
-const loadActiveGame = (key: string | null): { gameState: GameState; keyStatuses: Record<string, CharStatus> } | null => { const store = getStore(); if (!store || !key) return null; try { const raw = store.getItem(key); if (!raw) return null; const parsed = JSON.parse(raw); if (!parsed?.gameState?.secretWord || parsed.gameState.gameStatus !== 'playing') return null; return { gameState: { ...createInitialGameState(), ...parsed.gameState, loadingHint: false, error: null }, keyStatuses: parsed.keyStatuses && typeof parsed.keyStatuses === 'object' ? parsed.keyStatuses : {} }; } catch { return null; } };
+const normalizeRestoredGameState = (value: unknown): GameState | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const parsed = value as Partial<GameState>;
+  if (typeof parsed.secretWord !== 'string' || !parsed.secretWord || parsed.gameStatus !== 'playing') return null;
+  return { ...createInitialGameState(), ...parsed, loadingHint: false, error: null };
+};
+const loadLegacyActiveGame = (key: string | null): RestoredClassic | null => { const store = getStore(); if (!store || !key) return null; try { const raw = store.getItem(key); if (!raw) return null; const parsed = JSON.parse(raw); const gameState = normalizeRestoredGameState(parsed?.gameState); if (!gameState) return null; return { gameState, keyStatuses: parsed.keyStatuses && typeof parsed.keyStatuses === 'object' ? parsed.keyStatuses : {} }; } catch { return null; } };
+const loadActiveGame = (ownerId: string | null | undefined, legacyKey: string | null): RestoredClassic | null => {
+  const unified = readPersistedGameSession(ownerId);
+  if (unified) {
+    if (!isPersistedSessionFor(unified, 'game')) return null;
+    const state = unified.state as Record<string, unknown>;
+    const gameState = normalizeRestoredGameState(state.gameState);
+    if (!gameState) {
+      clearPersistedGameSession(ownerId, 'game');
+      return null;
+    }
+    const keyStatuses = state.keyStatuses && typeof state.keyStatuses === 'object' && !Array.isArray(state.keyStatuses) ? state.keyStatuses as Record<string, CharStatus> : {};
+    return {
+      gameState,
+      keyStatuses,
+      meta: {
+        dictionaryId: unified.dictionaryId,
+        dictionaryWords: unified.dictionaryWords,
+        dictionaryLabel: unified.dictionaryLabel,
+        dictionaryIcon: unified.dictionaryIcon,
+      },
+    };
+  }
+  return loadLegacyActiveGame(legacyKey);
+};
 const getTargetWordLength = (state: GameState, fallback: WordLength): WordLength => (state.secretWord?.length === 4 || state.secretWord?.length === 5 || state.secretWord?.length === 6 ? state.secretWord.length as WordLength : fallback);
 export const getGuessLetterStatuses = (guess: string, secretWord: string): CharStatus[] => { const status: CharStatus[] = Array(guess.length).fill('absent'), secret = secretWord.split(''); guess.split('').forEach((char, i) => { if (char === secret[i]) { status[i] = 'correct'; secret[i] = '#'; } }); guess.split('').forEach((char, i) => { if (status[i] === 'correct') return; const found = secret.indexOf(char); if (found >= 0) { status[i] = 'present'; secret[found] = '#'; } }); return status; };
 export const getUpdatedKeyStatuses = (previous: Record<string, CharStatus>, guess: string, secretWord: string) => { const next = { ...previous }, rows = getGuessLetterStatuses(guess, secretWord); guess.split('').forEach((char, i) => { if (rows[i] === 'correct') next[char] = 'correct'; else if (rows[i] === 'present' && next[char] !== 'correct') next[char] = 'present'; else if (!next[char]) next[char] = 'absent'; }); return next; };
+const normalizeWords = (words: string[]): string[] => Array.from(new Set(words.map(word => word.trim().toUpperCase()).filter(Boolean)));
 
 export const useClassicGameController = ({ route, settings, sessionOwnerId, getSecretWordPool, getValidationPool, getModeWords, getWordTranslation = getTranslationForWord, onRouteChange, onStatsUpdate, onDailyQuestResult, availableCoins = Number.POSITIVE_INFINITY, onHintCharge }: Args) => {
   const storageKey = sessionOwnerId ? activeGameKey(sessionOwnerId) : null;
-  const restored = loadActiveGame(storageKey);
+  const restored = loadActiveGame(sessionOwnerId, storageKey);
+  const activeSessionMetaRef = useRef<ClassicGameSessionMeta | null>(restored?.meta || null);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState>(restored?.gameState ?? createInitialGameState);
   const [keyStatuses, setKeyStatuses] = useState<Record<string, CharStatus>>(restored?.keyStatuses ?? {});
   const [shakeRowIndex, setShakeRowIndex] = useState<number | null>(null);
   const finishingRef = useRef(false);
 
+  const fallbackMeta = useCallback((words?: string[]): ClassicGameSessionMeta => ({
+    dictionaryId: activeWordSourceKey(activeWordSourceFromSettings(settings)),
+    dictionaryWords: normalizeWords(words?.length ? words : getModeWords()),
+  }), [getModeWords, settings]);
+
   useEffect(() => setSetupError(null), [settings]);
-  useEffect(() => { const saved = loadActiveGame(storageKey); finishingRef.current = false; setGameState(saved?.gameState ?? createInitialGameState()); setKeyStatuses(saved?.keyStatuses ?? {}); }, [storageKey]);
+  useEffect(() => {
+    const saved = loadActiveGame(sessionOwnerId, storageKey);
+    finishingRef.current = false;
+    activeSessionMetaRef.current = saved?.meta || null;
+    setGameState(saved?.gameState ?? createInitialGameState());
+    setKeyStatuses(saved?.keyStatuses ?? {});
+  }, [sessionOwnerId, storageKey]);
   useEffect(() => { if (route === 'game') scrollTop(); }, [route, gameState.secretWord]);
-  useEffect(() => { const store = getStore(); if (!store || !storageKey) return; if (gameState.secretWord && gameState.gameStatus === 'playing') store.setItem(storageKey, JSON.stringify({ gameState: { ...gameState, loadingHint: false, error: null }, keyStatuses })); else store.removeItem(storageKey); }, [gameState, keyStatuses, storageKey]);
+  useEffect(() => {
+    const store = getStore();
+    if (!storageKey || !sessionOwnerId) return;
+    if (gameState.secretWord && gameState.gameStatus === 'playing') {
+      const meta = activeSessionMetaRef.current || fallbackMeta();
+      if (meta.dictionaryWords.length > 0) {
+        activeSessionMetaRef.current = meta;
+        persistGameSession(sessionOwnerId, {
+          gameType: 'game',
+          dictionaryId: meta.dictionaryId,
+          dictionaryWords: meta.dictionaryWords,
+          dictionaryLabel: meta.dictionaryLabel,
+          dictionaryIcon: meta.dictionaryIcon,
+          state: { gameState: { ...gameState, loadingHint: false, error: null }, keyStatuses },
+          score: { guesses: gameState.guesses.length, hintsSpent: gameState.hintCoinsSpent || 0 },
+          rewardState: 'active',
+        });
+      }
+      try { store?.removeItem(storageKey); } catch { /* ignore legacy cleanup */ }
+    } else {
+      clearPersistedGameSession(sessionOwnerId, 'game');
+      try { store?.removeItem(storageKey); } catch { /* ignore */ }
+    }
+  }, [fallbackMeta, gameState, keyStatuses, sessionOwnerId, storageKey]);
 
   const hasActiveGame = Boolean(storageKey && gameState.secretWord && gameState.gameStatus === 'playing');
   const resumeGame = useCallback(() => { if (!storageKey || !gameState.secretWord || gameState.gameStatus !== 'playing') return false; onRouteChange('game'); scrollTop(); return true; }, [gameState.gameStatus, gameState.secretWord, onRouteChange, storageKey]);
-  const startNewGame = useCallback((dictionarySnapshot?: string[]) => {
+  const startNewGame = useCallback((dictionarySnapshot?: string[], sessionMeta?: ClassicGameSessionMeta) => {
     finishingRef.current = false;
     setSetupError(null);
+    clearPersistedGameSession(sessionOwnerId, 'game');
+    try { if (storageKey) getStore()?.removeItem(storageKey); } catch { /* ignore */ }
     const fullSource = getSecretWordPool();
     if (fullSource.length === 0 && settings.dictionarySource !== 'custom') { setSetupError('Словарь ещё загружается. Попробуйте снова.'); return; }
     if (settings.dictionarySource === 'custom' && fullSource.length === 0) { setSetupError('Мой словарь не загружен. Загрузите TXT/CSV-файл или выберите встроенный словарь.'); return; }
@@ -68,11 +146,18 @@ export const useClassicGameController = ({ route, settings, sessionOwnerId, getS
     if (pool.length === 0) { setSetupError(settings.dictionarySource === 'custom' ? `В вашем словаре нет слов длиной ${wordLength}.` : `В словаре нет слов уровня ${settings.difficulty} длиной ${wordLength}.`); return; }
     const key = `wordle:${settings.dictionarySource}:${settings.difficulty}:${wordLength}`;
     const entry = getUnusedSessionWord(key, pool) || pool[Math.floor(Math.random() * pool.length)];
+    const defaultMeta = fallbackMeta(preparedWords.size > 0 ? Array.from(preparedWords) : source.map(item => item.word));
+    activeSessionMetaRef.current = {
+      dictionaryId: sessionMeta?.dictionaryId || defaultMeta.dictionaryId,
+      dictionaryWords: normalizeWords(sessionMeta?.dictionaryWords?.length ? sessionMeta.dictionaryWords : defaultMeta.dictionaryWords),
+      dictionaryLabel: sessionMeta?.dictionaryLabel,
+      dictionaryIcon: sessionMeta?.dictionaryIcon,
+    };
     setGameState({ ...createInitialGameState(), secretWord: entry.word, secretWordData: entry });
     setKeyStatuses({});
     onRouteChange('game');
     scrollTop();
-  }, [getSecretWordPool, onRouteChange, settings]);
+  }, [fallbackMeta, getSecretWordPool, onRouteChange, sessionOwnerId, settings, storageKey]);
 
   const handleChar = useCallback((char: string) => { if (finishingRef.current) return; setGameState(prev => { const targetLength = getTargetWordLength(prev, settings.wordLength); return prev.gameStatus !== 'playing' || prev.currentGuess.length >= targetLength ? prev : { ...prev, currentGuess: prev.currentGuess + char, hint: null, error: null }; }); }, [settings.wordLength]);
   const handleDelete = useCallback(() => { if (finishingRef.current) return; setGameState(prev => prev.gameStatus !== 'playing' ? prev : { ...prev, currentGuess: prev.currentGuess.slice(0, -1), error: null }); }, []);
