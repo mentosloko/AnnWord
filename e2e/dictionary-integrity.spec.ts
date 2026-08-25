@@ -61,6 +61,7 @@ const installBackend = async (page: Page, initialSource: ActiveWordSource) => {
   let source: ActiveWordSource = { ...initialSource };
   let sourcePatchCount = 0;
   let coins = 10;
+  const hintOperations = new Map<string, { status: 'charged' | 'refunded'; cost: number }>();
 
   const currentProfile = (): MockProfile => makeProfile(source, { coins });
   const learner = () => ({ id: 'child-e2e', name: 'Child', stats: EMPTY_STATS, assignedWords: [] });
@@ -97,6 +98,37 @@ const installBackend = async (page: Page, initialSource: ActiveWordSource) => {
         updatedAt: new Date(Date.now() + sourcePatchCount * 1000).toISOString(),
       };
       await fulfillJson(route, { profile: currentProfile() });
+      return;
+    }
+
+    if (path === '/api/profile/hint-coins' && request.method() === 'POST') {
+      const payload = request.postDataJSON() as { operationId?: string; action?: 'charge' | 'refund'; cost?: number };
+      const operationId = String(payload.operationId || '');
+      const cost = Math.max(1, Math.round(Number(payload.cost) || 1));
+      const existing = hintOperations.get(operationId);
+      if (payload.action === 'refund') {
+        if (!existing) {
+          await fulfillJson(route, { status: 'absent', profile: currentProfile() });
+          return;
+        }
+        if (existing.status === 'charged') {
+          coins += existing.cost;
+          existing.status = 'refunded';
+        }
+        await fulfillJson(route, { status: 'refunded', profile: currentProfile() });
+        return;
+      }
+      if (existing) {
+        await fulfillJson(route, { status: existing.status, profile: currentProfile() });
+        return;
+      }
+      if (coins < cost) {
+        await fulfillJson(route, { status: 'insufficient', profile: currentProfile() });
+        return;
+      }
+      coins -= cost;
+      hintOperations.set(operationId, { status: 'charged', cost });
+      await fulfillJson(route, { status: 'charged', profile: currentProfile() });
       return;
     }
 
