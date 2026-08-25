@@ -178,6 +178,8 @@ test.describe('dictionary integrity browser E2E', () => {
 
     await page.getByRole('button', { name: /^Анаграммы/ }).click();
     await expect(page.getByRole('button', { name: /Открыть словарь: Животные/ })).toBeVisible();
+    const startGameButton = page.getByRole('button', { name: 'Начать игру' });
+    if (await startGameButton.isVisible().catch(() => false)) await startGameButton.click();
     await page.getByRole('button', { name: 'Назад' }).first().click();
 
     await page.getByRole('button', { name: /Открыть меню аккаунта Parent/ }).click();
