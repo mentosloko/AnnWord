@@ -73,6 +73,12 @@ const dismissRules = async (page: Page, title: string) => {
   if (visible) await dialog.getByRole('button', { name: 'Начать игру' }).click();
 };
 
+const dismissRewardEducation = async (page: Page) => {
+  const dialog = page.getByRole('dialog', { name: /Монеты и опыт|Что такое монеты|Что такое опыт/i });
+  const visible = await dialog.waitFor({ state: 'visible', timeout: 1_500 }).then(() => true).catch(() => false);
+  if (visible) await dialog.getByRole('button', { name: 'Понятно' }).click();
+};
+
 const startMode = async (page: Page, buttonName: RegExp, rulesTitle: string) => {
   await page.getByRole('button', { name: buttonName }).click();
   const start = page.getByRole('button', { name: 'Начать игру' });
@@ -121,10 +127,12 @@ test.describe('unified resumable game sessions', () => {
       if (answered + 1 < 10) await page.getByRole('button', { name: 'Продолжить' }).click();
     }
     await page.getByRole('button', { name: 'Завершить раунд' }).click();
-    await expect(page.getByRole('dialog', { name: 'Раунд завершён' })).toBeVisible();
+    const resultDialog = page.getByRole('dialog', { name: 'Раунд завершён' });
+    await expect(resultDialog).toBeVisible();
     await expect.poll(async () => readSession(page)).toBeNull();
+    await dismissRewardEducation(page);
 
-    await page.getByRole('button', { name: 'Играть снова' }).click();
+    await resultDialog.getByRole('button', { name: 'Играть снова' }).click();
     await waitForSavedType(page, 'translation');
     const restarted = await readSession(page);
     expect(restarted.state.answered).toBe(0);
@@ -164,7 +172,7 @@ test.describe('unified resumable game sessions', () => {
     await expect.poll(async () => (await readSession(page))?.state?.moves).toBe(1);
 
     await goHomeFromMode(page);
-    await page.getByRole('button', { name: /^Память/ }).click();
+    await page.getByRole('button', { name: /Память/ }).click();
     await dismissRules(page, 'Память');
     await expect(page.getByText('Ходов: 1')).toBeVisible();
     await expect.poll(async () => (await readSession(page))?.state?.flippedCards?.length).toBeLessThan(2);
