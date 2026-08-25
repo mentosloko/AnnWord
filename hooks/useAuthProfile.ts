@@ -114,29 +114,60 @@ export const useAuthProfile = () => {
   const initialSessionCheckedRef = useRef(false);
   const currentUserIdRef = useRef<string | null>(initialCachedUserId);
   const profileOwnerUserIdRef = useRef<string | null>(initialCachedUserId);
+  const userProfileRef = useRef<UserProfile>(initialProfile);
   const isCurrentProfileOwner = useCallback((ownerUserId: string | null): boolean => Boolean(ownerUserId && currentUserIdRef.current === ownerUserId), []);
-  const setUserProfileForUser = useCallback((ownerUserId: string, next: UserProfile | ((prev: UserProfile) => UserProfile)): void => {
-    setUserProfileState(prev => {
-      if (currentUserIdRef.current !== ownerUserId) return prev;
-      const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(prev) : next;
-      const safeProfile = resolveOwnedProfileUpdate(currentUserIdRef.current, ownerUserId, profileOwnerUserIdRef.current, prev, resolved);
-      if (!safeProfile) return prev;
-      profileOwnerUserIdRef.current = ownerUserId;
-      profileCache.write(safeProfile, ownerUserId);
-      return safeProfile;
-    });
+  const setUserProfileForUser = useCallback((ownerUserId: string, next: UserProfile | ((prev: UserProfile) => UserProfile)): UserProfile | null => {
+    if (currentUserIdRef.current !== ownerUserId) return null;
+    const previous = userProfileRef.current;
+    const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(previous) : next;
+    const safeProfile = resolveOwnedProfileUpdate(currentUserIdRef.current, ownerUserId, profileOwnerUserIdRef.current, previous, resolved);
+    if (!safeProfile) return null;
+    userProfileRef.current = safeProfile;
+    profileOwnerUserIdRef.current = ownerUserId;
+    profileCache.write(safeProfile, ownerUserId);
+    setUserProfileState(safeProfile);
+    return safeProfile;
   }, []);
-  const setUserProfile = useCallback((next: UserProfile | ((prev: UserProfile) => UserProfile)) => { setUserProfileState(prev => { const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(prev) : next; const safeProfile = mergeProfileUpdateForOwner(profileOwnerUserIdRef.current, currentUserIdRef.current, prev, resolved); profileOwnerUserIdRef.current = currentUserIdRef.current; profileCache.write(safeProfile, currentUserIdRef.current); return safeProfile; }); }, []);
-  useEffect(() => { if (typeof window === 'undefined') return; const handle = (event: Event) => { const update = readOwnedProfileUpdateEvent((event as CustomEvent<unknown>).detail); if (!update || !isUserProfile(update.profile) || !isCurrentProfileOwner(update.userId)) return; setUserProfileForUser(update.userId, update.profile); setSettings(previous => applyActiveWordSourceToSettings({ ...previous, username: update.profile.username }, update.profile.activeWordSource)); }; window.addEventListener('annword:profile-updated', handle as EventListener); return () => window.removeEventListener('annword:profile-updated', handle as EventListener); }, [isCurrentProfileOwner, setUserProfileForUser]);
-  const resetToGuest = useCallback(() => { currentUserIdRef.current = null; profileOwnerUserIdRef.current = null; setCachedUserId(null); setCurrentUser(null); profileCache.clear(); setUserProfileState(GUEST_PROFILE); setSettings(createInitialSettings()); }, []);
+  const setUserProfile = useCallback((next: UserProfile | ((prev: UserProfile) => UserProfile)): UserProfile => {
+    const previous = userProfileRef.current;
+    const resolved = typeof next === 'function' ? (next as (prev: UserProfile) => UserProfile)(previous) : next;
+    const safeProfile = mergeProfileUpdateForOwner(profileOwnerUserIdRef.current, currentUserIdRef.current, previous, resolved);
+    userProfileRef.current = safeProfile;
+    profileOwnerUserIdRef.current = currentUserIdRef.current;
+    profileCache.write(safeProfile, currentUserIdRef.current);
+    setUserProfileState(safeProfile);
+    return safeProfile;
+  }, []);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handle = (event: Event) => {
+      const update = readOwnedProfileUpdateEvent((event as CustomEvent<unknown>).detail);
+      if (!update || !isUserProfile(update.profile) || !isCurrentProfileOwner(update.userId)) return;
+      const acceptedProfile = setUserProfileForUser(update.userId, update.profile);
+      if (!acceptedProfile) return;
+      setSettings(previous => applyActiveWordSourceToSettings({ ...previous, username: acceptedProfile.username }, acceptedProfile.activeWordSource));
+    };
+    window.addEventListener('annword:profile-updated', handle as EventListener);
+    return () => window.removeEventListener('annword:profile-updated', handle as EventListener);
+  }, [isCurrentProfileOwner, setUserProfileForUser]);
+  const resetToGuest = useCallback(() => {
+    currentUserIdRef.current = null;
+    profileOwnerUserIdRef.current = null;
+    userProfileRef.current = GUEST_PROFILE;
+    setCachedUserId(null);
+    setCurrentUser(null);
+    profileCache.clear();
+    setUserProfileState(GUEST_PROFILE);
+    setSettings(createInitialSettings());
+  }, []);
   const loadProfileForUser = useCallback(async (user: AuthUser): Promise<boolean> => {
     currentUserIdRef.current = user.id;
     const { userService } = await import('../services/userService');
     const profile = await userService.getOrCreateProfile(user.id, user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Пользователь', user.email || undefined);
     if (!isCurrentProfileOwner(user.id)) return false;
-    setUserProfileForUser(user.id, profile);
-    if (!isCurrentProfileOwner(user.id)) return false;
-    setSettings(prev => applyActiveWordSourceToSettings({ ...prev, ...readStoredSettings(user.id), username: profile.username }, profile.activeWordSource));
+    const acceptedProfile = setUserProfileForUser(user.id, profile);
+    if (!acceptedProfile || !isCurrentProfileOwner(user.id)) return false;
+    setSettings(prev => applyActiveWordSourceToSettings({ ...prev, ...readStoredSettings(user.id), username: acceptedProfile.username }, acceptedProfile.activeWordSource));
     return true;
   }, [isCurrentProfileOwner, setUserProfileForUser]);
   useEffect(() => { let cancelled = false; const paymentReturn = paymentReturnRef.current; const finishInitialCheck = (status: AuthBootstrapStatus, error: string | null = null) => { if (cancelled) return; initialSessionCheckedRef.current = true; bootstrapCompleteRef.current = true; setBootstrapStatus(status); setBootstrapError(error); setIsRestoringSession(false); }; const keepCachedProfileReady = (): boolean => { if (!hasCachedProfile || !initialCachedUserId) return false; currentUserIdRef.current = initialCachedUserId; setCachedUserId(initialCachedUserId); finishInitialCheck('ready'); return true; }; const failInitialCheck = (error: unknown, fallbackMessage: string) => { console.error(fallbackMessage, error); if ((paymentReturn && keepCachedProfileReady()) || (hasCachedProfile && cachedProfileHasEstablishedAccess)) finishInitialCheck('ready'); else finishInitialCheck('error', getAuthErrorMessage(error, fallbackMessage)); }; getInitialSessionWithPaymentRetry(paymentReturn).then(async ({ user }) => { if (cancelled) return; if (!user) { if (paymentReturn && keepCachedProfileReady()) return; resetToGuest(); finishInitialCheck('ready'); return; } currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); const loaded = await loadProfileForUser(user); if (!loaded || cancelled) return; finishInitialCheck('ready'); }).catch(error => failInitialCheck(error, 'Не удалось восстановить сессию.')); const silentlySyncAuthenticatedUser = async (event: AuthEventName, user: AuthUser) => { const isFreshLogin = event === 'SIGNED_IN' && currentUserIdRef.current !== user.id; try { if (event === 'TOKEN_REFRESHED') { currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); return; } if (isFreshLogin) { const loaded = await loadProfileForUser(user); if (cancelled || !loaded || !isCurrentProfileOwner(user.id)) return; setCachedUserId(user.id); setCurrentUser(user); return; } currentUserIdRef.current = user.id; setCachedUserId(user.id); setCurrentUser(user); if (event === 'SIGNED_IN' || event === 'USER_UPDATED') await loadProfileForUser(user); } catch (error: unknown) { console.error('Не удалось синхронизировать профиль пользователя.', error); if (isFreshLogin && !cancelled) setAuthError(getAuthErrorMessage(error, 'Не удалось загрузить профиль пользователя.')); } finally { if (event === 'SIGNED_IN' && !cancelled) setIsAuthLoading(false); } }; const unsubscribe = authService.onAuthStateChange((event, _session, user) => { if (event === 'INITIAL_SESSION') return; if (event === 'SIGNED_OUT' || !user) { setIsAuthLoading(false); if (paymentReturn && keepCachedProfileReady()) return; resetToGuest(); if (!initialSessionCheckedRef.current) finishInitialCheck('ready'); return; } if (!initialSessionCheckedRef.current) return; void silentlySyncAuthenticatedUser(event, user); }); return () => { cancelled = true; unsubscribe(); }; }, [cachedProfileHasEstablishedAccess, hasCachedProfile, initialCachedUserId, isCurrentProfileOwner, loadProfileForUser, resetToGuest]);
