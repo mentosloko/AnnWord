@@ -3,33 +3,84 @@ import { motion } from 'motion/react';
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { buildPlayableGameDictionary, pickAdaptiveSessionWord, updateReviewPriorities, WordPracticeResult } from '../services/gameSessionEngine';
+import { clearPersistedGameSession, isPersistedSessionFor, persistGameSession, readPersistedGameSession } from '../services/gameSessionStore';
 import { GameResultOverlay } from './GameResultOverlay';
 import { applyGameRewardToCharacter, calculateGameReward, CharacterProgressResult, GameRewardInput } from '../services/gamificationRules';
 import { isKidsMode } from '../services/modeFlags';
 
-interface TranslationChoiceGameProps { onBack: () => void; userProfile: UserProfile; onGameReward: (input: GameRewardInput) => void | Promise<void>; onWordPractice?: (word: string, result: WordPracticeResult) => void | Promise<void>; }
+interface TranslationChoiceGameProps {
+  onBack: () => void;
+  userProfile: UserProfile;
+  onGameReward: (input: GameRewardInput) => void | Promise<void>;
+  onWordPractice?: (word: string, result: WordPracticeResult) => void | Promise<void>;
+  sessionOwnerId?: string | null;
+  dictionaryId?: string;
+  dictionaryLabel?: string;
+  dictionaryIcon?: string;
+}
 interface Question { word: EnrichedWord; options: string[]; correct: string; wrong: string; }
+interface SavedTranslationState {
+  question: Question;
+  score: number;
+  answered: number;
+  feedback: 'correct' | 'wrong' | null;
+  selected: string | null;
+}
 export const buildTranslationChoiceDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => buildPlayableGameDictionary(customDictionaryEn, fallbackDictionary);
 const LETTER_SWAP: Record<string, string[]> = { A: ['U', 'O', 'E'], E: ['A', 'I'], I: ['E', 'Y'], O: ['A', 'U'], U: ['A', 'O'], Y: ['I'], L: ['R'], R: ['L'], M: ['N'], N: ['M'], T: ['D'], D: ['T'], C: ['K'], K: ['C'], S: ['Z'], Z: ['S'], P: ['B'], B: ['P'], G: ['K'], V: ['W'], W: ['V'] };
 const distance = (a: string, b: string) => { const dp = Array.from({ length: a.length + 1 }, (_, i) => Array.from({ length: b.length + 1 }, (_, j) => i === 0 ? j : j === 0 ? i : 0)); for (let i = 1; i <= a.length; i += 1) for (let j = 1; j <= b.length; j += 1) dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return dp[a.length][b.length]; };
 const mutateWord = (word: string): string => { const letters = word.toUpperCase().split(''); const indexes = letters.map((_, index) => index).filter(index => index > 0 && index < letters.length - 1); const candidates = indexes.length ? indexes : letters.map((_, index) => index); const index = candidates[Math.floor(Math.random() * candidates.length)] || 0; const replacements = LETTER_SWAP[letters[index]] || ['A', 'E', 'I', 'O', 'U'].filter(letter => letter !== letters[index]); letters[index] = replacements[Math.floor(Math.random() * replacements.length)] || 'A'; const mutated = letters.join(''); return mutated === word ? word.slice(0, -1) + (word.endsWith('E') ? 'A' : 'E') : mutated; };
 const makeWrongOption = (word: string, pool: EnrichedWord[]): string => pool.map(entry => entry.word).filter(candidate => candidate !== word && candidate.length === word.length).map(candidate => ({ candidate, d: distance(word, candidate) })).filter(item => item.d > 0 && item.d <= 2).sort((a, b) => a.d - b.d || a.candidate.localeCompare(b.candidate))[0]?.candidate || mutateWord(word);
 const makeQuestion = (pool: EnrichedWord[], previous?: string | null, reviewPriorities: Record<string, number> = {}): Question | null => { if (!pool.length) return null; const word = pickAdaptiveSessionWord('translation', pool, reviewPriorities, previous) || pool[Math.floor(Math.random() * pool.length)]; const wrong = makeWrongOption(word.word, pool); return { word, correct: word.word, wrong, options: Math.random() < 0.5 ? [word.word, wrong] : [wrong, word.word] }; };
+const normalizeSavedState = (value: unknown, dictionary: EnrichedWord[]): SavedTranslationState | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const raw = value as Partial<SavedTranslationState>;
+  const question = raw.question;
+  if (!question || typeof question.correct !== 'string' || typeof question.wrong !== 'string' || !Array.isArray(question.options) || !question.word?.word) return null;
+  const canonical = dictionary.find(entry => entry.word === question.correct);
+  if (!canonical || !question.options.includes(question.correct)) return null;
+  return {
+    question: { ...question, word: canonical, options: question.options.filter((item): item is string => typeof item === 'string') },
+    score: Math.max(0, Number(raw.score) || 0),
+    answered: Math.max(0, Math.min(10, Number(raw.answered) || 0)),
+    feedback: raw.feedback === 'correct' || raw.feedback === 'wrong' ? raw.feedback : null,
+    selected: typeof raw.selected === 'string' ? raw.selected : null,
+  };
+};
 
-export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ onBack, userProfile, onGameReward, onWordPractice }) => {
+export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ onBack, userProfile, onGameReward, onWordPractice, sessionOwnerId, dictionaryId = 'live', dictionaryLabel, dictionaryIcon }) => {
   const dictionary = useMemo(() => buildTranslationChoiceDictionary(userProfile.customDictionaryEn), [userProfile.customDictionaryEn]);
+  const restored = useMemo(() => {
+    const session = readPersistedGameSession(sessionOwnerId);
+    return isPersistedSessionFor(session, 'translation', dictionaryId) ? normalizeSavedState(session?.state, dictionary) : null;
+  }, [dictionary, dictionaryId, sessionOwnerId]);
   const [reviewPriorities, setReviewPriorities] = useState<Record<string, number>>({ ...(userProfile.stats.wordsToReview || {}) });
-  const [question, setQuestion] = useState<Question | null>(() => makeQuestion(dictionary, null, userProfile.stats.wordsToReview || {}));
-  const [score, setScore] = useState(0), [answered, setAnswered] = useState(0);
-  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null), [selected, setSelected] = useState<string | null>(null), [finished, setFinished] = useState(false);
+  const [question, setQuestion] = useState<Question | null>(() => restored?.question || makeQuestion(dictionary, null, userProfile.stats.wordsToReview || {}));
+  const [score, setScore] = useState(restored?.score || 0), [answered, setAnswered] = useState(restored?.answered || 0);
+  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(restored?.feedback || null), [selected, setSelected] = useState<string | null>(restored?.selected || null), [finished, setFinished] = useState(false);
   const [resultProgress, setResultProgress] = useState<CharacterProgressResult | null>(null);
   const rewardAppliedRef = useRef(false), showKidsRewards = isKidsMode(userProfile);
   const next = useCallback((previous?: string) => { setQuestion(makeQuestion(dictionary, previous, reviewPriorities)); setFeedback(null); setSelected(null); }, [dictionary, reviewPriorities]);
   const registerPractice = (word: string, result: WordPracticeResult) => { setReviewPriorities(previous => updateReviewPriorities(previous, word, result)); void Promise.resolve(onWordPractice?.(word, result)).catch(error => console.error('Failed to save translation choice practice', error)); };
   const continueAfterAnswer = () => { if (!question || !feedback) return; if (answered >= 10) setFinished(true); else next(question.correct); };
   const choose = (option: string) => { if (!question || feedback || finished) return; const correct = option === question.correct; setSelected(option); setFeedback(correct ? 'correct' : 'wrong'); setAnswered(value => value + 1); if (correct) setScore(value => value + 1); registerPractice(question.correct, correct ? 'mastered' : 'failed'); };
-  const restart = () => { rewardAppliedRef.current = false; setScore(0); setAnswered(0); setFeedback(null); setSelected(null); setFinished(false); setResultProgress(null); setQuestion(makeQuestion(dictionary, null, reviewPriorities)); };
+  const restart = () => { clearPersistedGameSession(sessionOwnerId, 'translation'); rewardAppliedRef.current = false; setScore(0); setAnswered(0); setFeedback(null); setSelected(null); setFinished(false); setResultProgress(null); setQuestion(makeQuestion(dictionary, null, reviewPriorities)); };
   const reward = useMemo(() => calculateGameReward({ type: 'translation', guessedWords: score }), [score]);
+
+  useEffect(() => {
+    if (!sessionOwnerId || !question || finished) return;
+    persistGameSession(sessionOwnerId, {
+      gameType: 'translation',
+      dictionaryId,
+      dictionaryWords: dictionary.map(entry => entry.word),
+      dictionaryLabel,
+      dictionaryIcon,
+      state: { question, score, answered, feedback, selected },
+      score: { correct: score, answered },
+      rewardState: 'active',
+    });
+  }, [answered, dictionary, dictionaryIcon, dictionaryId, dictionaryLabel, feedback, finished, question, score, selected, sessionOwnerId]);
+  useEffect(() => { if (finished) clearPersistedGameSession(sessionOwnerId, 'translation'); }, [finished, sessionOwnerId]);
   useEffect(() => { if (!finished || rewardAppliedRef.current) return; rewardAppliedRef.current = true; setResultProgress(showKidsRewards ? applyGameRewardToCharacter(userProfile.pet, reward) : null); void Promise.resolve(onGameReward({ type: 'translation', guessedWords: score })).catch(error => console.error('Failed to save translation result', error)); }, [finished, onGameReward, reward, score, showKidsRewards, userProfile.pet]);
   if (dictionary.length < 1 || !question) return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-xl"><div className="mb-4 text-6xl">📚</div><h2 className="mb-2 text-2xl font-bold">Нет доступных слов</h2><p className="mb-6 text-gray-500">Для этой игры нужны слова с русским переводом.</p><button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
   return <div className="mx-auto flex h-full min-h-0 w-full max-w-xl flex-col overflow-y-auto overscroll-contain rounded-3xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:h-auto sm:p-6">
