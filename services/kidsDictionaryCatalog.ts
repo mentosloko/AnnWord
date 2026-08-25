@@ -96,7 +96,9 @@ export const getKidsPremiumDictionaryEntries = (id?: string, difficulty: Difficu
 export const getKidsPremiumDictionaryWords = (id?: string, difficulty: DifficultyLevel = 'ALL'): string[] =>
   getKidsPremiumDictionaryEntries(id, difficulty).map(item => item.word);
 
-export const getAllKidsDictionaryWords = (): string[] => Array.from(new Set([
-  ...getFreeKidsDictionaryEntries('ALL').map(item => item.word),
-  ...Object.keys(premiumDictionaries).flatMap(id => getKidsPremiumDictionaryWords(id, 'ALL')),
-]));
+export const getAllKidsDictionaryEntries = (): EnrichedWord[] => uniqueEntries([
+  ...FREE_KIDS_WORDS,
+  ...Object.values(premiumDictionaries).flatMap(dictionary => dictionary.words),
+]);
+
+export const getAllKidsDictionaryWords = (): string[] => getAllKidsDictionaryEntries().map(item => item.word);
