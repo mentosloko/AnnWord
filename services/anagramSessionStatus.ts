@@ -27,3 +27,9 @@ export const hasSavedAnagramSession = (username: string): boolean => keys(userna
   const session = read(key);
   return Boolean(session?.activeWord) || Number(session?.solvedCount || 0) > 0 || Number(session?.skippedCount || 0) > 0;
 });
+
+export const clearSavedAnagramSession = (username: string): void => {
+  if (typeof window === 'undefined') return;
+  try { keys(username).forEach(key => window.localStorage.removeItem(key)); }
+  catch { /* Legacy cleanup must not block a fresh game. */ }
+};

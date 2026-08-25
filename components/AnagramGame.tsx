@@ -8,8 +8,8 @@ import {
   readStoredGameSession,
   updateReviewPriorities,
   WordPracticeResult,
-  writeStoredGameSession,
 } from '../services/gameSessionEngine';
+import { clearPersistedGameSession, isPersistedSessionFor, persistGameSession, readPersistedGameSession } from '../services/gameSessionStore';
 import { motion, AnimatePresence } from 'motion/react';
 import { GameResultOverlay } from './GameResultOverlay';
 import { PersonalScoreboard } from './PersonalScoreboard';
@@ -21,6 +21,10 @@ interface AnagramGameProps {
   userProfile: UserProfile;
   onGameReward: (input: GameRewardInput) => void | Promise<void>;
   onWordPractice?: (word: string, result: WordPracticeResult) => void | Promise<void>;
+  sessionOwnerId?: string | null;
+  dictionaryId?: string;
+  dictionaryLabel?: string;
+  dictionaryIcon?: string;
 }
 interface LetterSlot { char: string; isUsed: boolean; originalIndex: number; }
 interface GuessLetter { char: string; slotIndex: number; }
@@ -54,11 +58,8 @@ export const getIncorrectGuessPositions = (guess: string, solvedWord: string): n
 export const getIncorrectGuessPositionsAfterAttempt = (guess: string, solvedWord: string, wrongAttempts: number): number[] =>
   wrongAttempts >= MAX_WRONG_ATTEMPTS ? getIncorrectGuessPositions(guess, solvedWord) : [];
 
-const loadSession = (username: string): SavedAnagramSession => {
-  const parsed = legacySessionKeys(username).reduce(
-    (session, key) => readStoredGameSession<SavedAnagramSession>(key, session),
-    readStoredGameSession<SavedAnagramSession>(sessionKey(username), emptySession),
-  );
+const normalizeSession = (value: unknown): SavedAnagramSession => {
+  const parsed = value && typeof value === 'object' && !Array.isArray(value) ? value as Partial<SavedAnagramSession> : emptySession;
   return {
     solvedCount: Math.max(0, Number(parsed.solvedCount) || 0),
     skippedCount: Math.max(0, Number(parsed.skippedCount) || 0),
@@ -70,14 +71,26 @@ const loadSession = (username: string): SavedAnagramSession => {
   };
 };
 
+const loadLegacySession = (username: string): SavedAnagramSession => legacySessionKeys(username).reduce(
+  (session, key) => normalizeSession(readStoredGameSession<SavedAnagramSession>(key, session)),
+  normalizeSession(readStoredGameSession<SavedAnagramSession>(sessionKey(username), emptySession)),
+);
+
+const loadSession = (username: string, ownerId?: string | null, dictionaryId = 'live'): SavedAnagramSession => {
+  const unified = readPersistedGameSession(ownerId);
+  if (isPersistedSessionFor(unified, 'anagrams', dictionaryId)) return normalizeSession(unified?.state);
+  if (unified) return { ...emptySession };
+  return loadLegacySession(username);
+};
+
 export const hasSavedAnagramSession = (username: string): boolean => {
-  const session = loadSession(username);
+  const session = loadLegacySession(username);
   return Boolean(session.activeWord) || session.solvedCount > 0 || session.skippedCount > 0;
 };
 
-export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, onGameReward, onWordPractice }) => {
+export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, onGameReward, onWordPractice, sessionOwnerId, dictionaryId = 'live', dictionaryLabel, dictionaryIcon }) => {
   const dictionary = useMemo(() => buildAnagramDictionary(userProfile.customDictionaryEn), [userProfile.customDictionaryEn]);
-  const initialSession = useMemo(() => loadSession(userProfile.username), [userProfile.username]);
+  const initialSession = useMemo(() => loadSession(userProfile.username, sessionOwnerId, dictionaryId), [dictionaryId, sessionOwnerId, userProfile.username]);
   const sessionStatsAppliedRef = useRef(false);
   const nextWordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isCheckingRef = useRef(false);
@@ -117,7 +130,10 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
   const activeWordLength = currentWord?.word.length || shuffledLetters.length || 1;
   const attemptsLeft = Math.max(0, MAX_WRONG_ATTEMPTS - wrongAttempts);
   const attemptsLabel = wrongAttempts === 0 ? 'На это слово — 2 попытки' : attemptsLeft === 1 ? 'Осталась 1 попытка' : 'Попытки закончились';
-  const clearSavedSessions = useCallback(() => clearStoredGameSession(sessionKey(userProfile.username), ...legacySessionKeys(userProfile.username)), [userProfile.username]);
+  const clearSavedSessions = useCallback(() => {
+    clearPersistedGameSession(sessionOwnerId, 'anagrams');
+    clearStoredGameSession(sessionKey(userProfile.username), ...legacySessionKeys(userProfile.username));
+  }, [sessionOwnerId, userProfile.username]);
   const clearNextWordTimeout = useCallback(() => {
     if (nextWordTimeoutRef.current) {
       clearTimeout(nextWordTimeoutRef.current);
@@ -131,17 +147,29 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
       clearSavedSessions();
       return;
     }
-    writeStoredGameSession(sessionKey(userProfile.username), {
-      solvedCount,
-      skippedCount,
-      coinsEarned: showKidsRewards ? coinsEarned : 0,
-      wrongAttempts,
-      activeWord: currentWord?.word,
-      shuffledLetters: shuffledLetters.map(slot => slot.char),
-      userGuess,
-    });
-    legacySessionKeys(userProfile.username).forEach(key => clearStoredGameSession(key));
-  }, [clearSavedSessions, coinsEarned, currentWord, shuffledLetters, skippedCount, solvedCount, status, userGuess, userProfile.username, showKidsRewards, wrongAttempts]);
+    if (currentWord && dictionary.length > 0) {
+      const resumableTurn = status === 'playing' && !isCheckingRef.current;
+      persistGameSession(sessionOwnerId, {
+        gameType: 'anagrams',
+        dictionaryId,
+        dictionaryWords: dictionary.map(entry => entry.word),
+        dictionaryLabel,
+        dictionaryIcon,
+        state: {
+          solvedCount,
+          skippedCount,
+          coinsEarned: showKidsRewards ? coinsEarned : 0,
+          wrongAttempts: resumableTurn ? wrongAttempts : 0,
+          activeWord: resumableTurn ? currentWord.word : undefined,
+          shuffledLetters: resumableTurn ? shuffledLetters.map(slot => slot.char) : undefined,
+          userGuess: resumableTurn ? userGuess : undefined,
+        },
+        score: { solvedCount, skippedCount, coinsEarned: showKidsRewards ? coinsEarned : 0 },
+        rewardState: 'active',
+      });
+    }
+    clearStoredGameSession(sessionKey(userProfile.username), ...legacySessionKeys(userProfile.username));
+  }, [coinsEarned, currentWord, dictionary, dictionaryIcon, dictionaryId, dictionaryLabel, sessionOwnerId, shuffledLetters, skippedCount, solvedCount, status, userGuess, userProfile.username, showKidsRewards, wrongAttempts, clearSavedSessions]);
 
   const registerPractice = (word: string, result: WordPracticeResult) => {
     setReviewPriorities(previous => updateReviewPriorities(previous, word, result));
@@ -254,6 +282,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
   };
 
   const restartSession = () => {
+    clearSavedSessions();
     clearNextWordTimeout();
     sessionStatsAppliedRef.current = false;
     isCheckingRef.current = false;

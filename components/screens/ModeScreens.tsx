@@ -14,8 +14,10 @@ import { isKidsMode } from '../../services/modeFlags';
 interface ModeScreenProps {
   words: string[];
   wordLength?: WordLength;
+  dictionaryId?: string;
   dictionaryLabel?: string;
   dictionaryIcon?: string;
+  sessionOwnerId?: string | null;
   rulesViewerKey?: string;
   userProfile?: UserProfile;
   onGameReward: (input: GameRewardInput) => void | Promise<void>;
@@ -45,10 +47,10 @@ const PRACTICE_RULES = {
 const rulesFor = (mode: keyof typeof KIDS_RULES, profile: UserProfile | undefined) => isKidsMode(profile || GUEST_PROFILE) ? KIDS_RULES[mode] : PRACTICE_RULES[mode];
 const dictionaryPeekFor = (profile: UserProfile, onDictionaryPeek?: () => boolean | Promise<boolean>) => isKidsMode(profile) ? onDictionaryPeek : undefined;
 
-export const AnagramsScreen: React.FC<ModeScreenProps> = ({ words, dictionaryLabel, dictionaryIcon, rulesViewerKey, userProfile, onGameReward, onWordPractice, onBackHome, onDictionaryPeek }) => {
+export const AnagramsScreen: React.FC<ModeScreenProps> = ({ words, dictionaryId = 'live', dictionaryLabel, dictionaryIcon, sessionOwnerId, rulesViewerKey, userProfile, onGameReward, onWordPractice, onBackHome, onDictionaryPeek }) => {
   const snapshot = normalizedWords(words);
   const profile = buildModeProfile(userProfile, snapshot);
-  return <GameModeShell gameId="anagrams" viewerKey={rulesViewerKey} title="Анаграммы" subtitle="Собери слово из букв" rules={rulesFor('anagrams', profile)} dictionaryWords={snapshot} dictionaryLabel={dictionaryLabel} dictionaryIcon={dictionaryIcon} onBackHome={onBackHome} onDictionaryPeek={dictionaryPeekFor(profile, onDictionaryPeek)}><AnagramGame key={dictionaryKey(snapshot)} userProfile={profile} onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={onBackHome} /></GameModeShell>;
+  return <GameModeShell gameId="anagrams" viewerKey={rulesViewerKey} title="Анаграммы" subtitle="Собери слово из букв" rules={rulesFor('anagrams', profile)} dictionaryWords={snapshot} dictionaryLabel={dictionaryLabel} dictionaryIcon={dictionaryIcon} onBackHome={onBackHome} onDictionaryPeek={dictionaryPeekFor(profile, onDictionaryPeek)}><AnagramGame key={`${dictionaryId}:${dictionaryKey(snapshot)}`} userProfile={profile} sessionOwnerId={sessionOwnerId} dictionaryId={dictionaryId} dictionaryLabel={dictionaryLabel} dictionaryIcon={dictionaryIcon} onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={onBackHome} /></GameModeShell>;
 };
 
 export const SprintScreen: React.FC<ModeScreenProps> = ({ words, dictionaryLabel, dictionaryIcon, rulesViewerKey, userProfile, onGameReward, onWordPractice, onBackHome, onDictionaryPeek }) => {
@@ -57,16 +59,16 @@ export const SprintScreen: React.FC<ModeScreenProps> = ({ words, dictionaryLabel
   return <GameModeShell gameId="sprint" viewerKey={rulesViewerKey} title="Спринт" subtitle="Быстрый режим" rules={rulesFor('sprint', profile)} dictionaryWords={snapshot} dictionaryLabel={dictionaryLabel} dictionaryIcon={dictionaryIcon} onBackHome={onBackHome} onDictionaryPeek={dictionaryPeekFor(profile, onDictionaryPeek)}><SprintGame key={dictionaryKey(snapshot)} userProfile={profile} onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={onBackHome} /></GameModeShell>;
 };
 
-export const TranslationChoiceScreen: React.FC<ModeScreenProps> = ({ words, dictionaryLabel, dictionaryIcon, rulesViewerKey, userProfile, onGameReward, onWordPractice, onBackHome, onDictionaryPeek }) => {
+export const TranslationChoiceScreen: React.FC<ModeScreenProps> = ({ words, dictionaryId = 'live', dictionaryLabel, dictionaryIcon, sessionOwnerId, rulesViewerKey, userProfile, onGameReward, onWordPractice, onBackHome, onDictionaryPeek }) => {
   const snapshot = normalizedWords(words);
   const profile = buildModeProfile(userProfile, snapshot);
-  return <GameModeShell gameId="translation" viewerKey={rulesViewerKey} title="1 из 2" subtitle="Выбор перевода" rules={rulesFor('translation', profile)} dictionaryWords={snapshot} dictionaryLabel={dictionaryLabel} dictionaryIcon={dictionaryIcon} onBackHome={onBackHome} onDictionaryPeek={dictionaryPeekFor(profile, onDictionaryPeek)}><TranslationChoiceGame key={dictionaryKey(snapshot)} userProfile={profile} onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={onBackHome} /></GameModeShell>;
+  return <GameModeShell gameId="translation" viewerKey={rulesViewerKey} title="1 из 2" subtitle="Выбор перевода" rules={rulesFor('translation', profile)} dictionaryWords={snapshot} dictionaryLabel={dictionaryLabel} dictionaryIcon={dictionaryIcon} onBackHome={onBackHome} onDictionaryPeek={dictionaryPeekFor(profile, onDictionaryPeek)}><TranslationChoiceGame key={`${dictionaryId}:${dictionaryKey(snapshot)}`} userProfile={profile} sessionOwnerId={sessionOwnerId} dictionaryId={dictionaryId} dictionaryLabel={dictionaryLabel} dictionaryIcon={dictionaryIcon} onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={onBackHome} /></GameModeShell>;
 };
 
-export const MemoryScreen: React.FC<ModeScreenProps> = ({ words, dictionaryLabel, dictionaryIcon, rulesViewerKey, userProfile, onGameReward, onWordPractice, onBackHome, onDictionaryPeek }) => {
+export const MemoryScreen: React.FC<ModeScreenProps> = ({ words, dictionaryId = 'live', dictionaryLabel, dictionaryIcon, sessionOwnerId, rulesViewerKey, userProfile, onGameReward, onWordPractice, onBackHome, onDictionaryPeek }) => {
   const snapshot = normalizedWords(words);
   const profile = buildModeProfile(userProfile, snapshot);
-  return <GameModeShell gameId="memory" viewerKey={rulesViewerKey} title="Память" subtitle="Найди пары" rules={rulesFor('memory', profile)} dictionaryWords={snapshot} dictionaryLabel={dictionaryLabel} dictionaryIcon={dictionaryIcon} onBackHome={onBackHome} onDictionaryPeek={dictionaryPeekFor(profile, onDictionaryPeek)}><MemoryGame key={dictionaryKey(snapshot)} userProfile={profile} onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={onBackHome} /></GameModeShell>;
+  return <GameModeShell gameId="memory" viewerKey={rulesViewerKey} title="Память" subtitle="Найди пары" rules={rulesFor('memory', profile)} dictionaryWords={snapshot} dictionaryLabel={dictionaryLabel} dictionaryIcon={dictionaryIcon} onBackHome={onBackHome} onDictionaryPeek={dictionaryPeekFor(profile, onDictionaryPeek)}><MemoryGame key={`${dictionaryId}:${dictionaryKey(snapshot)}`} userProfile={profile} sessionOwnerId={sessionOwnerId} dictionaryId={dictionaryId} dictionaryLabel={dictionaryLabel} dictionaryIcon={dictionaryIcon} onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={onBackHome} /></GameModeShell>;
 };
 
 export const HangmanScreen: React.FC<ModeScreenProps> = ({ words, wordLength, dictionaryLabel, dictionaryIcon, rulesViewerKey, userProfile, onGameReward, onWordPractice, onBackHome, onDictionaryPeek }) => {
