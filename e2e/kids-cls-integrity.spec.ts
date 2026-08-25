@@ -56,7 +56,9 @@ const installBackend = async (page: Page) => {
       return;
     }
     if (path === '/api/profile/bootstrap') {
-      await json(route, { user: USER, profile, quest: null });
+      // Omit `quest` entirely so dailyQuestService is not primed with a cached null.
+      // The delayed `/today` response below then reproduces the production hydration shift.
+      await json(route, { user: USER, profile });
       return;
     }
     if (path === '/api/daily-quest/today') {
