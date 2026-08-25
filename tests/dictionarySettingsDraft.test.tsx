@@ -28,7 +28,7 @@ const profile = (overrides: Partial<UserProfile> = {}): UserProfile => ({
 });
 
 const renderScreen = (props: Partial<React.ComponentProps<typeof DictionarySettingsScreen>> = {}) => {
-  const onCommitSettings = vi.fn(async () => undefined);
+  const onCommitSettings = vi.fn(async (_settings: GameSettings) => undefined);
   const onBack = vi.fn();
   const result = render(<DictionarySettingsScreen
     settings={settings}
@@ -64,7 +64,7 @@ describe('DictionarySettingsScreen draft selection', () => {
   });
 
   it('keeps a custom draft through unrelated profile hydration', () => {
-    const onCommitSettings = vi.fn(async () => undefined);
+    const onCommitSettings = vi.fn(async (_settings: GameSettings) => undefined);
     const onBack = vi.fn();
     const { rerender } = render(<DictionarySettingsScreen
       settings={settings}
