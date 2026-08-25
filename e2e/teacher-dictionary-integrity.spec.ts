@@ -136,10 +136,10 @@ const loginAs = async (page: Page, email: string) => {
 };
 
 const dismissRulesIfVisible = async (page: Page) => {
-  const rulesDialog = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Закрыть правила' }) });
-  if (await rulesDialog.isVisible().catch(() => false)) {
-    await rulesDialog.getByRole('button', { name: 'Начать игру', exact: true }).click();
-    await expect(rulesDialog).toBeHidden();
+  const closeRules = page.getByRole('button', { name: 'Закрыть правила', exact: true });
+  if (await closeRules.isVisible().catch(() => false)) {
+    await closeRules.click();
+    await expect(closeRules).toBeHidden();
   }
 };
 
