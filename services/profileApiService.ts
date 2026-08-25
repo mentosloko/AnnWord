@@ -1,4 +1,4 @@
-import type { PetState, UserProfile, UserStats } from '../types';
+import type { ActiveWordSource, PetState, UserProfile, UserStats } from '../types';
 import type { QueuedAnalyticsEvent } from './analyticsService';
 import type { GameLedgerEvent } from './gameEventLedgerService';
 import { backendApiRequest } from './backendApiClient';
@@ -29,6 +29,9 @@ export const profileApiService = {
   },
   async updateParentContactEmail(email: string): Promise<ParentContactEmailStatus> {
     return backendApiRequest<ParentContactEmailStatus>('/api/profile/parent-contact-email', { method: 'PATCH', body: { email } });
+  },
+  async updateActiveWordSource(activeWordSource: ActiveWordSource): Promise<UserProfile> {
+    return readProfile(backendApiRequest<{ profile: UserProfile }>('/api/profile/active-word-source', { method: 'PATCH', body: { activeWordSource } }));
   },
   async updateUserDictionary(words: string[]): Promise<UserProfile> {
     return readProfile(backendApiRequest<{ profile: UserProfile }>('/api/profile/dictionary', { method: 'PATCH', body: { words } }));
