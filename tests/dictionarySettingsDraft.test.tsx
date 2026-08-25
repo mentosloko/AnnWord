@@ -92,7 +92,8 @@ describe('DictionarySettingsScreen draft selection', () => {
       onBack={onBack}
     />);
 
-    expect(screen.getByText('Ваш список')).toBeInTheDocument();
+    expect(screen.getAllByText('Ваш список').length).toBeGreaterThan(0);
+    expect(screen.getByText('Изменения ещё не влияют на игры.')).toBeInTheDocument();
     expect(onCommitSettings).not.toHaveBeenCalled();
   });
 });
