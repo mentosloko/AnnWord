@@ -19,6 +19,10 @@ export interface WeeklyReportPreferenceStatus {
 }
 
 export interface ParentContactEmailStatus { email: string | null; }
+export interface HintCoinOperationResponse {
+  status: 'charged' | 'refunded' | 'insufficient' | 'absent';
+  profile: UserProfile;
+}
 
 export const profileApiService = {
   async getCurrentProfile(): Promise<UserProfile> {
@@ -44,6 +48,12 @@ export const profileApiService = {
   },
   async incrementCoins(amount: number): Promise<UserProfile> {
     return readProfile(backendApiRequest<{ profile: UserProfile }>('/api/profile/coins', { method: 'POST', body: { amount } }));
+  },
+  async applyHintCoinOperation(operationId: string, action: 'charge' | 'refund', cost = 1): Promise<HintCoinOperationResponse> {
+    return backendApiRequest<HintCoinOperationResponse>('/api/profile/hint-coins', {
+      method: 'POST',
+      body: { operationId, action, cost },
+    });
   },
   async purchaseItem(itemId: string, analyticsEvents: QueuedAnalyticsEvent[] = []): Promise<UserProfile> {
     return readProfile(backendApiRequest<{ profile: UserProfile }>('/api/profile/purchase', { method: 'POST', body: { itemId, analyticsEvents } }));
