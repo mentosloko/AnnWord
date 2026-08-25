@@ -54,7 +54,10 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
   const onDictionaryClick = isTeacher
     ? onDictionaryStudioClick
     : () => navigateToDictionarySelection(onDictionaryStudioClick);
-  const openRegistration = onRegisterClick || (() => { onAuthModeChange('register'); onLoginClick(); });
+  // `onLoginClick` is the only integration callback that opens the auth modal in AppV2.
+  // Open it first, then switch the already-open modal to registration so the final
+  // batched auth mode cannot be overwritten back to `login`.
+  const openRegistration = onRegisterClick || (() => { onLoginClick(); onAuthModeChange('register'); });
   const closeAuth = () => {
     onCloseLogin();
     if (!isAuthenticated && authMode === 'register') onHomeClick();
