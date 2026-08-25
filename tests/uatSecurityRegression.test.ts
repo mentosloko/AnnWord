@@ -5,13 +5,16 @@ const read = (path: string) => fs.readFileSync(path, 'utf8');
 
 describe('UAT security regressions', () => {
   it('revokes authenticated API access after a password change', () => {
-    const migration = read('db/yandex/20260825_security_session_trigger.sql');
+    const migration = read('db/yandex/20260825_security_sessions_v3.sql');
     const auth = read('server/auth.ts');
+    const oauth = read('server/yandex-api.ts');
     expect(migration).toContain('bump_session_version_on_password_change');
     expect(migration).toContain('new.session_version := old.session_version + 1');
     expect(auth).toContain('session_version from app_users where id = $1');
     expect(auth).toContain('code: "session_revoked"');
     expect(auth).toContain('ver: user.sessionVersion ?? 1');
+    expect(oauth).toContain('u.session_version');
+    expect(oauth).toContain('sessionVersion: row.session_version');
   });
 
   it('uses one-time teacher invites and supports parent revocation', () => {
@@ -32,13 +35,19 @@ describe('UAT security regressions', () => {
     expect(repository).toContain('l.revoked_at is null');
   });
 
-  it('removes one-time recovery tokens from the URL immediately after use', () => {
+  it('removes one-time recovery tokens and checks used links before showing forms', () => {
     const password = read('components/auth/PasswordResetOverlay.tsx');
     const magic = read('components/auth/MagicLinkOverlay.tsx');
     const pin = read('components/auth/ParentPinResetOverlay.tsx');
+    const status = read('server/routes/actionTokenStatusRoutes.ts');
+    expect(password).toContain('passwordResetService.validate(token)');
     expect(password).toContain('clearResetToken();\n      setSuccess(message)');
     expect(magic).toContain('clearToken();\n        setMessage(result.message)');
+    expect(pin).toContain('parentPinResetService.validate(token)');
     expect(pin).toContain('clearToken();\n      setSuccess(message)');
+    expect(status).toContain('/auth/password/reset/status');
+    expect(status).toContain('/family/pin/reset/status');
+    expect(status).toContain('used_at is null');
   });
 
   it('exposes parent UI controls for generating and revoking teacher access', () => {
