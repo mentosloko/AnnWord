@@ -145,10 +145,11 @@ const openDictionarySelection = async (page: Page, currentLabel: string) => {
 
 const loginAgain = async (page: Page) => {
   await page.getByRole('button', { name: 'Войти' }).click();
-  await expect(page.getByRole('heading', { name: 'Войти в AnnWord' })).toBeVisible();
-  await page.getByLabel('Электронная почта').fill(USER.email);
-  await page.getByLabel('Пароль').fill('password123');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Войти в AnnWord' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel('Электронная почта').fill(USER.email);
+  await dialog.getByLabel('Пароль').fill('password123');
+  await dialog.getByRole('button', { name: 'Войти', exact: true }).click();
   await expect(page.getByRole('heading', { name: /Поиграем со словами|Серия:/i })).toBeVisible();
 };
 
