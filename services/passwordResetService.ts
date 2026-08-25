@@ -5,6 +5,12 @@ interface PasswordResetResponse {
   message?: string;
 }
 
+interface PasswordResetStatusResponse {
+  valid: boolean;
+  code?: string;
+  error?: string;
+}
+
 export const passwordResetService = {
   async request(email: string): Promise<string> {
     const result = await backendApiRequest<PasswordResetResponse>('/api/auth/password/reset/request', {
@@ -12,6 +18,13 @@ export const passwordResetService = {
       body: { email },
     });
     return result.message || 'Если аккаунт существует, письмо для восстановления отправлено.';
+  },
+
+  async validate(token: string): Promise<PasswordResetStatusResponse> {
+    return backendApiRequest<PasswordResetStatusResponse>('/api/auth/password/reset/status', {
+      method: 'POST',
+      body: { token },
+    });
   },
 
   async confirm(token: string, password: string): Promise<string> {
