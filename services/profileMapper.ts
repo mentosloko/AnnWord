@@ -1,4 +1,5 @@
 import { FeatureFlags, InventoryItem, PetState, UserProfile, UserStats, WordLearningHistory, WordPerformance } from '../types';
+import { normalizeActiveWordSource } from './activeWordSource';
 import { normalizeCustomDictionary } from './dictionaryEngine';
 import { deriveCharacterLevel, deriveCharacterStage, deriveMoodFromScore, getTotalXpForLevel, normalizeMoodScore } from './gamificationRules';
 
@@ -123,6 +124,7 @@ export const mapProfileFromDB = (data: any): UserProfile => {
     childShareCode: typeof data?.child_share_code === 'string' ? data.child_share_code : undefined,
     childSlotsLimit: typeof data?.child_slots_limit === 'number' ? data.child_slots_limit : 1,
     featureFlags,
+    activeWordSource: normalizeActiveWordSource(data?.active_word_source),
     customDictionaryEn: normalizeDictionaryField(data?.custom_dictionary_en),
     dictionaryCollections: Array.isArray(data?.dictionary_collections) ? data.dictionary_collections : [],
     managedLearners: Array.isArray(data?.managed_learners) ? data.managed_learners : [],
