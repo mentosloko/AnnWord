@@ -121,6 +121,7 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
     const currentKidsMode = isKidsMode(userProfile);
     const currentHasPremium = hasPremiumDictionaryAccess(userProfile);
     const assignedWords = userProfile.assignedWords || [];
+    const assignedTranslations = userProfile.assignedWordTranslations || {};
     const isPracticeCustomDictionary = !currentKidsMode && settings.dictionarySource === 'custom';
 
     if (currentKidsMode) {
@@ -129,9 +130,9 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
           ? readSelectedSpotlightEntries()
           : getKidsPremiumDictionaryEntries(settings.activePremiumDictionaryId, 'ALL');
       } else if (settings.dictionarySource === 'custom' && currentHasPremium) {
-        pool = toCustomEnrichedWords([...(userProfile.customDictionaryEn || []), ...assignedWords]);
+        pool = toCustomEnrichedWords([...(userProfile.customDictionaryEn || []), ...assignedWords], assignedTranslations);
       } else if (assignedWords.length > 0 && currentHasPremium) {
-        pool = toCustomEnrichedWords(assignedWords);
+        pool = toCustomEnrichedWords(assignedWords, assignedTranslations);
       } else {
         pool = getFreeKidsDictionaryEntries(settings.difficulty);
       }
@@ -165,7 +166,7 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
         : (settings.dictionarySource === 'premium' && currentHasPremium ? getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL').map(entry => entry.word) : []);
     const kidsWords = currentKidsMode ? getAllKidsDictionaryWords() : [];
     const customWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.customDictionaryEn || []);
-    const assignedWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.assignedWords || []);
+    const assignedWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.assignedWords || [], userProfile.assignedWordTranslations || {});
     const combinedPool = [
       ...(readGeneralDictionary()?.ALL_WORDS_EN || []),
       ...kidsWords,
@@ -201,6 +202,8 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
     }
     const generalEntry = readGeneralDictionary()?.COMMON_WORDS_EN.find(entry => normalizeWord(entry.word) === normalized);
     if (generalEntry?.translation) return generalEntry.translation;
+    const assignedTranslation = userProfile.assignedWordTranslations?.[normalized];
+    if (hasRussianTranslation(assignedTranslation)) return assignedTranslation!;
     if (settings.dictionarySource !== 'premium' || !currentHasPremium) return null;
     const premiumEntry = getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL').find(entry => entry.word === normalized);
     return premiumEntry?.translation || null;
