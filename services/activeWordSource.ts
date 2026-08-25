@@ -7,12 +7,20 @@ export const DEFAULT_ACTIVE_WORD_SOURCE: ActiveWordSource = { source: 'builtin',
 const readDifficulty = (value: unknown): DifficultyLevel =>
   typeof value === 'string' && DIFFICULTIES.has(value as DifficultyLevel) ? value as DifficultyLevel : 'ALL';
 
+const readUpdatedAt = (value: unknown): string | undefined => {
+  if (value instanceof Date && Number.isFinite(value.getTime())) return value.toISOString();
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : undefined;
+};
+
 export const normalizeActiveWordSource = (value: unknown): ActiveWordSource => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return { ...DEFAULT_ACTIVE_WORD_SOURCE };
   const record = value as Record<string, unknown>;
   const source = record.source === 'custom' || record.source === 'premium' ? record.source : 'builtin';
   const difficulty = readDifficulty(record.difficulty);
-  if (source !== 'premium') return { source, difficulty };
+  const updatedAt = readUpdatedAt(record.updatedAt);
+  if (source !== 'premium') return { source, difficulty, updatedAt };
 
   const premiumDictionaryId = typeof record.premiumDictionaryId === 'string' && record.premiumDictionaryId.trim()
     ? record.premiumDictionaryId.trim()
@@ -23,7 +31,7 @@ export const normalizeActiveWordSource = (value: unknown): ActiveWordSource => {
   const spotlightSectionId = typeof record.spotlightSectionId === 'string' && record.spotlightSectionId.trim()
     ? record.spotlightSectionId.trim()
     : undefined;
-  return { source, difficulty, premiumDictionaryId, spotlightGrade, spotlightSectionId };
+  return { source, difficulty, premiumDictionaryId, spotlightGrade, spotlightSectionId, updatedAt };
 };
 
 export const activeWordSourceFromSettings = (settings: GameSettings): ActiveWordSource => normalizeActiveWordSource({
