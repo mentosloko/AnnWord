@@ -3,8 +3,8 @@ import type { EnrichedWord } from '../types';
 import { normalizeSavedMemoryState } from '../components/MemoryGame';
 
 const dictionary: EnrichedWord[] = [
-  { word: 'PANDA', translation: 'панда' },
-  { word: 'TIGER', translation: 'тигр' },
+  { word: 'PANDA', translation: 'панда', level: 'A1' },
+  { word: 'TIGER', translation: 'тигр', level: 'A1' },
 ];
 
 const baseCards = [
