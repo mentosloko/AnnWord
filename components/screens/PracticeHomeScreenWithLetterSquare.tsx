@@ -6,6 +6,7 @@ import { StreakBadge } from '../StreakBadge';
 import { ScreenContainer } from '../layout/ScreenContainer';
 import { SectionCard, experienceUi } from '../ui/ExperiencePrimitives';
 
+type SavedGameType = 'game' | 'anagrams' | 'translation' | 'memory' | 'letter_square';
 type Props = {
   userProfile: UserProfile;
   dailyQuest?: DailyQuestState | null;
@@ -14,6 +15,8 @@ type Props = {
   onStartDailyQuest?: (quest: DailyQuestState) => void;
   hasActiveClassicGame?: boolean;
   hasActiveAnagramGame?: boolean;
+  savedGameType?: SavedGameType | null;
+  onContinueSavedGame?: () => void;
   activeDictionaryName?: string;
   onStartClassic: () => void;
   onStartAnagrams: () => void;
@@ -36,26 +39,27 @@ const GameTile: React.FC<GameCard> = ({ title, note, image, badge, action }) => 
   <div className="mt-2 text-lg font-bold text-indigo-950">{title}</div><div className="mt-1 text-xs font-medium leading-relaxed text-slate-500">{note}</div>
 </button>;
 
-export const PracticeHomeScreenWithLetterSquare: React.FC<Props> = ({ userProfile, dailyQuest, hasActiveClassicGame, hasActiveAnagramGame, activeDictionaryName, onStartDailyQuest, onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare, onOpenProfile, onOpenDictionaryStudio, onOpenPremium }) => {
+export const PracticeHomeScreenWithLetterSquare: React.FC<Props> = ({ userProfile, dailyQuest, hasActiveClassicGame, hasActiveAnagramGame, savedGameType, onContinueSavedGame, activeDictionaryName, onStartDailyQuest, onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare, onOpenProfile, onOpenDictionaryStudio, onOpenPremium }) => {
   const questCompleted = dailyQuest?.completed === true;
   const storedStreak = Math.max(0, Math.round(userProfile.pet.dailyStreak || 0));
   const streak = questCompleted ? Math.max(1, storedStreak) : storedStreak;
   const dictionaryName = activeDictionaryName || (userProfile.customDictionaryEn.length ? 'Слова из вашего списка' : 'General English');
   const questModes = new Set(getDailyQuestTargetModes(!questCompleted ? dailyQuest : null));
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
-  const continueAction = hasActiveClassicGame ? onStartClassic : hasActiveAnagramGame ? onStartAnagrams : null;
+  const continueAction = onContinueSavedGame || (hasActiveClassicGame ? onStartClassic : hasActiveAnagramGame ? onStartAnagrams : null);
   const runQuest = () => dailyQuest && onStartDailyQuest ? onStartDailyQuest(dailyQuest) : onStartClassic();
   const randomGameActions = [onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare];
   const playRandomGame = () => randomGameActions[Math.floor(Math.random() * randomGameActions.length)]?.();
   const badge = (mode: Parameters<typeof questModes.has>[0], fallback?: string) => questModes.has(mode) ? 'Задание дня' : fallback;
+  const savedBadge = (mode: SavedGameType) => savedGameType === mode ? 'Есть сохранение' : undefined;
   const games: GameCard[] = [
-    { title: 'Классика', note: 'Угадайте слово за шесть попыток.', image: '/assets/games/game_classic.webp', badge: badge('game', hasActiveClassicGame ? 'Есть сохранение' : undefined), action: onStartClassic },
-    { title: 'Анаграммы', note: 'Соберите слово из перемешанных букв.', image: '/assets/games/game_anagrams.webp', badge: badge('anagrams', hasActiveAnagramGame ? 'Есть сохранение' : undefined), action: onStartAnagrams },
-    { title: '1 из 2', note: 'Выберите правильный английский вариант.', image: '/assets/games/game_one_of_two.webp', action: onStartTranslation },
+    { title: 'Классика', note: 'Угадайте слово за шесть попыток.', image: '/assets/games/game_classic.webp', badge: badge('game', savedBadge('game') || (hasActiveClassicGame ? 'Есть сохранение' : undefined)), action: onStartClassic },
+    { title: 'Анаграммы', note: 'Соберите слово из перемешанных букв.', image: '/assets/games/game_anagrams.webp', badge: badge('anagrams', savedBadge('anagrams') || (hasActiveAnagramGame ? 'Есть сохранение' : undefined)), action: onStartAnagrams },
+    { title: '1 из 2', note: 'Выберите правильный английский вариант.', image: '/assets/games/game_one_of_two.webp', badge: savedBadge('translation'), action: onStartTranslation },
     { title: 'Спринт', note: 'Быстрые ответы в течение минуты.', image: '/assets/games/game_sprint.webp', badge: badge('sprint'), action: onStartSprint },
     { title: 'Виселица', note: 'Вспоминайте слово по одной букве.', image: '/assets/games/game_hangman.webp', badge: badge('hangman'), action: onStartHangman },
-    { title: 'Память', note: 'Найдите пары «слово — перевод».', image: '/assets/games/game_memory.webp', badge: badge('memory'), action: onStartMemory },
-    { title: 'Змейка', note: 'Соберите слово цепочкой соседних букв.', image: '/assets/games/line_game.webp', action: onStartLetterSquare },
+    { title: 'Память', note: 'Найдите пары «слово — перевод».', image: '/assets/games/game_memory.webp', badge: badge('memory', savedBadge('memory')), action: onStartMemory },
+    { title: 'Змейка', note: 'Соберите слово цепочкой соседних букв.', image: '/assets/games/line_game.webp', badge: savedBadge('letter_square'), action: onStartLetterSquare },
   ];
 
   return <ScreenContainer className="max-w-6xl pb-24 pt-4 sm:pb-20 sm:pt-6">
