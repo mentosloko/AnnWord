@@ -129,7 +129,7 @@ export const LetterSquareGameV3: React.FC<Props> = ({ onBack, userProfile, onGam
     setScore(0); setAnswered(0); setDone(false); setResultProgress(null); setSelected([]); setFeedback(null); setHint(false); setRound(initial); setMessage('Соберите слово из соседних клеток. Диагонали нельзя.');
   };
   useEffect(() => {
-    if (!sessionOwnerId || !round || done) return;
+    if (!round || done) return;
     persistGameSession(sessionOwnerId, {
       gameType: 'letter_square',
       dictionaryId,
