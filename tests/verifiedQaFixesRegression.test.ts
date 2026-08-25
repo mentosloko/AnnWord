@@ -31,12 +31,13 @@ describe('verified QA fixes', () => {
     expect(repository).not.toContain('isRussianRegistrationEmail');
   });
 
-  it('uses teacher-assigned words as the active Kids pool and labels the source', () => {
+  it('uses teacher-assigned words with assigned translations as the active Kids pool and labels the source', () => {
     const pools = read('hooks/useDictionaryPools.ts');
     const appScreens = read('components/AppScreens.tsx');
     const setup = read('components/screens/SetupScreenSafe.tsx');
     expect(pools).toContain('assignedWords.length > 0 && currentHasPremium');
-    expect(pools).toContain('toCustomEnrichedWords(assignedWords)');
+    expect(pools).toContain('const assignedTranslations = userProfile.assignedWordTranslations || {}');
+    expect(pools).toContain('toCustomEnrichedWords(assignedWords, assignedTranslations)');
     expect(appScreens).toContain("'Слова от преподавателя'");
     expect(setup).toContain("'От учителя'");
   });
