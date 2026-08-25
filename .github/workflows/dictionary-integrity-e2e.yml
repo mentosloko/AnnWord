@@ -1,0 +1,41 @@
+name: Dictionary Integrity Browser E2E
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'components/**'
+      - 'hooks/**'
+      - 'services/**'
+      - 'e2e/dictionary-integrity.spec.ts'
+      - 'playwright.config.ts'
+      - '.github/workflows/dictionary-integrity-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dictionary-integrity-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dictionary-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm install
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build browser E2E app
+        env:
+          VITE_API_URL: http://127.0.0.1:8787
+        run: npm run build
+      - name: Run dictionary integrity browser E2E
+        run: npx playwright test e2e/dictionary-integrity.spec.ts --project=chromium-desktop
