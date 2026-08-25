@@ -119,7 +119,7 @@ export async function getOrCreateDailyQuest(userId: string): Promise<DailyQuestW
 
   const variant = pickVariant(userId, questDate);
   const progress = variant.kind === "all_five_games"
-    ? { variant_key: variant.variantKey, completed_modes: [] }
+    ? { variant_key: variant.variantKey, completed_modes: [], anagram_solved: 0 }
     : { variant_key: variant.variantKey };
   const created = await query<DailyQuestRow>(
     `insert into daily_quests (user_id, quest_date, kind, progress)
@@ -186,9 +186,19 @@ for update`,
       const row = rowResult.rows[0];
       if (!row) throw new Error("Daily quest not found");
       if (row.completed) return { quest: toQuest(row), completedModes: readCompletedModes(row.progress || {}) };
-      const progress = row.progress || { variant_key: "all_five_games", completed_modes: [] };
-      const mode = getAllFiveQuestCompletedMode(input);
-      const completedModes = mode ? Array.from(new Set([...readCompletedModes(progress), mode])) : readCompletedModes(progress);
+      const progress = row.progress || { variant_key: "all_five_games", completed_modes: [], anagram_solved: 0 };
+      const existingModes = readCompletedModes(progress);
+      let mode = getAllFiveQuestCompletedMode(input);
+
+      if (input.type === "anagram" && !existingModes.includes("anagram")) {
+        const solvedBefore = Math.max(0, Math.round(numberFrom(progress.anagram_solved)));
+        const solvedDelta = Math.max(0, Math.round(numberFrom(input.guessedWords)));
+        const solvedAfter = Math.min(5, solvedBefore + solvedDelta);
+        progress.anagram_solved = solvedAfter;
+        if (solvedAfter >= 5) mode = "anagram";
+      }
+
+      const completedModes = mode ? Array.from(new Set([...existingModes, mode])) : existingModes;
       progress.completed_modes = completedModes;
       const updatedProgress = await client.query<DailyQuestRow>(
         `update daily_quests
