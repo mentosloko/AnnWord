@@ -3,7 +3,7 @@ import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { requireParentAccessForKids } from "../parentAccess";
-import { getOrCreateProfile, updateProfileDictionary, updateProfilePet } from "../profileRepository";
+import { getOrCreateProfile, updateActiveWordSource, updateProfileDictionary, updateProfilePet } from "../profileRepository";
 import { getBootstrapProfile } from "../profileBootstrapRepository";
 import {
   applyGameResultAndReconcileProfile,
@@ -118,6 +118,16 @@ profileRouter.post("/dictionary-collections", requireParentAccessForKids, async 
     res.status(201).json(result);
   } catch (error) {
     res.status(400).json({ code: "dictionary_collection_save_failed", error: error instanceof Error ? error.message : "Dictionary collection save failed" });
+  }
+});
+
+profileRouter.patch("/active-word-source", async (req: AuthenticatedRequest, res) => {
+  try {
+    const profile = await updateActiveWordSource(req.user!.id, req.body?.activeWordSource || req.body || {});
+    res.setHeader("Cache-Control", "private, no-store");
+    res.json({ profile });
+  } catch (error) {
+    res.status(400).json({ code: "active_word_source_update_failed", error: error instanceof Error ? error.message : "Не удалось выбрать словарь." });
   }
 });
 
