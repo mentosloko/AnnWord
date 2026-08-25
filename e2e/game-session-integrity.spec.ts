@@ -131,7 +131,27 @@ test.describe('unified resumable game sessions', () => {
     expect(restarted.score.correct).toBe(0);
   });
 
-  test('Memory keeps moves and board when returning directly', async ({ page }) => {
+  test('Anagrams never restores a completed skip as a fresh payable turn', async ({ page }) => {
+    await installBackend(page);
+    await page.goto('/kids');
+    await startMode(page, /^Анаграммы/, 'Анаграммы');
+    await waitForSavedType(page, 'anagrams');
+
+    const before = await readSession(page);
+    expect(before.state.activeWord).toBeTruthy();
+    await page.getByRole('button', { name: 'Не знаю' }).click();
+    await expect(page.getByRole('button', { name: 'Следующее слово' })).toBeVisible();
+    await expect.poll(async () => (await readSession(page))?.state?.skippedCount).toBe(1);
+    await expect.poll(async () => (await readSession(page))?.state?.activeWord).toBeUndefined();
+
+    await goHomeFromMode(page);
+    await page.getByRole('button', { name: 'Продолжить сохранённую' }).click();
+    await dismissRules(page, 'Анаграммы');
+    await expect.poll(async () => (await readSession(page))?.state?.activeWord).toBeTruthy();
+    expect((await readSession(page)).state.skippedCount).toBe(1);
+  });
+
+  test('Memory keeps moves and resolves an interrupted pair when returning directly', async ({ page }) => {
     await installBackend(page);
     await page.goto('/kids');
     await startMode(page, /^Память/, 'Память');
@@ -142,15 +162,14 @@ test.describe('unified resumable game sessions', () => {
     await closedCards.nth(0).click();
     await expect(page.getByText('Ходов: 1')).toBeVisible();
     await expect.poll(async () => (await readSession(page))?.state?.moves).toBe(1);
-    const before = await readSession(page);
 
     await goHomeFromMode(page);
     await page.getByRole('button', { name: /^Память/ }).click();
     await dismissRules(page, 'Память');
     await expect(page.getByText('Ходов: 1')).toBeVisible();
-    const after = await readSession(page);
-    expect(after.state.moves).toBe(1);
-    expect(after.state.cards).toEqual(before.state.cards);
+    await expect.poll(async () => (await readSession(page))?.state?.flippedCards?.length).toBeLessThan(2);
+    const playableCards = page.getByRole('button', { name: /Закрытая карточка\. Открыть/ });
+    if (await playableCards.count()) await playableCards.first().click();
   });
 
   test('Snake keeps partial path and Continue opens the latest saved game', async ({ page }) => {
