@@ -25,15 +25,26 @@ export const buildMemoryDictionary = (customDictionaryEn: string[] = [], fallbac
 const shuffle = <T,>(items: T[], random: () => number = Math.random): T[] => [...items].sort(() => random() - 0.5);
 export const createMemoryCards = (dictionary: EnrichedWord[], random: () => number = Math.random): Card[] => { const selectedWords = shuffle(dictionary, random).slice(0, Math.min(6, dictionary.length)); return shuffle(selectedWords.flatMap((word, pairId) => [{ id: pairId * 2, content: word.word, type: 'en' as const, pairId, isFlipped: false, isMatched: false }, { id: pairId * 2 + 1, content: word.translation, type: 'ru' as const, pairId, isFlipped: false, isMatched: false }]), random); };
 const moveWord = (moves: number): string => { const mod100 = moves % 100, mod10 = moves % 10; return mod100 >= 11 && mod100 <= 14 ? 'ходов' : mod10 === 1 ? 'ход' : mod10 >= 2 && mod10 <= 4 ? 'хода' : 'ходов'; };
-const normalizeSavedState = (value: unknown, dictionary: EnrichedWord[]): SavedMemoryState | null => {
+export const normalizeSavedMemoryState = (value: unknown, dictionary: EnrichedWord[]): SavedMemoryState | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const raw = value as Partial<SavedMemoryState>;
   if (!Array.isArray(raw.cards) || raw.cards.length < 2 || raw.cards.length % 2 !== 0) return null;
   const allowed = new Set(dictionary.flatMap(entry => [entry.word, entry.translation]));
-  const cards = raw.cards.filter((card): card is Card => Boolean(card) && typeof card.id === 'number' && typeof card.pairId === 'number' && (card.type === 'en' || card.type === 'ru') && typeof card.content === 'string' && typeof card.isFlipped === 'boolean' && typeof card.isMatched === 'boolean');
+  let cards = raw.cards.filter((card): card is Card => Boolean(card) && typeof card.id === 'number' && typeof card.pairId === 'number' && (card.type === 'en' || card.type === 'ru') && typeof card.content === 'string' && typeof card.isFlipped === 'boolean' && typeof card.isMatched === 'boolean');
   if (cards.length !== raw.cards.length || cards.some(card => !allowed.has(card.content))) return null;
   const ids = new Set(cards.map(card => card.id));
-  const flippedCards = Array.isArray(raw.flippedCards) ? raw.flippedCards.filter((id): id is number => typeof id === 'number' && ids.has(id)).slice(0, 2) : [];
+  let flippedCards = Array.isArray(raw.flippedCards) ? raw.flippedCards.filter((id): id is number => typeof id === 'number' && ids.has(id)).slice(0, 2) : [];
+  if (flippedCards.length === 2) {
+    const [firstId, secondId] = flippedCards;
+    const first = cards.find(card => card.id === firstId);
+    const second = cards.find(card => card.id === secondId);
+    if (first && second && first.pairId === second.pairId) {
+      cards = cards.map(card => card.pairId === first.pairId ? { ...card, isMatched: true, isFlipped: false } : card);
+    } else {
+      cards = cards.map(card => card.id === firstId || card.id === secondId ? { ...card, isFlipped: false } : card);
+    }
+    flippedCards = [];
+  }
   return { cards, flippedCards, moves: Math.max(0, Number(raw.moves) || 0) };
 };
 
@@ -41,7 +52,7 @@ export const MemoryGame: React.FC<MemoryGameProps> = ({ onBack, userProfile, onG
   const dictionary = useMemo(() => buildMemoryDictionary(userProfile.customDictionaryEn), [userProfile.customDictionaryEn]);
   const restored = useMemo(() => {
     const session = readPersistedGameSession(sessionOwnerId);
-    return isPersistedSessionFor(session, 'memory', dictionaryId) ? normalizeSavedState(session?.state, dictionary) : null;
+    return isPersistedSessionFor(session, 'memory', dictionaryId) ? normalizeSavedMemoryState(session?.state, dictionary) : null;
   }, [dictionary, dictionaryId, sessionOwnerId]);
   const rewardAppliedRef = useRef(false), timeoutIdsRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const [cards, setCards] = useState<Card[]>(restored?.cards || []), [flippedCards, setFlippedCards] = useState<number[]>(restored?.flippedCards || []), [moves, setMoves] = useState(restored?.moves || 0), [isWon, setIsWon] = useState(false);
