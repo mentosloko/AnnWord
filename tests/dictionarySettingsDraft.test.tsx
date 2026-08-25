@@ -18,6 +18,7 @@ const profile = (overrides: Partial<UserProfile> = {}): UserProfile => ({
   accountMode: 'parent',
   subscriptionTier: 'premium',
   premiumExpiresAt: '2099-01-01T00:00:00.000Z',
+  featureFlags: { adultRoom: true, premiumDictionaries: true },
   activeWordSource: { source: 'builtin', difficulty: 'ALL', updatedAt: '2026-08-25T10:00:00.000Z' },
   customDictionaryEn: ['PANDA', 'TIGER'],
   stats: { gamesPlayed: 0, gamesWon: 0, wordsGuessed: {} },
