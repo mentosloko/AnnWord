@@ -20,7 +20,7 @@ export const normalizeActiveWordSource = (value: unknown): ActiveWordSource => {
   const source = record.source === 'custom' || record.source === 'premium' ? record.source : 'builtin';
   const difficulty = readDifficulty(record.difficulty);
   const updatedAt = readUpdatedAt(record.updatedAt);
-  const initialized = record.initialized === true;
+  const initialized = record.initialized !== false;
   if (source !== 'premium') return { source, difficulty, updatedAt, initialized };
 
   const premiumDictionaryId = typeof record.premiumDictionaryId === 'string' && record.premiumDictionaryId.trim()
