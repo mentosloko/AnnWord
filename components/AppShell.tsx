@@ -18,7 +18,7 @@ interface AppShellProps {
   isAuthLoading: boolean;
   onHomeClick: () => void;
   onLoginClick: () => void;
-  onRegisterClick: () => void;
+  onRegisterClick?: () => void;
   onLogoutClick: () => Promise<void>;
   onProfileClick: () => void;
   onShopClick: () => void;
@@ -54,6 +54,11 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
   const onDictionaryClick = isTeacher
     ? onDictionaryStudioClick
     : () => navigateToDictionarySelection(onDictionaryStudioClick);
+  const openRegistration = onRegisterClick || (() => { onAuthModeChange('register'); onLoginClick(); });
+  const closeAuth = () => {
+    onCloseLogin();
+    if (!isAuthenticated && authMode === 'register') onHomeClick();
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
@@ -64,7 +69,7 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
           isAuthenticated={isAuthenticated}
           onHomeClick={onHomeClick}
           onLoginClick={onLoginClick}
-          onRegisterClick={onRegisterClick}
+          onRegisterClick={openRegistration}
           onLogoutClick={onLogoutClick}
           onProfileClick={onProfileClick}
           onShopClick={onShopClick}
@@ -84,7 +89,7 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
         tempPassword={tempPassword}
         authError={authError}
         isAuthLoading={isAuthLoading}
-        onCloseLogin={onCloseLogin}
+        onCloseLogin={closeAuth}
         onCloseRules={onCloseRules}
         onAuthModeChange={onAuthModeChange}
         onUsernameChange={onUsernameChange}
