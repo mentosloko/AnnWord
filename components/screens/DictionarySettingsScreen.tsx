@@ -13,6 +13,7 @@ import {
   SPOTLIGHT_PREMIUM_DICTIONARY_ID,
   type SpotlightGradeNumber,
 } from '../../services/spotlightDictionary';
+import { DifficultyPicker } from '../dictionary/DifficultyPicker';
 import { ScreenContainer } from '../layout/ScreenContainer';
 import { AccessibleDialog } from '../a11y/AccessibleDialog';
 
@@ -26,16 +27,6 @@ interface DictionarySettingsScreenProps {
   onOpenPremium: () => void;
   onBack: () => void;
 }
-
-const DIFFICULTIES: Array<{ value: DifficultyLevel; short: string }> = [
-  { value: 'ALL', short: 'Все' },
-  { value: 'A1', short: 'A1' },
-  { value: 'A2', short: 'A2' },
-  { value: 'B1', short: 'B1' },
-  { value: 'B2', short: 'B2' },
-  { value: 'C1', short: 'C1' },
-  { value: 'C2', short: 'C2' },
-];
 
 const SOURCE_OPTIONS: Array<{ source: DictionarySource; icon: string; title: string; note: string }> = [
   { source: 'builtin', icon: '📚', title: 'Общий', note: 'General English' },
@@ -275,7 +266,11 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
         {source === 'builtin' && <section className="mt-4 rounded-3xl border-2 border-indigo-100 bg-indigo-50/45 p-4">
           <h2 className="text-lg font-black text-indigo-950">{kidsMode ? 'Детский словарь' : 'General English'}</h2>
           <p className="mt-1 text-sm font-bold text-slate-500">Выберите сложность только для общего словаря. На тематические наборы этот уровень не влияет.</p>
-          <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7" role="group" aria-label="Уровень сложности">{DIFFICULTIES.map(level => <button type="button" key={level.value} aria-pressed={draftSettings.difficulty === level.value} onClick={() => setDraftSettings({ ...draftSettings, dictionarySource: 'builtin', useCustomDictionary: false, difficulty: level.value })} className={`rounded-xl py-2.5 text-sm font-black ${draftSettings.difficulty === level.value ? 'bg-indigo-600 text-white' : 'border-2 border-indigo-100 bg-white text-indigo-700'}`}>{level.short}</button>)}</div>
+          <DifficultyPicker
+            value={draftSettings.difficulty}
+            kidsMode={kidsMode}
+            onChange={difficulty => setDraftSettings({ ...draftSettings, dictionarySource: 'builtin', useCustomDictionary: false, difficulty })}
+          />
         </section>}
 
         {source === 'premium' && hasPremium && <section className="mt-4 rounded-3xl border-2 border-amber-100 bg-amber-50/55 p-4">
@@ -314,7 +309,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
       <p id="mobile-dictionary-description" className="mt-2 text-sm font-bold leading-6 text-slate-500">{mobileStep === 'source' ? 'Выберите один источник. На следующем шаге можно уточнить уровень, тему или свой список.' : mobileStep === 'difficulty' ? 'Уровень влияет только на общий словарь.' : mobileStep === 'premium' ? 'Выберите школьный или тематический набор.' : mobileStep === 'spotlight_grade' ? 'Выберите класс учебника Spotlight.' : mobileStep === 'spotlight_section' ? 'Можно играть по всему классу или по одному модулю.' : 'Используются слова из вашего собственного списка.'}</p>
 
       {mobileStep === 'source' && <div className="mt-5 grid gap-3">{SOURCE_OPTIONS.map(option => { const locked = option.source !== 'builtin' && !hasPremium; return <button key={option.source} type="button" onClick={() => chooseMobileSource(option.source)} className="rounded-2xl border-2 border-indigo-100 bg-white p-4 text-left"><div className="flex items-start gap-3"><span className="text-3xl" aria-hidden="true">{option.icon}</span><div className="min-w-0"><div className="text-lg font-black text-indigo-950">{option.title}{locked ? ' · Premium' : ''}</div><div className="mt-1 text-sm font-bold leading-5 text-slate-500">{option.source === 'builtin' ? (kidsMode ? 'Бесплатный детский словарь для ежедневных игр.' : 'Общий английский словарь с выбором уровня A1–C2.') : option.source === 'premium' ? 'Школьные и тематические подборки.' : 'Слова из школы, курса или собственного списка.'}</div></div></div></button>; })}</div>}
-      {mobileStep === 'difficulty' && <div className="mt-5 grid grid-cols-2 gap-3">{DIFFICULTIES.map(level => <button type="button" key={level.value} onClick={() => chooseMobileDifficulty(level.value)} className={`rounded-2xl border-2 p-4 text-left ${draftSettings.difficulty === level.value ? 'border-indigo-500 bg-indigo-50' : 'border-indigo-100 bg-white'}`}><div className="text-xl font-black text-indigo-950">{level.short}</div><div className="mt-1 text-xs font-bold text-slate-500">{level.value === 'ALL' ? 'Слова всех уровней' : `Уровень ${level.value}`}</div></button>)}</div>}
+      {mobileStep === 'difficulty' && <div className="mt-5"><DifficultyPicker value={draftSettings.difficulty} kidsMode={kidsMode} layout="mobile" onChange={chooseMobileDifficulty} /></div>}
       {mobileStep === 'premium' && <div className="mt-5 grid gap-3">{premiumCatalog.map(item => <button type="button" key={item.id} onClick={() => chooseMobilePremium(item.id)} className="rounded-2xl border-2 border-amber-100 bg-amber-50/60 p-4 text-left"><div className="flex gap-3"><span className="text-3xl" aria-hidden="true">{item.icon}</span><div><div className="text-lg font-black text-indigo-950">{item.title}</div><div className="mt-1 text-sm font-bold leading-5 text-slate-500">{item.id === SPOTLIGHT_PREMIUM_DICTIONARY_ID ? 'Школьные слова для 2–11 классов с выбором модуля.' : 'Тематическая подборка слов для тренировок.'}</div></div></div></button>)}</div>}
       {mobileStep === 'spotlight_grade' && <div className="mt-5 grid grid-cols-3 gap-3">{getSpotlightGrades().map(grade => <button type="button" key={grade} onClick={() => chooseMobileSpotlightGrade(grade)} className={`rounded-2xl border-2 p-4 text-center text-xl font-black ${spotlightGrade === grade ? 'border-amber-400 bg-amber-100 text-amber-950' : 'border-indigo-100 bg-white text-indigo-800'}`}>{grade} класс</button>)}</div>}
       {mobileStep === 'spotlight_section' && <div className="mt-5 grid gap-2">{spotlightLoadState === 'loading' && spotlightSections.length === 0 && <div className="rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-800">Загружаю модули…</div>}{spotlightLoadState === 'error' && <button type="button" onClick={retrySpotlightLoad} className="rounded-2xl bg-rose-50 p-4 text-left text-sm font-black text-rose-700">Не удалось загрузить. Нажмите, чтобы повторить.</button>}<button type="button" onClick={() => chooseMobileSpotlightSection(SPOTLIGHT_ALL_SECTIONS_ID)} className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-4 text-left"><div className="text-lg font-black text-indigo-950">Весь {spotlightGrade} класс</div><div className="mt-1 text-sm font-bold text-slate-500">Все основные и дополнительные слова выбранного класса.</div></button>{spotlightSections.map(section => <button type="button" key={section.id} onClick={() => chooseMobileSpotlightSection(section.id)} className="rounded-2xl border-2 border-indigo-100 bg-white p-4 text-left"><div className="text-base font-black text-indigo-950">{section.title}</div><div className="mt-1 text-xs font-bold text-slate-500">{section.wordCount} слов</div></button>)}</div>}
