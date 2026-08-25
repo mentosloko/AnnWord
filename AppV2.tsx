@@ -336,9 +336,18 @@ const AppV2: React.FC = () => {
     await profileEconomy.applyGameReward({ type: 'wordle', won, coinsAdjustment }, { stats: nextStats, analyticsEvents: [event] });
   }, [currentUserId, isKids, profileEconomy, sendWordLedgerEvent, settings.dictionarySource, settings.difficulty, settings.wordLength, userProfile.stats]);
   const submitClassicDailyQuestResult = useCallback(async (won: boolean, _word: string, attempts: number) => submitDailyQuestResult({ type: 'wordle', won, attempts }), [submitDailyQuestResult]);
-  const chargeWordleHint = useCallback(async (): Promise<boolean> => { if (!isKids) return true; if (userProfile.coins < WORDLE_HINT_COST) return false; await profileEconomy.winCoins(getWordleHintBalanceDelta()); return true; }, [isKids, profileEconomy, userProfile.coins]);
+  const chargeWordleHint = useCallback(async (): Promise<boolean> => {
+    if (!isKids) return true;
+    if (userProfile.coins < WORDLE_HINT_COST) return false;
+    await profileEconomy.adjustCoinsStrict(getWordleHintBalanceDelta());
+    return true;
+  }, [isKids, profileEconomy, userProfile.coins]);
+  const refundWordleHint = useCallback(async (): Promise<void> => {
+    if (!isKids) return;
+    await profileEconomy.adjustCoinsStrict(WORDLE_HINT_COST);
+  }, [isKids, profileEconomy]);
   const chargeDictionaryPeek = useCallback(async (): Promise<boolean> => chargeWordleHint(), [chargeWordleHint]);
-  const classicGame = useClassicGameController({ route, settings, sessionOwnerId: currentUserId, getSecretWordPool, getValidationPool, getModeWords, getWordTranslation, onRouteChange: setRoute, onStatsUpdate: updateClassicStats, onDailyQuestResult: submitClassicDailyQuestResult, availableCoins: isKids ? userProfile.coins : Number.MAX_SAFE_INTEGER, onHintCharge: chargeWordleHint });
+  const classicGame = useClassicGameController({ route, settings, sessionOwnerId: currentUserId, getSecretWordPool, getValidationPool, getModeWords, getWordTranslation, onRouteChange: setRoute, onStatsUpdate: updateClassicStats, onDailyQuestResult: submitClassicDailyQuestResult, availableCoins: isKids ? userProfile.coins : Number.MAX_SAFE_INTEGER, onHintCharge: chargeWordleHint, onHintRefund: refundWordleHint });
   const modeIgnoresWordLength = route === 'setup' ? isLengthAgnosticMode(selectedPlayMode) : route === 'anagrams' || route === 'translation' || route === 'sprint' || route === 'memory' || route === 'letter_square';
   const modeWords = useMemo(() => getModeWords({ respectWordLength: !modeIgnoresWordLength }), [getModeWords, modeIgnoresWordLength]);
   const activeDictionaryWordCount = useMemo(() => getModeWords({ respectWordLength: false }).length, [getModeWords]);

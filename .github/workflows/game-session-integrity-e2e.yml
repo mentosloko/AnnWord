@@ -9,6 +9,7 @@ on:
       - 'hooks/**'
       - 'services/**'
       - 'e2e/game-session-integrity.spec.ts'
+      - 'e2e/classic-hint-integrity.spec.ts'
       - 'playwright.config.ts'
       - '.github/workflows/game-session-integrity-e2e.yml'
   workflow_dispatch:
@@ -38,4 +39,4 @@ jobs:
           VITE_API_URL: http://127.0.0.1:8787
         run: npm run build
       - name: Run game session integrity browser E2E
-        run: npx playwright test e2e/game-session-integrity.spec.ts --project=chromium-desktop
+        run: npx playwright test e2e/game-session-integrity.spec.ts e2e/classic-hint-integrity.spec.ts --project=chromium-desktop

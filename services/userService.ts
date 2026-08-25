@@ -32,6 +32,13 @@ export const userService = {
 
   updateCoins: async (_userId: string, amount: number): Promise<UserProfile> => profileApiService.incrementCoins(amount),
 
+  applyHintCoinOperation: async (
+    _userId: string,
+    operationId: string,
+    action: 'charge' | 'refund',
+    cost = 1,
+  ) => profileApiService.applyHintCoinOperation(operationId, action, cost),
+
   buyCurrentUserItem: async (item: ShopItem): Promise<UserProfile> => {
     if (item.type === 'mystery' || item.id === 'mystery_box') {
       throw new Error('Секретная коробка доступна только за ежедневное задание.');
