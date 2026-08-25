@@ -23,7 +23,7 @@ const corsHeaders = {
 const fulfillJson = (route: Route, body: unknown, status = 200) => route.fulfill({ status, headers: corsHeaders, body: JSON.stringify(body) });
 
 const installTeacherAssignmentBackend = async (page: Page) => {
-  let actor: 'teacher' | 'child' | 'signed-out' = 'teacher';
+  let actor: 'teacher' | 'child' | 'signed-out' = 'signed-out';
   let collection: Record<string, unknown> | null = null;
   let assigned = false;
   let savedRequest: any = null;
@@ -58,6 +58,7 @@ const installTeacherAssignmentBackend = async (page: Page) => {
       return;
     }
     if (path === '/api/profile/me') {
+      if (!currentUser()) { await fulfillJson(route, { code: 'unauthorized', error: 'Unauthorized' }, 401); return; }
       await fulfillJson(route, { profile: currentProfile() });
       return;
     }
@@ -124,6 +125,16 @@ const installTeacherAssignmentBackend = async (page: Page) => {
   };
 };
 
+const loginAs = async (page: Page, email: string) => {
+  await page.getByRole('button', { name: 'Войти' }).first().click();
+  const dialog = page.getByRole('dialog', { name: 'Войти в AnnWord' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel('Электронная почта').fill(email);
+  await dialog.getByLabel('Пароль').fill('password123');
+  await dialog.getByRole('button', { name: 'Войти', exact: true }).click();
+  await expect(dialog).toBeHidden();
+};
+
 const dismissRulesIfVisible = async (page: Page) => {
   const start = page.getByRole('button', { name: 'Начать игру' });
   if (await start.isVisible().catch(() => false)) await start.click();
@@ -133,6 +144,7 @@ test('teacher PANDA/TIGER/ZEBRA assignment is playable in child 1-of-2 and Anagr
   const backend = await installTeacherAssignmentBackend(page);
 
   await page.goto('/teacher');
+  await loginAs(page, TEACHER.email);
   await expect(page.getByRole('heading', { name: 'Обзор преподавателя' })).toBeVisible();
   await page.getByRole('button', { name: /Словари.*Открыть словари/ }).click();
   await expect(page.getByRole('heading', { name: 'Словарь преподавателя' })).toBeVisible();
@@ -156,11 +168,7 @@ test('teacher PANDA/TIGER/ZEBRA assignment is playable in child 1-of-2 and Anagr
 
   await page.getByRole('button', { name: /Открыть меню аккаунта Teacher/ }).click();
   await page.getByRole('menuitem', { name: 'Выйти' }).click();
-  await page.getByRole('button', { name: 'Войти' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Войти в AnnWord' });
-  await dialog.getByLabel('Электронная почта').fill(CHILD.email);
-  await dialog.getByLabel('Пароль').fill('password123');
-  await dialog.getByRole('button', { name: 'Войти', exact: true }).click();
+  await loginAs(page, CHILD.email);
   await expect(page.getByRole('heading', { name: /Поиграем со словами|Серия:/i })).toBeVisible();
 
   await page.getByRole('button', { name: /^1 из 2/ }).click();
