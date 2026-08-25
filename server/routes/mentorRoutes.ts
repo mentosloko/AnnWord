@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Router, type NextFunction, type Response } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
+import { isAllowedSecretWord } from "../../services/dictionaryEngine";
 import { resolveDictionaryWordTranslations } from "../../services/masterDictionaryLookup";
 import { query, transaction } from "../db";
 import { loadManagedLearners } from "../mentorRepository";
@@ -128,10 +129,15 @@ mentorRouter.post("/assign", async (req: AuthenticatedRequest, res) => {
       });
       return;
     }
-    if (resolution.readyWords.length < MIN_ASSIGNABLE_WORDS) {
+
+    const playableWords = resolution.readyWords.filter(isAllowedSecretWord);
+    const playableTranslations = Object.fromEntries(
+      playableWords.map(word => [word, resolution.translations[word]]),
+    );
+    if (playableWords.length < MIN_ASSIGNABLE_WORDS) {
       res.status(400).json({
         code: "dictionary_too_small_for_games",
-        error: `Для назначения нужно минимум ${MIN_ASSIGNABLE_WORDS} слова с переводом. Сейчас готово: ${resolution.readyWords.length}.`,
+        error: `Для назначения нужно минимум ${MIN_ASSIGNABLE_WORDS} игровых слова с переводом. Сейчас готово: ${playableWords.length}.`,
       });
       return;
     }
@@ -148,12 +154,12 @@ mentorRouter.post("/assign", async (req: AuthenticatedRequest, res) => {
           collection.classLabel || collection.class_label || null,
           collection.theme || null,
           collection.source || "manual",
-          resolution.readyWords,
-          JSON.stringify(resolution.translations),
+          playableWords,
+          JSON.stringify(playableTranslations),
         ],
       );
     });
-    res.json({ ok: true, readyWords: resolution.readyWords.length });
+    res.json({ ok: true, readyWords: playableWords.length });
   } catch (error) {
     console.error("Dictionary assignment failed", error);
     res.status(400).json({ code: "dictionary_assignment_failed", error: error instanceof Error ? error.message : "Не удалось назначить словарь." });
