@@ -153,7 +153,7 @@ const STATIC_PRIVATE_ROUTE_TITLES: Record<string, string> = {
 const replaceHeadTag = (html: string, pattern: RegExp, replacement: string): string =>
   pattern.test(html) ? html.replace(pattern, replacement) : html;
 
-const rewriteStaticHtmlMetadata = (html: string, metadata: StaticHtmlMetadata): string => {
+export const rewriteStaticHtmlMetadata = (html: string, metadata: StaticHtmlMetadata): string => {
   let next = html;
   next = replaceHeadTag(next, /<title>[^<]*<\/title>/i, `<title>${metadata.title}</title>`);
   next = replaceHeadTag(next, /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i, `<link rel="canonical" href="${metadata.canonical}" />`);
@@ -164,7 +164,7 @@ const rewriteStaticHtmlMetadata = (html: string, metadata: StaticHtmlMetadata): 
   return next;
 };
 
-const staticMetadataForRoute = (route: string): StaticHtmlMetadata =>
+export const staticMetadataForRoute = (route: string): StaticHtmlMetadata =>
   STATIC_PUBLIC_ENTRY_METADATA[route] || {
     title: STATIC_PRIVATE_ROUTE_TITLES[route] || 'AnnWord',
     canonical: 'https://annword.ru/',
