@@ -113,6 +113,48 @@ const yandexSpaFallbackPlugin = () => ({
   },
 });
 
+const localApiOrigin = (apiUrl: string): string | null => {
+  try {
+    const url = new URL(apiUrl);
+    if (url.protocol !== 'http:') return null;
+    if (url.hostname !== '127.0.0.1' && url.hostname !== 'localhost') return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+};
+
+const contentSecurityPolicyPlugin = (apiUrl: string) => {
+  const e2eOrigin = localApiOrigin(apiUrl);
+  const connectSources = ["'self'", 'https:', 'wss:', ...(e2eOrigin ? [e2eOrigin] : [])];
+  const directives = [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    `connect-src ${connectSources.join(' ')}`,
+    'frame-src https:',
+    "form-action 'self' https:",
+    ...(e2eOrigin ? [] : ['upgrade-insecure-requests']),
+  ];
+  return {
+    name: 'annword-content-security-policy',
+    transformIndexHtml() {
+      return [{
+        tag: 'meta',
+        attrs: {
+          'http-equiv': 'Content-Security-Policy',
+          content: directives.join('; '),
+        },
+        injectTo: 'head' as const,
+      }];
+    },
+  };
+};
+
 const safeChunkName = (filename: string): string => filename
   .replace(/\.(json|ts|tsx)$/i, '')
   .replace(/^premium_/, '')
@@ -144,7 +186,7 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       host: '0.0.0.0',
     },
-    plugins: [react(), yandexSpaFallbackPlugin()],
+    plugins: [react(), contentSecurityPolicyPlugin(env.VITE_API_URL || ''), yandexSpaFallbackPlugin()],
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
