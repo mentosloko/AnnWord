@@ -1,5 +1,6 @@
 import React from 'react';
 import { rankPersonalScores, readPersonalScores, recordPersonalScore, ScoreDirection } from '../services/personalScoreboard';
+import { inflectRussianUnit } from '../utils/textUtils';
 
 interface PersonalScoreboardProps {
   gameId: string;
@@ -24,12 +25,13 @@ export const PersonalScoreboard: React.FC<PersonalScoreboardProps> = ({
     : rankPersonalScores(readPersonalScores(userKey, gameId), direction));
   const top = scores.slice(0, 5);
   const rank = record ? scores.findIndex(entry => entry.value === safeValue) + 1 : 0;
+  const displayedUnit = inflectRussianUnit(safeValue, unit);
 
   return <section className="mt-4 rounded-2xl border border-indigo-100 bg-white p-4 text-left shadow-sm" aria-label="Личный скорборд">
     <div className="flex items-center justify-between gap-3">
       <div>
         <div className="text-xs font-black uppercase tracking-widest text-indigo-300">Личный скорборд</div>
-        <div className="mt-1 font-black text-indigo-950">Результат: {safeValue} {unit}</div>
+        <div className="mt-1 font-black text-indigo-950">Результат: {safeValue} {displayedUnit}</div>
       </div>
       {rank > 0 && <div className="rounded-full bg-indigo-50 px-3 py-1 text-sm font-black text-indigo-700">#{rank}</div>}
     </div>
