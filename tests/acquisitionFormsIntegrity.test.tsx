@@ -66,6 +66,7 @@ describe('acquisition and forms integrity', () => {
     render(<ShellRegistrationHarness />);
     fireEvent.click(screen.getByRole('button', { name: 'Начать бесплатно' }));
     expect(screen.getByRole('dialog', { name: 'Создать аккаунт' })).toBeVisible();
+    expect(screen.queryByRole('dialog', { name: 'Войти в AnnWord' })).not.toBeInTheDocument();
   });
 
   it('registration CTA remains disabled until required fields and consents are valid', () => {
