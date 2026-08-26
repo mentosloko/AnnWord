@@ -93,24 +93,49 @@ jobs:
           "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
           "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
 
-      - name: Read recent Yandex container logs
+      - name: Read bounded Yandex container log evidence
         env:
           YC_SERVERLESS_CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
         run: |
           set -euo pipefail
-          # Current yc logging syntax reads from a log group. Serverless Container execution
-          # logs are written to the folder's `default` group when no custom group is set.
-          # Keep the exact container resource filter so unrelated folder logs never enter evidence.
-          yc logging group list-resources default --format json > /tmp/yandex-log-resources.json || true
-          node -e 'const fs=require("fs");let x=[];try{x=JSON.parse(fs.readFileSync("/tmp/yandex-log-resources.json","utf8"))}catch{};const a=Array.isArray(x)?x:(x.resources||x.items||[]);console.log(`Default log-group resources visible: ${a.length}`)'
-          yc logging read \
-            --group-name=default \
-            --resource-ids="$YC_SERVERLESS_CONTAINER_ID" \
-            --since 72h \
-            --limit 1000 \
-            --max-response-size 32M \
-            --format json > /tmp/yandex-performance-logs.json
-          node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/yandex-performance-logs.json","utf8"));const a=Array.isArray(x)?x:(x.entries||x.messages||x.items||[]);console.log(`Yandex log records read: ${a.length}`); if(!a.length) process.exit(2)'
+          yc logging group list-resources default --format json > /tmp/yandex-log-resources.json
+          node <<'NODE' > /tmp/performance-boundaries.env
+          const x = require('/tmp/production-rum-evidence.json');
+          const b = x.boundaries || {};
+          const rows = {
+            CORS_BEFORE: b.corsBefore,
+            CORS_CUTOFF: b.corsCutoff,
+            CORS_AFTER: b.corsAfter,
+            KEEP_BEFORE: b.keepBefore,
+            KEEP_START: b.keepWarmStart,
+            KEEP_AFTER: b.keepAfter,
+          };
+          for (const [key, value] of Object.entries(rows)) {
+            if (!value || !Number.isFinite(Date.parse(value))) throw new Error(`Missing evidence boundary ${key}`);
+            console.log(`${key}=${JSON.stringify(value)}`);
+          }
+          NODE
+          source /tmp/performance-boundaries.env
+          read_window() {
+            local start="$1"
+            local end="$2"
+            local output="$3"
+            yc logging read \
+              --group-name=default \
+              --since="$start" \
+              --until="$end" \
+              --limit 1000 \
+              --max-response-size 32M \
+              --format json > "$output"
+          }
+          read_window "$CORS_BEFORE" "$CORS_CUTOFF" /tmp/log-cors-before.json
+          read_window "$CORS_CUTOFF" "$CORS_AFTER" /tmp/log-cors-after.json
+          read_window "$KEEP_BEFORE" "$KEEP_START" /tmp/log-keep-before.json
+          read_window "$KEEP_START" "$KEEP_AFTER" /tmp/log-keep-after.json
+          export YANDEX_LOG_INPUT_FILES='/tmp/log-cors-before.json:/tmp/log-cors-after.json:/tmp/log-keep-before.json:/tmp/log-keep-after.json'
+          export YANDEX_LOG_RESOURCES_FILE=/tmp/yandex-log-resources.json
+          export YANDEX_LOG_FILTERED_FILE=/tmp/yandex-performance-logs.json
+          node scripts/filter-yandex-performance-logs.mjs
 
       - name: Read scheduled keep-warm run history
         env:
