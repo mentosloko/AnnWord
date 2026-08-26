@@ -97,18 +97,96 @@ const spaFallbackRoutes = [
   'onboarding/family',
 ];
 
+type StaticHtmlMetadata = {
+  title: string;
+  canonical: string;
+  robots: 'index,follow' | 'noindex,nofollow';
+};
+
+const STATIC_PUBLIC_ENTRY_METADATA: Record<string, StaticHtmlMetadata> = {
+  practice: {
+    title: 'AnnWord Practice — тренировка английских слов',
+    canonical: 'https://annword.ru/practice/',
+    robots: 'index,follow',
+  },
+  kids: {
+    title: 'AnnWord Kids — школьные английские слова играючи',
+    canonical: 'https://annword.ru/kids/',
+    robots: 'index,follow',
+  },
+  teacher: {
+    title: 'AnnWord для преподавателей английского',
+    canonical: 'https://annword.ru/teacher/',
+    robots: 'index,follow',
+  },
+  'landing-mix': {
+    title: 'AnnWord — школьные английские слова играючи',
+    canonical: 'https://annword.ru/',
+    robots: 'index,follow',
+  },
+};
+
+const STATIC_PRIVATE_ROUTE_TITLES: Record<string, string> = {
+  profile: 'Прогресс и аккаунт — AnnWord',
+  review: 'Повторение слов — AnnWord',
+  shop: 'Магазин — AnnWord',
+  pet: 'Комната питомца — AnnWord',
+  workspace: 'Рабочий кабинет — AnnWord',
+  dictionary: 'Выбор словаря — AnnWord',
+  'dictionary/edit': 'Редактор словаря — AnnWord',
+  premium: 'AnnWord Premium',
+  'premium/success': 'Premium подключён — AnnWord',
+  admin: 'Админ-панель — AnnWord',
+  'play/setup': 'Выбор игры и слов — AnnWord',
+  'play/classic': 'Классика — AnnWord',
+  'play/anagrams': 'Анаграммы — AnnWord',
+  'play/one-of-two': '1 из 2 — AnnWord',
+  'play/sprint': 'Спринт — AnnWord',
+  'play/hangman': 'Виселица — AnnWord',
+  'play/memory': 'Память — AnnWord',
+  'play/snake': 'Змейка — AnnWord',
+  'onboarding/mode': 'Настройка аккаунта — AnnWord',
+  'onboarding/character': 'Выбор питомца — AnnWord',
+  'onboarding/family': 'Настройка ребёнка — AnnWord',
+};
+
+const replaceHeadTag = (html: string, pattern: RegExp, replacement: string): string =>
+  pattern.test(html) ? html.replace(pattern, replacement) : html;
+
+const rewriteStaticHtmlMetadata = (html: string, metadata: StaticHtmlMetadata): string => {
+  let next = html;
+  next = replaceHeadTag(next, /<title>[^<]*<\/title>/i, `<title>${metadata.title}</title>`);
+  next = replaceHeadTag(next, /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i, `<link rel="canonical" href="${metadata.canonical}" />`);
+  next = replaceHeadTag(next, /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:title" content="${metadata.title}" />`);
+  next = replaceHeadTag(next, /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:url" content="${metadata.canonical}" />`);
+  next = replaceHeadTag(next, /<meta\s+name="twitter:title"\s+content="[^"]*"\s*\/?>/i, `<meta name="twitter:title" content="${metadata.title}" />`);
+  next = replaceHeadTag(next, /<meta\s+name="robots"\s+content="[^"]*"\s*\/?>/i, `<meta name="robots" content="${metadata.robots}" />`);
+  return next;
+};
+
+const staticMetadataForRoute = (route: string): StaticHtmlMetadata =>
+  STATIC_PUBLIC_ENTRY_METADATA[route] || {
+    title: STATIC_PRIVATE_ROUTE_TITLES[route] || 'AnnWord',
+    canonical: 'https://annword.ru/',
+    robots: 'noindex,nofollow',
+  };
+
 const yandexSpaFallbackPlugin = () => ({
   name: 'annword-yandex-spa-fallbacks',
   closeBundle() {
     const outDir = path.resolve(__dirname, 'dist');
     const indexPath = path.join(outDir, 'index.html');
     if (!fs.existsSync(indexPath)) return;
-    const indexHtml = fs.readFileSync(indexPath);
-    fs.writeFileSync(path.join(outDir, '404.html'), indexHtml);
+    const indexHtml = fs.readFileSync(indexPath, 'utf8');
+    fs.writeFileSync(path.join(outDir, '404.html'), rewriteStaticHtmlMetadata(indexHtml, {
+      title: 'Страница не найдена — AnnWord',
+      canonical: 'https://annword.ru/',
+      robots: 'noindex,nofollow',
+    }));
     for (const route of spaFallbackRoutes) {
       const routeDir = path.join(outDir, route);
       fs.mkdirSync(routeDir, { recursive: true });
-      fs.writeFileSync(path.join(routeDir, 'index.html'), indexHtml);
+      fs.writeFileSync(path.join(routeDir, 'index.html'), rewriteStaticHtmlMetadata(indexHtml, staticMetadataForRoute(route)));
     }
   },
 });
@@ -126,16 +204,19 @@ const localApiOrigin = (apiUrl: string): string | null => {
 
 const contentSecurityPolicyPlugin = (apiUrl: string) => {
   const e2eOrigin = localApiOrigin(apiUrl);
-  const connectSources = ["'self'", 'https:', 'wss:', ...(e2eOrigin ? [e2eOrigin] : [])];
+  const ocrScriptOrigin = 'https://cdn.jsdelivr.net';
+  const ocrLanguageOrigin = 'https://tessdata.projectnaptha.com';
+  const connectSources = ["'self'", 'https:', 'wss:', ocrScriptOrigin, ocrLanguageOrigin, ...(e2eOrigin ? [e2eOrigin] : [])];
   const directives = [
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
-    "script-src 'self'",
+    `script-src 'self' 'wasm-unsafe-eval' ${ocrScriptOrigin}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     `connect-src ${connectSources.join(' ')}`,
+    `worker-src 'self' blob: ${ocrScriptOrigin}`,
     'frame-src https:',
     "form-action 'self' https:",
     ...(e2eOrigin ? [] : ['upgrade-insecure-requests']),
