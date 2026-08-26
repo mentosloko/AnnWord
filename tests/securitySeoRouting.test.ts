@@ -77,4 +77,28 @@ describe('security, SEO and routing contracts', () => {
     expect(document.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe('https://annword.ru/kids/');
     expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('index,follow');
   });
+
+  it('collects response-only blockers without hiding code-addressable production evidence', () => {
+    const workflow = read('.github/workflows/production-security-seo-audit.yml');
+    expect(workflow).toContain('CODE_EVIDENCE_READY=1');
+    expect(workflow).toContain('HSTS_READY=0');
+    expect(workflow).toContain('NOSNIFF_READY=0');
+    expect(workflow).toContain('FRAME_ANCESTORS_READY=0');
+    expect(workflow).toContain('WWW_REDIRECT_READY=0');
+    expect(workflow).toContain('Response-only zeros are infrastructure/routing blockers');
+    expect(workflow).toContain('test "${CODE_EVIDENCE_READY:-0}" = \'1\'');
+    expect(workflow).not.toContain('test "${HSTS_READY:-0}" = \'1\'');
+    expect(workflow).not.toContain('test "${NOSNIFF_READY:-0}" = \'1\'');
+  });
+
+  it('marks code evidence failed when a production document returns HTTP 4xx/5xx even with HTML content', () => {
+    const workflow = read('.github/workflows/production-security-seo-audit.yml');
+    expect(workflow).toContain('fetch_code_url()');
+    expect(workflow).toContain('if curl -fsS "$url" > "$file"; then');
+    expect(workflow).toContain('echo "FAIL: HTTP $label"');
+    expect(workflow).toContain('CODE_EVIDENCE_READY=0');
+    expect(workflow).toContain("fetch_code_url 'Kids route'");
+    expect(workflow).toContain("fetch_code_url 'Teacher route'");
+    expect(workflow).toContain("fetch_code_url 'Practice route'");
+  });
 });

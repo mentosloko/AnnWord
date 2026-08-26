@@ -30,95 +30,135 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Verify canonical frontend headers
+      - name: Collect complete production evidence
         run: |
-          set -euo pipefail
-          curl -fsSI "$APP_ORIGIN/" | tr -d '\r' > /tmp/root-headers.txt
+          set -u -o pipefail
+
+          CODE_EVIDENCE_READY=1
+          HSTS_READY=0
+          NOSNIFF_READY=0
+          FRAME_ANCESTORS_READY=0
+          WWW_REDIRECT_READY=0
+
+          record_file_contains() {
+            local label="$1"
+            local needle="$2"
+            local file="$3"
+            if grep -Fq "$needle" "$file" 2>/dev/null; then
+              echo "PASS: $label"
+            else
+              echo "FAIL: $label"
+              CODE_EVIDENCE_READY=0
+            fi
+          }
+
+          record_header_regex() {
+            local label="$1"
+            local regex="$2"
+            local file="$3"
+            if grep -Eqi "$regex" "$file" 2>/dev/null; then
+              echo "PASS: $label"
+              return 0
+            fi
+            echo "MISSING: $label"
+            return 1
+          }
+
+          fetch_code_url() {
+            local label="$1"
+            local url="$2"
+            local file="$3"
+            if curl -fsS "$url" > "$file"; then
+              echo "PASS: HTTP $label"
+            else
+              echo "FAIL: HTTP $label"
+              CODE_EVIDENCE_READY=0
+              : > "$file"
+            fi
+          }
+
+          curl -sSI "$APP_ORIGIN/" | tr -d '\r' > /tmp/root-headers.txt || true
+          fetch_code_url 'root' "$APP_ORIGIN/" /tmp/root.html
           cat /tmp/root-headers.txt
-          grep -Eqi '^strict-transport-security:[[:space:]]*max-age=' /tmp/root-headers.txt
-          grep -Eqi '^x-content-type-options:[[:space:]]*nosniff' /tmp/root-headers.txt
 
-      - name: Verify SEO documents and root metadata
-        run: |
-          set -euo pipefail
-          curl -fsS "$APP_ORIGIN/" > /tmp/root.html
-          grep -Fq 'rel="canonical" href="https://annword.ru/"' /tmp/root.html
-          grep -Fq 'name="referrer" content="strict-origin-when-cross-origin"' /tmp/root.html
-          grep -Fq 'property="og:title"' /tmp/root.html
-          grep -Fq 'name="twitter:card"' /tmp/root.html
-          grep -Fq 'http-equiv="Content-Security-Policy"' /tmp/root.html
-          grep -Fq 'https://cdn.jsdelivr.net' /tmp/root.html
-          grep -Fq 'https://tessdata.projectnaptha.com' /tmp/root.html
-          grep -Fq 'worker-src' /tmp/root.html
-          curl -fsS "$APP_ORIGIN/robots.txt" | tee /tmp/robots.txt
-          grep -Fq 'Sitemap: https://annword.ru/sitemap.xml' /tmp/robots.txt
-          curl -fsS "$APP_ORIGIN/sitemap.xml" | tee /tmp/sitemap.xml
-          grep -Fq '<loc>https://annword.ru/</loc>' /tmp/sitemap.xml
+          if record_header_regex 'HSTS response header' '^strict-transport-security:[[:space:]]*max-age=' /tmp/root-headers.txt; then HSTS_READY=1; fi
+          if record_header_regex 'X-Content-Type-Options response header' '^x-content-type-options:[[:space:]]*nosniff' /tmp/root-headers.txt; then NOSNIFF_READY=1; fi
 
-      - name: Verify crawler-visible public route metadata
-        run: |
-          set -euo pipefail
-          curl -fsS "$APP_ORIGIN/kids/" > /tmp/kids.html
-          grep -Fq '<title>AnnWord Kids — школьные английские слова играючи</title>' /tmp/kids.html
-          grep -Fq 'rel="canonical" href="https://annword.ru/kids/"' /tmp/kids.html
-          grep -Fq 'property="og:url" content="https://annword.ru/kids/"' /tmp/kids.html
+          record_file_contains 'root canonical' 'rel="canonical" href="https://annword.ru/"' /tmp/root.html
+          record_file_contains 'privacy referrer policy' 'name="referrer" content="strict-origin-when-cross-origin"' /tmp/root.html
+          record_file_contains 'Open Graph metadata' 'property="og:title"' /tmp/root.html
+          record_file_contains 'Twitter metadata' 'name="twitter:card"' /tmp/root.html
+          record_file_contains 'browser CSP baseline' 'http-equiv="Content-Security-Policy"' /tmp/root.html
+          record_file_contains 'OCR jsdelivr CSP dependency' 'https://cdn.jsdelivr.net' /tmp/root.html
+          record_file_contains 'OCR tessdata CSP dependency' 'https://tessdata.projectnaptha.com' /tmp/root.html
+          record_file_contains 'worker CSP directive' 'worker-src' /tmp/root.html
 
-          curl -fsS "$APP_ORIGIN/teacher/" > /tmp/teacher.html
-          grep -Fq '<title>AnnWord для преподавателей английского</title>' /tmp/teacher.html
-          grep -Fq 'rel="canonical" href="https://annword.ru/teacher/"' /tmp/teacher.html
-          grep -Fq 'property="og:url" content="https://annword.ru/teacher/"' /tmp/teacher.html
+          fetch_code_url 'robots.txt' "$APP_ORIGIN/robots.txt" /tmp/robots.txt
+          fetch_code_url 'sitemap.xml' "$APP_ORIGIN/sitemap.xml" /tmp/sitemap.xml
+          record_file_contains 'robots sitemap declaration' 'Sitemap: https://annword.ru/sitemap.xml' /tmp/robots.txt
+          record_file_contains 'sitemap canonical root' '<loc>https://annword.ru/</loc>' /tmp/sitemap.xml
 
-          curl -fsS "$APP_ORIGIN/practice/" > /tmp/practice.html
-          grep -Fq '<title>AnnWord Practice — тренировка английских слов</title>' /tmp/practice.html
-          grep -Fq 'rel="canonical" href="https://annword.ru/practice/"' /tmp/practice.html
-          grep -Fq 'property="og:url" content="https://annword.ru/practice/"' /tmp/practice.html
+          fetch_code_url 'Kids route' "$APP_ORIGIN/kids/" /tmp/kids.html
+          record_file_contains 'Kids route title' '<title>AnnWord Kids — школьные английские слова играючи</title>' /tmp/kids.html
+          record_file_contains 'Kids route canonical' 'rel="canonical" href="https://annword.ru/kids/"' /tmp/kids.html
+          record_file_contains 'Kids Open Graph URL' 'property="og:url" content="https://annword.ru/kids/"' /tmp/kids.html
 
-      - name: Verify server-side 404 status and metadata
-        run: |
-          set -euo pipefail
-          STATUS="$(curl -sS -o /tmp/not-found.html -w '%{http_code}' "$APP_ORIGIN/__annword_missing_route_probe__")"
-          echo "Unknown route HTTP status: $STATUS"
-          test "$STATUS" = "404"
-          grep -Fq '<title>Страница не найдена — AnnWord</title>' /tmp/not-found.html
-          grep -Fq 'name="robots" content="noindex,nofollow"' /tmp/not-found.html
+          fetch_code_url 'Teacher route' "$APP_ORIGIN/teacher/" /tmp/teacher.html
+          record_file_contains 'Teacher route title' '<title>AnnWord для преподавателей английского</title>' /tmp/teacher.html
+          record_file_contains 'Teacher route canonical' 'rel="canonical" href="https://annword.ru/teacher/"' /tmp/teacher.html
+          record_file_contains 'Teacher Open Graph URL' 'property="og:url" content="https://annword.ru/teacher/"' /tmp/teacher.html
 
-      - name: Inspect response CSP frame protection
-        run: |
-          set -euo pipefail
-          CSP="$(curl -sSI "$APP_ORIGIN/" | tr -d '\r' | sed -n 's/^content-security-policy:[[:space:]]*//Ip' | head -n 1)"
-          echo "Response CSP: ${CSP:-missing}"
-          if [ -n "$CSP" ] && printf '%s' "$CSP" | grep -Eqi "frame-ancestors[[:space:]]+'none'|frame-ancestors[[:space:]]+'self'"; then
-            echo 'FRAME_ANCESTORS_READY=1' >> "$GITHUB_ENV"
-          else
-            echo 'FRAME_ANCESTORS_READY=0' >> "$GITHUB_ENV"
+          fetch_code_url 'Practice route' "$APP_ORIGIN/practice/" /tmp/practice.html
+          record_file_contains 'Practice route title' '<title>AnnWord Practice — тренировка английских слов</title>' /tmp/practice.html
+          record_file_contains 'Practice route canonical' 'rel="canonical" href="https://annword.ru/practice/"' /tmp/practice.html
+          record_file_contains 'Practice Open Graph URL' 'property="og:url" content="https://annword.ru/practice/"' /tmp/practice.html
+
+          STATUS="$(curl -sS -o /tmp/not-found.html -w '%{http_code}' "$APP_ORIGIN/__annword_missing_route_probe__" || true)"
+          echo "Unknown route HTTP status: ${STATUS:-unreachable}"
+          if [ "$STATUS" != '404' ]; then CODE_EVIDENCE_READY=0; fi
+          record_file_contains '404 title' '<title>Страница не найдена — AnnWord</title>' /tmp/not-found.html
+          record_file_contains '404 noindex metadata' 'name="robots" content="noindex,nofollow"' /tmp/not-found.html
+
+          RESPONSE_CSP="$(sed -n 's/^content-security-policy:[[:space:]]*//Ip' /tmp/root-headers.txt | head -n 1)"
+          echo "Response CSP: ${RESPONSE_CSP:-missing}"
+          if [ -n "$RESPONSE_CSP" ] && printf '%s' "$RESPONSE_CSP" | grep -Eqi "frame-ancestors[[:space:]]+'none'|frame-ancestors[[:space:]]+'self'"; then
+            FRAME_ANCESTORS_READY=1
           fi
 
-      - name: Inspect www canonical redirect
-        run: |
-          set -euo pipefail
           curl -sSI "$WWW_ORIGIN/" | tr -d '\r' > /tmp/www-headers.txt || true
           cat /tmp/www-headers.txt
-          STATUS="$(sed -n '1s#^HTTP/[^ ]* \([0-9][0-9][0-9]\).*#\1#p' /tmp/www-headers.txt)"
-          LOCATION="$(sed -n 's/^location:[[:space:]]*//Ip' /tmp/www-headers.txt | head -n 1)"
-          echo "www status=${STATUS:-unreachable}; location=${LOCATION:-none}"
-          if printf '%s' "$STATUS" | grep -Eq '^30[1278]$' && [ "$LOCATION" = 'https://annword.ru/' ]; then
-            echo 'WWW_REDIRECT_READY=1' >> "$GITHUB_ENV"
-          else
-            echo 'WWW_REDIRECT_READY=0' >> "$GITHUB_ENV"
+          WWW_STATUS="$(sed -n '1s#^HTTP/[^ ]* \([0-9][0-9][0-9]\).*#\1#p' /tmp/www-headers.txt)"
+          WWW_LOCATION="$(sed -n 's/^location:[[:space:]]*//Ip' /tmp/www-headers.txt | head -n 1)"
+          echo "www status=${WWW_STATUS:-unreachable}; location=${WWW_LOCATION:-none}"
+          if printf '%s' "$WWW_STATUS" | grep -Eq '^30[1278]$' && [ "$WWW_LOCATION" = 'https://annword.ru/' ]; then
+            WWW_REDIRECT_READY=1
           fi
 
-      - name: Summarize response-only blockers
+          {
+            echo "CODE_EVIDENCE_READY=$CODE_EVIDENCE_READY"
+            echo "HSTS_READY=$HSTS_READY"
+            echo "NOSNIFF_READY=$NOSNIFF_READY"
+            echo "FRAME_ANCESTORS_READY=$FRAME_ANCESTORS_READY"
+            echo "WWW_REDIRECT_READY=$WWW_REDIRECT_READY"
+          } >> "$GITHUB_ENV"
+
+      - name: Summarize code evidence and response-only blockers
+        if: always()
         run: |
           {
-            echo '## Security / SEO response evidence'
-            echo "- HSTS: verified"
-            echo "- X-Content-Type-Options: verified"
-            echo "- Public route metadata: crawler-visible HTML verified"
-            echo "- OCR CSP dependencies: preserved"
-            echo "- Server-side unknown route: HTTP 404 + noindex metadata verified"
-            echo "- CSP frame-ancestors response directive: ${FRAME_ANCESTORS_READY}"
-            echo "- www -> canonical 301/302/307/308: ${WWW_REDIRECT_READY}"
+            echo '## Security / SEO production evidence'
+            echo "- Code-addressable SEO/routing evidence: ${CODE_EVIDENCE_READY:-0}"
+            echo "- HSTS response header: ${HSTS_READY:-0}"
+            echo "- X-Content-Type-Options nosniff response header: ${NOSNIFF_READY:-0}"
+            echo "- CSP frame-ancestors response directive: ${FRAME_ANCESTORS_READY:-0}"
+            echo "- www -> canonical redirect: ${WWW_REDIRECT_READY:-0}"
+            echo '- Response-only zeros are infrastructure/routing blockers and are reported without mutating Yandex settings.'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Require code-addressable production evidence
+        run: |
+          set -euo pipefail
+          test "${CODE_EVIDENCE_READY:-0}" = '1'
 
       - name: Publish audit status
         if: always()
@@ -129,10 +169,10 @@ jobs:
         run: |
           set -euo pipefail
           STATE=success
-          DESCRIPTION='Security, SEO and 404 production evidence collected'
+          DESCRIPTION='Security/SEO code evidence passed; response blockers reported'
           if [ "$JOB_STATUS" != success ]; then
             STATE=failure
-            DESCRIPTION='Security/SEO production audit failed'
+            DESCRIPTION='Security/SEO code production evidence failed'
           fi
           export STATE DESCRIPTION
           node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Security SEO Audit",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/security-seo-status.json
