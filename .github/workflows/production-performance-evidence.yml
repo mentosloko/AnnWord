@@ -1,0 +1,147 @@
+name: Production Performance Evidence
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '35 */6 * * *'
+  workflow_run:
+    workflows:
+      - Deploy to Yandex Cloud
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  actions: read
+  contents: read
+  statuses: write
+
+concurrency:
+  group: production-performance-evidence
+  cancel-in-progress: true
+
+env:
+  KEEP_WARM_START_AT: '2026-08-26T09:15:00Z'
+  CORS_CACHE_DEPLOYED_AT: '2026-08-24T10:35:35Z'
+  SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  evidence:
+    name: Verify RUM, CORS and keep-warm evidence
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Verify live CORS preflight cache header
+        env:
+          API_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+        run: |
+          set -euo pipefail
+          API_BASE="${API_URL%/}"
+          curl --silent --show-error --include --request OPTIONS \
+            --header 'Origin: https://annword.ru' \
+            --header 'Access-Control-Request-Method: POST' \
+            --header 'Access-Control-Request-Headers: content-type,x-annword-session' \
+            "${API_BASE}/api/profile/coins" > /tmp/preflight.txt
+          sed -n '1,30p' /tmp/preflight.txt
+          grep -Eq '^HTTP/.* 204' /tmp/preflight.txt
+          tr -d '\r' < /tmp/preflight.txt | grep -Eqi '^access-control-max-age:[[:space:]]*3600([[:space:]]|$)'
+
+      - name: Configure Yandex Cloud CLI read-only context
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > /tmp/yc-performance-key.json
+          "$HOME/yandex-cloud/bin/yc" config profile create annword-performance-evidence
+          "$HOME/yandex-cloud/bin/yc" config set service-account-key /tmp/yc-performance-key.json
+          "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
+          "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
+
+      - name: Read recent Yandex container logs
+        env:
+          YC_SERVERLESS_CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
+        run: |
+          set -euo pipefail
+          yc logging read \
+            --resource-ids="$YC_SERVERLESS_CONTAINER_ID" \
+            --since 72h \
+            --limit 10000 \
+            --format json > /tmp/yandex-performance-logs.json
+          node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/yandex-performance-logs.json","utf8"));const a=Array.isArray(x)?x:(x.entries||x.messages||x.items||[]);console.log(`Yandex log records read: ${a.length}`); if(!a.length) process.exit(2)'
+
+      - name: Read scheduled keep-warm run history
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/yandex-keep-warm.yml/runs?event=schedule&per_page=100" \
+            > /tmp/keep-warm-runs.json
+          node -e 'const x=require("/tmp/keep-warm-runs.json"); console.log(`Keep-warm scheduled runs returned: ${(x.workflow_runs||[]).length}`)'
+
+      - name: Aggregate production evidence
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          YANDEX_LOG_FILE: /tmp/yandex-performance-logs.json
+          KEEP_WARM_RUNS_FILE: /tmp/keep-warm-runs.json
+          PERFORMANCE_EVIDENCE_OUTPUT: artifacts/performance-evidence.json
+          PERFORMANCE_EVIDENCE_MARKDOWN: artifacts/performance-evidence.md
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          node scripts/production-performance-evidence.mjs | tee /tmp/performance-evidence.log
+          cat artifacts/performance-evidence.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload aggregate evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: annword-production-performance-evidence
+          path: |
+            artifacts/performance-evidence.json
+            artifacts/performance-evidence.md
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish performance evidence status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+          TARGET_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          if [ "$JOB_STATUS" = success ]; then
+            STATE=success
+            DESCRIPTION='Production RUM, CORS and keep-warm evidence verified'
+          else
+            STATE=failure
+            DESCRIPTION='Production performance evidence check failed'
+          fi
+          export STATE DESCRIPTION
+          node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Performance Evidence",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/performance-status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${SOURCE_SHA}" \
+            --data-binary @/tmp/performance-status.json
+          test "$STATE" = success
