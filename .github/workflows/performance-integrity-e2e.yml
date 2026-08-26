@@ -1,0 +1,55 @@
+name: Performance Integrity E2E
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'components/screens/KidsHomeScreen.tsx'
+      - 'services/analyticsService.ts'
+      - 'scripts/static-compression-audit.mjs'
+      - 'e2e/kids-performance.spec.ts'
+      - '.github/workflows/performance-integrity-e2e.yml'
+      - '.github/workflows/yandex-deploy.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  performance-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build optimized frontend
+        env:
+          VITE_API_URL: http://127.0.0.1:8787
+        run: npm run build
+
+      - name: Measure gzip and Brotli opportunity
+        run: node scripts/static-compression-audit.mjs
+
+      - name: Verify mobile Kids CLS
+        run: npx playwright test e2e/kids-performance.spec.ts --project=chromium-desktop
+
+      - name: Upload Playwright diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: annword-performance-integrity-e2e
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 7
