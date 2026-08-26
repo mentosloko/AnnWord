@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /profile
+Disallow: /workspace
+Disallow: /dictionary/edit
+Disallow: /onboarding/
+Disallow: /play/
+
+Sitemap: https://annword.ru/sitemap.xml
