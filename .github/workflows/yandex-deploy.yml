@@ -279,7 +279,12 @@ jobs:
           test "$HTTP_CODE" = "400"
           grep -Fq 'russian_email_domain_required' /tmp/foreign-email-response.json
 
-          for route in / /kids; do
+          KIDS_REDIRECT_HEADERS="$(curl -sSI "${APP_BASE}/kids" | tr -d '\r')"
+          printf '%s\n' "$KIDS_REDIRECT_HEADERS"
+          printf '%s\n' "$KIDS_REDIRECT_HEADERS" | grep -Eq '^HTTP/[^ ]+ 30[1278] '
+          printf '%s\n' "$KIDS_REDIRECT_HEADERS" | grep -Eqi '^location:[[:space:]]*/kids/[[:space:]]*$'
+
+          for route in / /kids/; do
             HTML_HEADERS="$(curl -fsSI "${APP_BASE}${route}" | tr -d '\r')"
             printf '%s\n' "$HTML_HEADERS"
             printf '%s\n' "$HTML_HEADERS" | grep -Eqi '^cache-control:.*(max-age=0|no-cache|must-revalidate)'
