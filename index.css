@@ -27,4 +27,19 @@
   img[src="/assets/kids-mascot.webp"] {
     display: none !important;
   }
+
+  /* WCAG AA guardrails for secondary copy on the app's light cards/surfaces. */
+  #main-content .bg-white .text-gray-400,
+  #main-content .bg-white .text-gray-500,
+  #main-content .bg-gray-50 .text-gray-400,
+  #main-content .bg-gray-50 .text-gray-500 {
+    color: #374151;
+  }
+
+  #main-content .bg-white .text-indigo-300,
+  #main-content .bg-white .text-indigo-400,
+  #main-content .bg-indigo-50 .text-indigo-300,
+  #main-content .bg-indigo-50 .text-indigo-400 {
+    color: #4338ca;
+  }
 }
