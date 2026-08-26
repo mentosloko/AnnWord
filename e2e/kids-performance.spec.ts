@@ -66,7 +66,9 @@ const installBackend = async (page: Page) => {
       return;
     }
     if (path === '/api/profile/bootstrap') {
-      await fulfillJson(route, { user: { id: 'parent-cls', email: 'parent@example.ru', name: 'Parent' }, profile, quest: null });
+      // Deliberately omit `quest`: auth bootstrap must render the Kids shell first,
+      // then the normal daily-quest request hydrates the dynamic hero below.
+      await fulfillJson(route, { user: { id: 'parent-cls', email: 'parent@example.ru', name: 'Parent' }, profile });
       return;
     }
     if (path === '/api/profile/me') {
@@ -99,8 +101,10 @@ test('mobile Kids keeps CLS at or below 0.1 while quest state hydrates', async (
   });
   await installBackend(page);
 
+  const questResponse = page.waitForResponse(response => response.url().includes('/api/daily-quest/today') && response.status() === 200);
   await page.goto('/kids');
-  await expect(page.getByRole('heading', { name: /Поиграем со словами|Большое приключение/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Поиграем со словами?' })).toBeVisible();
+  await questResponse;
   await expect(page.getByRole('heading', { name: 'Большое приключение' })).toBeVisible();
   await page.waitForTimeout(500);
 
