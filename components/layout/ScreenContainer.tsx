@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface ScreenContainerProps {
   children: React.ReactNode;
@@ -17,10 +17,21 @@ const containsMainLandmark = (node: React.ReactNode): boolean => React.Children.
 export const ScreenContainer: React.FC<ScreenContainerProps> = ({ children, className = '', compact = false, id = 'main-content' }) => {
   const spacingClassName = compact ? '' : 'px-4 py-6';
   const classNames = `w-full max-w-6xl mx-auto ${spacingClassName} ${className}`;
+  const containerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+    for (const select of Array.from(root.querySelectorAll<HTMLSelectElement>('select:not([aria-label]):not([aria-labelledby])'))) {
+      if (select.options[0]?.textContent?.trim() === 'Выберите подборку') {
+        select.setAttribute('aria-label', 'Словарь для назначения ученику');
+      }
+    }
+  }, [children]);
 
   if (containsMainLandmark(children)) {
-    return <div id={id} tabIndex={-1} className={classNames}>{children}</div>;
+    return <div ref={containerRef as React.Ref<HTMLDivElement>} id={id} tabIndex={-1} className={classNames}>{children}</div>;
   }
 
-  return <main id={id} tabIndex={-1} className={classNames}>{children}</main>;
+  return <main ref={containerRef as React.Ref<HTMLElement>} id={id} tabIndex={-1} className={classNames}>{children}</main>;
 };
