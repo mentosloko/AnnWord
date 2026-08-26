@@ -22,11 +22,12 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({ children, clas
   useEffect(() => {
     const root = containerRef.current;
     if (!root) return;
-    for (const select of Array.from(root.querySelectorAll<HTMLSelectElement>('select:not([aria-label]):not([aria-labelledby])'))) {
+    const selects = root.querySelectorAll<HTMLSelectElement>('select:not([aria-label]):not([aria-labelledby])');
+    selects.forEach((select: HTMLSelectElement) => {
       if (select.options[0]?.textContent?.trim() === 'Выберите подборку') {
         select.setAttribute('aria-label', 'Словарь для назначения ученику');
       }
-    }
+    });
   }, [children]);
 
   if (containsMainLandmark(children)) {
