@@ -10,11 +10,17 @@ describe('security, SEO and routing contracts', () => {
     window.history.replaceState({}, '', '/');
   });
 
-  it('ships canonical, social, referrer and browser CSP metadata', () => {
+  it('ships canonical, social and referrer metadata with environment-aware CSP injection', () => {
     const html = read('index.html');
+    const vite = read('vite.config.ts');
     expect(html).toContain('rel="canonical" href="https://annword.ru/"');
     expect(html).toContain('name="referrer" content="strict-origin-when-cross-origin"');
-    expect(html).toContain('http-equiv="Content-Security-Policy"');
+    expect(html).not.toContain('http-equiv="Content-Security-Policy"');
+    expect(vite).toContain("name: 'annword-content-security-policy'");
+    expect(vite).toContain("'http-equiv': 'Content-Security-Policy'");
+    expect(vite).toContain("`connect-src ${connectSources.join(' ')}`");
+    expect(vite).toContain("url.hostname !== '127.0.0.1' && url.hostname !== 'localhost'");
+    expect(vite).toContain("...(e2eOrigin ? [] : ['upgrade-insecure-requests'])");
     expect(html).toContain('property="og:title"');
     expect(html).toContain('name="twitter:card"');
     expect(html).toContain('name="robots" content="index,follow"');
