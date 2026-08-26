@@ -21,9 +21,25 @@ describe('security, SEO and routing contracts', () => {
     expect(vite).toContain("`connect-src ${connectSources.join(' ')}`");
     expect(vite).toContain("url.hostname !== '127.0.0.1' && url.hostname !== 'localhost'");
     expect(vite).toContain("...(e2eOrigin ? [] : ['upgrade-insecure-requests'])");
+    expect(vite).toContain("https://cdn.jsdelivr.net");
+    expect(vite).toContain("https://tessdata.projectnaptha.com");
+    expect(vite).toContain("'wasm-unsafe-eval'");
+    expect(vite).toContain("worker-src 'self' blob:");
     expect(html).toContain('property="og:title"');
     expect(html).toContain('name="twitter:card"');
     expect(html).toContain('name="robots" content="index,follow"');
+  });
+
+  it('builds crawler-visible metadata into public route fallbacks and noindexes private fallbacks', () => {
+    const vite = read('vite.config.ts');
+    expect(vite).toContain('STATIC_PUBLIC_ENTRY_METADATA');
+    expect(vite).toContain("title: 'AnnWord Kids — школьные английские слова играючи'");
+    expect(vite).toContain("canonical: 'https://annword.ru/kids/'");
+    expect(vite).toContain("canonical: 'https://annword.ru/teacher/'");
+    expect(vite).toContain("canonical: 'https://annword.ru/practice/'");
+    expect(vite).toContain("robots: 'noindex,nofollow'");
+    expect(vite).toContain('rewriteStaticHtmlMetadata(indexHtml, staticMetadataForRoute(route))');
+    expect(vite).toContain("title: 'Страница не найдена — AnnWord'");
   });
 
   it('publishes robots and sitemap with the canonical host', () => {
