@@ -57,6 +57,27 @@ jobs:
           grep -Eq '^HTTP/.* 204' /tmp/preflight.txt
           tr -d '\r' < /tmp/preflight.txt | grep -Eqi '^access-control-max-age:[[:space:]]*3600([[:space:]]|$)'
 
+      - name: Read server-side RUM aggregate
+        env:
+          API_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          set -euo pipefail
+          API_BASE="${API_URL%/}"
+          GENERATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          CORS_WINDOW_HOURS=18
+          export GENERATED_AT CORS_WINDOW_HOURS
+          SIGNATURE="$(node -e 'const crypto=require("crypto"); const input=["annword-performance-evidence-v1",process.env.GENERATED_AT,process.env.KEEP_WARM_START_AT,process.env.CORS_CACHE_DEPLOYED_AT,process.env.CORS_WINDOW_HOURS].join("|"); process.stdout.write(crypto.createHmac("sha256",process.env.JWT_SECRET).update(input).digest("hex"));')"
+          curl --fail --silent --show-error --get \
+            --header "X-AnnWord-Evidence-Signature: ${SIGNATURE}" \
+            --data-urlencode "generatedAt=${GENERATED_AT}" \
+            --data-urlencode "keepWarmStart=${KEEP_WARM_START_AT}" \
+            --data-urlencode "corsCutoff=${CORS_CACHE_DEPLOYED_AT}" \
+            --data-urlencode "corsWindowHours=${CORS_WINDOW_HOURS}" \
+            "${API_BASE}/api/analytics/internal/performance-evidence" \
+            > /tmp/production-rum-evidence.json
+          node -e 'const x=require("/tmp/production-rum-evidence.json"); if(!x.rum||!x.boundaries) process.exit(2); console.log(`Server-side RUM events: ${x.rum.requests}; releases=${(x.rum.releases||[]).length}`)'
+
       - name: Configure Yandex Cloud CLI read-only context
         env:
           YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
@@ -99,7 +120,7 @@ jobs:
 
       - name: Aggregate production evidence
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PERFORMANCE_RUM_FILE: /tmp/production-rum-evidence.json
           YANDEX_LOG_FILE: /tmp/yandex-performance-logs.json
           KEEP_WARM_RUNS_FILE: /tmp/keep-warm-runs.json
           PERFORMANCE_EVIDENCE_OUTPUT: artifacts/performance-evidence.json
