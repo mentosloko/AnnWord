@@ -62,7 +62,7 @@ describe('acquisition and forms integrity', () => {
     expect(register).toHaveBeenCalledTimes(1);
   });
 
-  it('AppShell header CTA opens registration even through the integration fallback', () => {
+  it('AppShell header CTA opens registration through the current AppV2 fallback wiring', () => {
     render(<ShellRegistrationHarness />);
     fireEvent.click(screen.getByRole('button', { name: 'Начать бесплатно' }));
     expect(screen.getByRole('dialog', { name: 'Создать аккаунт' })).toBeVisible();
