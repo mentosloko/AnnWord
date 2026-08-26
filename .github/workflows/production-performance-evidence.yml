@@ -98,10 +98,17 @@ jobs:
           YC_SERVERLESS_CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
         run: |
           set -euo pipefail
+          # Current yc logging syntax reads from a log group. Serverless Container execution
+          # logs are written to the folder's `default` group when no custom group is set.
+          # Keep the exact container resource filter so unrelated folder logs never enter evidence.
+          yc logging group list-resources default --format json > /tmp/yandex-log-resources.json || true
+          node -e 'const fs=require("fs");let x=[];try{x=JSON.parse(fs.readFileSync("/tmp/yandex-log-resources.json","utf8"))}catch{};const a=Array.isArray(x)?x:(x.resources||x.items||[]);console.log(`Default log-group resources visible: ${a.length}`)'
           yc logging read \
+            --group-name=default \
             --resource-ids="$YC_SERVERLESS_CONTAINER_ID" \
             --since 72h \
-            --limit 10000 \
+            --limit 1000 \
+            --max-response-size 32M \
             --format json > /tmp/yandex-performance-logs.json
           node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/yandex-performance-logs.json","utf8"));const a=Array.isArray(x)?x:(x.entries||x.messages||x.items||[]);console.log(`Yandex log records read: ${a.length}`); if(!a.length) process.exit(2)'
 
@@ -161,8 +168,8 @@ jobs:
           node -e 'process.stdout.write(JSON.stringify({state:process.env.STATE,context:"Performance Evidence",description:process.env.DESCRIPTION,target_url:process.env.TARGET_URL}))' > /tmp/performance-status.json
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${SOURCE_SHA}" \
             --data-binary @/tmp/performance-status.json
           test "$STATE" = success
