@@ -1,9 +1,10 @@
 import { GameRewardType, ViewState } from '../types';
-import { backendApiRequest } from './backendApiClient';
+import { BackendApiError, backendApiRequest } from './backendApiClient';
 import { loadingTelemetry, type LoadingMetric } from './loadingTelemetry';
 
 const ANALYTICS_SESSION_KEY = 'annword_analytics_session_id';
 const ANALYTICS_QUEUE_KEY = 'annword_analytics_queue_v1';
+const ANALYTICS_ENDPOINT = '/api/analytics/events';
 const FLUSH_DELAY_MS = 3000;
 const MAX_BATCH_SIZE = 25;
 const MAX_STORED_EVENTS = 200;
@@ -156,7 +157,7 @@ export const createAnalyticsEvent = ({ userId, eventType, eventName, gameType = 
 
 const sendEvents = async (events: QueuedAnalyticsEvent[]): Promise<void> => {
   if (events.length === 0) return;
-  await backendApiRequest('/api/analytics/events', {
+  await backendApiRequest(ANALYTICS_ENDPOINT, {
     method: 'POST',
     body: { events },
   });
@@ -175,7 +176,19 @@ const scheduleFlush = (): void => {
   }, getFlushDelay());
 };
 
+const errorReason = (error: unknown): string => error instanceof Error ? error.message : String(error);
+const errorStatus = (error: unknown): number | null => error instanceof BackendApiError ? error.status : null;
+const transportFailure = (error: unknown, startedAt: number, batchSize: number) => ({
+  endpoint: ANALYTICS_ENDPOINT,
+  durationMs: Math.max(0, Date.now() - startedAt),
+  reason: errorReason(error),
+  status: errorStatus(error),
+  batchSize,
+  consecutiveFlushFailures,
+});
+
 const flushBatchInBackground = async (batch: QueuedAnalyticsEvent[]): Promise<void> => {
+  const startedAt = Date.now();
   try {
     await sendEvents(batch);
     consecutiveFlushFailures = 0;
@@ -183,7 +196,7 @@ const flushBatchInBackground = async (batch: QueuedAnalyticsEvent[]): Promise<vo
     consecutiveFlushFailures += 1;
     queue = [...batch, ...readQueue()].slice(-MAX_STORED_EVENTS);
     persistQueue();
-    console.warn('Analytics flush failed', { error, consecutiveFlushFailures, retryInMs: getFlushDelay() });
+    console.warn('Analytics flush failed', { ...transportFailure(error, startedAt, batch.length), retryInMs: getFlushDelay() });
   } finally {
     isFlushing = false;
     if (readQueue().length > 0) scheduleFlush();
@@ -204,7 +217,7 @@ export const analyticsService = {
       persistQueue();
       scheduleFlush();
     } catch (error) {
-      console.warn('Analytics enqueue failed', error);
+      console.warn('Analytics enqueue failed', { reason: errorReason(error) });
     }
   },
 
@@ -220,6 +233,7 @@ export const analyticsService = {
   },
 
   sendNow: async (events: QueuedAnalyticsEvent[]): Promise<void> => {
+    const startedAt = Date.now();
     try {
       await sendEvents(events);
       consecutiveFlushFailures = 0;
@@ -227,14 +241,14 @@ export const analyticsService = {
       consecutiveFlushFailures += 1;
       queue = [...events, ...readQueue()].slice(-MAX_STORED_EVENTS);
       persistQueue();
-      console.warn('Analytics immediate send failed', { error, consecutiveFlushFailures });
+      console.warn('Analytics immediate send failed', transportFailure(error, startedAt, events.length));
     }
   },
 };
 
 const shouldForwardLoadingMetric = (metric: LoadingMetric): boolean => {
   if (metric.kind === 'screen') return true;
-  if (metric.path === '/api/analytics/events') return false;
+  if (metric.path === ANALYTICS_ENDPOINT) return false;
   return !metric.ok || metric.durationMs >= 750 || metric.deduplicated || IMPORTANT_LOADING_PATHS.has(metric.path);
 };
 
