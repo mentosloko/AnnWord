@@ -62,6 +62,10 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
     onCloseLogin();
     if (!isAuthenticated && authMode === 'register') onHomeClick();
   };
+  // Lazy authenticated screens used to render a short fallback first, putting the legal
+  // footer inside the mobile viewport. When the real screen arrived, the footer moved
+  // below the fold and produced most of /kids CLS. Reserve the route viewport up front.
+  const routeViewportClass = isAuthenticated && !isGameRoute ? 'min-h-[calc(100dvh-4rem)]' : '';
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
@@ -81,7 +85,7 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
           onDictionaryStudioClick={onDictionaryClick}
         />
       )}
-      <div className={`flex-1 ${showMobileNav ? 'pb-20 lg:pb-0' : ''}`}>{children}</div>
+      <div className={`flex-1 ${routeViewportClass} ${showMobileNav ? 'pb-20 lg:pb-0' : ''}`}>{children}</div>
       {!isGameRoute && <LegalFooter />}
       {!isGameRoute && <MobileBottomNav route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} onHomeClick={onHomeClick} onProfileClick={onProfileClick} onShopClick={onShopClick} onAdultRoomClick={onAdultRoomClick} onDictionaryStudioClick={onDictionaryClick} />}
       <AppModals

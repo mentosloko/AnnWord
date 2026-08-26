@@ -94,6 +94,7 @@ jobs:
         run: |
           npm run build
           printf '{"sha":"%s","builtAt":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > dist/release.json
+          node scripts/static-compression-audit.mjs | tee /tmp/static-compression-report.log
 
       - name: Install Yandex Cloud CLI
         run: |
@@ -220,7 +221,30 @@ jobs:
           S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
           S3_FRONTEND_BUCKET: ${{ secrets.S3_FRONTEND_BUCKET }}
         run: |
+          set -euo pipefail
           python -m awscli --endpoint-url "$S3_ENDPOINT" s3 sync dist "s3://${S3_FRONTEND_BUCKET}" --delete --exclude ".well-known/acme-challenge/*"
+
+          # Every generated HTML entry point must revalidate so route fallbacks never reference deleted bundles.
+          while IFS= read -r file; do
+            rel="${file#dist/}"
+            python -m awscli --endpoint-url "$S3_ENDPOINT" s3 cp "$file" "s3://${S3_FRONTEND_BUCKET}/${rel}" \
+              --content-type 'text/html; charset=utf-8' \
+              --cache-control 'public,max-age=0,must-revalidate'
+          done < <(find dist -type f -name '*.html' -print | sort)
+
+          python -m awscli --endpoint-url "$S3_ENDPOINT" s3 cp dist/release.json "s3://${S3_FRONTEND_BUCKET}/release.json" \
+            --content-type 'application/json; charset=utf-8' \
+            --cache-control 'no-store'
+
+          # Content-hashed bundles are content-addressed and safe to cache for one year.
+          while IFS= read -r file; do
+            rel="${file#dist/}"
+            base="$(basename "$file")"
+            if [[ "$base" =~ -[A-Za-z0-9_-]{8,}\.(js|css|json|svg|woff2?)$ ]]; then
+              python -m awscli --endpoint-url "$S3_ENDPOINT" s3 cp "$file" "s3://${S3_FRONTEND_BUCKET}/${rel}" \
+                --cache-control 'public,max-age=31536000,immutable'
+            fi
+          done < <(find dist/assets -type f -print | sort)
 
       - name: Verify live Yandex production
         env:
@@ -255,6 +279,23 @@ jobs:
           test "$HTTP_CODE" = "400"
           grep -Fq 'russian_email_domain_required' /tmp/foreign-email-response.json
 
+          for route in / /kids; do
+            HTML_HEADERS="$(curl -fsSI "${APP_BASE}${route}" | tr -d '\r')"
+            printf '%s\n' "$HTML_HEADERS"
+            printf '%s\n' "$HTML_HEADERS" | grep -Eqi '^cache-control:.*(max-age=0|no-cache|must-revalidate)'
+          done
+
+          INDEX_BODY="$(curl -fsS "${APP_BASE}/")"
+          HASHED_ASSET="$(printf '%s' "$INDEX_BODY" | grep -Eo '/assets/[^"'"'"' ]+-[A-Za-z0-9_-]{8,}\.(js|css)' | head -n 1)"
+          test -n "$HASHED_ASSET"
+          ASSET_HEADERS="$(curl -fsSI "${APP_BASE}${HASHED_ASSET}" | tr -d '\r')"
+          printf '%s\n' "$ASSET_HEADERS"
+          printf '%s\n' "$ASSET_HEADERS" | grep -Eqi '^cache-control:.*max-age=31536000.*immutable'
+
+          ENCODING_HEADERS="$(curl -fsSI -H 'Accept-Encoding: br, gzip' "${APP_BASE}${HASHED_ASSET}" | tr -d '\r')"
+          CONTENT_ENCODING="$(printf '%s\n' "$ENCODING_HEADERS" | sed -n 's/^content-encoding:[[:space:]]*//Ip' | head -n 1)"
+          echo "Production static encoding for ${HASHED_ASSET}: ${CONTENT_ENCODING:-identity}"
+
       - name: Deployment summary
         run: |
           echo "Production commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
@@ -262,6 +303,8 @@ jobs:
           echo "Frontend bucket: ${{ secrets.S3_FRONTEND_BUCKET }}" >> "$GITHUB_STEP_SUMMARY"
           echo "Postbox sender: $AUTH_FROM_EMAIL (verified with delivery simulator)" >> "$GITHUB_STEP_SUMMARY"
           echo "Live API foreign-email rejection: verified" >> "$GITHUB_STEP_SUMMARY"
+          echo "Static delivery cache policy: verified for root and route HTML plus hashed assets" >> "$GITHUB_STEP_SUMMARY"
+          tail -n 1 /tmp/static-compression-report.log >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Publish Yandex production commit status
         if: always()
