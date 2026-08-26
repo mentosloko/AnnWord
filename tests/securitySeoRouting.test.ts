@@ -77,4 +77,17 @@ describe('security, SEO and routing contracts', () => {
     expect(document.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe('https://annword.ru/kids/');
     expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('index,follow');
   });
+
+  it('collects response-only blockers without hiding code-addressable production evidence', () => {
+    const workflow = read('.github/workflows/production-security-seo-audit.yml');
+    expect(workflow).toContain('CODE_EVIDENCE_READY=1');
+    expect(workflow).toContain('HSTS_READY=0');
+    expect(workflow).toContain('NOSNIFF_READY=0');
+    expect(workflow).toContain('FRAME_ANCESTORS_READY=0');
+    expect(workflow).toContain('WWW_REDIRECT_READY=0');
+    expect(workflow).toContain('Response-only zeros are infrastructure/routing blockers');
+    expect(workflow).toContain('test "${CODE_EVIDENCE_READY:-0}" = \'1\'');
+    expect(workflow).not.toContain('test "${HSTS_READY:-0}" = \'1\'');
+    expect(workflow).not.toContain('test "${NOSNIFF_READY:-0}" = \'1\'');
+  });
 });
