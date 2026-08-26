@@ -61,6 +61,8 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
     if (!isAuthenticated && authMode === 'register') onHomeClick();
   };
   const routeViewportClass = isAuthenticated && !isGameRoute ? 'min-h-[calc(100dvh-4rem)]' : '';
+  const shellProvidesMain = route === 'pet';
+  const contentClassName = `flex-1 ${routeViewportClass} ${showMobileNav ? 'pb-20 lg:pb-0' : ''}`;
 
   React.useEffect(() => {
     applyPageMetadata(route);
@@ -85,7 +87,9 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
           onDictionaryStudioClick={onDictionaryClick}
         />
       )}
-      <div className={`flex-1 ${routeViewportClass} ${showMobileNav ? 'pb-20 lg:pb-0' : ''}`}>{children}</div>
+      {shellProvidesMain
+        ? <main id="main-content" tabIndex={-1} className={contentClassName}>{children}</main>
+        : <div className={contentClassName}>{children}</div>}
       {!isGameRoute && <LegalFooter />}
       {!isGameRoute && <MobileBottomNav route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} onHomeClick={onHomeClick} onProfileClick={onProfileClick} onShopClick={onShopClick} onAdultRoomClick={onAdultRoomClick} onDictionaryStudioClick={onDictionaryClick} />}
       <AppModals
