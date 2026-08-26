@@ -5,6 +5,7 @@ import { formatRussianCount, inflectRussianUnit, russianPlural } from '../utils/
 
 const read = (path: string) => readFileSync(path, 'utf8');
 
+// Keep this suite on the current main merge-ref before production merge.
 describe('UAT UX polish regressions', () => {
   it('inflects Russian counts including teen exceptions and 21/22/25', () => {
     const words = ['слово', 'слова', 'слов'] as const;
