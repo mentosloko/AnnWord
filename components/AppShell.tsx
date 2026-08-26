@@ -61,7 +61,8 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
     if (!isAuthenticated && authMode === 'register') onHomeClick();
   };
   const routeViewportClass = isAuthenticated && !isGameRoute ? 'min-h-[calc(100dvh-4rem)]' : '';
-  const shellProvidesMain = route === 'pet';
+  const shellProvidesMain = route === 'pet_room';
+  const showSkipLink = !isGameRoute && route !== 'admin';
   const contentClassName = `flex-1 ${routeViewportClass} ${showMobileNav ? 'pb-20 lg:pb-0' : ''}`;
 
   React.useEffect(() => {
@@ -70,7 +71,7 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
-      {!isGameRoute && <a href="#main-content" className="fixed left-3 top-3 z-[100] -translate-y-24 rounded-xl bg-indigo-950 px-4 py-3 font-black text-white shadow-xl transition-transform focus:translate-y-0 focus:outline-none focus:ring-4 focus:ring-indigo-300">Перейти к содержанию</a>}
+      {showSkipLink && <a href="#main-content" className="fixed left-3 top-3 z-[100] -translate-y-24 rounded-xl bg-indigo-950 px-4 py-3 font-black text-white shadow-xl transition-transform focus:translate-y-0 focus:outline-none focus:ring-4 focus:ring-indigo-300">Перейти к содержанию</a>}
       {!isGameRoute && (
         <AppHeader
           route={route}
