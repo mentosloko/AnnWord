@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { WordLength } from '../types';
 import { PaidActionButton } from './PaidActionButton';
 import { AccessibleDialog } from './a11y/AccessibleDialog';
@@ -27,6 +27,11 @@ export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], word
     () => Array.from(new Set(words.map(word => word.trim().toUpperCase()).filter(Boolean).filter(word => wordLength === undefined || word.length === wordLength))).sort(),
     [words, wordLength],
   );
+  useEffect(() => {
+    if (!error) return;
+    const timeout = window.setTimeout(() => setError(null), 4_000);
+    return () => window.clearTimeout(timeout);
+  }, [error]);
   const buttonClass = iconOnly
     ? `flex h-9 w-9 items-center justify-center rounded-xl border text-base shadow-sm transition ${locked ? 'border-gray-200 bg-gray-50 text-gray-400' : 'border-indigo-100 bg-white hover:bg-indigo-50'}`
     : compact
@@ -48,7 +53,7 @@ export const DictionaryPeek: React.FC<DictionaryPeekProps> = ({ words = [], word
       {onBeforeOpen && !locked && !iconOnly ? <PaidActionButton label={`${icon} ${label}`} price={1} paid={wasCharged} compact={compact} onClick={() => void open()} /> : <button type="button" onClick={() => void open()} aria-label={locked ? lockedMessage : `Открыть словарь: ${label}${onBeforeOpen && !wasCharged ? '. Стоимость 1 монета' : ''}`} className={buttonClass} title={locked ? lockedMessage : `Открыть словарь: ${label}`}>
         {iconOnly ? (locked ? '🔒' : icon) : locked ? `🔒 ${label}` : `${icon} ${label}`}
       </button>}
-      {error && <LiveStatus urgent className="fixed right-3 top-20 z-[95] rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 shadow-lg">{error}</LiveStatus>}
+      {error && <LiveStatus urgent className="fixed right-3 top-20 z-[95] flex max-w-[min(24rem,calc(100vw-1.5rem))] items-center gap-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 shadow-lg"><span className="min-w-0 flex-1">{error}</span><button type="button" aria-label="Закрыть уведомление" onClick={() => setError(null)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/70 text-lg font-black text-rose-600">×</button></LiveStatus>}
       <AccessibleDialog open={isOpen} titleId="dictionary-peek-title" descriptionId="dictionary-peek-description" onEscape={close} overlayClassName="z-[90] bg-indigo-950/45 p-3 sm:p-6" className="flex h-[min(88dvh,52rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[2rem] border-2 border-indigo-100 bg-white shadow-2xl">
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-indigo-50 px-5 py-4 sm:px-7 sm:py-5">
           <div>

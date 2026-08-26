@@ -32,6 +32,35 @@ export const levenshteinDistance = (a: string, b: string): number => {
   return matrix[b.length][a.length];
 };
 
+export type RussianPluralForms = readonly [one: string, few: string, many: string];
+
+/** Selects the Russian noun form for a numeric count, including 11–14 exceptions. */
+export const russianPlural = (count: number, forms: RussianPluralForms): string => {
+  const value = Math.abs(Math.trunc(Number.isFinite(count) ? count : 0));
+  const mod100 = value % 100;
+  if (mod100 >= 11 && mod100 <= 14) return forms[2];
+  const mod10 = value % 10;
+  if (mod10 === 1) return forms[0];
+  if (mod10 >= 2 && mod10 <= 4) return forms[1];
+  return forms[2];
+};
+
+export const formatRussianCount = (count: number, forms: RussianPluralForms): string =>
+  `${count} ${russianPlural(count, forms)}`;
+
+const SCOREBOARD_UNIT_FORMS: Record<string, RussianPluralForms> = {
+  'попыток': ['попытка', 'попытки', 'попыток'],
+  'слов': ['слово', 'слова', 'слов'],
+  'монет': ['монета', 'монеты', 'монет'],
+  'выбранных букв': ['выбранная буква', 'выбранные буквы', 'выбранных букв'],
+};
+
+/** Keeps legacy scoreboard unit props compatible while rendering correct Russian forms. */
+export const inflectRussianUnit = (count: number, unit: string): string => {
+  const forms = SCOREBOARD_UNIT_FORMS[unit];
+  return forms ? russianPlural(count, forms) : unit;
+};
+
 /**
  * Finds the closest word in the dictionary to the input word.
  * Returns the closest word if distance <= threshold, else null.

@@ -24,5 +24,8 @@ export const formatPremiumExpiresAt = (expiresAt?: string): string => {
 
 export const formatPremiumAccessPeriod = (expiresAt?: string): string => {
   if (!expiresAt || Number.isNaN(new Date(expiresAt).getTime())) return 'без ограничения срока';
-  return `до ${formatPremiumExpiresAt(expiresAt)}`;
+  // ru-RU may format the year suffix as "г.". Callers often finish the sentence
+  // with their own period, so keep the reusable period fragment punctuation-free.
+  const dateLabel = formatPremiumExpiresAt(expiresAt).replace(/[.。]+$/u, '');
+  return `до ${dateLabel}`;
 };

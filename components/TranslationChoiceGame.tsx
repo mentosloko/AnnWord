@@ -59,6 +59,7 @@ export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ on
   const [score, setScore] = useState(restored?.score || 0), [answered, setAnswered] = useState(restored?.answered || 0);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(restored?.feedback || null), [selected, setSelected] = useState<string | null>(restored?.selected || null), [finished, setFinished] = useState(false);
   const [resultProgress, setResultProgress] = useState<CharacterProgressResult | null>(null);
+  const [emptyConfirmed, setEmptyConfirmed] = useState(false);
   const rewardAppliedRef = useRef(false), showKidsRewards = isKidsMode(userProfile);
   const next = useCallback((previous?: string) => { setQuestion(makeQuestion(dictionary, previous, reviewPriorities)); setFeedback(null); setSelected(null); }, [dictionary, reviewPriorities]);
   const registerPractice = (word: string, result: WordPracticeResult) => { setReviewPriorities(previous => updateReviewPriorities(previous, word, result)); void Promise.resolve(onWordPractice?.(word, result)).catch(error => console.error('Failed to save translation choice practice', error)); };
@@ -67,6 +68,15 @@ export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ on
   const restart = () => { clearPersistedGameSession(sessionOwnerId, 'translation'); rewardAppliedRef.current = false; setScore(0); setAnswered(0); setFeedback(null); setSelected(null); setFinished(false); setResultProgress(null); setQuestion(makeQuestion(dictionary, null, reviewPriorities)); };
   const reward = useMemo(() => calculateGameReward({ type: 'translation', guessedWords: score }), [score]);
 
+  useEffect(() => {
+    if (dictionary.length > 0) {
+      setEmptyConfirmed(false);
+      if (!question && !finished) setQuestion(makeQuestion(dictionary, null, reviewPriorities));
+      return;
+    }
+    const timeout = window.setTimeout(() => setEmptyConfirmed(true), 750);
+    return () => window.clearTimeout(timeout);
+  }, [dictionary, finished, question, reviewPriorities]);
   useEffect(() => {
     if (!question || finished) return;
     persistGameSession(sessionOwnerId, {
@@ -82,7 +92,11 @@ export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ on
   }, [answered, dictionary, dictionaryIcon, dictionaryId, dictionaryLabel, feedback, finished, question, score, selected, sessionOwnerId]);
   useEffect(() => { if (finished) clearPersistedGameSession(sessionOwnerId, 'translation'); }, [finished, sessionOwnerId]);
   useEffect(() => { if (!finished || rewardAppliedRef.current) return; rewardAppliedRef.current = true; setResultProgress(showKidsRewards ? applyGameRewardToCharacter(userProfile.pet, reward) : null); void Promise.resolve(onGameReward({ type: 'translation', guessedWords: score })).catch(error => console.error('Failed to save translation result', error)); }, [finished, onGameReward, reward, score, showKidsRewards, userProfile.pet]);
-  if (dictionary.length < 1 || !question) return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-xl"><div className="mb-4 text-6xl">📚</div><h2 className="mb-2 text-2xl font-bold">Нет доступных слов</h2><p className="mb-6 text-gray-500">Для этой игры нужны слова с русским переводом.</p><button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
+
+  if (!question) {
+    if (dictionary.length < 1 && emptyConfirmed) return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-xl"><div className="mb-4 text-6xl">📚</div><h2 className="mb-2 text-2xl font-bold">Нет доступных слов</h2><p className="mb-6 text-gray-500">Для этой игры нужны слова с русским переводом.</p><button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
+    return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-xl" role="status" aria-live="polite"><div className="mb-4 animate-pulse text-6xl" aria-hidden="true">📚</div><h2 className="mb-2 text-2xl font-bold">Загружаю слова…</h2><p className="text-gray-500">Готовим выбранный словарь для игры.</p></div>;
+  }
   return <div className="mx-auto flex h-full min-h-0 w-full max-w-xl flex-col overflow-y-auto overscroll-contain rounded-3xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:h-auto sm:p-6">
     <div className="mb-4 flex shrink-0 justify-end sm:mb-5"><div className="rounded-full bg-indigo-50 px-3 py-2 text-sm font-bold text-indigo-700">{answered}/10 · ⭐ {score}</div></div>
     <div className="shrink-0 text-center"><div className="text-xs font-bold uppercase tracking-wider text-indigo-400">Выберите английский перевод</div><div className="mt-3 rounded-[2rem] bg-indigo-50 px-5 py-[clamp(1.5rem,5dvh,2rem)] text-3xl font-bold text-indigo-950">{question.word.translation}</div><p className="mt-3 text-xs font-medium text-gray-500">Неправильный вариант специально похож на правильный.</p></div>
