@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { getRecentFixedWords, getWordLearningSummary } from '../../services/wordLearningStats';
 import { prodamusPaymentService, PremiumPaymentHistoryItem } from '../../services/prodamusPaymentService';
 import { formatPremiumAccessPeriod, isPremiumActive } from '../../services/premiumAccess';
+import { mentorRoomService } from '../../services/mentorRoomService';
+import { getTeacherLearnerSummary, type TeacherLearnerSummary } from '../../services/teacherLearnerSummary';
 import { UserProfile } from '../../types';
 import { ReviewWordList } from '../ReviewWordList';
 import { ScreenContainer } from '../layout/ScreenContainer';
@@ -12,6 +14,8 @@ type Tab = 'overview' | 'words' | 'subscription';
 const paymentStatusLabel: Record<string, string> = { pending: 'Ожидает оплаты', paid: 'Оплачено', failed: 'Ошибка', cancelled: 'Отменено', refunded: 'Возвращено', ignored: 'Не оплачено', not_found: 'Не найдено' };
 const formatDate = (value?: string | null) => value ? new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—';
 const planLabel = (code: string) => code.includes('year') ? 'Premium на 1 год' : 'Premium на 1 месяц';
+const emptyTeacherSummary: TeacherLearnerSummary = { learners: 0, gamesPlayed: 0, gamesWon: 0, encounteredWords: 0, errorWords: 0, learnedWords: 0, activeReviewWords: 0, fixedAfterMistakeWords: 0, accuracy: 0 };
+const supportEmail = 'support@annword.ru';
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userProfile, isAuthenticated, activeDictionaryName, onBackHome, onOpenShop, onOpenPetRoom, onLogin }) => {
   const isKids = userProfile.role === 'parent' || userProfile.accountMode === 'parent';
@@ -25,6 +29,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userProfile, isAut
   const [payments, setPayments] = useState<PremiumPaymentHistoryItem[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [paymentsError, setPaymentsError] = useState<string | null>(null);
+  const [teacherSummary, setTeacherSummary] = useState<TeacherLearnerSummary>(emptyTeacherSummary);
+  const [teacherSummaryState, setTeacherSummaryState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
   useEffect(() => {
     if (!isAuthenticated || isTeacher || tab !== 'subscription') return;
@@ -34,23 +40,46 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ userProfile, isAut
     return () => { cancelled = true; };
   }, [isAuthenticated, isTeacher, tab, userProfile.subscriptionTier, userProfile.premiumExpiresAt]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !isTeacher) return;
+    let cancelled = false;
+    setTeacherSummaryState('loading');
+    mentorRoomService.loadLearners(true)
+      .then(result => {
+        if (cancelled) return;
+        setTeacherSummary(getTeacherLearnerSummary(result.learners));
+        setTeacherSummaryState('ready');
+      })
+      .catch(() => { if (!cancelled) setTeacherSummaryState('error'); });
+    return () => { cancelled = true; };
+  }, [isAuthenticated, isTeacher]);
+
   const title = !isAuthenticated ? 'Гость' : isTeacher ? 'AnnWord Teacher' : isKids ? 'AnnWord Kids' : 'AnnWord Practice';
-  const tabs = isTeacher ? [{ id: 'overview' as const, label: 'Обзор' }] : [
+  const tabs = isTeacher ? [{ id: 'overview' as const, label: 'Сводка' }] : [
     { id: 'overview' as const, label: 'Обзор' },
     { id: 'words' as const, label: 'Слова', badge: learning.activeReview.length },
     { id: 'subscription' as const, label: 'Подписка' },
   ];
+  const exportHref = `mailto:${supportEmail}?subject=${encodeURIComponent('AnnWord — экспорт данных аккаунта')}`;
+  const deleteHref = `mailto:${supportEmail}?subject=${encodeURIComponent('AnnWord — удаление аккаунта и данных')}`;
 
   return <ScreenContainer className="max-w-5xl pb-24 pt-4 sm:pb-20 sm:pt-6">
     <div className="mb-4 flex items-center justify-between gap-3"><button type="button" onClick={onBackHome} className={experienceUi.secondaryButton}>← На главную</button>{!isAuthenticated && <button type="button" onClick={onLogin} className={experienceUi.primaryButton}>Войти</button>}</div>
-    <section className="rounded-[2rem] bg-gradient-to-br from-indigo-700 to-purple-700 p-5 text-white shadow-xl sm:p-8"><div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><div className="text-xs font-bold uppercase tracking-wider text-white/65">{title}</div><h1 className="mt-2 text-3xl font-bold sm:text-5xl">{userProfile.username || title}</h1><p className="mt-2 text-sm font-medium text-white/75">{isTeacher ? 'Ученики, словари и задания.' : isKids ? 'Игры, питомец и твой прогресс.' : 'Результаты тренировок и слова для повторения.'}</p></div>{premium && <span className="w-max rounded-full bg-white/15 px-4 py-2 text-sm font-bold ring-1 ring-white/20">✦ {trialPremium ? 'Пробный Premium' : 'Premium'} {premiumPeriod}</span>}</div></section>
+    <section className="rounded-[2rem] bg-gradient-to-br from-indigo-700 to-purple-700 p-5 text-white shadow-xl sm:p-8"><div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><div className="text-xs font-bold uppercase tracking-wider text-white/65">{title}</div><h1 className="mt-2 text-3xl font-bold sm:text-5xl">{userProfile.username || title}</h1><p className="mt-2 text-sm font-medium text-white/75">{isTeacher ? 'Сводные результаты учеников, словари и данные аккаунта.' : isKids ? 'Игры, питомец и твой прогресс.' : 'Результаты тренировок и слова для повторения.'}</p></div>{premium && <span className="w-max rounded-full bg-white/15 px-4 py-2 text-sm font-bold ring-1 ring-white/20">✦ {trialPremium ? 'Пробный Premium' : 'Premium'} {premiumPeriod}</span>}</div></section>
     <div className="mt-5"><SegmentedTabs tabs={tabs} value={tab} onChange={setTab} ariaLabel="Разделы профиля" /></div>
 
     {tab === 'overview' && <div className="mt-5 space-y-5">
-      <SectionCard><div className={experienceUi.eyebrow}>Главные показатели</div><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><MetricCard value={userProfile.stats.gamesPlayed} label="тренировок" /><MetricCard value={userProfile.stats.gamesWon} label="успешных" />{isKids && <><MetricCard value={userProfile.coins} label="монет" /><MetricCard value={userProfile.pet.level} label="уровень" /></>}{isTeacher && <MetricCard value={(userProfile.dictionaryCollections || []).length} label="словарей" />}{!isKids && !isTeacher && <><MetricCard value={learning.fixedAfterMistake.length} label="исправлено" /><MetricCard value={learning.activeReview.length} label="к повторению" /></>}</div></SectionCard>
-      {!isTeacher && <SectionCard><div className={experienceUi.eyebrow}>Сейчас используется</div><h2 className="mt-2 text-xl font-bold text-indigo-950">{activeDictionaryName || 'Активный словарь'}</h2><p className="mt-2 text-sm font-medium text-slate-500">Новые игры запускаются с этим словарём и последними настройками.</p></SectionCard>}
-      {userProfile.stats.gamesPlayed === 0 && !isTeacher && <ExperienceState title="Здесь появится ваш прогресс" description="Завершите любую игру — мы покажем тренировки, успешные ответы и слова, которые нужно повторить." actionLabel="Вернуться к играм" onAction={onBackHome} />}
-      {isKids && <div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={onOpenPetRoom} className={experienceUi.primaryButton}>Комната питомца</button><button type="button" onClick={onOpenShop} className={experienceUi.secondaryButton}>Магазин</button></div>}
+      {isTeacher ? <>
+        <SectionCard><div className={experienceUi.eyebrow}>Ученики · общая сводка</div>{teacherSummaryState === 'loading' || teacherSummaryState === 'idle' ? <div className="mt-4"><ExperienceState kind="loading" title="Загружаю результаты учеников" /></div> : teacherSummaryState === 'error' ? <div className="mt-4"><ExperienceState kind="error" title="Сводка временно недоступна" description="Откройте раздел учеников и повторите попытку позже." /></div> : <><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><MetricCard value={teacherSummary.learners} label="учеников" /><MetricCard value={teacherSummary.gamesPlayed} label="игр" /><MetricCard value={teacherSummary.gamesWon} label="побед" /><MetricCard value={`${teacherSummary.accuracy}%`} label="успешность" /></div><div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4"><MetricCard value={teacherSummary.encounteredWords} label="слов встретилось" /><MetricCard value={teacherSummary.errorWords} label="ошибочных" /><MetricCard value={teacherSummary.activeReviewWords} label="к повторению" /><MetricCard value={teacherSummary.fixedAfterMistakeWords} label="исправлено" /></div></>}</SectionCard>
+        <SectionCard><div className={experienceUi.eyebrow}>Рабочие материалы</div><div className="mt-4 grid grid-cols-2 gap-3"><MetricCard value={(userProfile.dictionaryCollections || []).length} label="словарей" /><MetricCard value={teacherSummaryState === 'ready' ? teacherSummary.learnedWords : '—'} label="выучено учениками" /></div><p className="mt-3 text-sm font-medium text-slate-500">Сводка строится по тому же набору подключённых учеников, который используется в разделе «Ученики».</p></SectionCard>
+      </> : <>
+        <SectionCard><div className={experienceUi.eyebrow}>Главные показатели</div><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><MetricCard value={userProfile.stats.gamesPlayed} label="тренировок" /><MetricCard value={userProfile.stats.gamesWon} label="успешных" />{isKids && <><MetricCard value={userProfile.coins} label="монет" /><MetricCard value={userProfile.pet.level} label="уровень" /></>}{!isKids && <><MetricCard value={learning.fixedAfterMistake.length} label="исправлено" /><MetricCard value={learning.activeReview.length} label="к повторению" /></>}</div></SectionCard>
+        <SectionCard><div className={experienceUi.eyebrow}>Сейчас используется</div><h2 className="mt-2 text-xl font-bold text-indigo-950">{activeDictionaryName || 'Активный словарь'}</h2><p className="mt-2 text-sm font-medium text-slate-500">Новые игры запускаются с этим словарём и последними настройками.</p></SectionCard>
+        {userProfile.stats.gamesPlayed === 0 && <ExperienceState title="Здесь появится ваш прогресс" description="Завершите любую игру — мы покажем тренировки, успешные ответы и слова, которые нужно повторить." actionLabel="Вернуться к играм" onAction={onBackHome} />}
+        {isKids && <div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={onOpenPetRoom} className={experienceUi.primaryButton}>Комната питомца</button><button type="button" onClick={onOpenShop} className={experienceUi.secondaryButton}>Магазин</button></div>}
+      </>}
+
+      {isAuthenticated && <SectionCard><div className={experienceUi.eyebrow}>Аккаунт и данные</div><h2 className="mt-1 text-xl font-bold text-indigo-950">Управление данными аккаунта</h2><p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">Чтобы получить копию данных или удалить аккаунт вместе с данными AnnWord, отправьте запрос с email этого аккаунта. Поддержка подтвердит запрос и дальнейшие шаги ответным письмом.</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><a href={exportHref} className={experienceUi.secondaryButton}>Запросить экспорт данных</a><a href={deleteHref} className="rounded-2xl border-2 border-rose-100 bg-rose-50 px-4 py-3 text-center font-bold text-rose-700 transition hover:bg-rose-100">Запросить удаление аккаунта</a></div><p className="mt-3 text-xs font-medium text-slate-400">Контакт: {supportEmail}</p></SectionCard>}
     </div>}
 
     {tab === 'words' && <div className="mt-5 grid gap-5 lg:grid-cols-2">
