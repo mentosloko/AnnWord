@@ -90,4 +90,15 @@ describe('security, SEO and routing contracts', () => {
     expect(workflow).not.toContain('test "${HSTS_READY:-0}" = \'1\'');
     expect(workflow).not.toContain('test "${NOSNIFF_READY:-0}" = \'1\'');
   });
+
+  it('marks code evidence failed when a production document returns HTTP 4xx/5xx even with HTML content', () => {
+    const workflow = read('.github/workflows/production-security-seo-audit.yml');
+    expect(workflow).toContain('fetch_code_url()');
+    expect(workflow).toContain('if curl -fsS "$url" > "$file"; then');
+    expect(workflow).toContain('echo "FAIL: HTTP $label"');
+    expect(workflow).toContain('CODE_EVIDENCE_READY=0');
+    expect(workflow).toContain("fetch_code_url 'Kids route'");
+    expect(workflow).toContain("fetch_code_url 'Teacher route'");
+    expect(workflow).toContain("fetch_code_url 'Practice route'");
+  });
 });
