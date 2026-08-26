@@ -38,7 +38,7 @@ jobs:
           grep -Eqi '^strict-transport-security:[[:space:]]*max-age=' /tmp/root-headers.txt
           grep -Eqi '^x-content-type-options:[[:space:]]*nosniff' /tmp/root-headers.txt
 
-      - name: Verify SEO documents and metadata
+      - name: Verify SEO documents and root metadata
         run: |
           set -euo pipefail
           curl -fsS "$APP_ORIGIN/" > /tmp/root.html
@@ -47,17 +47,40 @@ jobs:
           grep -Fq 'property="og:title"' /tmp/root.html
           grep -Fq 'name="twitter:card"' /tmp/root.html
           grep -Fq 'http-equiv="Content-Security-Policy"' /tmp/root.html
+          grep -Fq 'https://cdn.jsdelivr.net' /tmp/root.html
+          grep -Fq 'https://tessdata.projectnaptha.com' /tmp/root.html
+          grep -Fq 'worker-src' /tmp/root.html
           curl -fsS "$APP_ORIGIN/robots.txt" | tee /tmp/robots.txt
           grep -Fq 'Sitemap: https://annword.ru/sitemap.xml' /tmp/robots.txt
           curl -fsS "$APP_ORIGIN/sitemap.xml" | tee /tmp/sitemap.xml
           grep -Fq '<loc>https://annword.ru/</loc>' /tmp/sitemap.xml
 
-      - name: Verify server-side 404 status
+      - name: Verify crawler-visible public route metadata
+        run: |
+          set -euo pipefail
+          curl -fsS "$APP_ORIGIN/kids/" > /tmp/kids.html
+          grep -Fq '<title>AnnWord Kids — школьные английские слова играючи</title>' /tmp/kids.html
+          grep -Fq 'rel="canonical" href="https://annword.ru/kids/"' /tmp/kids.html
+          grep -Fq 'property="og:url" content="https://annword.ru/kids/"' /tmp/kids.html
+
+          curl -fsS "$APP_ORIGIN/teacher/" > /tmp/teacher.html
+          grep -Fq '<title>AnnWord для преподавателей английского</title>' /tmp/teacher.html
+          grep -Fq 'rel="canonical" href="https://annword.ru/teacher/"' /tmp/teacher.html
+          grep -Fq 'property="og:url" content="https://annword.ru/teacher/"' /tmp/teacher.html
+
+          curl -fsS "$APP_ORIGIN/practice/" > /tmp/practice.html
+          grep -Fq '<title>AnnWord Practice — тренировка английских слов</title>' /tmp/practice.html
+          grep -Fq 'rel="canonical" href="https://annword.ru/practice/"' /tmp/practice.html
+          grep -Fq 'property="og:url" content="https://annword.ru/practice/"' /tmp/practice.html
+
+      - name: Verify server-side 404 status and metadata
         run: |
           set -euo pipefail
           STATUS="$(curl -sS -o /tmp/not-found.html -w '%{http_code}' "$APP_ORIGIN/__annword_missing_route_probe__")"
           echo "Unknown route HTTP status: $STATUS"
           test "$STATUS" = "404"
+          grep -Fq '<title>Страница не найдена — AnnWord</title>' /tmp/not-found.html
+          grep -Fq 'name="robots" content="noindex,nofollow"' /tmp/not-found.html
 
       - name: Inspect response CSP frame protection
         run: |
@@ -90,7 +113,9 @@ jobs:
             echo '## Security / SEO response evidence'
             echo "- HSTS: verified"
             echo "- X-Content-Type-Options: verified"
-            echo "- Server-side unknown route: HTTP 404 verified"
+            echo "- Public route metadata: crawler-visible HTML verified"
+            echo "- OCR CSP dependencies: preserved"
+            echo "- Server-side unknown route: HTTP 404 + noindex metadata verified"
             echo "- CSP frame-ancestors response directive: ${FRAME_ANCESTORS_READY}"
             echo "- www -> canonical 301/302/307/308: ${WWW_REDIRECT_READY}"
           } >> "$GITHUB_STEP_SUMMARY"
