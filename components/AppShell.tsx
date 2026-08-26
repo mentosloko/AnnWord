@@ -4,6 +4,7 @@ import { LegalFooter } from './layout/LegalFooter';
 import { MobileBottomNav } from './layout/MobileBottomNav';
 import { AppModals } from './AppModals';
 import { UserProfile, ViewState } from '../types';
+import { applyPageMetadata } from '../services/pageMetadata';
 
 interface AppShellProps {
   route: ViewState;
@@ -54,18 +55,16 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
   const onDictionaryClick = isTeacher
     ? onDictionaryStudioClick
     : () => navigateToDictionarySelection(onDictionaryStudioClick);
-  // `onLoginClick` is the only integration callback that opens the auth modal in AppV2.
-  // Open it first, then switch the already-open modal to registration so the final
-  // batched auth mode cannot be overwritten back to `login`.
   const openRegistration = onRegisterClick || (() => { onLoginClick(); onAuthModeChange('register'); });
   const closeAuth = () => {
     onCloseLogin();
     if (!isAuthenticated && authMode === 'register') onHomeClick();
   };
-  // Lazy authenticated screens used to render a short fallback first, putting the legal
-  // footer inside the mobile viewport. When the real screen arrived, the footer moved
-  // below the fold and produced most of /kids CLS. Reserve the route viewport up front.
   const routeViewportClass = isAuthenticated && !isGameRoute ? 'min-h-[calc(100dvh-4rem)]' : '';
+
+  React.useEffect(() => {
+    applyPageMetadata(route);
+  }, [route, isAuthenticated, userProfile.accountMode, userProfile.role]);
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
