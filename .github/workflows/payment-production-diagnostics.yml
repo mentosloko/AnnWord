@@ -1,0 +1,140 @@
+name: Payment Production Diagnostics
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/payment-performance-diagnostics
+    paths:
+      - '.github/workflows/payment-production-diagnostics.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Inspect Premium payment state
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Inspect account and payment rows
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PRODAMUS_DEMO_MODE: ${{ secrets.PRODAMUS_DEMO_MODE }}
+          PRODAMUS_PAYFORM_HOST: ${{ secrets.PRODAMUS_PAYFORM_HOST }}
+        run: |
+          set -euo pipefail
+          echo "demo_mode_enabled=$([ "${PRODAMUS_DEMO_MODE:-0}" = '1' ] && echo true || echo false)"
+          echo "payform_host_configured=$([ -n "${PRODAMUS_PAYFORM_HOST:-}" ] && echo true || echo false)"
+
+          psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -P pager=off <<'SQL'
+          \echo '=== target account ==='
+          select jsonb_build_object(
+            'username', p.username,
+            'role', p.role,
+            'account_mode', p.account_mode,
+            'subscription_tier', p.subscription_tier,
+            'premium_expires_at', p.premium_expires_at,
+            'email_confirmed', (u.email_confirmed_at is not null),
+            'password_reset_required', u.password_reset_required
+          )
+          from public.app_users u
+          join public.profiles p on p.id = u.id
+          where lower(u.email) like '%anna.a.manto%'
+             or lower(p.username) = 'anna.a.manto'
+          order by u.created_at desc
+          limit 5;
+
+          \echo '=== latest Premium payments ==='
+          with target as (
+            select u.id
+            from public.app_users u
+            join public.profiles p on p.id = u.id
+            where lower(u.email) like '%anna.a.manto%'
+               or lower(p.username) = 'anna.a.manto'
+          )
+          select jsonb_build_object(
+            'order_id', pp.provider_order_id,
+            'plan_code', pp.plan_code,
+            'status', pp.status,
+            'amount_rub', pp.amount_rub,
+            'created_at', pp.created_at,
+            'paid_at', pp.paid_at,
+            'premium_expires_at', pp.premium_expires_at,
+            'demo_mode', coalesce(pp.raw_payload #>> '{checkout,demo_mode}', ''),
+            'checkout_url_has_demo_1', position('demo_mode=1' in coalesce(pp.checkout_url, '')) > 0
+          )
+          from public.premium_payments pp
+          where pp.user_id in (select id from target)
+          order by pp.created_at desc
+          limit 12;
+
+          \echo '=== webhook/success evidence for those orders ==='
+          with target as (
+            select u.id
+            from public.app_users u
+            join public.profiles p on p.id = u.id
+            where lower(u.email) like '%anna.a.manto%'
+               or lower(p.username) = 'anna.a.manto'
+          ), orders as (
+            select provider_order_id
+            from public.premium_payments
+            where user_id in (select id from target)
+            order by created_at desc
+            limit 12
+          )
+          select jsonb_build_object(
+            'order_id', e.provider_order_id,
+            'status', e.status,
+            'signature_valid', e.signature_valid,
+            'is_paid', e.is_paid,
+            'error', e.error,
+            'created_at', e.created_at
+          )
+          from public.prodamus_webhook_events e
+          where e.provider_order_id in (select provider_order_id from orders)
+          order by e.created_at desc
+          limit 20;
+          SQL
+
+      - name: Install and configure Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a >/dev/null
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > /tmp/yc-payment-diagnostics.json
+          "$HOME/yandex-cloud/bin/yc" config profile create payment-diagnostics >/dev/null
+          "$HOME/yandex-cloud/bin/yc" config set service-account-key /tmp/yc-payment-diagnostics.json
+          "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
+          "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
+
+      - name: Inspect recent payment-related backend errors
+        run: |
+          set -euo pipefail
+          SINCE="$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+          UNTIL="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          yc logging read --group-name=default --since="$SINCE" --until="$UNTIL" --limit 1000 --max-response-size 32M --format json > /tmp/payment-logs.json
+          node <<'NODE'
+          const fs = require('fs');
+          const x = JSON.parse(fs.readFileSync('/tmp/payment-logs.json','utf8'));
+          const rows = Array.isArray(x) ? x : (x.entries || x.messages || []);
+          const text = (v) => typeof v === 'string' ? v : JSON.stringify(v || '');
+          const matches = rows.map(r => text(r)).filter(s => /prodamus|payment_create_failed|premium_plan_mode_mismatch|parent_access_required|payments_not_configured|payment/i.test(s));
+          console.log(`payment_related_log_rows=${matches.length}`);
+          for (const line of matches.slice(-40)) {
+            const cleaned = line.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/ig, '<uuid>');
+            console.log(cleaned.slice(0, 1200));
+          }
+          NODE
