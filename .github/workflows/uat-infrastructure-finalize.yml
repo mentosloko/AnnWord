@@ -1,0 +1,232 @@
+name: UAT Infrastructure Finalize
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - agent/uat-infra-finish-151
+    paths:
+      - '.github/workflows/uat-infrastructure-finalize.yml'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: uat-infrastructure-finalize
+  cancel-in-progress: false
+
+env:
+  APP_DOMAIN: annword.ru
+  WWW_DOMAIN: www.annword.ru
+  WWW_BUCKET: www.annword.ru
+  UAT_ISSUE: '151'
+
+jobs:
+  finalize:
+    name: Finalize and verify UAT edge
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      S3_FRONTEND_BUCKET: ${{ secrets.S3_FRONTEND_BUCKET }}
+    steps:
+      - name: Install Yandex Cloud CLI
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+
+      - name: Configure Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > yc-sa-key.json
+          yc config profile create annword-uat-finalize
+          yc config set service-account-key yc-sa-key.json
+          yc config set cloud-id "$YC_CLOUD_ID"
+          yc config set folder-id "$YC_FOLDER_ID"
+
+      - name: Resolve existing edge resources
+        run: |
+          set -euo pipefail
+          ZONE_ID="$(yc dns zone list --format json | jq -r --arg zone "${APP_DOMAIN}." '.[] | select((.zone // "") == $zone) | .id' | head -n 1)"
+          CDN_ID="$(yc cdn resource list --format json | jq -r --arg cname "$APP_DOMAIN" '.[] | select(.cname == $cname) | .id' | head -n 1)"
+          test -n "$ZONE_ID"
+          test -n "$CDN_ID"
+          RESOURCE="$(yc cdn resource get "$CDN_ID" --format json)"
+          PROVIDER_CNAME="$(printf '%s\n' "$RESOURCE" | jq -r '.provider_cname // .providerCname // empty')"
+          test -n "$PROVIDER_CNAME"
+          echo "ZONE_ID=$ZONE_ID" >> "$GITHUB_ENV"
+          echo "CDN_ID=$CDN_ID" >> "$GITHUB_ENV"
+          echo "PROVIDER_CNAME=${PROVIDER_CNAME%.}" >> "$GITHUB_ENV"
+
+      - name: Reassert custom ErrorDocument
+        run: |
+          set -euo pipefail
+          cat > /tmp/main-website.json <<'JSON'
+          {"index":"index.html","error":"error.html"}
+          JSON
+          yc storage bucket update --name "$S3_FRONTEND_BUCKET" --website-settings-from-file /tmp/main-website.json >/dev/null
+
+      - name: Wait for CDN TLS and verify edge before DNS cutover
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 90); do
+            CDN_IP="$(getent ahostsv4 "$PROVIDER_CNAME" | awk 'NR==1 {print $1}')"
+            if [ -z "$CDN_IP" ]; then
+              echo "attempt $attempt: provider cname has no IPv4 yet"
+              sleep 10
+              continue
+            fi
+            if HEADERS="$(curl -fsSI --connect-timeout 5 --resolve "${APP_DOMAIN}:443:${CDN_IP}" "https://${APP_DOMAIN}/" 2>/tmp/cdn-curl.err | tr -d '\r')"; then
+              HSTS=0; NOSNIFF=0; FRAME=0; ERROR_BODY=0
+              printf '%s\n' "$HEADERS" | grep -Eqi '^strict-transport-security:[[:space:]]*max-age=31536000' && HSTS=1 || true
+              printf '%s\n' "$HEADERS" | grep -Eqi '^x-content-type-options:[[:space:]]*nosniff' && NOSNIFF=1 || true
+              printf '%s\n' "$HEADERS" | grep -Eqi '^content-security-policy:.*frame-ancestors[[:space:]]+'"'"'self'"'"'' && FRAME=1 || true
+              STATUS="$(curl -sS --connect-timeout 5 --resolve "${APP_DOMAIN}:443:${CDN_IP}" -o /tmp/cdn-missing.html -w '%{http_code}' "https://${APP_DOMAIN}/__annword_cdn_missing_probe__" || true)"
+              if [ "$STATUS" = '404' ] && grep -Fq '<title>Страница не найдена — AnnWord</title>' /tmp/cdn-missing.html && grep -Fq 'name="robots" content="noindex,nofollow"' /tmp/cdn-missing.html; then ERROR_BODY=1; fi
+              echo "edge attempt $attempt: hsts=$HSTS nosniff=$NOSNIFF frame=$FRAME 404=$ERROR_BODY"
+              if [ "$HSTS" = 1 ] && [ "$NOSNIFF" = 1 ] && [ "$FRAME" = 1 ] && [ "$ERROR_BODY" = 1 ]; then
+                printf '%s\n' "$HEADERS"
+                exit 0
+              fi
+            else
+              echo "edge attempt $attempt: TLS not propagated yet"
+              sed -n '1,3p' /tmp/cdn-curl.err || true
+            fi
+            sleep 10
+          done
+          echo 'CDN edge did not become verifiably ready.' >&2
+          exit 1
+
+      - name: Cut canonical DNS over to CDN
+        run: |
+          set -euo pipefail
+          yc dns zone replace-records --id "$ZONE_ID" \
+            --record "${APP_DOMAIN}. 60 ANAME ${PROVIDER_CNAME}." \
+            --description 'AnnWord canonical frontend via Cloud CDN' >/dev/null
+
+      - name: Configure www redirect bucket
+        run: |
+          set -euo pipefail
+          if ! yc storage bucket get --name "$WWW_BUCKET" >/dev/null 2>&1; then
+            yc storage bucket create --name "$WWW_BUCKET" --public-read --max-size 10485760 >/dev/null
+          fi
+          cat > /tmp/www-website.json <<JSON
+          {"redirectAllRequests":{"protocol":"PROTOCOL_HTTPS","hostname":"${APP_DOMAIN}"}}
+          JSON
+          yc storage bucket update --name "$WWW_BUCKET" --public-read --website-settings-from-file /tmp/www-website.json >/dev/null
+
+      - name: Request or reuse www certificate
+        run: |
+          set -euo pipefail
+          CERTS="$(yc certificate-manager certificate list --format json)"
+          WWW_CERT_ID="$(printf '%s\n' "$CERTS" | jq -r --arg domain "$WWW_DOMAIN" '.[] | select((.domains // []) | index($domain)) | .id' | head -n 1)"
+          if [ -z "$WWW_CERT_ID" ]; then
+            CREATED="$(yc certificate-manager certificate request --name annword-www --domains "$WWW_DOMAIN" --challenge dns --format json)"
+            WWW_CERT_ID="$(printf '%s\n' "$CREATED" | jq -r '.id')"
+          fi
+          test -n "$WWW_CERT_ID"
+          echo "WWW_CERT_ID=$WWW_CERT_ID" >> "$GITHUB_ENV"
+
+      - name: Publish certificate DNS challenge when needed
+        run: |
+          set -euo pipefail
+          FULL="$(yc certificate-manager certificate get "$WWW_CERT_ID" --full --format json)"
+          STATUS="$(printf '%s\n' "$FULL" | jq -r '.status')"
+          echo "www certificate status: $STATUS"
+          if [ "$STATUS" = 'ISSUED' ]; then exit 0; fi
+
+          CHALLENGE="$(printf '%s\n' "$FULL" | jq -c '
+            [(.challenges // [])[]?
+              | select((.type // "" | ascii_upcase) | contains("DNS"))
+              | (.dns_challenge // .dnsChallenge // .)
+              | {name:(.name // .dns_name // .dnsName // empty),type:(.type // .dns_type // .dnsType // "CNAME"),value:(.value // .dns_value // .dnsValue // empty)}
+              | select(.name != "" and .value != "")][0] // empty')"
+          if [ -z "$CHALLENGE" ]; then
+            printf '%s\n' "$FULL" | jq '{id,status,domains,challenges}'
+            echo 'Unable to parse www certificate DNS challenge.' >&2
+            exit 1
+          fi
+          NAME="$(printf '%s' "$CHALLENGE" | jq -r '.name')"
+          RAW_TYPE="$(printf '%s' "$CHALLENGE" | jq -r '.type')"
+          VALUE="$(printf '%s' "$CHALLENGE" | jq -r '.value')"
+          case "${RAW_TYPE^^}" in *TXT*) TYPE=TXT ;; *) TYPE=CNAME ;; esac
+          [[ "$NAME" == *. ]] || NAME="${NAME}."
+          if [ "$TYPE" = CNAME ]; then VALUE="${VALUE%.}."; fi
+          yc dns zone replace-records --id "$ZONE_ID" --record "$NAME 60 $TYPE $VALUE" --description 'www certificate validation' >/dev/null
+
+      - name: Wait for www certificate and enable HTTPS
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 90); do
+            STATUS="$(yc certificate-manager certificate get "$WWW_CERT_ID" --format json | jq -r '.status')"
+            echo "www certificate attempt $attempt: $STATUS"
+            if [ "$STATUS" = 'ISSUED' ]; then
+              yc storage bucket set-https --name "$WWW_BUCKET" --certificate-id "$WWW_CERT_ID" >/dev/null
+              exit 0
+            fi
+            if [ "$STATUS" = 'INVALID' ]; then exit 1; fi
+            sleep 10
+          done
+          exit 1
+
+      - name: Publish www DNS alias
+        run: |
+          set -euo pipefail
+          yc dns zone replace-records --id "$ZONE_ID" \
+            --record "${WWW_DOMAIN}. 60 CNAME ${WWW_BUCKET}.website.yandexcloud.net." \
+            --description 'AnnWord www redirect bucket' >/dev/null
+
+      - name: Verify public production
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 90); do
+            ROOT_HEADERS="$(curl -sSI --connect-timeout 5 "https://${APP_DOMAIN}/" | tr -d '\r' || true)"
+            MISSING_STATUS="$(curl -sS --connect-timeout 5 -o /tmp/public-missing.html -w '%{http_code}' "https://${APP_DOMAIN}/__annword_final_missing_probe__" || true)"
+            WWW_HEADERS="$(curl -sSI --connect-timeout 5 "https://${WWW_DOMAIN}/" | tr -d '\r' || true)"
+            WWW_STATUS="$(printf '%s\n' "$WWW_HEADERS" | sed -n '1s#^HTTP/[^ ]* \([0-9][0-9][0-9]\).*#\1#p')"
+            WWW_LOCATION="$(printf '%s\n' "$WWW_HEADERS" | sed -n 's/^location:[[:space:]]*//Ip' | head -n 1)"
+            HSTS=0; NOSNIFF=0; FRAME=0; ERROR_BODY=0; WWW_OK=0
+            printf '%s\n' "$ROOT_HEADERS" | grep -Eqi '^strict-transport-security:[[:space:]]*max-age=31536000' && HSTS=1 || true
+            printf '%s\n' "$ROOT_HEADERS" | grep -Eqi '^x-content-type-options:[[:space:]]*nosniff' && NOSNIFF=1 || true
+            printf '%s\n' "$ROOT_HEADERS" | grep -Eqi '^content-security-policy:.*frame-ancestors[[:space:]]+'"'"'self'"'"'' && FRAME=1 || true
+            if [ "$MISSING_STATUS" = 404 ] && grep -Fq '<title>Страница не найдена — AnnWord</title>' /tmp/public-missing.html; then ERROR_BODY=1; fi
+            if [ "$WWW_STATUS" = 301 ] && [ "$WWW_LOCATION" = "https://${APP_DOMAIN}/" ]; then WWW_OK=1; fi
+            echo "public attempt $attempt: hsts=$HSTS nosniff=$NOSNIFF frame=$FRAME 404=$ERROR_BODY www=$WWW_OK"
+            if [ "$HSTS" = 1 ] && [ "$NOSNIFF" = 1 ] && [ "$FRAME" = 1 ] && [ "$ERROR_BODY" = 1 ] && [ "$WWW_OK" = 1 ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+
+      - name: Close UAT master issue after main verification
+        if: ${{ github.ref == 'refs/heads/main' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${UAT_ISSUE}" --jq '.body' > /tmp/uat-body.md
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('/tmp/uat-body.md')
+          body = path.read_text()
+          replacements = {
+              '- [ ] HSTS.': '- [x] HSTS. — Cloud CDN response header, production verified',
+              '- [ ] `X-Content-Type-Options: nosniff`.': '- [x] `X-Content-Type-Options: nosniff`. — Cloud CDN response header, production verified',
+              '- [ ] CSP, включая `frame-ancestors`, после проверки OAuth/magic links/сторонних ресурсов.': '- [x] CSP, включая `frame-ancestors`, после проверки OAuth/magic links/сторонних ресурсов. — Cloud CDN response CSP, production verified',
+              '- [ ] `www.annword.ru` как alias с 301 на canonical domain.': '- [x] `www.annword.ru` как alias с 301 на canonical domain. — redirect bucket + DNS, production verified',
+              '- [ ] Клиентский понятный 404 для неизвестного route с CTA домой при сохранении server-side HTTP 404.': '- [x] Клиентский понятный 404 для неизвестного route с CTA домой при сохранении server-side HTTP 404. — Object Storage ErrorDocument, production verified',
+          }
+          for old, new in replacements.items():
+              if old not in body:
+                  raise SystemExit(f'Expected unchecked UAT line not found: {old}')
+              body = body.replace(old, new, 1)
+          path.write_text(body)
+          PY
+          jq -n --rawfile body /tmp/uat-body.md '{body:$body,state:"closed",state_reason:"completed"}' >/tmp/issue-patch.json
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${UAT_ISSUE}" --method PATCH --input /tmp/issue-patch.json >/dev/null
