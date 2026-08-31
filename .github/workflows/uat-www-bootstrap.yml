@@ -1,0 +1,102 @@
+name: UAT WWW Bootstrap
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/uat-infra-finish-151
+    paths:
+      - '.github/workflows/uat-www-bootstrap.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uat-www-bootstrap
+  cancel-in-progress: false
+
+env:
+  APP_DOMAIN: annword.ru
+  WWW_DOMAIN: www.annword.ru
+  WWW_BUCKET: www.annword.ru
+
+jobs:
+  bootstrap:
+    name: Validate www and publish redirect
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Install Yandex Cloud CLI
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+
+      - name: Configure Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > yc-sa-key.json
+          yc config profile create annword-uat-www
+          yc config set service-account-key yc-sa-key.json
+          yc config set cloud-id "$YC_CLOUD_ID"
+          yc config set folder-id "$YC_FOLDER_ID"
+
+      - name: Resolve zone and www certificate
+        run: |
+          set -euo pipefail
+          ZONE_ID="$(yc dns zone list --format json | jq -r --arg zone "${APP_DOMAIN}." '.[] | select((.zone // "") == $zone) | .id' | head -n 1)"
+          WWW_CERT_ID="$(yc certificate-manager certificate list --format json | jq -r --arg domain "$WWW_DOMAIN" '.[] | select((.domains // []) | index($domain)) | .id' | head -n 1)"
+          test -n "$ZONE_ID"
+          test -n "$WWW_CERT_ID"
+          echo "ZONE_ID=$ZONE_ID" >> "$GITHUB_ENV"
+          echo "WWW_CERT_ID=$WWW_CERT_ID" >> "$GITHUB_ENV"
+
+      - name: Publish stable CNAME validation record
+        run: |
+          set -euo pipefail
+          yc dns zone replace-records --id "$ZONE_ID" \
+            --record "_acme-challenge.${WWW_DOMAIN}. 60 CNAME ${WWW_CERT_ID}.cm.yandexcloud.net." \
+            --description 'Certificate Manager CNAME validation for www' >/dev/null
+          RECORDS="$(yc dns zone list-records --id "$ZONE_ID" --format json)"
+          printf '%s\n' "$RECORDS" | jq -e --arg name "_acme-challenge.${WWW_DOMAIN}." --arg target "${WWW_CERT_ID}.cm.yandexcloud.net." '
+            (if type == "array" then . else (.record_sets // .recordSets // []) end)
+            | any(.[]; .name == $name and .type == "CNAME" and ((.data // []) | index($target)))
+          ' >/dev/null
+
+      - name: Wait for certificate issuance
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 120); do
+            FULL="$(yc certificate-manager certificate get "$WWW_CERT_ID" --full --format json)"
+            STATUS="$(printf '%s\n' "$FULL" | jq -r '.status')"
+            CHALLENGES="$(printf '%s\n' "$FULL" | jq -c '[.challenges[]? | {type,status,message}]')"
+            echo "certificate attempt $attempt: status=$STATUS challenges=$CHALLENGES"
+            if [ "$STATUS" = 'ISSUED' ]; then exit 0; fi
+            if [ "$STATUS" = 'INVALID' ]; then exit 1; fi
+            sleep 10
+          done
+          exit 1
+
+      - name: Enable HTTPS and publish www DNS
+        run: |
+          set -euo pipefail
+          yc storage bucket set-https --name "$WWW_BUCKET" --certificate-id "$WWW_CERT_ID" >/dev/null
+          yc dns zone replace-records --id "$ZONE_ID" \
+            --record "${WWW_DOMAIN}. 60 CNAME ${WWW_BUCKET}.website.yandexcloud.net." \
+            --description 'AnnWord www redirect bucket' >/dev/null
+
+      - name: Verify www 301 publicly
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 90); do
+            HEADERS="$(curl -sSI --connect-timeout 5 "https://${WWW_DOMAIN}/" | tr -d '\r' || true)"
+            STATUS="$(printf '%s\n' "$HEADERS" | sed -n '1s#^HTTP/[^ ]* \([0-9][0-9][0-9]\).*#\1#p')"
+            LOCATION="$(printf '%s\n' "$HEADERS" | sed -n 's/^location:[[:space:]]*//Ip' | head -n 1)"
+            echo "www attempt $attempt: status=${STATUS:-none} location=${LOCATION:-none}"
+            if [ "$STATUS" = '301' ] && [ "$LOCATION" = "https://${APP_DOMAIN}/" ]; then exit 0; fi
+            sleep 10
+          done
+          exit 1
