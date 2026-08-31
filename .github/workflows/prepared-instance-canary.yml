@@ -93,7 +93,6 @@ jobs:
             --concurrency 8 \
             --min-instances 1 \
             --environment NODE_ENV=production \
-            --environment PORT=8080 \
             --environment DATABASE_URL="$DATABASE_URL" \
             --environment PGPOOL_MAX=8 \
             --environment PGPOOL_CONNECTION_TIMEOUT_MS=3000 \
