@@ -25,7 +25,8 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client
 
-      - name: Inspect account and payment rows
+      - name: Inspect account and payment rows when DB is externally reachable
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PRODAMUS_DEMO_MODE: ${{ secrets.PRODAMUS_DEMO_MODE }}
@@ -105,6 +106,15 @@ jobs:
           limit 20;
           SQL
 
+      - name: Report payment runtime flags
+        env:
+          PRODAMUS_DEMO_MODE: ${{ secrets.PRODAMUS_DEMO_MODE }}
+          PRODAMUS_PAYFORM_HOST: ${{ secrets.PRODAMUS_PAYFORM_HOST }}
+        run: |
+          set -euo pipefail
+          echo "demo_mode_enabled=$([ "${PRODAMUS_DEMO_MODE:-0}" = '1' ] && echo true || echo false)"
+          echo "payform_host_configured=$([ -n "${PRODAMUS_PAYFORM_HOST:-}" ] && echo true || echo false)"
+
       - name: Install and configure Yandex Cloud CLI
         env:
           YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
@@ -120,21 +130,26 @@ jobs:
           "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
           "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
 
-      - name: Inspect recent payment-related backend errors
+      - name: Inspect recent payment-related backend evidence
         run: |
           set -euo pipefail
           SINCE="$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
           UNTIL="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          yc logging read --group-name=default --since="$SINCE" --until="$UNTIL" --limit 1000 --max-response-size 32M --format json > /tmp/payment-logs.json
+          yc logging read --group-name=default --since="$SINCE" --until="$UNTIL" --limit 3000 --max-response-size 32M --format json > /tmp/payment-logs.json
           node <<'NODE'
           const fs = require('fs');
           const x = JSON.parse(fs.readFileSync('/tmp/payment-logs.json','utf8'));
           const rows = Array.isArray(x) ? x : (x.entries || x.messages || []);
           const text = (v) => typeof v === 'string' ? v : JSON.stringify(v || '');
-          const matches = rows.map(r => text(r)).filter(s => /prodamus|payment_create_failed|premium_plan_mode_mismatch|parent_access_required|payments_not_configured|payment/i.test(s));
-          console.log(`payment_related_log_rows=${matches.length}`);
-          for (const line of matches.slice(-40)) {
-            const cleaned = line.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/ig, '<uuid>');
-            console.log(cleaned.slice(0, 1200));
+          const all = rows.map(r => text(r));
+          const routeMatches = all.filter(s => /\/api\/payments\/prodamus\/(create|success|notify|status|history)/i.test(s));
+          const errorMatches = all.filter(s => /Prodamus create failed|Prodamus success redirect failed|payment_create_failed|premium_plan_mode_mismatch|parent_access_required|payments_not_configured/i.test(s));
+          console.log(`payment_route_log_rows=${routeMatches.length}`);
+          console.log(`payment_error_log_rows=${errorMatches.length}`);
+          for (const line of [...routeMatches.slice(-60), ...errorMatches.slice(-20)]) {
+            const cleaned = line
+              .replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/ig, '<uuid>')
+              .replace(/annword_[a-z_]+_[0-9]+_[a-z0-9]+/ig, '<order>');
+            console.log(cleaned.slice(0, 1600));
           }
           NODE
