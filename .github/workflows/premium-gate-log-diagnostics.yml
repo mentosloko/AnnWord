@@ -1,0 +1,61 @@
+name: Premium Gate Log Diagnostics
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/payment-performance-diagnostics
+    paths:
+      - '.github/workflows/premium-gate-log-diagnostics.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install and configure Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a >/dev/null
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > /tmp/key.json
+          "$HOME/yandex-cloud/bin/yc" config profile create premium-gate >/dev/null
+          "$HOME/yandex-cloud/bin/yc" config set service-account-key /tmp/key.json
+          "$HOME/yandex-cloud/bin/yc" config set cloud-id "$YC_CLOUD_ID"
+          "$HOME/yandex-cloud/bin/yc" config set folder-id "$YC_FOLDER_ID"
+
+      - name: Read Premium gate routes
+        run: |
+          set -euo pipefail
+          SINCE="$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+          UNTIL="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          yc logging read --group-name=default --since="$SINCE" --until="$UNTIL" --limit 3000 --max-response-size 32M --format json > /tmp/logs.json
+          node <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/logs.json','utf8'));
+          const rows=Array.isArray(x)?x:(x.entries||x.messages||[]);
+          const wanted=/\/api\/(family\/access-check|profile\/bootstrap|payments\/prodamus\/create|analytics\/events)/i;
+          const parsed=[];
+          for(const r of rows){
+            const s=typeof r==='string'?r:JSON.stringify(r);
+            if(!wanted.test(s)) continue;
+            const ts=r.timestamp||r.time||r.created_at||'';
+            const jp=r.json_payload||r.jsonPayload||{};
+            const message=r.message||jp.message||'';
+            const uri=jp.request_uri||jp.path||'';
+            const method=jp.operation||jp.method||'';
+            const code=jp.code||jp.status||'';
+            const dur=jp.duration_seconds!=null?Number(jp.duration_seconds)*1000:jp.duration_ms;
+            parsed.push({ts,message,method,uri,code,durationMs:dur});
+          }
+          parsed.sort((a,b)=>String(a.ts).localeCompare(String(b.ts)));
+          console.log(`matched=${parsed.length}`);
+          console.log(JSON.stringify(parsed.slice(-120),null,2));
+          NODE
