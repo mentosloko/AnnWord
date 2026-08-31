@@ -1,0 +1,139 @@
+name: Prepared API Instance Canary
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy to Yandex Cloud"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: annword-prepared-instance-canary
+  cancel-in-progress: true
+
+env:
+  YC_BACKEND_IMAGE: annword-api
+  AUTH_FROM_EMAIL: noreply@annword.ru
+
+jobs:
+  provision:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Resolve release SHA
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            SHA="${{ github.event.workflow_run.head_sha }}"
+          else
+            SHA="$(git ls-remote https://github.com/${GITHUB_REPOSITORY}.git refs/heads/main | cut -f1)"
+          fi
+          test -n "$SHA"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Prepared-instance canary release: $SHA"
+
+      - name: Install Yandex Cloud CLI
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a >/dev/null
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+
+      - name: Configure Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > /tmp/yc-prepared-canary.json
+          yc config profile create prepared-canary >/dev/null
+          yc config set service-account-key /tmp/yc-prepared-canary.json
+          yc config set cloud-id "$YC_CLOUD_ID"
+          yc config set folder-id "$YC_FOLDER_ID"
+
+      - name: Deploy identical backend revision with one prepared instance
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+          YC_REGISTRY_ID: ${{ secrets.YC_REGISTRY_ID }}
+          YC_SERVERLESS_CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
+          YC_SERVICE_ACCOUNT_ID: ${{ secrets.YC_SERVICE_ACCOUNT_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
+          PRODAMUS_SECRET: ${{ secrets.PRODAMUS_SECRET }}
+          PRODAMUS_DEMO_MODE: ${{ secrets.PRODAMUS_DEMO_MODE }}
+          PRODAMUS_PAYFORM_HOST: ${{ secrets.PRODAMUS_PAYFORM_HOST }}
+          YANDEX_CLIENT_ID: ${{ secrets.YANDEX_CLIENT_ID }}
+          YANDEX_CLIENT_SECRET: ${{ secrets.YANDEX_CLIENT_SECRET }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_FRONTEND_BUCKET: ${{ secrets.S3_FRONTEND_BUCKET }}
+          S3_ASSETS_BUCKET: ${{ secrets.S3_ASSETS_BUCKET }}
+          APP_URL: ${{ secrets.APP_URL }}
+          API_URL: ${{ secrets.API_URL }}
+          YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
+          WEEKLY_REPORT_FROM_EMAIL: ${{ secrets.WEEKLY_REPORT_FROM_EMAIL }}
+          WEEKLY_REPORT_CRON_SECRET: ${{ secrets.WEEKLY_REPORT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          IMAGE="cr.yandex/${YC_REGISTRY_ID}/${YC_BACKEND_IMAGE}:${RELEASE_SHA}"
+          yc serverless container revision deploy \
+            --container-id "$YC_SERVERLESS_CONTAINER_ID" \
+            --image "$IMAGE" \
+            --service-account-id "$YC_SERVICE_ACCOUNT_ID" \
+            --cores 1 \
+            --memory 512M \
+            --execution-timeout 30s \
+            --concurrency 8 \
+            --min-instances 1 \
+            --environment NODE_ENV=production \
+            --environment PORT=8080 \
+            --environment DATABASE_URL="$DATABASE_URL" \
+            --environment PGPOOL_MAX=8 \
+            --environment PGPOOL_CONNECTION_TIMEOUT_MS=3000 \
+            --environment DB_SLOW_QUERY_MS=300 \
+            --environment DB_SLOW_POOL_WAIT_MS=100 \
+            --environment AUTH_USER_CACHE_TTL_MS=120000 \
+            --environment SESSION_SECRET="$SESSION_SECRET" \
+            --environment JWT_SECRET="$JWT_SECRET" \
+            --environment COOKIE_SECRET="$COOKIE_SECRET" \
+            --environment PRODAMUS_SECRET="$PRODAMUS_SECRET" \
+            --environment PRODAMUS_DEMO_MODE="${PRODAMUS_DEMO_MODE:-0}" \
+            --environment PRODAMUS_PAYFORM_HOST="${PRODAMUS_PAYFORM_HOST:-manto-school.payform.ru}" \
+            --environment YANDEX_CLIENT_ID="$YANDEX_CLIENT_ID" \
+            --environment YANDEX_CLIENT_SECRET="$YANDEX_CLIENT_SECRET" \
+            --environment S3_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" \
+            --environment S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" \
+            --environment S3_ENDPOINT="$S3_ENDPOINT" \
+            --environment S3_FRONTEND_BUCKET="$S3_FRONTEND_BUCKET" \
+            --environment S3_ASSETS_BUCKET="$S3_ASSETS_BUCKET" \
+            --environment APP_URL="$APP_URL" \
+            --environment API_URL="$API_URL" \
+            --environment YC_API_PUBLIC_URL="$YC_API_PUBLIC_URL" \
+            --environment AUTH_FROM_EMAIL="$AUTH_FROM_EMAIL" \
+            --environment WEEKLY_REPORT_FROM_EMAIL="$WEEKLY_REPORT_FROM_EMAIL" \
+            --environment WEEKLY_REPORT_CRON_SECRET="$WEEKLY_REPORT_CRON_SECRET" \
+            --environment RELEASE_SHA="$RELEASE_SHA"
+
+      - name: Verify prepared instance configuration
+        env:
+          YC_SERVERLESS_CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
+        run: |
+          set -euo pipefail
+          sleep 10
+          yc serverless container revision list --container-id "$YC_SERVERLESS_CONTAINER_ID" --limit 1 --format json > /tmp/revisions.json
+          cat /tmp/revisions.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const rows = JSON.parse(fs.readFileSync('/tmp/revisions.json','utf8'));
+          const revision = Array.isArray(rows) ? rows[0] : rows;
+          const min = Number(revision?.provision_policy?.min_instances ?? revision?.provisionPolicy?.minInstances ?? 0);
+          if (min !== 1) throw new Error(`Expected min_instances=1, got ${min}`);
+          console.log('prepared_instance_verified=true');
+          NODE
