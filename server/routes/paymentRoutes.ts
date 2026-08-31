@@ -94,6 +94,7 @@ paymentRouter.post("/create", requireAuth, requireParentAccessForKids, async (re
 
     const orderId = `annword_${plan.code}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
     const callbackOrigin = apiUrl();
+    const demoMode = prodamusDemoMode();
     const payload: Record<string, unknown> = {
       do: "pay",
       order_id: orderId,
@@ -106,7 +107,8 @@ paymentRouter.post("/create", requireAuth, requireParentAccessForKids, async (re
       urlNotification: `${callbackOrigin}/api/payments/prodamus/notify`,
       sys: process.env.PRODAMUS_SYS_CODE || "annword",
       currency: "rub",
-      demo_mode: prodamusDemoMode(),
+      demo_mode: demoMode,
+      acquiring: demoMode === "1" ? "sbrf" : undefined,
       type: "json",
       callbackType: "json",
       payments_limit: "1",
