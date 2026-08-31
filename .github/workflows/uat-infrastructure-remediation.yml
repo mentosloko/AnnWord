@@ -72,10 +72,14 @@ jobs:
             exit 0
           fi
           echo "=== records in zone $ZONE_ID ==="
-          yc dns zone list-records --id "$ZONE_ID" --format json \
-            | jq '[.[] | select(.name == "annword.ru." or .name == "www.annword.ru." or .name == "api.annword.ru.") | {name,type,ttl,data}]'
+          RECORDS="$(yc dns zone list-records --id "$ZONE_ID" --format json)"
+          printf '%s\n' "$RECORDS" | jq '
+            (if type == "array" then . else (.record_sets // .recordSets // []) end)
+            | [.[] | select(.name == "annword.ru." or .name == "www.annword.ru." or .name == "api.annword.ru.") | {name,type,ttl,data}]
+          '
 
       - name: Snapshot current public responses
+        if: always()
         run: |
           set -euo pipefail
           echo '=== annword.ru root headers ==='
