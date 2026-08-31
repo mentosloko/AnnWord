@@ -1,0 +1,87 @@
+name: UAT Infrastructure Remediation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/uat-infra-finish-151
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uat-infrastructure-remediation
+  cancel-in-progress: true
+
+jobs:
+  inventory:
+    name: Inventory current Yandex edge and hosting
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      S3_FRONTEND_BUCKET: ${{ secrets.S3_FRONTEND_BUCKET }}
+    steps:
+      - name: Install Yandex Cloud CLI
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+
+      - name: Configure Yandex Cloud CLI
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > yc-sa-key.json
+          yc config profile create annword-uat-infra
+          yc config set service-account-key yc-sa-key.json
+          yc config set cloud-id "$YC_CLOUD_ID"
+          yc config set folder-id "$YC_FOLDER_ID"
+
+      - name: Inventory Object Storage website settings
+        run: |
+          set -euo pipefail
+          echo '=== frontend bucket ==='
+          yc storage bucket get --name "$S3_FRONTEND_BUCKET" --format json \
+            | jq '{name, website_settings, https, default_storage_class, max_size}'
+
+      - name: Inventory CDN resources
+        run: |
+          set -euo pipefail
+          echo '=== CDN resources ==='
+          yc cdn resource list --format json \
+            | jq '[.[] | {id,cname,provider_cname,active,origin_group_id,origin_protocol,secondary_hostnames,ssl_certificate,static_headers:(.options.static_response_headers // .options.static_headers // null),redirect_http_to_https:(.options.redirect_http_to_https // null),host_options:(.options.host_options // null)}]'
+
+      - name: Inventory certificates
+        run: |
+          set -euo pipefail
+          echo '=== certificates ==='
+          yc certificate-manager certificate list --format json \
+            | jq '[.[] | {id,name,domains,status,type,not_after}]'
+
+      - name: Inventory DNS zones and AnnWord records
+        run: |
+          set -euo pipefail
+          echo '=== DNS zones ==='
+          ZONES="$(yc dns zone list --format json)"
+          printf '%s\n' "$ZONES" | jq '[.[] | {id,name,zone,public_zone}]'
+          ZONE_ID="$(printf '%s\n' "$ZONES" | jq -r '.[] | select((.zone // "") == "annword.ru.") | .id' | head -n 1)"
+          if [ -z "$ZONE_ID" ]; then
+            echo 'AnnWord public zone is not managed in this Yandex folder.'
+            exit 0
+          fi
+          echo "=== records in zone $ZONE_ID ==="
+          yc dns zone list-records --id "$ZONE_ID" --format json \
+            | jq '[.[] | select(.name == "annword.ru." or .name == "www.annword.ru." or .name == "api.annword.ru.") | {name,type,ttl,data}]'
+
+      - name: Snapshot current public responses
+        run: |
+          set -euo pipefail
+          echo '=== annword.ru root headers ==='
+          curl -sSI https://annword.ru/ | tr -d '\r' | sed -n '1,30p'
+          echo '=== unknown route ==='
+          curl -sS -o /tmp/missing.html -w 'status=%{http_code}\n' https://annword.ru/__annword_uat_inventory_missing__ || true
+          grep -o '<title>[^<]*</title>' /tmp/missing.html | head -n 1 || true
+          echo '=== www ==='
+          curl -sSI --connect-timeout 5 https://www.annword.ru/ | tr -d '\r' | sed -n '1,20p' || true
