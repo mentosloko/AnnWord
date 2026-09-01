@@ -51,6 +51,6 @@ describe('UAT UX polish regressions', () => {
     expect(game).toContain("window.setTimeout(() => setEmptyConfirmed(true), 750)");
     expect(game).toContain('if (!question && !finished) setQuestion(makeQuestion(dictionary, null, reviewPriorities))');
     expect(game).toContain('Загружаю слова…');
-    expect(game).toContain('dictionary.length < 1 && emptyConfirmed');
+    expect(game).toContain('dictionary.length < 2 && emptyConfirmed');
   });
 });
