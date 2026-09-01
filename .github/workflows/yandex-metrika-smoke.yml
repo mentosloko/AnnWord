@@ -1,0 +1,131 @@
+name: Yandex Metrika Production Smoke
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/yandex-metrika-smoke.yml
+      - index.html
+      - public/metrika.js
+      - services/yandexMetrika.ts
+      - vite.config.ts
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: yandex-metrika-production-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_URL: https://annword.ru
+      COUNTER_ID: '112133624'
+      SOURCE_SHA: ${{ github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Wait for this commit in production
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            BODY="$(curl -fsS "$APP_URL/release.json?sha=$SOURCE_SHA" || true)"
+            if printf '%s' "$BODY" | grep -Fq "$SOURCE_SHA"; then
+              echo "Production release is ready: $SOURCE_SHA"
+              exit 0
+            fi
+            echo "Waiting for production release ($attempt/60)..."
+            sleep 10
+          done
+          echo "Production did not expose release $SOURCE_SHA in time." >&2
+          exit 1
+
+      - name: Verify counter is visible in production HTML and CSP
+        run: |
+          set -euo pipefail
+          curl -fsSL -D /tmp/headers.txt "$APP_URL/" -o /tmp/index.html
+          grep -Fq '<script src="/metrika.js"></script>' /tmp/index.html
+          grep -Fq "https://mc.yandex.ru/metrika/tag.js?id=$COUNTER_ID" /tmp/index.html
+          grep -Fq "https://mc.yandex.ru/watch/$COUNTER_ID" /tmp/index.html
+          curl -fsSL "$APP_URL/metrika.js" -o /tmp/metrika.js
+          grep -Fq "counterId = $COUNTER_ID" /tmp/metrika.js
+          grep -Fq 'webvisor: true' /tmp/metrika.js
+          CSP="$(sed -n 's/^content-security-policy:[[:space:]]*//Ip' /tmp/headers.txt | head -n 1 | tr -d '\r')"
+          printf '%s\n' "$CSP"
+          printf '%s' "$CSP" | grep -Fq 'https://mc.yandex.ru'
+          printf '%s' "$CSP" | grep -Fq 'https://yastatic.net'
+
+      - name: Install browser smoke dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Verify Metrika sends data from Chromium
+        run: |
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+
+          const appUrl = process.env.APP_URL;
+          const counterId = Number(process.env.COUNTER_ID);
+          const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext();
+          const page = await context.newPage();
+          const requests = [];
+          const consoleErrors = [];
+          const pageErrors = [];
+
+          page.on('request', request => {
+            const url = request.url();
+            if (/yandex|webvisor/i.test(url)) requests.push(url);
+          });
+          page.on('console', message => {
+            if (message.type() === 'error') consoleErrors.push(message.text());
+          });
+          page.on('pageerror', error => pageErrors.push(String(error)));
+
+          const smokeUrl = `${appUrl}/?_annword_metrika_smoke=1&_ym_debug=1`;
+          await page.goto(smokeUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+          await page.waitForFunction(() => typeof window.ym === 'function', null, { timeout: 20_000 });
+          await page.waitForTimeout(4_000);
+
+          await page.evaluate(({ counterId }) => {
+            window.__ANNWORD_METRIKA_SMOKE_DONE__ = false;
+            window.ym(counterId, 'hit', `${window.location.href}#manual-smoke`, {
+              title: 'AnnWord Metrika production smoke',
+              callback: function () {
+                window.__ANNWORD_METRIKA_SMOKE_DONE__ = true;
+              }
+            });
+          }, { counterId });
+
+          await page.waitForFunction(() => window.__ANNWORD_METRIKA_SMOKE_DONE__ === true, null, { timeout: 20_000 });
+          await page.waitForTimeout(2_000);
+
+          const tagRequest = requests.find(url => url.includes('mc.yandex.ru/metrika/tag.js'));
+          const dataRequests = requests.filter(url => !url.includes('/metrika/tag.js') && /mc\.yandex|webvisor/i.test(url));
+          const yandexCspErrors = consoleErrors.filter(text => /content security policy|refused to/i.test(text) && /yandex|webvisor/i.test(text));
+
+          console.log(JSON.stringify({
+            tagRequest,
+            dataRequestCount: dataRequests.length,
+            dataRequests: dataRequests.slice(0, 12),
+            yandexCspErrors,
+            pageErrors,
+          }, null, 2));
+
+          if (!tagRequest) throw new Error('Yandex Metrika tag.js was not requested by the production page');
+          if (dataRequests.length === 0) throw new Error('No Yandex Metrika/Webvisor data request was observed');
+          if (yandexCspErrors.length > 0) throw new Error(`Yandex resources were blocked by CSP: ${yandexCspErrors.join(' | ')}`);
+
+          await browser.close();
+          NODE
