@@ -59,7 +59,7 @@ export const PracticeHomeScreenWithLetterSquare: React.FC<Props> = ({ userProfil
     { title: 'Спринт', note: 'Быстрые ответы в течение минуты.', image: '/assets/games/game_sprint.webp', badge: badge('sprint'), action: onStartSprint },
     { title: 'Виселица', note: 'Вспоминайте слово по одной букве.', image: '/assets/games/game_hangman.webp', badge: badge('hangman'), action: onStartHangman },
     { title: 'Память', note: 'Найдите пары «слово — перевод».', image: '/assets/games/game_memory.webp', badge: badge('memory', savedBadge('memory')), action: onStartMemory },
-    { title: 'Змейка', note: 'Соберите слово цепочкой соседних букв.', image: '/assets/games/line_game.webp', badge: savedBadge('letter_square'), action: onStartLetterSquare },
+    { title: 'Змейка', note: 'Соберите слово цепочкой соседних букв.', image: '/assets/games/line_game-card.webp', badge: savedBadge('letter_square'), action: onStartLetterSquare },
   ];
 
   return <ScreenContainer className="max-w-6xl pb-24 pt-4 sm:pb-20 sm:pt-6">
