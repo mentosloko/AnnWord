@@ -3,6 +3,7 @@ const STORAGE_KEY = 'annword_session_word_history_v1';
 type SessionWordBuckets = Record<string, string[]>;
 
 const normalizeWord = (word: string): string => word.trim().toUpperCase();
+let testBuckets: SessionWordBuckets = {};
 
 const isTestEnvironment = (): boolean => {
   try {
@@ -13,7 +14,8 @@ const isTestEnvironment = (): boolean => {
 };
 
 const readBuckets = (): SessionWordBuckets => {
-  if (typeof window === 'undefined' || isTestEnvironment()) return {};
+  if (isTestEnvironment()) return testBuckets;
+  if (typeof window === 'undefined') return {};
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return {};
@@ -26,7 +28,11 @@ const readBuckets = (): SessionWordBuckets => {
 };
 
 const writeBuckets = (buckets: SessionWordBuckets) => {
-  if (typeof window === 'undefined' || isTestEnvironment()) return;
+  if (isTestEnvironment()) {
+    testBuckets = buckets;
+    return;
+  }
+  if (typeof window === 'undefined') return;
   try {
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(buckets));
   } catch {
@@ -34,18 +40,26 @@ const writeBuckets = (buckets: SessionWordBuckets) => {
   }
 };
 
-export const getUnusedSessionWord = <T extends { word: string }>(bucketKey: string, pool: T[]): T | null => {
+/**
+ * Picks from unused words first. A preferred pool may bias the choice (for
+ * review words), but can never reintroduce a word already shown in this pass.
+ */
+export const getUnusedSessionWord = <T extends { word: string }>(
+  bucketKey: string,
+  pool: T[],
+  preferredPool: T[] = [],
+  random: () => number = Math.random,
+): T | null => {
   if (pool.length === 0) return null;
-
-  if (isTestEnvironment()) {
-    return pool[Math.floor(Math.random() * pool.length)];
-  }
 
   const buckets = readBuckets();
   const usedWords = new Set((buckets[bucketKey] || []).map(normalizeWord));
   const unusedPool = pool.filter(entry => !usedWords.has(normalizeWord(entry.word)));
   const candidatePool = unusedPool.length > 0 ? unusedPool : pool;
-  const selected = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+  const preferredWords = new Set(preferredPool.map(entry => normalizeWord(entry.word)));
+  const preferredCandidates = candidatePool.filter(entry => preferredWords.has(normalizeWord(entry.word)));
+  const selectionPool = preferredCandidates.length > 0 ? preferredCandidates : candidatePool;
+  const selected = selectionPool[Math.floor(random() * selectionPool.length)];
   const normalizedSelected = normalizeWord(selected.word);
 
   const nextUsed = unusedPool.length > 0
@@ -62,4 +76,8 @@ export const resetSessionWordBucket = (bucketKey: string) => {
   const buckets = readBuckets();
   delete buckets[bucketKey];
   writeBuckets(buckets);
+};
+
+export const resetAllSessionWordBucketsForTests = (): void => {
+  testBuckets = {};
 };
