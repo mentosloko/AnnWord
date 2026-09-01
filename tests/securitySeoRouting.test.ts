@@ -35,15 +35,21 @@ describe('security, SEO and routing contracts', () => {
     expect(html).toContain('name="robots" content="index,follow"');
   });
 
-  it('loads Yandex Metrika once, tracks SPA history and enables Webvisor', () => {
+  it('loads Yandex Metrika immediately, tracks SPA history and enables Webvisor', () => {
     const html = read('index.html');
     const metrika = read('public/metrika.js');
     const bridge = read('services/yandexMetrika.ts');
     expect(html).toContain('<script src="/metrika.js"></script>');
+    expect(html).toContain('<script async src="https://mc.yandex.ru/metrika/tag.js?id=112133624"></script>');
     expect(html).toContain('https://mc.yandex.ru/watch/112133624');
     expect(metrika).toContain('counterId = 112133624');
     expect(metrika).toContain('defer: true');
+    expect(metrika).toContain('ssr: true');
     expect(metrika).toContain('webvisor: true');
+    expect(metrika).toContain('referrer: document.referrer');
+    expect(metrika).toContain('url: window.location.href');
+    expect(metrika).not.toContain("window.addEventListener('load'");
+    expect(metrika).not.toContain('loadTagAfterFirstRender');
     expect(metrika).toContain("['pushState', 'replaceState']");
     expect(metrika).toContain("window.ym(counterId, 'hit'");
     expect(bridge).toContain("window.ym(counterId(), 'reachGoal'");
