@@ -146,13 +146,14 @@ const SprintPreview = () => (
 );
 
 const SnakePreview = () => {
-  const cells = ['M','A','P','L','E','T','B','O','O','K','S','H','I','P','D','F','R','I','E','N','C','A','T','S','Y'];
-  const selected = new Map([[6, 1], [7, 2], [8, 3], [9, 4]]);
+  // Four rows keep the instruction clear even inside the narrow mobile carousel card.
+  const cells = ['M','A','P','L','B','O','O','K','S','H','I','P','D','F','R','E'];
+  const selected = new Map([[4, 1], [5, 2], [6, 3], [7, 4]]);
   return (
     <div className="flex h-full flex-col rounded-[1.35rem] bg-gradient-to-b from-rose-50 via-white to-pink-50 p-3 shadow-inner">
-      <div className="rounded-xl bg-white px-3 py-2 text-center shadow-sm"><div className="text-sm font-black text-indigo-950">книга</div><div className="mt-0.5 text-[8px] font-bold text-slate-400">4 буквы · соседние клетки</div></div>
-      <div className="mt-3 grid grid-cols-5 gap-1.5">{cells.map((letter, index) => { const order = selected.get(index); return <div key={`${letter}-${index}`} className={`relative flex aspect-square items-center justify-center rounded-lg border-2 text-xs font-black shadow-sm ${order ? 'border-blue-500 bg-blue-100 text-blue-950' : 'border-amber-100 bg-white text-slate-700'}`}>{letter}{order && <span className="absolute left-0.5 top-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-blue-500 text-[6px] text-white">{order}</span>}</div>; })}</div>
-      <div className="mt-2 text-center text-[8px] font-bold leading-tight text-indigo-500">Соберите слово из соседних клеток. Диагонали нельзя.</div>
+      <div className="rounded-xl bg-white px-3 py-2 text-center shadow-sm"><div className="text-sm font-black text-indigo-950">книга</div><div className="mt-0.5 text-[8px] font-bold text-slate-400">4 буквы · рядом</div></div>
+      <div className="mt-3 grid grid-cols-4 gap-1.5">{cells.map((letter, index) => { const order = selected.get(index); return <div key={`${letter}-${index}`} className={`relative flex aspect-square items-center justify-center rounded-lg border-2 text-xs font-black shadow-sm ${order ? 'border-blue-500 bg-blue-100 text-blue-950' : 'border-amber-100 bg-white text-slate-700'}`}>{letter}{order && <span className="absolute left-0.5 top-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-blue-500 text-[6px] text-white">{order}</span>}</div>; })}</div>
+      <div className="mt-2 text-center text-[8px] font-bold leading-tight text-indigo-500">Собери слово по соседним клеткам.</div>
     </div>
   );
 };
