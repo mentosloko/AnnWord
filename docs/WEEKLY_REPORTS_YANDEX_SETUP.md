@@ -32,4 +32,4 @@ After configuration:
 2. Run GitHub Actions workflow `Weekly Parent Reports` manually once.
 3. Confirm the response contains `sent: 1` or a clear per-profile error.
 4. Confirm the message appears in Postbox delivery history and in the destination mailbox.
-5. Confirm `/api/runtime-config` returns `hasWeeklyReports: true`.
+5. Confirm the protected weekly-report status endpoint reports the configured state.

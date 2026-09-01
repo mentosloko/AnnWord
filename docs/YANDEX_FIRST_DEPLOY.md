@@ -107,7 +107,7 @@ Expected healthy responses:
 and for database:
 
 ```json
-{"status":"ok","database":{"configured":true,"ok":true}}
+{"status":"ok","service":"annword-api","database":{"ok":true}}
 ```
 
 Auth-protected endpoint smoke checks should return `401` before login:

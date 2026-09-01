@@ -27,6 +27,7 @@ import { migrationRouter } from "./routes/migrationRoutes";
 import { migrationSchemaRouter } from "./routes/migrationSchemaRoutes";
 import { weeklyReportRouter } from "./routes/weeklyReportRoutes";
 import { getServerTimingHeader, runWithRequestPerformance } from "./performanceTelemetry";
+import { rateLimit, requestText } from "./requestRateLimit";
 
 dotenv.config();
 
@@ -52,17 +53,7 @@ const addAllowedOrigin = (origins: Set<string>, value: unknown): void => {
   origins.add(normalized);
 
   try {
-    const url = new URL(normalized);
-    if (url.hostname === "annword.ru" || url.hostname === "www.annword.ru") {
-      for (const protocol of ["https:", "http:"]) {
-        for (const hostname of ["annword.ru", "www.annword.ru"]) {
-          const sibling = new URL(url.toString());
-          sibling.protocol = protocol;
-          sibling.hostname = hostname;
-          origins.add(normalizeOrigin(sibling.toString()));
-        }
-      }
-    }
+    new URL(normalized);
   } catch {
     // Ignore malformed optional CORS values and keep the explicitly normalized value above.
   }
@@ -121,6 +112,13 @@ const exposeResponseHeader = (res: Response, headerName: string): void => {
   res.setHeader("Access-Control-Expose-Headers", Array.from(values).join(", "));
 };
 
+const authSubject = (req: Request): string => `${req.ip || "unknown"}:${requestText(req.body?.email) || "anonymous"}`;
+const authRegistrationLimit = rateLimit({ scope: "auth-registration", max: 5, windowMs: 15 * 60_000, key: authSubject });
+const authLoginLimit = rateLimit({ scope: "auth-login", max: 10, windowMs: 15 * 60_000, key: authSubject });
+const authRecoveryLimit = rateLimit({ scope: "auth-recovery", max: 5, windowMs: 15 * 60_000, key: authSubject });
+const oauthExchangeLimit = rateLimit({ scope: "oauth-exchange", max: 20, windowMs: 15 * 60_000 });
+const gameMutationLimit = rateLimit({ scope: "game-mutation", max: 240, windowMs: 60_000 });
+
 app.disable("x-powered-by");
 app.use((req, res, next) => {
   runWithRequestPerformance(() => {
@@ -152,6 +150,19 @@ app.use((req, res, next) => {
 });
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+app.use((req, res, next) => {
+  if (req.method === "POST" && req.path === "/api/auth/email/account") return authRegistrationLimit(req, res, next);
+  if (req.method === "POST" && req.path === "/api/auth/email/session") return authLoginLimit(req, res, next);
+  if (req.method === "POST" && req.path === "/api/auth/password/reset/request") return authRecoveryLimit(req, res, next);
+  if (req.method === "POST" && req.path === "/api/auth/yandex/exchange") return oauthExchangeLimit(req, res, next);
+  if (["POST", "PATCH"].includes(req.method) && (
+    req.path.startsWith("/api/profile/") ||
+    req.path === "/api/game-events/events" ||
+    req.path === "/api/daily-quest/result"
+  )) return gameMutationLimit(req, res, next);
+  next();
+});
+
 app.use((req, _res, next) => {
   const appSession = req.headers["x-annword-session"];
   if (typeof appSession === "string" && appSession.trim() && !req.headers.authorization) {
@@ -194,8 +205,7 @@ app.use(
       const allowedOrigins = new Set<string>();
       [runtimeConfig.appUrl, runtimeConfig.apiUrl, process.env.CORS_ORIGIN].forEach((value) => addAllowedOrigin(allowedOrigins, value));
       const normalizedOrigin = normalizeOrigin(origin);
-      const isAnnWordVercel = /^https:\/\/ann-word(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(normalizedOrigin);
-      const allowed = allowedOrigins.size === 0 || allowedOrigins.has(normalizedOrigin) || isAnnWordVercel;
+      const allowed = allowedOrigins.has(normalizedOrigin) || (runtimeConfig.env !== "production" && allowedOrigins.size === 0);
       if (!allowed) console.warn(JSON.stringify({ level: "WARN", message: "CORS origin rejected", event: "cors_rejected", origin: normalizedOrigin }));
       callback(null, allowed);
     },
@@ -220,22 +230,12 @@ app.get("/api/health/db", async (_req: Request, res: Response) => {
   res.status(database.ok ? 200 : 503).json({
     status: database.ok ? "ok" : "error",
     service: "annword-api",
-    database,
-    timestamp: new Date().toISOString(),
+    database: { ok: database.ok },
   });
 });
 
 app.get("/api/runtime-config", (_req: Request, res: Response) => {
-  res.json({
-    status: "ok",
-    appUrl: runtimeConfig.appUrl,
-    apiUrl: runtimeConfig.apiUrl,
-    hasDatabase: Boolean(runtimeConfig.databaseUrl),
-    hasYandexOAuth: Boolean(runtimeConfig.yandexClientId && runtimeConfig.yandexClientSecret),
-    hasProdamus: Boolean(runtimeConfig.prodamusSecret),
-    hasObjectStorage: Boolean(runtimeConfig.s3Endpoint && runtimeConfig.s3FrontendBucket && runtimeConfig.s3AssetsBucket),
-    hasWeeklyReports: Boolean(process.env.WEEKLY_REPORT_FROM_EMAIL && process.env.WEEKLY_REPORT_CRON_SECRET),
-  });
+  res.json({ status: "ok", service: "annword-api" });
 });
 
 app.get("/api/payments/prodamus/notify", (_req: Request, res: Response) => {
