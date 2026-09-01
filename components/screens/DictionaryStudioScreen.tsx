@@ -5,10 +5,12 @@ import {
   loadDictionaryImportWords,
   loadSpotlightImportOptions,
   mergeImportedDictionaryWords,
+  mergeImportedDictionaryTranslations,
 } from '../../services/dictionarySourceImport';
 import { SPOTLIGHT_ALL_SECTIONS_ID, type SpotlightGradeNumber, type SpotlightSectionOption } from '../../services/spotlightDictionary';
 import { resolveDictionaryWordTranslations, type DictionaryTranslationResolution } from '../../services/masterDictionaryLookup';
 import { PremiumDictionaryDraft } from '../../services/premiumDictionaryService';
+import { hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
 import { hasRussianTranslation } from '../../services/wordNormalization';
 import { CustomDictionaryCollection, UserProfile } from '../../types';
 import { useProfileFreshness } from '../../hooks/useProfileFreshness';
@@ -52,6 +54,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
   // It remains hidden until a separately validated rollout.
   const OCR_IMPORT_ENABLED = false;
   const canUseOcr = OCR_IMPORT_ENABLED && !isTeacher && canCreate;
+  const canImportFromCatalogue = !isTeacher && hasPremiumDictionaryAccess(userProfile);
   const activeTeacherCollection = isTeacher ? latestCollection(userProfile.dictionaryCollections || []) : undefined;
   const originalDraft = (isTeacher ? activeTeacherCollection?.words || [] : userProfile.customDictionaryEn).join('\n');
   const editorSourceKey = isTeacher ? activeTeacherCollection?.id || 'teacher-empty' : 'custom-dictionary';
@@ -68,9 +71,12 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
   const [ocrMessage, setOcrMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const importSources = useMemo(() => getDictionaryImportSources(isKids), [isKids]);
+  const importSources = useMemo(
+    () => canImportFromCatalogue ? getDictionaryImportSources(isKids) : [],
+    [canImportFromCatalogue, isKids],
+  );
   const [importSourceId, setImportSourceId] = useState<string>('spotlight');
-  const [importWords, setImportWords] = useState<string[]>([]);
+  const [importWords, setImportWords] = useState<Array<{ word: string; translation?: string }>>([]);
   const [selectedImportWords, setSelectedImportWords] = useState<string[]>([]);
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -144,7 +150,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
   const importSource = importSources.find(item => item.id === importSourceId) || importSources[0];
   const availableImportWords = useMemo(() => {
     const current = new Set(words);
-    return importWords.filter(word => !current.has(word));
+    return importWords.filter(entry => !current.has(entry.word));
   }, [importWords, wordsKey]);
 
   useEffect(() => {
@@ -153,7 +159,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
   }, [importSource, importSources]);
 
   useEffect(() => {
-    if (isTeacher || !canCreate || !importSource) {
+    if (!canImportFromCatalogue || !importSource) {
       setImportWords([]);
       setSelectedImportWords([]);
       return;
@@ -180,7 +186,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
       }
     })();
     return () => { cancelled = true; };
-  }, [canCreate, importSource, importSourceId, isTeacher, spotlightGrade, spotlightSectionId]);
+  }, [canImportFromCatalogue, importSource, importSourceId, spotlightGrade, spotlightSectionId]);
 
   const toggleImportWord = (word: string) => {
     setSelectedImportWords(previous => previous.includes(word)
@@ -196,6 +202,7 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
       return;
     }
     setDraft(nextWords.join('\n'));
+    setManualTranslations(previous => mergeImportedDictionaryTranslations(previous, importWords, selectedImportWords));
     setSource(importSource?.kind === 'spotlight' ? 'class' : 'topic');
     setSelectedImportWords([]);
     setNotice('Добавлено слов: ' + added + '. Проверьте список и сохраните словарь.');
@@ -228,7 +235,9 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
       await onSaveDictionary({
         title: isTeacher ? title.trim() : title.trim() || 'Мой словарь',
         words,
-        wordTranslations: resolvedTranslations?.translations,
+        wordTranslations: resolvedTranslations?.translations || Object.fromEntries(
+          words.flatMap(word => manualTranslations[word] ? [[word, manualTranslations[word]]] : []),
+        ),
         source,
         classLabel: isTeacher ? classLabel.trim() || undefined : undefined,
         theme: isTeacher ? theme.trim() || undefined : undefined,
@@ -304,14 +313,14 @@ export const DictionaryStudioScreen: React.FC<DictionaryStudioScreenProps> = ({ 
 
       {ocrProgress !== null && <div className="mt-4 rounded-2xl bg-purple-50 p-3"><div className="mb-2 flex justify-between text-xs font-black text-purple-700"><span>{ocrMessage}</span><span>{ocrProgress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-purple-100"><div className="h-full bg-purple-600" style={{ width: `${ocrProgress}%` }} /></div></div>}
 
-      {!isTeacher && canCreate && importSource && <section className="mt-5 rounded-3xl border-2 border-emerald-100 bg-emerald-50/60 p-4" aria-label="Добавить слова из словаря">
+      {!isTeacher && canImportFromCatalogue && importSource && <section className="mt-5 rounded-3xl border-2 border-emerald-100 bg-emerald-50/60 p-4" aria-label="Добавить слова из словаря">
         <div className="text-xs font-black uppercase tracking-widest text-emerald-700">Добавить из готового словаря</div>
         <p className="mt-1 text-sm font-bold text-slate-600">Отметьте сразу несколько слов: повторы с вашим списком будут исключены.</p>
         <label className="mt-3 block text-xs font-black text-indigo-950">Источник<select value={importSource.id} onChange={event => { setImportSourceId(event.target.value); setSpotlightSectionId(SPOTLIGHT_ALL_SECTIONS_ID); }} className="mt-1 w-full rounded-xl border-2 border-indigo-100 bg-white px-3 py-2 text-sm font-bold text-indigo-950">{importSources.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
         {importSource.kind === 'spotlight' && <div className="mt-3 grid gap-2 sm:grid-cols-2"><label className="text-xs font-black text-indigo-950">Класс<select value={spotlightGrade} onChange={event => { setSpotlightGrade(Number(event.target.value) as SpotlightGradeNumber); setSpotlightSectionId(SPOTLIGHT_ALL_SECTIONS_ID); }} className="mt-1 w-full rounded-xl border-2 border-indigo-100 bg-white px-3 py-2 text-sm font-bold">{[2,3,4,5,6,7,8,9,10,11].map(grade => <option key={grade} value={grade}>{grade} класс</option>)}</select></label><label className="text-xs font-black text-indigo-950">Модуль<select value={spotlightSectionId} onChange={event => setSpotlightSectionId(event.target.value)} className="mt-1 w-full rounded-xl border-2 border-indigo-100 bg-white px-3 py-2 text-sm font-bold"><option value={SPOTLIGHT_ALL_SECTIONS_ID}>Весь класс</option>{spotlightSections.map(section => <option key={section.id} value={section.id}>{section.label} · {section.wordCount} слов</option>)}</select></label></div>}
         {importLoading && <p role="status" className="mt-3 text-sm font-bold text-indigo-600">Загружаю слова…</p>}
         {importError && <p role="alert" className="mt-3 text-sm font-bold text-rose-700">{importError}</p>}
-        {!importLoading && !importError && <><div className="mt-3 flex items-center justify-between gap-3"><span className="text-xs font-bold text-slate-500">Доступно новых слов: {availableImportWords.length}</span><button type="button" onClick={() => setSelectedImportWords(availableImportWords)} className="text-xs font-black text-indigo-700">Выбрать все</button></div><div className="mt-2 grid max-h-64 grid-cols-2 gap-2 overflow-y-auto rounded-2xl bg-white p-3 sm:grid-cols-3">{availableImportWords.map(word => <label key={word} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-bold text-indigo-950 hover:bg-indigo-50"><input type="checkbox" checked={selectedImportWords.includes(word)} onChange={() => toggleImportWord(word)} />{word}</label>)}</div><button type="button" disabled={!selectedImportWords.length} onClick={addSelectedImportWords} className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white disabled:opacity-50">Добавить выбранные: {selectedImportWords.length}</button></>}
+        {!importLoading && !importError && <><div className="mt-3 flex items-center justify-between gap-3"><span className="text-xs font-bold text-slate-500">Доступно новых слов: {availableImportWords.length}</span><button type="button" onClick={() => setSelectedImportWords(availableImportWords.map(entry => entry.word))} className="text-xs font-black text-indigo-700">Выбрать все</button></div><div className="mt-2 grid max-h-64 grid-cols-2 gap-2 overflow-y-auto rounded-2xl bg-white p-3 sm:grid-cols-3">{availableImportWords.map(entry => <label key={entry.word} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-bold text-indigo-950 hover:bg-indigo-50"><input type="checkbox" checked={selectedImportWords.includes(entry.word)} onChange={() => toggleImportWord(entry.word)} />{entry.word}</label>)}</div><button type="button" disabled={!selectedImportWords.length} onClick={addSelectedImportWords} className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white disabled:opacity-50">Добавить выбранные: {selectedImportWords.length}</button></>}
       </section>}
 
       <div className="mt-5"><label htmlFor="dictionary-word-list" className="text-sm font-black uppercase tracking-widest text-indigo-400">Список слов</label></div>
