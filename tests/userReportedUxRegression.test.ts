@@ -26,10 +26,11 @@ describe('user-reported UX regressions', () => {
     expect(weekly).toContain("requiredEnv('WEEKLY_REPORT_FROM_EMAIL')");
   });
 
-  it('shows topical kids dictionaries instead of separate grades', () => {
+  it('shows grade dictionaries so existing A2/B1 words can be selected', () => {
     const catalog = getKidsDictionaryCatalog();
-    expect(catalog.some(item => item.theme === 'grade')).toBe(false);
-    expect(catalog.map(item => item.shortTitle)).not.toEqual(expect.arrayContaining(['1 класс', '2 класс', '3 класс']));
+    expect(catalog.some(item => item.theme === 'grade')).toBe(true);
+    expect(catalog.map(item => item.shortTitle)).toEqual(expect.arrayContaining(['1 класс', '2 класс', '3 класс']));
+    expect(catalog.find(item => item.id === 'kids_grade_3')?.levelCounts?.B1).toBeGreaterThan(0);
     expect(getDefaultKidsDictionaryId()).toBe('kids_animals');
     expect(getPremiumDictionaryMeta('premium_spotlight_school').title).toBe('Школьные (Spotlight)');
   });

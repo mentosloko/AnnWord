@@ -273,7 +273,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
 
         {source === 'builtin' && <section className="mt-4 rounded-3xl border-2 border-indigo-100 bg-indigo-50/45 p-4">
           <h2 className="text-lg font-black text-indigo-950">{kidsMode ? 'Детский словарь' : 'General English'}</h2>
-          <p className="mt-1 text-sm font-bold text-slate-500">{kidsMode ? 'Базовый детский словарь сейчас содержит A1. A2 и B1 есть в тематических и школьных наборах; B2–C2 пока не входят в Kids-каталог, поэтому пустые уровни не показываются как доступные.' : 'Выберите сложность только для общего словаря. На тематические наборы этот уровень не влияет.'}</p>
+          <p className="mt-1 text-sm font-bold text-slate-500">{kidsMode ? 'Базовый детский словарь содержит A1. Для A2 выберите тематический набор или «2 класс», для B1 — «3 класс». B2–C2 пока не входят в Kids-каталог, поэтому остаются закрытыми.' : 'Выберите сложность только для общего словаря. На тематические наборы этот уровень не влияет.'}</p>
           <DifficultyPicker
             value={draftSettings.difficulty}
             kidsMode={kidsMode}

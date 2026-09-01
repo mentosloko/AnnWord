@@ -146,14 +146,12 @@ const SprintPreview = () => (
 );
 
 const SnakePreview = () => {
-  // Four rows keep the instruction clear even inside the narrow mobile carousel card.
   const cells = ['M','A','P','L','B','O','O','K','S','H','I','P','D','F','R','E'];
   const selected = new Map([[4, 1], [5, 2], [6, 3], [7, 4]]);
   return (
     <div className="flex h-full flex-col rounded-[1.35rem] bg-gradient-to-b from-rose-50 via-white to-pink-50 p-3 shadow-inner">
       <div className="rounded-xl bg-white px-3 py-2 text-center shadow-sm"><div className="text-sm font-black text-indigo-950">книга</div><div className="mt-0.5 text-[8px] font-bold text-slate-400">4 буквы · рядом</div></div>
-      <div className="mt-3 grid grid-cols-4 gap-1.5">{cells.map((letter, index) => { const order = selected.get(index); return <div key={`${letter}-${index}`} className={`relative flex aspect-square items-center justify-center rounded-lg border-2 text-xs font-black shadow-sm ${order ? 'border-blue-500 bg-blue-100 text-blue-950' : 'border-amber-100 bg-white text-slate-700'}`}>{letter}{order && <span className="absolute left-0.5 top-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-blue-500 text-[6px] text-white">{order}</span>}</div>; })}</div>
-      <div className="mt-2 text-center text-[8px] font-bold leading-tight text-indigo-500">Собери слово по соседним клеткам.</div>
+      <div className="mx-auto mt-3 grid w-full max-w-[10rem] grid-cols-4 gap-1">{cells.map((letter, index) => { const order = selected.get(index); return <div key={`${letter}-${index}`} className={`relative flex aspect-square items-center justify-center rounded-lg border-2 text-xs font-black shadow-sm ${order ? 'border-blue-500 bg-blue-100 text-blue-950' : 'border-amber-100 bg-white text-slate-700'}`}>{letter}{order && <span className="absolute left-0.5 top-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-blue-500 text-[6px] text-white">{order}</span>}</div>; })}</div>
     </div>
   );
 };
@@ -318,9 +316,9 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
 
         <section className="px-4 pb-8 sm:px-8 sm:pb-10 lg:px-10">
           <div className="overflow-hidden rounded-[2.35rem] bg-gradient-to-r from-indigo-700 via-violet-600 to-sky-500 p-5 text-white shadow-2xl shadow-indigo-700/20 sm:p-7">
-            <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
-              <div className="flex items-center gap-3 sm:grid sm:grid-cols-[11rem_1fr]"><DeferredImage src={asset('cta-mascot.webp')} mobileSrc={asset('cta-mascot-mobile.webp')} rootMargin="96px 0px" alt="Питомец AnnWord летит за наградами" loading="lazy" decoding="async" className="-ml-2 h-24 w-24 shrink-0 object-contain drop-shadow-2xl sm:-my-4 sm:-ml-3 sm:h-44 sm:w-44 sm:max-w-none" /><div><h2 className="text-xl font-black leading-tight sm:text-3xl">Играй и получай награды!</h2><p className="mt-1.5 text-xs font-bold leading-relaxed text-indigo-100 sm:mt-2 sm:text-sm">Монеты, кристаллы и вещи для питомца превращают усилия в видимый результат.</p></div></div>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">{rewards.map(([src, label]) => <div key={label} className="rounded-2xl bg-white/95 p-2 text-center text-indigo-950 shadow-lg"><DeferredImage src={src} mobileSrc={mobileVariant(src)} rootMargin="96px 0px" alt={label} loading="lazy" decoding="async" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" /><div className="mt-1 text-[10px] font-black sm:text-xs">{label}</div></div>)}</div>
+            <div className="grid gap-5 lg:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.2fr)] lg:items-center">
+              <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-4"><DeferredImage src={asset('cta-mascot.webp')} mobileSrc={asset('cta-mascot-mobile.webp')} rootMargin="96px 0px" alt="Питомец AnnWord летит за наградами" loading="lazy" decoding="async" className="h-20 w-20 object-contain object-center drop-shadow-2xl sm:h-32 sm:w-32" /><div><h2 className="text-xl font-black leading-tight sm:text-3xl">Играй и получай награды!</h2><p className="mt-1.5 text-xs font-bold leading-relaxed text-indigo-100 sm:mt-2 sm:text-sm">Монеты, кристаллы и вещи для питомца превращают усилия в видимый результат.</p></div></div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">{rewards.map(([src, label]) => <div key={label} className="flex min-h-[8.5rem] flex-col justify-center rounded-2xl bg-white/95 p-2 text-center text-indigo-950 shadow-lg"><DeferredImage src={src} mobileSrc={mobileVariant(src)} rootMargin="96px 0px" alt={label} loading="lazy" decoding="async" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" /><div className="mt-1 text-[10px] font-black leading-tight sm:text-xs">{label}</div></div>)}</div>
             </div>
           </div>
         </section>
