@@ -37,6 +37,15 @@ const getPetAccessoryBasePath = (petType?: string): string | null => {
   return slug ? assetUrl(`/assets/pets/${slug}/accessories`) : null;
 };
 
+const getOptimizedStaticAssetUrl = (url?: string): string | undefined => {
+  if (!url) return undefined;
+  // These WebP derivatives are already checked into the repository; serving
+  // the PNG originals for compact shop icons wastes roughly 1 MiB per image.
+  return /^\/assets\/items\/treats\/[^/]+\.png$/i.test(url)
+    ? url.replace(/\.png$/i, '.webp')
+    : url;
+};
+
 const getAccessoryKey = (accessories: string[]): string =>
   ACCESSORY_ORDER.filter(accessoryId => accessories.includes(accessoryId)).join('_');
 
@@ -58,7 +67,9 @@ export const getPetAccessoryAssetUrl = (itemId: string, petType: string = 'Puppy
   const basePath = getPetAccessoryBasePath(petType);
   if (!basePath) return null;
 
-  return `${basePath}/${itemId}.png`;
+  // Puppy accessory SVGs are compact vector originals; the former PNGs are
+  // 1–1.5 MiB each and are only displayed as small shop/inventory icons.
+  return `${basePath}/${itemId}.${petType === 'Puppy' ? 'svg' : 'png'}`;
 };
 
 export const getPuppyAccessoryAssetUrl = (itemId: string): string | null =>
@@ -100,11 +111,13 @@ export const getPuppyCharacterPreloadUrls = (): string[] => {
 export const getShopImageUrl = (item: ShopItem, petType: string = 'Puppy'): string | undefined => {
   if (item.id === 'mystery_box') return MYSTERY_BOX_ASSET_URL;
   if (item.type === 'accessory') return getPetAccessoryAssetUrl(item.id, petType) || (item.imageUrl ? assetUrl(item.imageUrl) : undefined);
-  return item.imageUrl ? assetUrl(item.imageUrl) : undefined;
+  const imageUrl = getOptimizedStaticAssetUrl(item.imageUrl);
+  return imageUrl ? assetUrl(imageUrl) : undefined;
 };
 
 export const getInventoryImageUrl = (item: InventoryItem, pet?: PetState): string | null => {
   if (item.id === 'mystery_box') return MYSTERY_BOX_ASSET_URL;
   if (item.type === 'accessory') return getPetAccessoryAssetUrl(item.id, pet?.type || 'Puppy');
-  return item.metadata?.imageUrl ? assetUrl(item.metadata.imageUrl) : null;
+  const imageUrl = getOptimizedStaticAssetUrl(item.metadata?.imageUrl);
+  return imageUrl ? assetUrl(imageUrl) : null;
 };

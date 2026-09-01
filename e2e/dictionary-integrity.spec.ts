@@ -322,7 +322,7 @@ test.describe('dictionary integrity browser E2E', () => {
     });
 
     await page.goto('/kids');
-    await page.getByRole('button', { name: /Для родителя|Кабинет родителя/ }).click();
+    await page.locator('#main-content').getByRole('button', { name: /Для родителя|Кабинет родителя/ }).click();
     await expect(page.getByRole('heading', { name: 'Кабинет родителя' })).toBeVisible();
     await page.getByLabel('PIN родителя').fill('1234');
     await page.getByRole('button', { name: 'Открыть кабинет' }).click();
