@@ -206,18 +206,21 @@ const contentSecurityPolicyPlugin = (apiUrl: string) => {
   const e2eOrigin = localApiOrigin(apiUrl);
   const ocrScriptOrigin = 'https://cdn.jsdelivr.net';
   const ocrLanguageOrigin = 'https://tessdata.projectnaptha.com';
+  const metrikaScriptOrigins = ['https://mc.yandex.ru', 'https://yastatic.net'];
+  const metrikaFrameOrigins = ['https://mc.yandex.ru', 'https://mc.webvisor.com', 'https://mc.webvisor.org'];
   const connectSources = ["'self'", 'https:', 'wss:', ocrScriptOrigin, ocrLanguageOrigin, ...(e2eOrigin ? [e2eOrigin] : [])];
   const directives = [
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
-    `script-src 'self' 'wasm-unsafe-eval' ${ocrScriptOrigin}`,
+    `script-src 'self' 'wasm-unsafe-eval' ${ocrScriptOrigin} ${metrikaScriptOrigins.join(' ')}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     `connect-src ${connectSources.join(' ')}`,
     `worker-src 'self' blob: ${ocrScriptOrigin}`,
-    'frame-src https:',
+    `child-src 'self' blob: ${metrikaFrameOrigins.join(' ')}`,
+    'frame-src https: blob:',
     "form-action 'self' https:",
     ...(e2eOrigin ? [] : ['upgrade-insecure-requests']),
   ];
