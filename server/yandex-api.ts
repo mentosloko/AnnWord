@@ -50,12 +50,12 @@ const addAllowedOrigin = (origins: Set<string>, value: unknown): void => {
   const normalized = normalizeOrigin(readText(value));
   if (!normalized) return;
 
-  origins.add(normalized);
-
   try {
-    new URL(normalized);
+    const url = new URL(normalized);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return;
+    origins.add(url.origin);
   } catch {
-    // Ignore malformed optional CORS values and keep the explicitly normalized value above.
+    // Ignore malformed optional CORS values.
   }
 };
 const hashHandoff = (value: string): string => createHash("sha256").update(value).digest("hex");
