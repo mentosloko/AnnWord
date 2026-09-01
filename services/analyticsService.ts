@@ -1,6 +1,7 @@
 import { GameRewardType, ViewState } from '../types';
 import { BackendApiError, backendApiRequest } from './backendApiClient';
 import { loadingTelemetry, type LoadingMetric } from './loadingTelemetry';
+import { forwardAnalyticsEventToYandex } from './yandexMetrika';
 
 const ANALYTICS_SESSION_KEY = 'annword_analytics_session_id';
 const ANALYTICS_QUEUE_KEY = 'annword_analytics_queue_v1';
@@ -208,6 +209,11 @@ export const analyticsService = {
 
   trackEvent: (input: TrackEventInput): void => {
     try {
+      forwardAnalyticsEventToYandex({
+        eventName: input.eventName,
+        gameType: input.gameType || null,
+        route: input.route ? String(input.route) : null,
+      });
       const event = createAnalyticsEvent(input);
       if (input.eventName === 'game_started') {
         void analyticsService.sendNow([event]);
