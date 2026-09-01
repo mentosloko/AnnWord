@@ -1,31 +1,9 @@
 (function () {
   var counterId = 112133624;
-  var tagUrl = 'https://mc.yandex.ru/metrika/tag.js?id=' + counterId;
   window.__ANNWORD_METRIKA_ID__ = counterId;
 
   window.ym = window.ym || function () { (window.ym.a = window.ym.a || []).push(arguments); };
-  window.ym.l = 1 * new Date();
-
-  function loadTag() {
-    for (var j = 0; j < document.scripts.length; j += 1) {
-      if (document.scripts[j].src === tagUrl) return;
-    }
-    var script = document.createElement('script');
-    var firstScript = document.getElementsByTagName('script')[0];
-    script.async = 1;
-    script.src = tagUrl;
-    firstScript.parentNode.insertBefore(script, firstScript);
-  }
-
-  function loadTagAfterFirstRender() {
-    window.setTimeout(loadTag, 0);
-  }
-
-  if (document.readyState === 'complete') {
-    loadTagAfterFirstRender();
-  } else {
-    window.addEventListener('load', loadTagAfterFirstRender, { once: true });
-  }
+  window.ym.l = window.ym.l || (1 * new Date());
 
   window.ym(counterId, 'init', {
     defer: true,
@@ -33,7 +11,9 @@
     webvisor: true,
     clickmap: true,
     trackLinks: true,
-    accurateTrackBounce: true
+    accurateTrackBounce: true,
+    referrer: document.referrer,
+    url: window.location.href
   });
 
   var lastTrackedUrl = '';
