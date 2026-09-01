@@ -24,6 +24,7 @@ describe('security, SEO and routing contracts', () => {
     expect(vite).toContain("https://cdn.jsdelivr.net");
     expect(vite).toContain("https://tessdata.projectnaptha.com");
     expect(vite).toContain("https://mc.yandex.ru");
+    expect(vite).toContain("https://mc.yandex.com");
     expect(vite).toContain("https://yastatic.net");
     expect(vite).toContain("https://mc.webvisor.org");
     expect(vite).toContain("'wasm-unsafe-eval'");
