@@ -12,6 +12,14 @@ describe('TranslationChoiceGame challenging pairs', () => {
     expect(chooseChallengingWrongOption('SHEEP', pool)).toBe('SHEET');
   });
 
+  it('prefers a one-edit pair even when another candidate has the same length', () => {
+    expect(chooseChallengingWrongOption('BOOK', [
+      { word: 'BOOK', translation: 'книга', level: 'A1' },
+      { word: 'MILK', translation: 'молоко', level: 'A1' },
+      { word: 'BOOKS', translation: 'книги', level: 'A1' },
+    ])).toBe('BOOKS');
+  });
+
   it('does not invent a distractor when the dictionary has no pair', () => {
     expect(chooseChallengingWrongOption('SHEEP', [pool[0]])).toBeNull();
   });
