@@ -120,11 +120,10 @@ jobs:
           CORS_ALLOWED_ORIGINS: https://annword.ru,https://www.annword.ru
         run: |
           set -euo pipefail
-          yc serverless api-gateway get-spec --id "$YC_API_GATEWAY_ID" > /tmp/annword-api-gateway.yaml
-          node scripts/patch-yandex-api-gateway-cors.mjs /tmp/annword-api-gateway.yaml /tmp/annword-api-gateway.cors.yaml
-          if cmp -s /tmp/annword-api-gateway.yaml /tmp/annword-api-gateway.cors.yaml; then
-            echo "API Gateway CORS already restricted."
-          else
+          yc serverless api-gateway get-spec --id "$YC_API_GATEWAY_ID" --format json > /tmp/annword-api-gateway.json
+          PATCH_RESULT="$(node scripts/patch-yandex-api-gateway-cors.mjs /tmp/annword-api-gateway.json /tmp/annword-api-gateway.cors.yaml)"
+          printf '%s\n' "$PATCH_RESULT"
+          if printf '%s' "$PATCH_RESULT" | grep -Fq '"changed":true'; then
             yc serverless api-gateway update --id "$YC_API_GATEWAY_ID" --spec=/tmp/annword-api-gateway.cors.yaml
           fi
 
