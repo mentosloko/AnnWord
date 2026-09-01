@@ -182,6 +182,7 @@ jobs:
             --memory 512M \
             --execution-timeout 30s \
             --concurrency 8 \
+            --min-instances 1 \
             --environment NODE_ENV=production \
             --environment PORT=8080 \
             --environment DATABASE_URL="$DATABASE_URL" \
@@ -210,6 +211,24 @@ jobs:
             --environment WEEKLY_REPORT_FROM_EMAIL="$WEEKLY_REPORT_FROM_EMAIL" \
             --environment WEEKLY_REPORT_CRON_SECRET="$WEEKLY_REPORT_CRON_SECRET" \
             --environment RELEASE_SHA="$GITHUB_SHA"
+
+      - name: Verify prepared production revision
+        env:
+          YC_SERVERLESS_CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
+        run: |
+          set -euo pipefail
+          yc serverless container revision list --container-id "$YC_SERVERLESS_CONTAINER_ID" --limit 1 --format json > /tmp/production-revision.json
+          cat /tmp/production-revision.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const rows = JSON.parse(fs.readFileSync('/tmp/production-revision.json', 'utf8'));
+          const revision = Array.isArray(rows) ? rows[0] : rows;
+          const min = Number(revision?.provision_policy?.min_instances ?? revision?.provisionPolicy?.minInstances ?? 0);
+          const network = revision?.connectivity?.network_id ?? revision?.connectivity?.networkId ?? '';
+          if (min !== 1) throw new Error(`Expected min_instances=1, got ${min}`);
+          if (!network) throw new Error('Expected private network attachment on production revision');
+          console.log(`prepared_instance_verified=true network_id=${network}`);
+          NODE
 
       - name: Install AWS CLI for Object Storage upload
         run: python -m pip install --user --upgrade awscli
@@ -258,17 +277,30 @@ jobs:
           for attempt in $(seq 1 30); do
             RELEASE_BODY="$(curl -fsS "${APP_BASE}/release.json?sha=${GITHUB_SHA}" || true)"
             HEALTH_BODY="$(curl -fsS "${API_BASE}/api/health" || true)"
-            if printf '%s' "$RELEASE_BODY" | grep -Fq "$GITHUB_SHA" && printf '%s' "$HEALTH_BODY" | grep -Eqi 'ok|healthy'; then
+            DB_HEALTH_BODY="$(curl -fsS "${API_BASE}/api/health/db" || true)"
+            if printf '%s' "$RELEASE_BODY" | grep -Fq "$GITHUB_SHA" \
+              && printf '%s' "$HEALTH_BODY" | grep -Eqi 'ok|healthy' \
+              && printf '%s' "$DB_HEALTH_BODY" | grep -Eqi 'ok|healthy'; then
               break
             fi
             if [ "$attempt" -eq 30 ]; then
-              echo "Production did not expose release $GITHUB_SHA or a healthy API in time."
+              echo "Production did not expose release $GITHUB_SHA or healthy API/database in time."
               echo "release.json: $RELEASE_BODY"
               echo "health: $HEALTH_BODY"
+              echo "health/db: $DB_HEALTH_BODY"
               exit 1
             fi
             sleep 10
           done
+
+          PREFLIGHT_HEADERS="$(curl -sSI -X OPTIONS \
+            -H 'Origin: https://annword.ru' \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: content-type,x-annword-session' \
+            "${API_BASE}/api/profile/coins" | tr -d '\r')"
+          printf '%s\n' "$PREFLIGHT_HEADERS"
+          printf '%s\n' "$PREFLIGHT_HEADERS" | grep -Eq '^HTTP/[^ ]+ 204 '
+          printf '%s\n' "$PREFLIGHT_HEADERS" | grep -Eqi '^access-control-max-age:[[:space:]]*3600([[:space:]]|$)'
 
           TEST_EMAIL="deploy-probe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@gmail.com"
           HTTP_CODE="$(curl -sS -o /tmp/foreign-email-response.json -w '%{http_code}' \
@@ -307,6 +339,8 @@ jobs:
           echo "Backend image: $BACKEND_IMAGE" >> "$GITHUB_STEP_SUMMARY"
           echo "Frontend bucket: ${{ secrets.S3_FRONTEND_BUCKET }}" >> "$GITHUB_STEP_SUMMARY"
           echo "Postbox sender: $AUTH_FROM_EMAIL (verified with delivery simulator)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Prepared API instance: min_instances=1 with private network attachment verified" >> "$GITHUB_STEP_SUMMARY"
+          echo "Live API/database health and CORS preflight: verified" >> "$GITHUB_STEP_SUMMARY"
           echo "Live API foreign-email rejection: verified" >> "$GITHUB_STEP_SUMMARY"
           echo "Static delivery cache policy: verified for root and route HTML plus hashed assets" >> "$GITHUB_STEP_SUMMARY"
           tail -n 1 /tmp/static-compression-report.log >> "$GITHUB_STEP_SUMMARY" || true
