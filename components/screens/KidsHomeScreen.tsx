@@ -62,7 +62,7 @@ export const KidsHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, onSta
     { title: 'Спринт', image: '/assets/games/game_sprint.webp', note: 'Отвечайте быстро и собирайте звёзды.', action: onStartSprint },
     { title: 'Виселица', image: '/assets/games/game_hangman.webp', note: 'Открывайте слово по буквам.', action: onStartHangman },
     { title: 'Память', image: '/assets/games/game_memory.webp', note: 'Найдите пары слово–перевод.', action: onStartMemory, badge: savedBadge('memory') },
-    { title: 'Змейка', image: '/assets/games/line_game.webp', note: 'Соединяйте соседние буквы.', action: onStartLetterSquare, badge: savedBadge('letter_square') },
+    { title: 'Змейка', image: '/assets/games/line_game-card.webp', note: 'Соединяйте соседние буквы.', action: onStartLetterSquare, badge: savedBadge('letter_square') },
   ];
 
   return <ScreenContainer className="max-w-6xl pb-24 pt-4 sm:pb-20 sm:pt-6">
