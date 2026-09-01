@@ -13,7 +13,7 @@ describe('security API hardening', () => {
     expect(api).toContain('authRecoveryLimit');
     expect(api).toContain('oauthExchangeLimit');
     expect(api).toContain('gameMutationLimit');
-    expect(api).toContain('"/api/profile/game-result"');
+    expect(api).toContain('req.path.startsWith("/api/profile/")');
     expect(api).toContain('"/api/game-events/events"');
     expect(api).toContain('"/api/daily-quest/result"');
   });
