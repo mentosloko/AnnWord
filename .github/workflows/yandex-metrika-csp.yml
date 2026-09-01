@@ -2,6 +2,11 @@ name: Configure Yandex Metrika CSP
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Deploy to Yandex Cloud
+    types:
+      - completed
 
 permissions:
   contents: read
@@ -12,16 +17,34 @@ env:
 
 jobs:
   configure:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     name: Allow Metrika and Webvisor on CDN
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Check whether CDN CSP is already ready
+        run: |
+          set -euo pipefail
+          curl -sSI "$APP_ORIGIN/" | tr -d '\r' > /tmp/current-headers.txt || true
+          CSP="$(sed -n 's/^content-security-policy:[[:space:]]*//Ip' /tmp/current-headers.txt | head -n 1)"
+          if printf '%s' "$CSP" | grep -Fq 'https://mc.yandex.ru' \
+            && printf '%s' "$CSP" | grep -Fq 'https://yastatic.net' \
+            && printf '%s' "$CSP" | grep -Fq "child-src 'self' blob:" \
+            && printf '%s' "$CSP" | grep -Fq 'https://metrika.yandex.ru'; then
+            echo 'CDN_CSP_ALREADY_READY=1' >> "$GITHUB_ENV"
+            echo 'Metrika/Webvisor CSP is already active; no Yandex Cloud update needed.'
+          else
+            echo 'CDN_CSP_ALREADY_READY=0' >> "$GITHUB_ENV"
+          fi
+
       - name: Install Yandex Cloud CLI
+        if: env.CDN_CSP_ALREADY_READY != '1'
         run: |
           curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
           echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
 
       - name: Configure Yandex Cloud CLI
+        if: env.CDN_CSP_ALREADY_READY != '1'
         env:
           YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
           YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
@@ -35,9 +58,11 @@ jobs:
           yc config set folder-id "$YC_FOLDER_ID"
 
       - name: Inspect current CDN resource
+        if: env.CDN_CSP_ALREADY_READY != '1'
         run: yc cdn resource get "$YC_CDN_RESOURCE_ID" --format json
 
       - name: Configure Metrika and Webvisor response CSP
+        if: env.CDN_CSP_ALREADY_READY != '1'
         run: |
           set -euo pipefail
           CSP="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://mc.yandex.ru https://yastatic.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss: https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; child-src 'self' blob: https://mc.yandex.ru https://mc.webvisor.com https://mc.webvisor.org; frame-src https: blob:; frame-ancestors 'self' https://metrika.yandex.ru https://analytics.yandex.by https://analytics.yandex.com https://analytics.yandex.com.tr https://analytics.yandex.kz https://analytics.yandex.ru https://metr.yandex.by https://metr.yandex.com https://metr.yandex.com.tr https://metr.yandex.kz https://metr.yandex.ru https://metrica.ya.ru https://metrica.yandex https://metrica.yandex.by https://metrica.yandex.com https://metrica.yandex.com.tr https://metrica.yandex.kz https://metrica.yandex.ru https://metrika.ya.ru https://metrika.yandex https://metrika.yandex.by https://metrika.yandex.com https://metrika.yandex.com.tr https://metrika.yandex.kz https://metrika.yandex.uz; form-action 'self' https:; upgrade-insecure-requests"
