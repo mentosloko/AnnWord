@@ -113,20 +113,6 @@ jobs:
           yc config set cloud-id "$YC_CLOUD_ID"
           yc config set folder-id "$YC_FOLDER_ID"
 
-      - name: Restrict API Gateway CORS origins
-        env:
-          # This ID is returned publicly by api.annword.ru in x-serverless-gateway-id.
-          YC_API_GATEWAY_ID: d5dpq3neqm3ra5co9pe1
-          CORS_ALLOWED_ORIGINS: https://annword.ru,https://www.annword.ru
-        run: |
-          set -euo pipefail
-          yc serverless api-gateway get-spec --id "$YC_API_GATEWAY_ID" --format json > /tmp/annword-api-gateway.json
-          PATCH_RESULT="$(node scripts/patch-yandex-api-gateway-cors.mjs /tmp/annword-api-gateway.json /tmp/annword-api-gateway.cors.yaml)"
-          printf '%s\n' "$PATCH_RESULT"
-          if printf '%s' "$PATCH_RESULT" | grep -Fq '"changed":true'; then
-            yc serverless api-gateway update --id "$YC_API_GATEWAY_ID" --spec=/tmp/annword-api-gateway.cors.yaml
-          fi
-
       - name: Verify noreply sender in Yandex Postbox
         run: |
           set -euo pipefail
