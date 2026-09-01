@@ -11,6 +11,13 @@ import {
   type SpotlightGradeNumber,
 } from './spotlightDictionary';
 
+type StandardPremiumDictionaryId = Exclude<PremiumDictionaryId, 'premium_spotlight_school'>;
+
+const isStandardPremiumDictionary = (
+  item: PremiumDictionaryMeta,
+): item is PremiumDictionaryMeta & { id: StandardPremiumDictionaryId } =>
+  item.id !== 'premium_spotlight_school';
+
 export type DictionaryImportSource =
   | { id: 'spotlight'; title: string; kind: 'spotlight' }
   | { id: `kids:${KidsDictionaryId}`; title: string; kind: 'kids'; dictionaryId: KidsDictionaryId }
