@@ -206,7 +206,7 @@ const contentSecurityPolicyPlugin = (apiUrl: string) => {
   const e2eOrigin = localApiOrigin(apiUrl);
   const ocrScriptOrigin = 'https://cdn.jsdelivr.net';
   const ocrLanguageOrigin = 'https://tessdata.projectnaptha.com';
-  const metrikaScriptOrigins = ['https://mc.yandex.ru', 'https://yastatic.net'];
+  const metrikaScriptOrigins = ['https://mc.yandex.ru', 'https://mc.yandex.com', 'https://yastatic.net'];
   const metrikaFrameOrigins = ['https://mc.yandex.ru', 'https://mc.webvisor.com', 'https://mc.webvisor.org'];
   const connectSources = ["'self'", 'https:', 'wss:', ocrScriptOrigin, ocrLanguageOrigin, ...(e2eOrigin ? [e2eOrigin] : [])];
   const directives = [
