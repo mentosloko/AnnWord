@@ -47,7 +47,7 @@ export const chooseChallengingWrongOption = (word: string, pool: EnrichedWord[])
       a.spellingDistance - b.spellingDistance
       || a.lengthDistance - b.lengthDistance
       || a.candidate.localeCompare(b.candidate),
-    ));
+    );
 
   return candidates[0]?.candidate || null;
 };
