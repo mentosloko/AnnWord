@@ -23,11 +23,32 @@ describe('security, SEO and routing contracts', () => {
     expect(vite).toContain("...(e2eOrigin ? [] : ['upgrade-insecure-requests'])");
     expect(vite).toContain("https://cdn.jsdelivr.net");
     expect(vite).toContain("https://tessdata.projectnaptha.com");
+    expect(vite).toContain("https://mc.yandex.ru");
+    expect(vite).toContain("https://yastatic.net");
+    expect(vite).toContain("https://mc.webvisor.org");
     expect(vite).toContain("'wasm-unsafe-eval'");
     expect(vite).toContain("worker-src 'self' blob:");
+    expect(vite).toContain("child-src 'self' blob:");
+    expect(vite).toContain("frame-src https: blob:");
     expect(html).toContain('property="og:title"');
     expect(html).toContain('name="twitter:card"');
     expect(html).toContain('name="robots" content="index,follow"');
+  });
+
+  it('loads Yandex Metrika once, tracks SPA history and enables Webvisor', () => {
+    const html = read('index.html');
+    const metrika = read('public/metrika.js');
+    const bridge = read('services/yandexMetrika.ts');
+    expect(html).toContain('<script src="/metrika.js"></script>');
+    expect(html).toContain('https://mc.yandex.ru/watch/112133624');
+    expect(metrika).toContain('counterId = 112133624');
+    expect(metrika).toContain('defer: true');
+    expect(metrika).toContain('webvisor: true');
+    expect(metrika).toContain("['pushState', 'replaceState']");
+    expect(metrika).toContain("window.ym(counterId, 'hit'");
+    expect(bridge).toContain("window.ym(counterId(), 'reachGoal'");
+    expect(bridge).toContain("premium_activated: 'premium_purchased'");
+    expect(bridge).not.toContain('userId');
   });
 
   it('builds crawler-visible metadata into public route fallbacks and noindexes private fallbacks', () => {

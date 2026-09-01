@@ -102,7 +102,7 @@ test('mobile Kids keeps CLS at or below 0.1 while quest state hydrates', async (
   await installBackend(page);
 
   const questResponse = page.waitForResponse(response => response.url().includes('/api/daily-quest/today') && response.status() === 200);
-  await page.goto('/kids');
+  await page.goto('/kids', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Поиграем со словами?' })).toBeVisible();
   await questResponse;
   await expect(page.getByRole('heading', { name: 'Большое приключение' })).toBeVisible();

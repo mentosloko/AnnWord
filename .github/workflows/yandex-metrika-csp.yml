@@ -1,0 +1,93 @@
+name: Configure Yandex Metrika CSP
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Deploy to Yandex Cloud
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+env:
+  YC_CDN_RESOURCE_ID: bc8rtn34qpens6hppppp
+  APP_ORIGIN: https://annword.ru
+
+jobs:
+  configure:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    name: Allow Metrika and Webvisor on CDN
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check whether CDN CSP is already ready
+        id: current-csp
+        run: |
+          set -euo pipefail
+          curl -sSI "$APP_ORIGIN/" | tr -d '\r' > /tmp/current-headers.txt || true
+          CSP="$(sed -n 's/^content-security-policy:[[:space:]]*//Ip' /tmp/current-headers.txt | head -n 1)"
+          if printf '%s' "$CSP" | grep -Fq 'https://mc.yandex.ru' \
+            && printf '%s' "$CSP" | grep -Fq 'https://yastatic.net' \
+            && printf '%s' "$CSP" | grep -Fq "child-src 'self' blob:" \
+            && printf '%s' "$CSP" | grep -Fq 'https://metrika.yandex.ru'; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+            echo 'Metrika/Webvisor CSP is already active; no Yandex Cloud update needed.'
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Yandex Cloud CLI
+        if: steps.current-csp.outputs.ready != 'true'
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
+
+      - name: Configure Yandex Cloud CLI
+        if: steps.current-csp.outputs.ready != 'true'
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > yc-sa-key.json
+          yc config profile create annword-metrika
+          yc config set service-account-key yc-sa-key.json
+          yc config set cloud-id "$YC_CLOUD_ID"
+          yc config set folder-id "$YC_FOLDER_ID"
+
+      - name: Inspect current CDN resource
+        if: steps.current-csp.outputs.ready != 'true'
+        run: yc cdn resource get "$YC_CDN_RESOURCE_ID" --format json
+
+      - name: Configure Metrika and Webvisor response CSP
+        if: steps.current-csp.outputs.ready != 'true'
+        run: |
+          set -euo pipefail
+          CSP="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://mc.yandex.ru https://yastatic.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss: https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; child-src 'self' blob: https://mc.yandex.ru https://mc.webvisor.com https://mc.webvisor.org; frame-src https: blob:; frame-ancestors 'self' https://metrika.yandex.ru https://analytics.yandex.by https://analytics.yandex.com https://analytics.yandex.com.tr https://analytics.yandex.kz https://analytics.yandex.ru https://metr.yandex.by https://metr.yandex.com https://metr.yandex.com.tr https://metr.yandex.kz https://metr.yandex.ru https://metrica.ya.ru https://metrica.yandex https://metrica.yandex.by https://metrica.yandex.com https://metrica.yandex.com.tr https://metrica.yandex.kz https://metrica.yandex.ru https://metrika.ya.ru https://metrika.yandex https://metrika.yandex.by https://metrika.yandex.com https://metrika.yandex.com.tr https://metrika.yandex.kz https://metrika.yandex.uz; form-action 'self' https:; upgrade-insecure-requests"
+          yc cdn resource update "$YC_CDN_RESOURCE_ID" \
+            --static-headers "Content-Security-Policy=$CSP,Strict-Transport-Security=max-age=31536000,X-Content-Type-Options=nosniff"
+
+      - name: Verify CDN CSP propagation
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            curl -sSI "$APP_ORIGIN/" | tr -d '\r' > /tmp/headers.txt || true
+            CSP="$(sed -n 's/^content-security-policy:[[:space:]]*//Ip' /tmp/headers.txt | head -n 1)"
+            if printf '%s' "$CSP" | grep -Fq 'https://mc.yandex.ru' \
+              && printf '%s' "$CSP" | grep -Fq 'https://yastatic.net' \
+              && printf '%s' "$CSP" | grep -Fq "child-src 'self' blob:" \
+              && printf '%s' "$CSP" | grep -Fq 'https://metrika.yandex.ru' \
+              && grep -Eqi '^strict-transport-security:[[:space:]]*max-age=' /tmp/headers.txt \
+              && grep -Eqi '^x-content-type-options:[[:space:]]*nosniff' /tmp/headers.txt; then
+              cat /tmp/headers.txt
+              exit 0
+            fi
+            echo "Waiting for CDN CSP propagation ($attempt/30)..."
+            sleep 30
+          done
+          cat /tmp/headers.txt
+          echo 'Yandex Metrika CSP did not propagate within 15 minutes.' >&2
+          exit 1
