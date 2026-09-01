@@ -12,8 +12,14 @@ interface LandingMixScreenProps {
 
 const FINAL_ASSET = '/assets/landing/final';
 const asset = (name: string) => `${FINAL_ASSET}/${name}`;
+const mobileVariant = (src: string) => src.replace(/\.webp$/, '-mobile.webp');
 
-const DeferredImage: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = ({ src, alt = '', ...props }) => {
+interface DeferredImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  mobileSrc?: string;
+  rootMargin?: string;
+}
+
+const DeferredImage: React.FC<DeferredImageProps> = ({ src, mobileSrc, rootMargin = '240px 0px', alt = '', ...props }) => {
   const imageRef = useRef<HTMLImageElement>(null);
   const [shouldLoad, setShouldLoad] = useState(false);
 
@@ -28,12 +34,20 @@ const DeferredImage: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = ({ sr
       if (!entry.isIntersecting) return;
       setShouldLoad(true);
       observer.disconnect();
-    }, { rootMargin: '240px 0px' });
+    }, { rootMargin });
     observer.observe(image);
     return () => observer.disconnect();
-  }, [src]);
+  }, [rootMargin, src]);
 
-  return <img ref={imageRef} src={shouldLoad ? src : undefined} alt={alt} loading="lazy" decoding="async" {...props} />;
+  const image = <img ref={imageRef} src={shouldLoad ? src : undefined} alt={alt} loading="lazy" decoding="async" {...props} />;
+  if (!mobileSrc) return image;
+
+  return (
+    <picture className="contents">
+      <source media="(max-width: 639px)" srcSet={shouldLoad ? mobileSrc : undefined} />
+      {image}
+    </picture>
+  );
 };
 
 const PawMark: React.FC<{ className?: string }> = ({ className = '' }) => (
@@ -297,15 +311,15 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
         <section className="px-4 py-8 sm:px-8 sm:py-10 lg:px-10">
           <div className="overflow-hidden rounded-[2.3rem] border border-violet-100 bg-gradient-to-r from-violet-50 via-white to-sky-50 p-5 shadow-lg shadow-indigo-900/6 sm:p-7">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="text-2xl font-black text-indigo-950 sm:text-3xl"><PawMark className="mr-2 text-violet-300" />Расти вместе с питомцем!</h2></div><div className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-violet-700 shadow-sm">Получи следующую форму за серию дней · 🔥 3 дня подряд!</div></div>
-            <div className="mt-5 grid grid-cols-4 gap-1.5 sm:mt-6 sm:gap-3">{petStages.map(([src, label], index) => <div key={label} className="relative overflow-hidden rounded-[1.2rem] bg-white p-1.5 text-center shadow-md shadow-indigo-900/5 sm:rounded-[1.8rem] sm:p-3"><div className="flex h-20 items-end justify-center overflow-hidden px-0.5 pb-0 pt-1 sm:h-40 sm:px-1 sm:pt-2"><DeferredImage src={src} alt={label} loading="lazy" decoding="async" className={`h-full w-full origin-bottom object-contain object-bottom drop-shadow-lg transform-gpu ${index === 0 ? 'scale-[0.78]' : index === 1 ? 'scale-[0.88]' : index === 2 ? 'scale-[0.96]' : 'scale-[1.03]'}`} /></div><div className="mt-1.5 text-[11px] font-black text-indigo-950 sm:mt-3 sm:text-sm">{label}</div>{index < 3 && <span className="absolute -right-4 top-1/2 z-10 hidden -translate-y-1/2 text-3xl font-black text-violet-400 sm:block">→</span>}</div>)}</div>
+            <div className="mt-5 grid grid-cols-4 gap-1.5 sm:mt-6 sm:gap-3">{petStages.map(([src, label], index) => <div key={label} className="relative overflow-hidden rounded-[1.2rem] bg-white p-1.5 text-center shadow-md shadow-indigo-900/5 sm:rounded-[1.8rem] sm:p-3"><div className="flex h-20 items-end justify-center overflow-hidden px-0.5 pb-0 pt-1 sm:h-40 sm:px-1 sm:pt-2"><DeferredImage src={src} mobileSrc={mobileVariant(src)} rootMargin="160px 0px" alt={label} loading="lazy" decoding="async" className={`h-full w-full origin-bottom object-contain object-bottom drop-shadow-lg transform-gpu ${index === 0 ? 'scale-[0.78]' : index === 1 ? 'scale-[0.88]' : index === 2 ? 'scale-[0.96]' : 'scale-[1.03]'}`} /></div><div className="mt-1.5 text-[11px] font-black text-indigo-950 sm:mt-3 sm:text-sm">{label}</div>{index < 3 && <span className="absolute -right-4 top-1/2 z-10 hidden -translate-y-1/2 text-3xl font-black text-violet-400 sm:block">→</span>}</div>)}</div>
           </div>
         </section>
 
         <section className="px-4 pb-8 sm:px-8 sm:pb-10 lg:px-10">
           <div className="overflow-hidden rounded-[2.35rem] bg-gradient-to-r from-indigo-700 via-violet-600 to-sky-500 p-5 text-white shadow-2xl shadow-indigo-700/20 sm:p-7">
             <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
-              <div className="flex items-center gap-3 sm:grid sm:grid-cols-[11rem_1fr]"><DeferredImage src={asset('cta-mascot.webp')} alt="Питомец AnnWord летит за наградами" loading="lazy" decoding="async" className="-ml-2 h-24 w-24 shrink-0 object-contain drop-shadow-2xl sm:-my-4 sm:-ml-3 sm:h-44 sm:w-44 sm:max-w-none" /><div><h2 className="text-xl font-black leading-tight sm:text-3xl">Играй и получай награды!</h2><p className="mt-1.5 text-xs font-bold leading-relaxed text-indigo-100 sm:mt-2 sm:text-sm">Монеты, кристаллы и вещи для питомца превращают усилия в видимый результат.</p></div></div>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">{rewards.map(([src, label]) => <div key={label} className="rounded-2xl bg-white/95 p-2 text-center text-indigo-950 shadow-lg"><DeferredImage src={src} alt={label} loading="lazy" decoding="async" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" /><div className="mt-1 text-[10px] font-black sm:text-xs">{label}</div></div>)}</div>
+              <div className="flex items-center gap-3 sm:grid sm:grid-cols-[11rem_1fr]"><DeferredImage src={asset('cta-mascot.webp')} mobileSrc={asset('cta-mascot-mobile.webp')} rootMargin="96px 0px" alt="Питомец AnnWord летит за наградами" loading="lazy" decoding="async" className="-ml-2 h-24 w-24 shrink-0 object-contain drop-shadow-2xl sm:-my-4 sm:-ml-3 sm:h-44 sm:w-44 sm:max-w-none" /><div><h2 className="text-xl font-black leading-tight sm:text-3xl">Играй и получай награды!</h2><p className="mt-1.5 text-xs font-bold leading-relaxed text-indigo-100 sm:mt-2 sm:text-sm">Монеты, кристаллы и вещи для питомца превращают усилия в видимый результат.</p></div></div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">{rewards.map(([src, label]) => <div key={label} className="rounded-2xl bg-white/95 p-2 text-center text-indigo-950 shadow-lg"><DeferredImage src={src} mobileSrc={mobileVariant(src)} rootMargin="96px 0px" alt={label} loading="lazy" decoding="async" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" /><div className="mt-1 text-[10px] font-black sm:text-xs">{label}</div></div>)}</div>
             </div>
           </div>
         </section>
