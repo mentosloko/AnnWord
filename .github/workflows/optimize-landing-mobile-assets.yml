@@ -1,0 +1,192 @@
+name: Optimize landing mobile assets
+
+on:
+  push:
+    branches:
+      - perf/landing-mobile-assets
+    paths:
+      - .github/workflows/optimize-landing-mobile-assets.yml
+
+permissions:
+  contents: write
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout optimization branch
+        uses: actions/checkout@v4
+        with:
+          ref: perf/landing-mobile-assets
+          fetch-depth: 0
+
+      - name: Install WebP tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y webp
+
+      - name: Generate right-sized mobile WebP assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="public/assets/landing/final"
+          tmp="$(mktemp -d)"
+
+          encode_mobile() {
+            local src="$1"
+            local width="$2"
+            local out="${src%.webp}-mobile.webp"
+            local png="$tmp/$(basename "${src%.webp}").png"
+            dwebp "$src" -quiet -o "$png"
+            cwebp -quiet -q 86 -m 6 -alpha_q 100 -resize "$width" 0 "$png" -o "$out"
+          }
+
+          for name in pet-stage-1 pet-stage-2 pet-stage-3 pet-stage-4; do
+            encode_mobile "$dir/$name.webp" 320
+          done
+
+          for name in reward-coins reward-crystal reward-cup reward-cap reward-glasses reward-backpack; do
+            encode_mobile "$dir/$name.webp" 224
+          done
+
+          encode_mobile "$dir/cta-mascot.webp" 320
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('public/assets/landing/final')
+          groups = {
+              'pet stages': [root / f'pet-stage-{i}-mobile.webp' for i in range(1, 5)],
+              'rewards': [root / f'reward-{name}-mobile.webp' for name in ['coins', 'crystal', 'cup', 'cap', 'glasses', 'backpack']],
+              'mascot': [root / 'cta-mascot-mobile.webp'],
+          }
+          total = 0
+          print('Generated mobile assets:')
+          for group, files in groups.items():
+              subtotal = sum(p.stat().st_size for p in files)
+              total += subtotal
+              print(f'  {group}: {subtotal / 1024:.1f} KiB')
+              for p in files:
+                  print(f'    {p.name}: {p.stat().st_size / 1024:.1f} KiB')
+          print(f'  total: {total / 1024:.1f} KiB')
+          if total > 450 * 1024:
+              raise SystemExit(f'Mobile asset budget exceeded: {total / 1024:.1f} KiB > 450 KiB')
+          PY
+
+      - name: Use mobile variants only on small screens
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('components/screens/LandingMixScreen.tsx')
+          text = path.read_text()
+
+          old = '''const FINAL_ASSET = '/assets/landing/final';
+          const asset = (name: string) => `${FINAL_ASSET}/${name}`;
+
+          const DeferredImage: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = ({ src, alt = '', ...props }) => {
+            const imageRef = useRef<HTMLImageElement>(null);
+            const [shouldLoad, setShouldLoad] = useState(false);
+
+            useEffect(() => {
+              const image = imageRef.current;
+              if (!image || !src) return;
+              if (typeof IntersectionObserver === 'undefined') {
+                setShouldLoad(true);
+                return;
+              }
+              const observer = new IntersectionObserver(([entry]) => {
+                if (!entry.isIntersecting) return;
+                setShouldLoad(true);
+                observer.disconnect();
+              }, { rootMargin: '240px 0px' });
+              observer.observe(image);
+              return () => observer.disconnect();
+            }, [src]);
+
+            return <img ref={imageRef} src={shouldLoad ? src : undefined} alt={alt} loading="lazy" decoding="async" {...props} />;
+          };'''
+
+          new = '''const FINAL_ASSET = '/assets/landing/final';
+          const asset = (name: string) => `${FINAL_ASSET}/${name}`;
+          const mobileVariant = (src: string) => src.replace(/\\.webp$/, '-mobile.webp');
+
+          interface DeferredImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+            mobileSrc?: string;
+            rootMargin?: string;
+          }
+
+          const DeferredImage: React.FC<DeferredImageProps> = ({ src, mobileSrc, rootMargin = '240px 0px', alt = '', ...props }) => {
+            const imageRef = useRef<HTMLImageElement>(null);
+            const [shouldLoad, setShouldLoad] = useState(false);
+
+            useEffect(() => {
+              const image = imageRef.current;
+              if (!image || !src) return;
+              if (typeof IntersectionObserver === 'undefined') {
+                setShouldLoad(true);
+                return;
+              }
+              const observer = new IntersectionObserver(([entry]) => {
+                if (!entry.isIntersecting) return;
+                setShouldLoad(true);
+                observer.disconnect();
+              }, { rootMargin });
+              observer.observe(image);
+              return () => observer.disconnect();
+            }, [rootMargin, src]);
+
+            const image = <img ref={imageRef} src={shouldLoad ? src : undefined} alt={alt} loading="lazy" decoding="async" {...props} />;
+            if (!mobileSrc) return image;
+
+            return (
+              <picture className="contents">
+                <source media="(max-width: 639px)" srcSet={shouldLoad ? mobileSrc : undefined} />
+                {image}
+              </picture>
+            );
+          };'''
+
+          if old not in text:
+              raise SystemExit('DeferredImage block did not match current LandingMixScreen.tsx')
+          text = text.replace(old, new, 1)
+
+          replacements = [
+              (
+                  '<DeferredImage src={src} alt={label} loading="lazy" decoding="async" className={`h-full w-full origin-bottom object-contain object-bottom drop-shadow-lg transform-gpu ${index === 0 ? \'scale-[0.78]\' : index === 1 ? \'scale-[0.88]\' : index === 2 ? \'scale-[0.96]\' : \'scale-[1.03]\'}`} />',
+                  '<DeferredImage src={src} mobileSrc={mobileVariant(src)} rootMargin="160px 0px" alt={label} loading="lazy" decoding="async" className={`h-full w-full origin-bottom object-contain object-bottom drop-shadow-lg transform-gpu ${index === 0 ? \'scale-[0.78]\' : index === 1 ? \'scale-[0.88]\' : index === 2 ? \'scale-[0.96]\' : \'scale-[1.03]\'}`} />',
+              ),
+              (
+                  '<DeferredImage src={asset(\'cta-mascot.webp\')} alt="Питомец AnnWord летит за наградами" loading="lazy" decoding="async" className="-ml-2 h-24 w-24 shrink-0 object-contain drop-shadow-2xl sm:-my-4 sm:-ml-3 sm:h-44 sm:w-44 sm:max-w-none" />',
+                  '<DeferredImage src={asset(\'cta-mascot.webp\')} mobileSrc={asset(\'cta-mascot-mobile.webp\')} rootMargin="96px 0px" alt="Питомец AnnWord летит за наградами" loading="lazy" decoding="async" className="-ml-2 h-24 w-24 shrink-0 object-contain drop-shadow-2xl sm:-my-4 sm:-ml-3 sm:h-44 sm:w-44 sm:max-w-none" />',
+              ),
+              (
+                  '<DeferredImage src={src} alt={label} loading="lazy" decoding="async" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" />',
+                  '<DeferredImage src={src} mobileSrc={mobileVariant(src)} rootMargin="96px 0px" alt={label} loading="lazy" decoding="async" className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" />',
+              ),
+          ]
+
+          for before, after in replacements:
+              if before not in text:
+                  raise SystemExit(f'Expected landing image usage was not found: {before[:80]}')
+              text = text.replace(before, after, 1)
+
+          path.write_text(text)
+          PY
+
+      - name: Verify TypeScript and production build
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+
+      - name: Commit optimized assets and remove one-off workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/optimize-landing-mobile-assets.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/screens/LandingMixScreen.tsx public/assets/landing/final/*-mobile.webp .github/workflows/optimize-landing-mobile-assets.yml
+          git commit -m "perf: right-size landing assets for mobile"
+          git push origin HEAD:perf/landing-mobile-assets
