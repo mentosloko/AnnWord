@@ -37,8 +37,8 @@ Expected:
 
 ```text
 /api/health -> status ok
-/api/health/db -> database ok
-/api/runtime-config -> hasDatabase true
+/api/health/db -> status ok, database.ok true
+/api/runtime-config -> status ok
 ```
 
 If `/api/health/db` fails, first check the exact `DATABASE_URL` used by Serverless Container and whether the database cluster allows the container to connect.
