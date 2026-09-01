@@ -13,11 +13,6 @@ import {
 
 type StandardPremiumDictionaryId = Exclude<PremiumDictionaryId, 'premium_spotlight_school'>;
 
-const isStandardPremiumDictionary = (
-  item: PremiumDictionaryMeta,
-): item is PremiumDictionaryMeta & { id: StandardPremiumDictionaryId } =>
-  item.id !== 'premium_spotlight_school';
-
 export type DictionaryImportSource =
   | { id: 'spotlight'; title: string; kind: 'spotlight' }
   | { id: `kids:${KidsDictionaryId}`; title: string; kind: 'kids'; dictionaryId: KidsDictionaryId }
@@ -47,12 +42,15 @@ export const getDictionaryImportSources = (kidsMode: boolean): DictionaryImportS
     spotlight,
     ...getPremiumDictionaryCatalog()
       .filter(item => item.id !== 'premium_spotlight_school')
-      .map(item => ({
-        id: `premium:${item.id}` as const,
-        title: item.title,
-        kind: 'premium' as const,
-        dictionaryId: item.id,
-      })),
+      .map(item => {
+        const dictionaryId = item.id as StandardPremiumDictionaryId;
+        return {
+          id: `premium:${dictionaryId}` as `premium:${StandardPremiumDictionaryId}`,
+          title: item.title,
+          kind: 'premium' as const,
+          dictionaryId,
+        };
+      }),
   ];
 };
 
