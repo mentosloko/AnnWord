@@ -3,18 +3,7 @@ const STORAGE_KEY = 'annword_session_word_history_v1';
 type SessionWordBuckets = Record<string, string[]>;
 
 const normalizeWord = (word: string): string => word.trim().toUpperCase();
-let testBuckets: SessionWordBuckets = {};
-
-const isTestEnvironment = (): boolean => {
-  try {
-    return import.meta.env?.MODE === 'test';
-  } catch {
-    return false;
-  }
-};
-
 const readBuckets = (): SessionWordBuckets => {
-  if (isTestEnvironment()) return testBuckets;
   if (typeof window === 'undefined') return {};
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
@@ -28,10 +17,6 @@ const readBuckets = (): SessionWordBuckets => {
 };
 
 const writeBuckets = (buckets: SessionWordBuckets) => {
-  if (isTestEnvironment()) {
-    testBuckets = buckets;
-    return;
-  }
   if (typeof window === 'undefined') return;
   try {
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(buckets));
@@ -79,5 +64,10 @@ export const resetSessionWordBucket = (bucketKey: string) => {
 };
 
 export const resetAllSessionWordBucketsForTests = (): void => {
-  testBuckets = {};
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Test helper also remains harmless in restricted browser environments.
+  }
 };
