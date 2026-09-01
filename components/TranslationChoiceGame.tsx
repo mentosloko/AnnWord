@@ -27,11 +27,40 @@ interface SavedTranslationState {
   selected: string | null;
 }
 export const buildTranslationChoiceDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => buildPlayableGameDictionary(customDictionaryEn, fallbackDictionary);
-const LETTER_SWAP: Record<string, string[]> = { A: ['U', 'O', 'E'], E: ['A', 'I'], I: ['E', 'Y'], O: ['A', 'U'], U: ['A', 'O'], Y: ['I'], L: ['R'], R: ['L'], M: ['N'], N: ['M'], T: ['D'], D: ['T'], C: ['K'], K: ['C'], S: ['Z'], Z: ['S'], P: ['B'], B: ['P'], G: ['K'], V: ['W'], W: ['V'] };
 const distance = (a: string, b: string) => { const dp = Array.from({ length: a.length + 1 }, (_, i) => Array.from({ length: b.length + 1 }, (_, j) => i === 0 ? j : j === 0 ? i : 0)); for (let i = 1; i <= a.length; i += 1) for (let j = 1; j <= b.length; j += 1) dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return dp[a.length][b.length]; };
-const mutateWord = (word: string): string => { const letters = word.toUpperCase().split(''); const indexes = letters.map((_, index) => index).filter(index => index > 0 && index < letters.length - 1); const candidates = indexes.length ? indexes : letters.map((_, index) => index); const index = candidates[Math.floor(Math.random() * candidates.length)] || 0; const replacements = LETTER_SWAP[letters[index]] || ['A', 'E', 'I', 'O', 'U'].filter(letter => letter !== letters[index]); letters[index] = replacements[Math.floor(Math.random() * replacements.length)] || 'A'; const mutated = letters.join(''); return mutated === word ? word.slice(0, -1) + (word.endsWith('E') ? 'A' : 'E') : mutated; };
-const makeWrongOption = (word: string, pool: EnrichedWord[]): string => pool.map(entry => entry.word).filter(candidate => candidate !== word && candidate.length === word.length).map(candidate => ({ candidate, d: distance(word, candidate) })).filter(item => item.d > 0 && item.d <= 2).sort((a, b) => a.d - b.d || a.candidate.localeCompare(b.candidate))[0]?.candidate || mutateWord(word);
-const makeQuestion = (pool: EnrichedWord[], previous?: string | null, reviewPriorities: Record<string, number> = {}): Question | null => { if (!pool.length) return null; const word = pickAdaptiveSessionWord('translation', pool, reviewPriorities, previous) || pool[Math.floor(Math.random() * pool.length)]; const wrong = makeWrongOption(word.word, pool); return { word, correct: word.word, wrong, options: Math.random() < 0.5 ? [word.word, wrong] : [wrong, word.word] }; };
+
+/**
+ * A distractor must be a real word from the active dictionary. Prefer close
+ * spellings to form a meaningful difficult pair, never a synthetic mutation.
+ */
+export const chooseChallengingWrongOption = (word: string, pool: EnrichedWord[]): string | null => {
+  const target = word.trim().toUpperCase();
+  const candidates = Array.from(new Set(pool
+    .map(entry => entry.word.trim().toUpperCase())
+    .filter(candidate => candidate && candidate !== target)))
+    .map(candidate => ({
+      candidate,
+      spellingDistance: distance(target, candidate),
+      lengthDistance: Math.abs(target.length - candidate.length),
+    }))
+    .sort((a, b) =>
+      (a.lengthDistance === 0 ? 0 : 1) - (b.lengthDistance === 0 ? 0 : 1)
+      || a.spellingDistance - b.spellingDistance
+      || a.lengthDistance - b.lengthDistance
+      || a.candidate.localeCompare(b.candidate),
+    ));
+
+  return candidates[0]?.candidate || null;
+};
+
+const makeQuestion = (pool: EnrichedWord[], previous?: string | null, reviewPriorities: Record<string, number> = {}): Question | null => {
+  if (pool.length < 2) return null;
+  const word = pickAdaptiveSessionWord('translation', pool, reviewPriorities, previous) || pool[Math.floor(Math.random() * pool.length)];
+  const wrong = chooseChallengingWrongOption(word.word, pool);
+  if (!wrong) return null;
+  return { word, correct: word.word, wrong, options: Math.random() < 0.5 ? [word.word, wrong] : [wrong, word.word] };
+};
+
 const normalizeSavedState = (value: unknown, dictionary: EnrichedWord[]): SavedTranslationState | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const raw = value as Partial<SavedTranslationState>;
