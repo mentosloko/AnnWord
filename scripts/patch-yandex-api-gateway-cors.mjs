@@ -15,7 +15,19 @@ if (origins.length === 0 || origins.some((origin) => !/^https:\/\/[a-z0-9.-]+$/i
   throw new Error("CORS_ALLOWED_ORIGINS must contain one or more absolute HTTPS origins.");
 }
 
-const source = readFileSync(inputPath, "utf8");
+const serialized = readFileSync(inputPath, "utf8");
+let source = serialized;
+
+try {
+  const envelope = JSON.parse(serialized);
+  const openapiSpec = envelope.openapiSpec ?? envelope.openapi_spec;
+  if (typeof openapiSpec === "string" && openapiSpec.trim()) {
+    source = openapiSpec;
+  }
+} catch {
+  // The CLI may already return the raw OpenAPI specification.
+}
+
 if (!/^\s*x-yc-apigateway:\s*$/m.test(source) || !/^\s*cors:\s*$/m.test(source)) {
   throw new Error("The API Gateway specification does not contain the expected x-yc-apigateway CORS block.");
 }
