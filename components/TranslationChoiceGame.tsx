@@ -27,11 +27,39 @@ interface SavedTranslationState {
   selected: string | null;
 }
 export const buildTranslationChoiceDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => buildPlayableGameDictionary(customDictionaryEn, fallbackDictionary);
-const LETTER_SWAP: Record<string, string[]> = { A: ['U', 'O', 'E'], E: ['A', 'I'], I: ['E', 'Y'], O: ['A', 'U'], U: ['A', 'O'], Y: ['I'], L: ['R'], R: ['L'], M: ['N'], N: ['M'], T: ['D'], D: ['T'], C: ['K'], K: ['C'], S: ['Z'], Z: ['S'], P: ['B'], B: ['P'], G: ['K'], V: ['W'], W: ['V'] };
 const distance = (a: string, b: string) => { const dp = Array.from({ length: a.length + 1 }, (_, i) => Array.from({ length: b.length + 1 }, (_, j) => i === 0 ? j : j === 0 ? i : 0)); for (let i = 1; i <= a.length; i += 1) for (let j = 1; j <= b.length; j += 1) dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return dp[a.length][b.length]; };
-const mutateWord = (word: string): string => { const letters = word.toUpperCase().split(''); const indexes = letters.map((_, index) => index).filter(index => index > 0 && index < letters.length - 1); const candidates = indexes.length ? indexes : letters.map((_, index) => index); const index = candidates[Math.floor(Math.random() * candidates.length)] || 0; const replacements = LETTER_SWAP[letters[index]] || ['A', 'E', 'I', 'O', 'U'].filter(letter => letter !== letters[index]); letters[index] = replacements[Math.floor(Math.random() * replacements.length)] || 'A'; const mutated = letters.join(''); return mutated === word ? word.slice(0, -1) + (word.endsWith('E') ? 'A' : 'E') : mutated; };
-const makeWrongOption = (word: string, pool: EnrichedWord[]): string => pool.map(entry => entry.word).filter(candidate => candidate !== word && candidate.length === word.length).map(candidate => ({ candidate, d: distance(word, candidate) })).filter(item => item.d > 0 && item.d <= 2).sort((a, b) => a.d - b.d || a.candidate.localeCompare(b.candidate))[0]?.candidate || mutateWord(word);
-const makeQuestion = (pool: EnrichedWord[], previous?: string | null, reviewPriorities: Record<string, number> = {}): Question | null => { if (!pool.length) return null; const word = pickAdaptiveSessionWord('translation', pool, reviewPriorities, previous) || pool[Math.floor(Math.random() * pool.length)]; const wrong = makeWrongOption(word.word, pool); return { word, correct: word.word, wrong, options: Math.random() < 0.5 ? [word.word, wrong] : [wrong, word.word] }; };
+
+/**
+ * A distractor must be a real word from the active dictionary. Prefer close
+ * spellings to form a meaningful difficult pair, never a synthetic mutation.
+ */
+export const chooseChallengingWrongOption = (word: string, pool: EnrichedWord[]): string | null => {
+  const target = word.trim().toUpperCase();
+  const candidates = Array.from(new Set(pool
+    .map(entry => entry.word.trim().toUpperCase())
+    .filter(candidate => candidate && candidate !== target)))
+    .map(candidate => ({
+      candidate,
+      spellingDistance: distance(target, candidate),
+      lengthDistance: Math.abs(target.length - candidate.length),
+    }))
+    .sort((a, b) =>
+      a.spellingDistance - b.spellingDistance
+      || a.lengthDistance - b.lengthDistance
+      || a.candidate.localeCompare(b.candidate),
+    );
+
+  return candidates[0]?.candidate || null;
+};
+
+const makeQuestion = (pool: EnrichedWord[], previous?: string | null, reviewPriorities: Record<string, number> = {}): Question | null => {
+  if (pool.length < 2) return null;
+  const word = pickAdaptiveSessionWord('translation', pool, reviewPriorities, previous) || pool[Math.floor(Math.random() * pool.length)];
+  const wrong = chooseChallengingWrongOption(word.word, pool);
+  if (!wrong) return null;
+  return { word, correct: word.word, wrong, options: Math.random() < 0.5 ? [word.word, wrong] : [wrong, word.word] };
+};
+
 const normalizeSavedState = (value: unknown, dictionary: EnrichedWord[]): SavedTranslationState | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const raw = value as Partial<SavedTranslationState>;
@@ -69,7 +97,7 @@ export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ on
   const reward = useMemo(() => calculateGameReward({ type: 'translation', guessedWords: score }), [score]);
 
   useEffect(() => {
-    if (dictionary.length > 0) {
+    if (dictionary.length >= 2) {
       setEmptyConfirmed(false);
       if (!question && !finished) setQuestion(makeQuestion(dictionary, null, reviewPriorities));
       return;
@@ -94,7 +122,7 @@ export const TranslationChoiceGame: React.FC<TranslationChoiceGameProps> = ({ on
   useEffect(() => { if (!finished || rewardAppliedRef.current) return; rewardAppliedRef.current = true; setResultProgress(showKidsRewards ? applyGameRewardToCharacter(userProfile.pet, reward) : null); void Promise.resolve(onGameReward({ type: 'translation', guessedWords: score })).catch(error => console.error('Failed to save translation result', error)); }, [finished, onGameReward, reward, score, showKidsRewards, userProfile.pet]);
 
   if (!question) {
-    if (dictionary.length < 1 && emptyConfirmed) return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-xl"><div className="mb-4 text-6xl">📚</div><h2 className="mb-2 text-2xl font-bold">Нет доступных слов</h2><p className="mb-6 text-gray-500">Для этой игры нужны слова с русским переводом.</p><button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
+    if (dictionary.length < 2 && emptyConfirmed) return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-xl"><div className="mb-4 text-6xl">📚</div><h2 className="mb-2 text-2xl font-bold">Нужно больше слов</h2><p className="mb-6 text-gray-500">Для «1 из 2» нужны минимум два слова с русским переводом: правильный вариант и честная сложная пара.</p><button onClick={onBack} className="rounded-lg bg-indigo-600 px-6 py-2 font-bold text-white">Назад</button></div>;
     return <div className="flex w-full max-w-md flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-xl" role="status" aria-live="polite"><div className="mb-4 animate-pulse text-6xl" aria-hidden="true">📚</div><h2 className="mb-2 text-2xl font-bold">Загружаю слова…</h2><p className="text-gray-500">Готовим выбранный словарь для игры.</p></div>;
   }
   return <div className="mx-auto flex h-full min-h-0 w-full max-w-xl flex-col overflow-y-auto overscroll-contain rounded-3xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:h-auto sm:p-6">

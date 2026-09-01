@@ -48,7 +48,7 @@ describe('entry route UX', () => {
     expect(landing).toContain('Перевод');
     expect(landing).toContain('Как будет по-английски?');
     expect(landing).toContain("['book', 'pencil', 'school', 'window']");
-    expect(landing).toContain('Соберите слово из соседних клеток. Диагонали нельзя.');
+    expect(landing).toContain('Собери слово по соседним клеткам.');
     expect(landing).not.toContain('Свободная игра');
     expect(landing).not.toContain('7–13');
     expect(landing).not.toContain('Только школьные слова');

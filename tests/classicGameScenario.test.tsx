@@ -2,6 +2,7 @@ import React from 'react';
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAX_GUESSES } from '../constants';
+import { resetAllSessionWordBucketsForTests } from '../services/sessionWordHistory';
 import {
   createInitialGameState,
   getGuessLetterStatuses,
@@ -57,6 +58,7 @@ const setupController = (overrides: Partial<Parameters<typeof useClassicGameCont
 
 describe('classic game scenarios', () => {
   beforeEach(() => {
+    resetAllSessionWordBucketsForTests();
     vi.spyOn(Math, 'random').mockReturnValue(0);
   });
 

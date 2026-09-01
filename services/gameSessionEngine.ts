@@ -98,10 +98,13 @@ export const pickAdaptiveSessionWord = <T extends { word: string; isTransliterat
     return Array.from({ length: Math.min(4, misses) }, () => entry);
   });
 
-  if (weightedReviewPool.length > 0 && random() < 0.65) {
-    return weightedReviewPool[Math.floor(random() * weightedReviewPool.length)] || null;
-  }
-  return getUnusedSessionWord(mode, availablePool);
+  const preferredReviewPool = weightedReviewPool.length > 0 && random() < 0.65
+    ? weightedReviewPool
+    : [];
+
+  // Review priority never bypasses the current session pass: an incorrectly
+  // answered word returns only after all other playable words have been shown.
+  return getUnusedSessionWord(mode, availablePool, preferredReviewPool, random);
 };
 
 export const resetSessionWords = (mode: GameSessionMode): void => resetSessionWordBucket(mode);
