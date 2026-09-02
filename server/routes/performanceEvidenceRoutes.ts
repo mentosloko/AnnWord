@@ -13,7 +13,19 @@ performanceEvidenceRouter.get('/internal/performance-evidence', async (req, res)
   const corsCutoff = readQueryText(req.query.corsCutoff);
   const rawWindowHours = Number.parseInt(readQueryText(req.query.corsWindowHours), 10);
   const corsWindowHours = Number.isFinite(rawWindowHours) ? rawWindowHours : 18;
-  const identity = { generatedAt, keepWarmStart, corsCutoff, corsWindowHours };
+  const preparedBaselineStart = readQueryText(req.query.preparedBaselineStart);
+  const preparedInstanceStart = readQueryText(req.query.preparedInstanceStart);
+  const rawPreparedWindowHours = Number.parseInt(readQueryText(req.query.preparedWindowHours), 10);
+  const preparedWindowHours = Number.isFinite(rawPreparedWindowHours) ? rawPreparedWindowHours : 24;
+  const identity = {
+    generatedAt,
+    keepWarmStart,
+    corsCutoff,
+    corsWindowHours,
+    preparedBaselineStart,
+    preparedInstanceStart,
+    preparedWindowHours,
+  };
   const signature = readQueryText(req.headers['x-annword-evidence-signature']);
 
   try {
