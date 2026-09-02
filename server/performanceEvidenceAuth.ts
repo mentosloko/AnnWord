@@ -5,17 +5,23 @@ export interface PerformanceEvidenceRequestIdentity {
   keepWarmStart: string;
   corsCutoff: string;
   corsWindowHours: number;
+  preparedBaselineStart: string;
+  preparedInstanceStart: string;
+  preparedWindowHours: number;
 }
 
 const MAX_REQUEST_AGE_MS = 10 * 60 * 1000;
 
 export function performanceEvidenceSignatureInput(identity: PerformanceEvidenceRequestIdentity): string {
   return [
-    'annword-performance-evidence-v1',
+    'annword-performance-evidence-v2',
     identity.generatedAt,
     identity.keepWarmStart,
     identity.corsCutoff,
     String(identity.corsWindowHours),
+    identity.preparedBaselineStart,
+    identity.preparedInstanceStart,
+    String(identity.preparedWindowHours),
   ].join('|');
 }
 
