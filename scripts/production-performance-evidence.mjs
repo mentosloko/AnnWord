@@ -88,6 +88,23 @@ const successfulKeepRuns = scheduledAfterStart.filter(run => run.conclusion === 
 
 const keepRows = serverEvidence.keepWarmRum || {};
 const corsRows = serverEvidence.corsRum || {};
+const preparedRows = serverEvidence.preparedInstanceRum || {};
+const preparedBaseline = preparedRows.baseline || {};
+const prepared = preparedRows.prepared || {};
+const scopes = ['all_api', 'profile_bootstrap', 'daily_quest_today'];
+const preparedComparison = Object.fromEntries(scopes.map(scope => {
+  const before = preparedBaseline[scope] || null;
+  const after = prepared[scope] || null;
+  return [scope, {
+    before,
+    after,
+    p50DeltaPct: pctDelta(number(before?.p50Ms), number(after?.p50Ms)),
+    p95DeltaPct: pctDelta(number(before?.p95Ms), number(after?.p95Ms)),
+    coldDeltaPct: pctDelta(number(before?.cold), number(after?.cold)),
+    errorDeltaPct: pctDelta(number(before?.errors), number(after?.errors)),
+  }];
+}));
+
 const rum = {
   days: number(serverEvidence.rum.days || 7),
   requests: number(serverEvidence.rum.requests),
@@ -101,6 +118,14 @@ const rum = {
 const report = {
   generatedAt: new Date().toISOString(),
   rum,
+  preparedInstance: {
+    baselineStart: serverEvidence.boundaries.preparedBaselineStart || null,
+    baselineEnd: serverEvidence.boundaries.preparedBaselineEnd || null,
+    preparedStart: serverEvidence.boundaries.preparedInstanceStart || null,
+    preparedEnd: serverEvidence.boundaries.preparedInstanceEnd || null,
+    windowHours: number(serverEvidence.boundaries.preparedWindowHours),
+    scopes: preparedComparison,
+  },
   corsPreflight: {
     cutoff: corsCutoff.toISOString(),
     windowHours: corsWindowHours,
@@ -126,10 +151,25 @@ const report = {
   },
 };
 
+const preparedLines = scopes.flatMap(scope => {
+  const row = preparedComparison[scope];
+  const before = row.before || {};
+  const after = row.after || {};
+  return [
+    `- ${scope}: requests ${number(before.requests)} -> ${number(after.requests)}; p50 ${number(before.p50Ms)} -> ${number(after.p50Ms)} ms (${row.p50DeltaPct ?? 'n/a'}%); p95 ${number(before.p95Ms)} -> ${number(after.p95Ms)} ms (${row.p95DeltaPct ?? 'n/a'}%).`,
+    `  cold ${number(before.cold)} -> ${number(after.cold)}; warm ${number(before.warm)} -> ${number(after.warm)}; errors ${number(before.errors)} -> ${number(after.errors)}; timeouts ${number(before.timeouts)} -> ${number(after.timeouts)}; 5xx ${number(before.status5xx)} -> ${number(after.status5xx)}.`,
+  ];
+});
+
 const md = [
   '# AnnWord production performance evidence',
   '',
   `Generated: ${report.generatedAt}`,
+  '',
+  '## Prepared instance experiment',
+  `- Baseline: ${report.preparedInstance.baselineStart} -> ${report.preparedInstance.baselineEnd}.`,
+  `- Prepared min_instances=1: ${report.preparedInstance.preparedStart} -> ${report.preparedInstance.preparedEnd}.`,
+  ...preparedLines,
   '',
   '## RUM',
   `- 7d requests: ${report.rum.requests}; cold=${report.rum.cold}; warm=${report.rum.warm}; errors=${report.rum.errors}; p95=${report.rum.p95Ms} ms.`,
@@ -140,8 +180,8 @@ const md = [
   `- Log window after: OPTIONS=${corsLogAfter.options}, 499=${corsLogAfter.status499}, cold-start markers=${corsLogAfter.coldStarts}.`,
   `- RUM p95 before/after: ${number(corsRows.before?.p95Ms)} / ${number(corsRows.after?.p95Ms)} ms (${report.corsPreflight.rum.p95DeltaPct ?? 'n/a'}%).`,
   '',
-  '## Keep warm',
-  `- Scheduled runs after start: ${report.keepWarm.scheduledRuns}; successful=${report.keepWarm.successfulRuns}.`,
+  '## Historical keep warm experiment',
+  `- Scheduled runs after start: ${report.keepWarm.scheduledRuns}; successful=${report.keepWarm.successfulRuns}. Scheduled keep-warm is now disabled.`,
   `- Equal-window log cold-start markers before/after: ${keepLogBefore.coldStarts} / ${keepLogAfter.coldStarts}; health/db records after=${keepLogAfter.healthDb}.`,
   `- Equal-window RUM cold requests before/after: ${number(keepRows.before?.cold)} / ${number(keepRows.after?.cold)}; p95=${number(keepRows.before?.p95Ms)} / ${number(keepRows.after?.p95Ms)} ms.`,
   '',
@@ -153,5 +193,5 @@ process.stdout.write(`${md}\nPERFORMANCE_EVIDENCE_REPORT ${JSON.stringify(report
 
 if (report.rum.requests < 1) throw new Error('No production RUM performance events found in the last 7 days.');
 if (report.rum.releases.length < 1) throw new Error('Production RUM events do not contain release SHA metadata.');
-if (report.keepWarm.scheduledRuns < 1 || report.keepWarm.successfulRuns < 1) throw new Error('No successful scheduled keep-warm run was observed after the activation time.');
+if (!report.preparedInstance.baselineStart || !report.preparedInstance.preparedStart) throw new Error('Prepared-instance experiment boundaries are missing.');
 if (logRecords.length < 1) throw new Error('No Yandex container log records were available for CORS/keep-warm evidence.');
