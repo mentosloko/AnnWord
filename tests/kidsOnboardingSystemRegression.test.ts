@@ -66,7 +66,7 @@ describe('Kids registration and onboarding system', () => {
     expect(dictionary).toContain('mobileWizardOpen');
     expect(dictionary).toContain('AccessibleDialog');
     expect(dictionary).toContain("MobileDictionaryStep = 'source' | 'difficulty' | 'premium' | 'spotlight_grade' | 'spotlight_section' | 'custom'");
-    expect(dictionary).toContain('Сначала выберите источник слов, затем уровень, тему или свой список.');
+    expect(dictionary).toContain('Сначала выберите словарь, затем уровень, тему или свой список.');
   });
 
   it('opens parent cabinets with Enter by using forms', () => {

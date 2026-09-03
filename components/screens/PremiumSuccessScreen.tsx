@@ -43,7 +43,7 @@ export const PremiumSuccessScreen: React.FC<PremiumSuccessScreenProps> = ({ user
   const ctaLabel = kidsMode ? 'Добавить слова ребёнка' : 'Добавить свои слова';
   const ctaHint = kidsMode ? 'Добавьте слова из школы, курса или учебника, чтобы ребёнок повторял их в играх.' : 'Загрузите слова из работы, экзамена, курса или своей темы и тренируйте их в играх.';
   const benefits = kidsMode
-    ? ['Детские темы: школа, дом, животные, еда', 'Слова для первых классов', 'Тренировка по словам из школы или курса']
+    ? ['8 детских тематических словарей', 'Школьный словарь Spotlight: 2–11 классы', 'Тренировка по словам из школы или курса']
     : ['Тематические словари по задачам', 'Слова по уровням A1–C2', 'Тренировка по вашему списку слов'];
   const confirmed = isPremiumActive(effectiveProfile);
   const showNextStep = confirmationState === 'confirmed' || confirmed;

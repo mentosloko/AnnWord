@@ -49,7 +49,7 @@ describe('DictionarySettingsScreen draft selection', () => {
   it('does not change the active source until Done is pressed', async () => {
     const { onCommitSettings, onBack } = renderScreen();
 
-    fireEvent.click(screen.getByRole('button', { name: /Тематический/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Темы/ }));
     fireEvent.click(screen.getByRole('button', { name: /Животные/ }));
 
     expect(onCommitSettings).not.toHaveBeenCalled();
@@ -78,7 +78,7 @@ describe('DictionarySettingsScreen draft selection', () => {
       onBack={onBack}
     />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Свой/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Мой словарь/ }));
     expect(screen.getByText('Сохраните выбор, чтобы применить его к играм.')).toBeInTheDocument();
 
     rerender(<DictionarySettingsScreen

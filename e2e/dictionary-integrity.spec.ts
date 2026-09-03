@@ -226,9 +226,9 @@ test.describe('dictionary integrity browser E2E', () => {
     });
 
     await page.goto('/kids');
-    await openDictionarySelection(page, 'Детский словарь');
+    await openDictionarySelection(page, 'Все уровни');
 
-    await page.getByRole('button', { name: /Тематический/ }).click();
+    await page.getByRole('button', { name: /Темы/ }).click();
     await page.getByRole('button', { name: /Животные/ }).click();
     await expect(page.getByText('Сохраните выбор, чтобы применить его к играм.')).toBeVisible();
     await page.getByRole('button', { name: 'Готово' }).click();
@@ -283,7 +283,7 @@ test.describe('dictionary integrity browser E2E', () => {
     await openDictionarySelection(page, 'Животные');
 
     const patchesBeforeDraft = backend.sourcePatchCount();
-    await page.getByRole('button', { name: /Свой/ }).click();
+    await page.getByRole('button', { name: /Мой словарь/ }).click();
     await expect(page.getByText('Сохраните выбор, чтобы применить его к играм.')).toBeVisible();
     await expect(page.getByText('Ваш список').first()).toBeVisible();
 
