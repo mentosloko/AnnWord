@@ -1,4 +1,12 @@
 import type { DifficultyLevel, EnrichedWord } from '../types';
+import animalsTheme from '../dictionaries/kids/themes/kids_animals.json';
+import foodTheme from '../dictionaries/kids/themes/kids_food.json';
+import homeTheme from '../dictionaries/kids/themes/kids_home.json';
+import schoolTheme from '../dictionaries/kids/themes/kids_school.json';
+import familyTheme from '../dictionaries/kids/themes/kids_family_friends.json';
+import natureTheme from '../dictionaries/kids/themes/kids_nature_weather.json';
+import transportTheme from '../dictionaries/kids/themes/kids_transport_travel.json';
+import hobbiesTheme from '../dictionaries/kids/themes/kids_games_hobbies.json';
 import { readGeneralDictionary } from './dictionaryRuntime';
 import { getKidsCefrEntries } from './kidsCefrDictionary';
 
@@ -17,13 +25,19 @@ export interface KidsDictionaryMeta {
   levelCounts?: Partial<Record<DifficultyLevel, number>>;
 }
 
-type KidsDictionaryDefinition = Omit<KidsDictionaryMeta, 'wordCount' | 'levelCounts'> & { seeds: string[]; excludedWords?: string[] };
+type KidsThemeWord = string | {
+  word: string;
+  translation?: string;
+  level?: Exclude<DifficultyLevel, 'ALL'>;
+};
 
-const MIN_THEME_WORDS = 150;
+type KidsDictionaryDefinition = Omit<KidsDictionaryMeta, 'wordCount' | 'levelCounts'> & { words: KidsThemeWord[] };
 
-// A few early Kids words are deliberately absent from the common corpus. Keep
-// their verified translations so parent-assigned and custom dictionaries retain
-// the same translation coverage after the catalog expansion.
+const FREE_KIDS_TARGET = 150;
+
+// Words absent from the shared catalogue can be added here only when their
+// translation has already been verified. Theme JSON files also support inline
+// { word, translation, level } entries for future manual additions.
 const KIDS_TRANSLATION_FALLBACKS: EnrichedWord[] = [
   { word: 'PANDA', translation: 'панда', level: 'A1' },
 ];
@@ -33,52 +47,67 @@ const FREE_KIDS_SEEDS = [
   'AIRPLANE','ANT','ARM','BAG','BANANA','BATH','BED','BEE','BICYCLE','BLUE','BOAT','BREAD','BROTHER','BUS','BUTTER','CAR','CARROT','CHEESE','CHICKEN','CHILD','CLASS','CLOCK','COAT','COLOR','COOKIE','COW','DANCE','DAY','DOLL','DRESS','EAR','EGG','ELEPHANT','EYE','FACE','FAMILY','FARM','FATHER','FLOWER','FOOT','FROG','FRIEND','FROST','GARDEN','GOAT','GREEN','HAND','HAT','HEAD','HEART','HORSE','ICE','JACKET','KITCHEN','KITE','LAMP','LEMON','LION','MANGO','MOTHER','MUSIC','NIGHT','NOSE','ORANGE','PAPER','PARK','PENCIL','PEN','PIG','PLANE','PLAY','RAIN','RED','RIVER','ROOM','SAND','SHEEP','SHOE','SISTER','SKY','SNOW','SONG','SPOON','STREET','SWIM','TEACHER','TIGER','TOY','UMBRELLA','VILLAGE','WALL','WATCH','WEATHER','WINDOW','WIND','WRITE','YELLOW','ZEBRA',
 ];
 
-const dictionaries: Record<KidsDictionaryId, KidsDictionaryDefinition> = {
-  kids_animals: { id:'kids_animals', title:'Животные', shortTitle:'Животные', theme:'animals', icon:'🐾', excludedWords:['APPLE','SCHOOL'], seeds:[
-    'ANT','BAT','BEAR','BEE','BIRD','BUTTERFLY','CAMEL','CAT','CHICK','CHICKEN','COW','CROCODILE','DEER','DOG','DOLPHIN','DONKEY','DUCK','EAGLE','ELEPHANT','FISH','FLY','FOX','FROG','GIRAFFE','GOAT','HAMSTER','HEN','HIPPO','HORSE','KANGAROO','KOALA','LAMB','LION','LIZARD','MONKEY','MOUSE','OWL','PANDA','PARROT','PEACOCK','PENGUIN','PIG','PUPPY','RABBIT','SHEEP','SNAKE','SPIDER','SQUIRREL','TIGER','TURTLE','WHALE','WOLF','ZEBRA'
-  ]},
-  kids_food: { id:'kids_food', title:'Еда и напитки', shortTitle:'Еда', theme:'food', icon:'🍎', seeds:[
-    'APPLE','BANANA','BERRY','BREAD','BURGER','BUTTER','CAKE','CANDY','CARROT','CHEESE','CHICKEN','CHOCOLATE','COOKIE','CORN','CREAM','CUCUMBER','EGG','FISH','FRUIT','GRAPE','HONEY','ICE','ICECREAM','JUICE','LEMON','LUNCH','MANGO','MEAT','MILK','NOODLE','ORANGE','PANCAKE','PEAR','PIZZA','POTATO','RICE','SALAD','SANDWICH','SAUSAGE','SOUP','SUGAR','TEA','TOMATO','WATER','YOGURT'
-  ]},
-  kids_home: { id:'kids_home', title:'Дом и быт', shortTitle:'Дом', theme:'home', icon:'🏠', seeds:[
-    'BATH','BATHROOM','BED','BEDROOM','BLANKET','BOOKSHELF','BOTTLE','BOWL','CARPET','CHAIR','CLOCK','CUP','CURTAIN','DOOR','DRAWER','FLOOR','FRIDGE','GARDEN','GLASS','HALL','HOME','HOUSE','KITCHEN','LAMP','LIVINGROOM','MIRROR','PILLOW','PLATE','ROOM','ROOF','SHELF','SHOWER','SOFA','SPOON','STAIRS','TABLE','TOILET','TOWEL','WALL','WARDROBE','WINDOW'
-  ]},
-  kids_school: { id:'kids_school', title:'Школа и день', shortTitle:'Школа', theme:'school', icon:'🎒', seeds:[
-    'ANSWER','BACKPACK','BOARD','BOOK','BREAK','CLASS','CLASSROOM','COLOR','COUNT','DESK','DRAW','ENGLISH','ERASER','EXERCISE','HOMEWORK','LEARN','LESSON','LETTER','LINE','MAP','MARKER','MUSIC','NOTE','NUMBER','PAGE','PAINT','PAPER','PENCIL','PEN','QUESTION','READ','RULER','SCHOOL','SPELL','STUDENT','TEACH','TEACHER','TEST','TEXT','TITLE','WORD','WRITE'
-  ]},
-  kids_family_friends: { id:'kids_family_friends', title:'Семья и друзья', shortTitle:'Семья', theme:'family', icon:'👨‍👩‍👧‍👦', seeds:[
-    'AUNT','BABY','BOY','BROTHER','CHILD','COUSIN','DAD','DAUGHTER','FAMILY','FATHER','FRIEND','GIRL','GRANDMA','GRANDFATHER','GRANDMOTHER','GRANDPA','KID','MAN','MOTHER','MUM','PARENT','SISTER','SON','UNCLE','WOMAN','YOUNG','OLDER','SMILE','HELP','SHARE','TALK','VISIT','LOVE','HAPPY','KIND'
-  ]},
-  kids_nature_weather: { id:'kids_nature_weather', title:'Природа и погода', shortTitle:'Природа', theme:'nature', icon:'🌦️', seeds:[
-    'AIR','AUTUMN','BEACH','CLOUD','COLD','EARTH','FIRE','FLOWER','FOREST','FROST','GARDEN','GRASS','HILL','HOT','ICE','ISLAND','LAKE','LEAF','LIGHTNING','MOON','MOUNTAIN','NATURE','OCEAN','PLANT','RAIN','RAINBOW','RIVER','ROCK','SAND','SEA','SKY','SNOW','SPRING','STAR','STORM','SUN','SUMMER','TREE','WARM','WATER','WEATHER','WIND','WINTER'
-  ]},
-  kids_transport_travel: { id:'kids_transport_travel', title:'Транспорт и путешествия', shortTitle:'Транспорт', theme:'transport', icon:'🚆', seeds:[
-    'AIRPLANE','AIRPORT','BAG','BICYCLE','BOAT','BRIDGE','BUS','BUSSTOP','CAR','DRIVER','FLIGHT','HELICOPTER','HOTEL','JOURNEY','MAP','METRO','MOTORBIKE','MOUNTAIN','PASSENGER','PLANE','ROAD','ROCKET','SHIP','STATION','STREET','SUBWAY','SUITCASE','TAXI','TICKET','TRAIN','TRAVEL','TRIP','TRUCK','WALK','WHEEL'
-  ]},
-  kids_games_hobbies: { id:'kids_games_hobbies', title:'Игры и хобби', shortTitle:'Хобби', theme:'hobbies', icon:'🎨', seeds:[
-    'BALL','BOARDGAME','BOOK','CAMERA','CHESS','CLAY','COLOR','COMIC','DANCE','DRAW','DRUM','FILM','GAME','GUITAR','KITE','MUSIC','PAINT','PHOTO','PIANO','PLAY','PUZZLE','READ','ROBOT','RUN','SING','SKATE','SPORT','SWIM','TOY','VIDEO','WRITE'
-  ]},
-};
+const themeDefinitions = [
+  animalsTheme,
+  foodTheme,
+  homeTheme,
+  schoolTheme,
+  familyTheme,
+  natureTheme,
+  transportTheme,
+  hobbiesTheme,
+] as unknown as KidsDictionaryDefinition[];
+
+const dictionaries = Object.fromEntries(
+  themeDefinitions.map(item => [item.id, item]),
+) as Record<KidsDictionaryId, KidsDictionaryDefinition>;
 
 const normalize = (word: string): string => word.trim().toUpperCase().replace(/[^A-Z]/g, '');
 
 const generalKidsFoundation = (): EnrichedWord[] => getKidsCefrEntries([
   ...(readGeneralDictionary()?.COMMON_WORDS_EN || []),
   ...KIDS_TRANSLATION_FALLBACKS,
-]).filter(entry => entry.level === 'A1' || entry.level === 'A2');
+]);
 
-const buildEntries = (seeds: string[], minimum = MIN_THEME_WORDS, excludedWords: string[] = []): EnrichedWord[] => {
+const uniqueEntries = (items: EnrichedWord[]): EnrichedWord[] => {
+  const seen = new Set<string>();
+  return items.filter(entry => !seen.has(entry.word) && seen.add(entry.word));
+};
+
+const resolveThemeEntry = (raw: KidsThemeWord, byWord: Map<string, EnrichedWord>): EnrichedWord | null => {
+  if (typeof raw === 'string') return byWord.get(normalize(raw)) || null;
+  const word = normalize(raw.word || '');
+  if (!word) return null;
+  const fromMaster = byWord.get(word);
+  const translation = raw.translation?.trim();
+  if (!translation) return fromMaster || null;
+  const candidate: EnrichedWord = {
+    word,
+    translation,
+    level: raw.level || fromMaster?.level || 'A1',
+  };
+  return getKidsCefrEntries([candidate])[0] || null;
+};
+
+const buildThemeEntries = (definition: KidsDictionaryDefinition): EnrichedWord[] => {
   const byWord = new Map(generalKidsFoundation().map(entry => [normalize(entry.word), entry]));
-  const excluded = new Set(excludedWords.map(normalize));
+  return uniqueEntries(definition.words
+    .map(raw => resolveThemeEntry(raw, byWord))
+    .filter((entry): entry is EnrichedWord => Boolean(entry)));
+};
+
+const buildFreeEntries = (): EnrichedWord[] => {
+  const foundation = generalKidsFoundation().filter(entry => entry.level === 'A1' || entry.level === 'A2');
+  const byWord = new Map(foundation.map(entry => [normalize(entry.word), entry]));
   const selected: EnrichedWord[] = [];
   const seen = new Set<string>();
-  for (const candidate of [...seeds, ...generalKidsFoundation().map(entry => entry.word)]) {
+  for (const candidate of [...FREE_KIDS_SEEDS, ...foundation.map(entry => entry.word)]) {
     const word = normalize(candidate);
     const entry = byWord.get(word);
-    if (!entry || seen.has(word) || excluded.has(word)) continue;
+    if (!entry || seen.has(word)) continue;
     seen.add(word);
     selected.push(entry);
-    if (selected.length >= minimum) break;
+    if (selected.length >= FREE_KIDS_TARGET) break;
   }
   return selected;
 };
@@ -87,35 +116,36 @@ const matchesDifficulty = (entry: EnrichedWord, difficulty: DifficultyLevel): bo
   difficulty === 'ALL' || entry.level === difficulty;
 
 const withCounts = (item: KidsDictionaryDefinition): KidsDictionaryMeta => ({
-  id: item.id, title: item.title, shortTitle: item.shortTitle, theme: item.theme, icon: item.icon, wordCount: MIN_THEME_WORDS,
+  id: item.id,
+  title: item.title,
+  shortTitle: item.shortTitle,
+  theme: item.theme,
+  icon: item.icon,
+  wordCount: item.words.length,
 });
 
 export const getFreeKidsDictionaryEntries = (difficulty: DifficultyLevel = 'ALL'): EnrichedWord[] =>
-  buildEntries(FREE_KIDS_SEEDS).filter(entry => matchesDifficulty(entry, difficulty));
+  buildFreeEntries().filter(entry => matchesDifficulty(entry, difficulty));
 
 export const getDefaultKidsDictionaryId = (): KidsDictionaryId => 'kids_animals';
 
-export const getKidsDictionaryCatalog = (): KidsDictionaryMeta[] => Object.values(dictionaries).map(withCounts);
+export const getKidsDictionaryCatalog = (): KidsDictionaryMeta[] => themeDefinitions.map(withCounts);
 
-export const getKidsDictionaryMeta = (id?: string): KidsDictionaryMeta =>
-  getKidsDictionaryCatalog().find(item => item.id === id) || getKidsDictionaryCatalog()[0];
+export const getKidsDictionaryMeta = (id?: string): KidsDictionaryMeta | null =>
+  id ? getKidsDictionaryCatalog().find(item => item.id === id) || null : null;
 
 export const getKidsPremiumDictionaryEntries = (id?: string, difficulty: DifficultyLevel = 'ALL'): EnrichedWord[] => {
-  const dictionaryId = dictionaries[id as KidsDictionaryId] ? id as KidsDictionaryId : getDefaultKidsDictionaryId();
-  const dictionary = dictionaries[dictionaryId];
-  return buildEntries(dictionary.seeds, MIN_THEME_WORDS, dictionary.excludedWords).filter(entry => matchesDifficulty(entry, difficulty));
+  const dictionary = id ? dictionaries[id as KidsDictionaryId] : undefined;
+  if (!dictionary) return [];
+  return buildThemeEntries(dictionary).filter(entry => matchesDifficulty(entry, difficulty));
 };
 
 export const getKidsPremiumDictionaryWords = (id?: string, difficulty: DifficultyLevel = 'ALL'): string[] =>
   getKidsPremiumDictionaryEntries(id, difficulty).map(entry => entry.word);
 
-export const getAllKidsDictionaryEntries = (): EnrichedWord[] => {
-  const seen = new Set<string>();
-  const entries: EnrichedWord[] = [
-    ...getFreeKidsDictionaryEntries(),
-    ...Object.values(dictionaries).flatMap<EnrichedWord>(item => buildEntries(item.seeds, MIN_THEME_WORDS, item.excludedWords)),
-  ];
-  return entries.filter(entry => !seen.has(entry.word) && seen.add(entry.word));
-};
+export const getAllKidsDictionaryEntries = (): EnrichedWord[] => uniqueEntries([
+  ...getFreeKidsDictionaryEntries(),
+  ...themeDefinitions.flatMap(buildThemeEntries),
+]);
 
 export const getAllKidsDictionaryWords = (): string[] => getAllKidsDictionaryEntries().map(entry => entry.word);
