@@ -25,7 +25,7 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     name: Configure CDN security headers and Gzip
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - name: Check whether CDN CSP is already ready
         id: current-csp
@@ -70,7 +70,7 @@ jobs:
         if: steps.current-csp.outputs.ready != 'true'
         run: yc cdn resource get "$YC_CDN_RESOURCE_ID" --format json
 
-      - name: Configure Metrika and Webvisor response CSP
+      - name: Configure Metrika, Webvisor response CSP, and Gzip
         if: steps.current-csp.outputs.ready != 'true'
         run: |
           set -euo pipefail
@@ -79,10 +79,20 @@ jobs:
             --gzip-on \
             --static-headers "Content-Security-Policy=$CSP,Strict-Transport-Security=max-age=31536000,X-Content-Type-Options=nosniff"
 
+      - name: Wait for CDN configuration propagation
+        if: steps.current-csp.outputs.ready != 'true'
+        run: sleep 900
+
+      - name: Purge cached static variants
+        if: steps.current-csp.outputs.ready != 'true'
+        run: |
+          set -euo pipefail
+          yc cdn cache purge --resource-id "$YC_CDN_RESOURCE_ID" --path '/*'
+
       - name: Verify CDN CSP and Gzip propagation
         run: |
           set -euo pipefail
-          for attempt in $(seq 1 30); do
+          for attempt in $(seq 1 20); do
             curl -sSI -H 'Accept-Encoding: gzip' "$APP_ORIGIN/" | tr -d '\r' > /tmp/headers.txt || true
             CSP="$(sed -n 's/^content-security-policy:[[:space:]]*//Ip' /tmp/headers.txt | head -n 1)"
             INDEX_BODY="$(curl -fsS "$APP_ORIGIN/" || true)"
@@ -101,9 +111,9 @@ jobs:
               printf '%s\n' "$ENCODING_HEADERS"
               exit 0
             fi
-            echo "Waiting for CDN CSP/Gzip propagation ($attempt/30)..."
+            echo "Waiting for CDN CSP/Gzip propagation ($attempt/20)..."
             sleep 30
           done
           cat /tmp/headers.txt
-          echo 'Yandex CDN CSP/Gzip did not propagate within 15 minutes.' >&2
+          echo 'Yandex CDN CSP/Gzip did not propagate after cache purge.' >&2
           exit 1
