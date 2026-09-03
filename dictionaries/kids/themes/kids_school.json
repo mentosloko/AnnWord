@@ -5,6 +5,337 @@
   "theme": "school",
   "icon": "🎒",
   "words": [
-    "ANSWER", "BACKPACK", "BOARD", "BOOK", "BREAK", "CLASS", "CLASSROOM", "COLOR", "COUNT", "DESK", "DRAW", "ENGLISH", "ERASER", "EXERCISE", "HOMEWORK", "LEARN", "LESSON", "LETTER", "LINE", "MAP", "MARKER", "MUSIC", "NOTE", "NUMBER", "PAGE", "PAINT", "PAPER", "PENCIL", "PEN", "QUESTION", "READ", "RULER", "SCHOOL", "SPELL", "STUDENT", "TEACH", "TEACHER", "TEST", "TEXT", "TITLE", "WORD", "WRITE"
+    "ANSWER",
+    "BACKPACK",
+    "BOARD",
+    "BOOK",
+    "BREAK",
+    "CLASS",
+    "CLASSROOM",
+    "COLOR",
+    "COUNT",
+    "DESK",
+    "DRAW",
+    "ENGLISH",
+    "ERASER",
+    "EXERCISE",
+    "HOMEWORK",
+    "LEARN",
+    "LESSON",
+    "LETTER",
+    "LINE",
+    "MAP",
+    "MARKER",
+    "MUSIC",
+    "NOTE",
+    "NUMBER",
+    "PAGE",
+    "PAINT",
+    "PAPER",
+    "PENCIL",
+    "PEN",
+    "QUESTION",
+    "READ",
+    "RULER",
+    "SCHOOL",
+    "SPELL",
+    "STUDENT",
+    "TEACH",
+    "TEACHER",
+    "TEST",
+    "TEXT",
+    "TITLE",
+    "WORD",
+    "WRITE",
+    {
+      "word": "ALPHABET",
+      "translation": "алфавит",
+      "level": "A1"
+    },
+    {
+      "word": "ART",
+      "translation": "рисование",
+      "level": "A1"
+    },
+    {
+      "word": "ASSIGNMENT",
+      "translation": "задание",
+      "level": "A1"
+    },
+    {
+      "word": "ATTEND",
+      "translation": "посещать",
+      "level": "A1"
+    },
+    {
+      "word": "BELL",
+      "translation": "звонок",
+      "level": "A1"
+    },
+    {
+      "word": "CALCULATE",
+      "translation": "считать",
+      "level": "A1"
+    },
+    {
+      "word": "CALENDAR",
+      "translation": "календарь",
+      "level": "A1"
+    },
+    {
+      "word": "CHALK",
+      "translation": "мел",
+      "level": "A1"
+    },
+    {
+      "word": "CHAPTER",
+      "translation": "глава",
+      "level": "A1"
+    },
+    {
+      "word": "CHECK",
+      "translation": "проверять",
+      "level": "A1"
+    },
+    {
+      "word": "CIRCLE",
+      "translation": "круг",
+      "level": "A1"
+    },
+    {
+      "word": "COMPLETE",
+      "translation": "заканчивать",
+      "level": "A1"
+    },
+    {
+      "word": "COMPUTER",
+      "translation": "компьютер",
+      "level": "A1"
+    },
+    {
+      "word": "CORRECT",
+      "translation": "правильный",
+      "level": "A1"
+    },
+    {
+      "word": "COURSE",
+      "translation": "курс",
+      "level": "A1"
+    },
+    {
+      "word": "DICTIONARY",
+      "translation": "словарь",
+      "level": "A1"
+    },
+    {
+      "word": "DIGIT",
+      "translation": "цифра",
+      "level": "A1"
+    },
+    {
+      "word": "DISCUSS",
+      "translation": "обсуждать",
+      "level": "A1"
+    },
+    {
+      "word": "EXAMPLE",
+      "translation": "пример",
+      "level": "A1"
+    },
+    {
+      "word": "EXPLAIN",
+      "translation": "объяснять",
+      "level": "A1"
+    },
+    {
+      "word": "FOLDER",
+      "translation": "папка",
+      "level": "A1"
+    },
+    {
+      "word": "GRADE",
+      "translation": "оценка",
+      "level": "A1"
+    },
+    {
+      "word": "GROUP",
+      "translation": "группа",
+      "level": "A1"
+    },
+    {
+      "word": "HIGHLIGHT",
+      "translation": "выделять",
+      "level": "A1"
+    },
+    {
+      "word": "HISTORY",
+      "translation": "история",
+      "level": "A1"
+    },
+    {
+      "word": "INSTRUCTION",
+      "translation": "инструкция",
+      "level": "A1"
+    },
+    {
+      "word": "LIBRARY",
+      "translation": "библиотека",
+      "level": "A1"
+    },
+    {
+      "word": "MATHS",
+      "translation": "математика",
+      "level": "A1"
+    },
+    {
+      "word": "MEMORISE",
+      "translation": "запоминать",
+      "level": "A1"
+    },
+    {
+      "word": "MISTAKE",
+      "translation": "ошибка",
+      "level": "A1"
+    },
+    {
+      "word": "MONTH",
+      "translation": "месяц",
+      "level": "A1"
+    },
+    {
+      "word": "MORNING",
+      "translation": "утро",
+      "level": "A1"
+    },
+    {
+      "word": "ONLINE",
+      "translation": "онлайн",
+      "level": "A1"
+    },
+    {
+      "word": "PROJECT",
+      "translation": "проект",
+      "level": "A1"
+    },
+    {
+      "word": "REPEAT",
+      "translation": "повторять",
+      "level": "A1"
+    },
+    {
+      "word": "RESEARCH",
+      "translation": "исследование",
+      "level": "A1"
+    },
+    {
+      "word": "REVIEW",
+      "translation": "повторение",
+      "level": "A1"
+    },
+    {
+      "word": "SCIENCE",
+      "translation": "наука",
+      "level": "A1"
+    },
+    {
+      "word": "SCISSORS",
+      "translation": "ножницы",
+      "level": "A1"
+    },
+    {
+      "word": "SHAPE",
+      "translation": "форма",
+      "level": "A1"
+    },
+    {
+      "word": "SUBJECT",
+      "translation": "предмет",
+      "level": "A1"
+    },
+    {
+      "word": "SCHEDULE",
+      "translation": "расписание",
+      "level": "A1"
+    },
+    {
+      "word": "STICKER",
+      "translation": "наклейка",
+      "level": "A1"
+    },
+    {
+      "word": "STUDY",
+      "translation": "учиться",
+      "level": "A1"
+    },
+    {
+      "word": "TIMETABLE",
+      "translation": "расписание",
+      "level": "A1"
+    },
+    {
+      "word": "TOPIC",
+      "translation": "тема",
+      "level": "A1"
+    },
+    {
+      "word": "TRANSLATE",
+      "translation": "переводить",
+      "level": "A1"
+    },
+    {
+      "word": "UNIFORM",
+      "translation": "форма",
+      "level": "A1"
+    },
+    {
+      "word": "WEEK",
+      "translation": "неделя",
+      "level": "A1"
+    },
+    {
+      "word": "WORKSHEET",
+      "translation": "рабочий лист",
+      "level": "A1"
+    },
+    {
+      "word": "YESTERDAY",
+      "translation": "вчера",
+      "level": "A1"
+    },
+    {
+      "word": "TODAY",
+      "translation": "сегодня",
+      "level": "A1"
+    },
+    {
+      "word": "TOMORROW",
+      "translation": "завтра",
+      "level": "A1"
+    },
+    {
+      "word": "AFTERNOON",
+      "translation": "день",
+      "level": "A1"
+    },
+    {
+      "word": "EVENING",
+      "translation": "вечер",
+      "level": "A1"
+    },
+    {
+      "word": "MARK",
+      "translation": "оценка",
+      "level": "A1"
+    },
+    {
+      "word": "PAIR",
+      "translation": "пара",
+      "level": "A1"
+    },
+    {
+      "word": "QUIZ",
+      "translation": "викторина",
+      "level": "A1"
+    }
   ]
 }

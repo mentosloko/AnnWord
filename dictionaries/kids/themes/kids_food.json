@@ -5,6 +5,325 @@
   "theme": "food",
   "icon": "🍎",
   "words": [
-    "APPLE", "BANANA", "BERRY", "BREAD", "BURGER", "BUTTER", "CAKE", "CANDY", "CARROT", "CHEESE", "CHICKEN", "CHOCOLATE", "COOKIE", "CORN", "CREAM", "CUCUMBER", "EGG", "FISH", "FRUIT", "GRAPE", "HONEY", "ICE", "ICECREAM", "JUICE", "LEMON", "LUNCH", "MANGO", "MEAT", "MILK", "NOODLE", "ORANGE", "PANCAKE", "PEAR", "PIZZA", "POTATO", "RICE", "SALAD", "SANDWICH", "SAUSAGE", "SOUP", "SUGAR", "TEA", "TOMATO", "WATER", "YOGURT"
+    "APPLE",
+    "BANANA",
+    "BERRY",
+    "BREAD",
+    "BURGER",
+    "BUTTER",
+    "CAKE",
+    "CANDY",
+    "CARROT",
+    "CHEESE",
+    "CHICKEN",
+    "CHOCOLATE",
+    "COOKIE",
+    "CORN",
+    "CREAM",
+    "CUCUMBER",
+    "EGG",
+    "FISH",
+    "FRUIT",
+    "GRAPE",
+    "HONEY",
+    "ICE",
+    "ICECREAM",
+    "JUICE",
+    "LEMON",
+    "LUNCH",
+    "MANGO",
+    "MEAT",
+    "MILK",
+    "NOODLE",
+    "ORANGE",
+    "PANCAKE",
+    "PEAR",
+    "PIZZA",
+    "POTATO",
+    "RICE",
+    "SALAD",
+    "SANDWICH",
+    "SAUSAGE",
+    "SOUP",
+    "SUGAR",
+    "TEA",
+    "TOMATO",
+    "WATER",
+    "YOGURT",
+    {
+      "word": "APRICOT",
+      "translation": "абрикос",
+      "level": "A1"
+    },
+    {
+      "word": "AVOCADO",
+      "translation": "авокадо",
+      "level": "A1"
+    },
+    {
+      "word": "BEAN",
+      "translation": "фасоль",
+      "level": "A1"
+    },
+    {
+      "word": "BISCUIT",
+      "translation": "печенье",
+      "level": "A1"
+    },
+    {
+      "word": "BLUEBERRY",
+      "translation": "черника",
+      "level": "A1"
+    },
+    {
+      "word": "BROCCOLI",
+      "translation": "брокколи",
+      "level": "A1"
+    },
+    {
+      "word": "CABBAGE",
+      "translation": "капуста",
+      "level": "A1"
+    },
+    {
+      "word": "CEREAL",
+      "translation": "хлопья",
+      "level": "A1"
+    },
+    {
+      "word": "CHERRY",
+      "translation": "вишня",
+      "level": "A1"
+    },
+    {
+      "word": "CHIPS",
+      "translation": "чипсы",
+      "level": "A1"
+    },
+    {
+      "word": "COCOA",
+      "translation": "какао",
+      "level": "A1"
+    },
+    {
+      "word": "COCONUT",
+      "translation": "кокос",
+      "level": "A1"
+    },
+    {
+      "word": "COFFEE",
+      "translation": "кофе",
+      "level": "A1"
+    },
+    {
+      "word": "DONUT",
+      "translation": "пончик",
+      "level": "A1"
+    },
+    {
+      "word": "FLOUR",
+      "translation": "мука",
+      "level": "A1"
+    },
+    {
+      "word": "GARLIC",
+      "translation": "чеснок",
+      "level": "A1"
+    },
+    {
+      "word": "GINGER",
+      "translation": "имбирь",
+      "level": "A1"
+    },
+    {
+      "word": "JAM",
+      "translation": "варенье",
+      "level": "A1"
+    },
+    {
+      "word": "KIWI",
+      "translation": "киви",
+      "level": "A1"
+    },
+    {
+      "word": "MELON",
+      "translation": "дыня",
+      "level": "A1"
+    },
+    {
+      "word": "MUSHROOM",
+      "translation": "гриб",
+      "level": "A1"
+    },
+    {
+      "word": "OATMEAL",
+      "translation": "овсянка",
+      "level": "A1"
+    },
+    {
+      "word": "OIL",
+      "translation": "масло",
+      "level": "A1"
+    },
+    {
+      "word": "ONION",
+      "translation": "лук",
+      "level": "A1"
+    },
+    {
+      "word": "PASTA",
+      "translation": "макароны",
+      "level": "A1"
+    },
+    {
+      "word": "PEACH",
+      "translation": "персик",
+      "level": "A1"
+    },
+    {
+      "word": "PEANUT",
+      "translation": "арахис",
+      "level": "A1"
+    },
+    {
+      "word": "PEPPER",
+      "translation": "перец",
+      "level": "A1"
+    },
+    {
+      "word": "PIE",
+      "translation": "пирог",
+      "level": "A1"
+    },
+    {
+      "word": "PINEAPPLE",
+      "translation": "ананас",
+      "level": "A1"
+    },
+    {
+      "word": "PLUM",
+      "translation": "слива",
+      "level": "A1"
+    },
+    {
+      "word": "PORRIDGE",
+      "translation": "каша",
+      "level": "A1"
+    },
+    {
+      "word": "PUMPKIN",
+      "translation": "тыква",
+      "level": "A1"
+    },
+    {
+      "word": "RASPBERRY",
+      "translation": "малина",
+      "level": "A1"
+    },
+    {
+      "word": "RECIPE",
+      "translation": "рецепт",
+      "level": "A1"
+    },
+    {
+      "word": "SALT",
+      "translation": "соль",
+      "level": "A1"
+    },
+    {
+      "word": "SAUCE",
+      "translation": "соус",
+      "level": "A1"
+    },
+    {
+      "word": "SNACK",
+      "translation": "перекус",
+      "level": "A1"
+    },
+    {
+      "word": "STRAWBERRY",
+      "translation": "клубника",
+      "level": "A1"
+    },
+    {
+      "word": "TASTE",
+      "translation": "вкус",
+      "level": "A1"
+    },
+    {
+      "word": "TOAST",
+      "translation": "тост",
+      "level": "A1"
+    },
+    {
+      "word": "VANILLA",
+      "translation": "ваниль",
+      "level": "A1"
+    },
+    {
+      "word": "VEGETABLE",
+      "translation": "овощ",
+      "level": "A1"
+    },
+    {
+      "word": "WAFFLE",
+      "translation": "вафля",
+      "level": "A1"
+    },
+    {
+      "word": "WATERMELON",
+      "translation": "арбуз",
+      "level": "A1"
+    },
+    {
+      "word": "BREAKFAST",
+      "translation": "завтрак",
+      "level": "A1"
+    },
+    {
+      "word": "DINNER",
+      "translation": "ужин",
+      "level": "A1"
+    },
+    {
+      "word": "DRINK",
+      "translation": "напиток",
+      "level": "A1"
+    },
+    {
+      "word": "HUNGRY",
+      "translation": "голодный",
+      "level": "A1"
+    },
+    {
+      "word": "THIRSTY",
+      "translation": "хотеть пить",
+      "level": "A1"
+    },
+    {
+      "word": "SWEET",
+      "translation": "сладкий",
+      "level": "A1"
+    },
+    {
+      "word": "SOUR",
+      "translation": "кислый",
+      "level": "A1"
+    },
+    {
+      "word": "SPICY",
+      "translation": "острый",
+      "level": "A1"
+    },
+    {
+      "word": "YUMMY",
+      "translation": "вкусный",
+      "level": "A1"
+    },
+    {
+      "word": "BAKE",
+      "translation": "печь",
+      "level": "A1"
+    }
   ]
 }

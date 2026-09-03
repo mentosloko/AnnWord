@@ -5,6 +5,381 @@
   "theme": "hobbies",
   "icon": "🎨",
   "words": [
-    "BALL", "BOARDGAME", "BOOK", "CAMERA", "CHESS", "CLAY", "COLOR", "COMIC", "DANCE", "DRAW", "DRUM", "FILM", "GAME", "GUITAR", "KITE", "MUSIC", "PAINT", "PHOTO", "PIANO", "PLAY", "PUZZLE", "READ", "ROBOT", "RUN", "SING", "SKATE", "SPORT", "SWIM", "TOY", "VIDEO", "WRITE"
+    "BALL",
+    "BOARDGAME",
+    "BOOK",
+    "CAMERA",
+    "CHESS",
+    "CLAY",
+    "COLOR",
+    "COMIC",
+    "DANCE",
+    "DRAW",
+    "DRUM",
+    "FILM",
+    "GAME",
+    "GUITAR",
+    "KITE",
+    "MUSIC",
+    "PAINT",
+    "PHOTO",
+    "PIANO",
+    "PLAY",
+    "PUZZLE",
+    "READ",
+    "ROBOT",
+    "RUN",
+    "SING",
+    "SKATE",
+    "SPORT",
+    "SWIM",
+    "TOY",
+    "VIDEO",
+    "WRITE",
+    {
+      "word": "ACT",
+      "translation": "играть роль",
+      "level": "A1"
+    },
+    {
+      "word": "ARCHERY",
+      "translation": "стрельба из лука",
+      "level": "A1"
+    },
+    {
+      "word": "ART",
+      "translation": "искусство",
+      "level": "A1"
+    },
+    {
+      "word": "BADMINTON",
+      "translation": "бадминтон",
+      "level": "A1"
+    },
+    {
+      "word": "BALLET",
+      "translation": "балет",
+      "level": "A1"
+    },
+    {
+      "word": "BASKETBALL",
+      "translation": "баскетбол",
+      "level": "A1"
+    },
+    {
+      "word": "BEADS",
+      "translation": "бусины",
+      "level": "A1"
+    },
+    {
+      "word": "BOWLING",
+      "translation": "боулинг",
+      "level": "A1"
+    },
+    {
+      "word": "BRUSH",
+      "translation": "кисть",
+      "level": "A1"
+    },
+    {
+      "word": "BUILD",
+      "translation": "строить",
+      "level": "A1"
+    },
+    {
+      "word": "CARD",
+      "translation": "карточка",
+      "level": "A1"
+    },
+    {
+      "word": "CARTOON",
+      "translation": "мультфильм",
+      "level": "A1"
+    },
+    {
+      "word": "CLIMB",
+      "translation": "лазать",
+      "level": "A1"
+    },
+    {
+      "word": "COLLECT",
+      "translation": "собирать",
+      "level": "A1"
+    },
+    {
+      "word": "CRAFT",
+      "translation": "поделка",
+      "level": "A1"
+    },
+    {
+      "word": "CRAYON",
+      "translation": "восковой мелок",
+      "level": "A1"
+    },
+    {
+      "word": "CYCLING",
+      "translation": "велоспорт",
+      "level": "A1"
+    },
+    {
+      "word": "DIARY",
+      "translation": "дневник",
+      "level": "A1"
+    },
+    {
+      "word": "DIVE",
+      "translation": "нырять",
+      "level": "A1"
+    },
+    {
+      "word": "DOMINO",
+      "translation": "домино",
+      "level": "A1"
+    },
+    {
+      "word": "FAN",
+      "translation": "болельщик",
+      "level": "A1"
+    },
+    {
+      "word": "FIGURE",
+      "translation": "фигурка",
+      "level": "A1"
+    },
+    {
+      "word": "FISHING",
+      "translation": "рыбалка",
+      "level": "A1"
+    },
+    {
+      "word": "FOOTBALL",
+      "translation": "футбол",
+      "level": "A1"
+    },
+    {
+      "word": "GARDENING",
+      "translation": "садоводство",
+      "level": "A1"
+    },
+    {
+      "word": "GLUE",
+      "translation": "клей",
+      "level": "A1"
+    },
+    {
+      "word": "GYMNASTICS",
+      "translation": "гимнастика",
+      "level": "A1"
+    },
+    {
+      "word": "HIKING",
+      "translation": "поход",
+      "level": "A1"
+    },
+    {
+      "word": "HOCKEY",
+      "translation": "хоккей",
+      "level": "A1"
+    },
+    {
+      "word": "JUGGLE",
+      "translation": "жонглировать",
+      "level": "A1"
+    },
+    {
+      "word": "KARATE",
+      "translation": "карате",
+      "level": "A1"
+    },
+    {
+      "word": "KNIT",
+      "translation": "вязать",
+      "level": "A1"
+    },
+    {
+      "word": "LEGO",
+      "translation": "лего",
+      "level": "A1"
+    },
+    {
+      "word": "MAGIC",
+      "translation": "магия",
+      "level": "A1"
+    },
+    {
+      "word": "MAKE",
+      "translation": "делать",
+      "level": "A1"
+    },
+    {
+      "word": "MARBLE",
+      "translation": "шарик",
+      "level": "A1"
+    },
+    {
+      "word": "MASK",
+      "translation": "маска",
+      "level": "A1"
+    },
+    {
+      "word": "MODEL",
+      "translation": "модель",
+      "level": "A1"
+    },
+    {
+      "word": "ORIGAMI",
+      "translation": "оригами",
+      "level": "A1"
+    },
+    {
+      "word": "PARK",
+      "translation": "парк",
+      "level": "A1"
+    },
+    {
+      "word": "PET",
+      "translation": "питомец",
+      "level": "A1"
+    },
+    {
+      "word": "PODCAST",
+      "translation": "аудиопередача",
+      "level": "A1"
+    },
+    {
+      "word": "POTTERY",
+      "translation": "керамика",
+      "level": "A1"
+    },
+    {
+      "word": "PRACTISE",
+      "translation": "тренироваться",
+      "level": "A1"
+    },
+    {
+      "word": "RACE",
+      "translation": "гонка",
+      "level": "A1"
+    },
+    {
+      "word": "ROLLER",
+      "translation": "ролик",
+      "level": "A1"
+    },
+    {
+      "word": "RUGBY",
+      "translation": "регби",
+      "level": "A1"
+    },
+    {
+      "word": "SCOOTER",
+      "translation": "самокат",
+      "level": "A1"
+    },
+    {
+      "word": "SEW",
+      "translation": "шить",
+      "level": "A1"
+    },
+    {
+      "word": "SKETCH",
+      "translation": "набросок",
+      "level": "A1"
+    },
+    {
+      "word": "SKI",
+      "translation": "кататься на лыжах",
+      "level": "A1"
+    },
+    {
+      "word": "SNOWBOARD",
+      "translation": "сноуборд",
+      "level": "A1"
+    },
+    {
+      "word": "STAMP",
+      "translation": "марка",
+      "level": "A1"
+    },
+    {
+      "word": "STICKER",
+      "translation": "наклейка",
+      "level": "A1"
+    },
+    {
+      "word": "TENNIS",
+      "translation": "теннис",
+      "level": "A1"
+    },
+    {
+      "word": "THEATRE",
+      "translation": "театр",
+      "level": "A1"
+    },
+    {
+      "word": "TRICK",
+      "translation": "трюк",
+      "level": "A1"
+    },
+    {
+      "word": "VOLLEYBALL",
+      "translation": "волейбол",
+      "level": "A1"
+    },
+    {
+      "word": "WATCH",
+      "translation": "смотреть",
+      "level": "A1"
+    },
+    {
+      "word": "WIN",
+      "translation": "побеждать",
+      "level": "A1"
+    },
+    {
+      "word": "WORKOUT",
+      "translation": "тренировка",
+      "level": "A1"
+    },
+    {
+      "word": "YOGA",
+      "translation": "йога",
+      "level": "A1"
+    },
+    {
+      "word": "PUZZLEBOOK",
+      "translation": "книга головоломок",
+      "level": "A1"
+    },
+    {
+      "word": "HEADPHONES",
+      "translation": "наушники",
+      "level": "A1"
+    },
+    {
+      "word": "MICROPHONE",
+      "translation": "микрофон",
+      "level": "A1"
+    },
+    {
+      "word": "TROPHY",
+      "translation": "кубок",
+      "level": "A1"
+    },
+    {
+      "word": "COSTUME",
+      "translation": "костюм",
+      "level": "A1"
+    },
+    {
+      "word": "STORY",
+      "translation": "история",
+      "level": "A1"
+    },
+    {
+      "word": "ENJOY",
+      "translation": "наслаждаться",
+      "level": "A1"
+    }
   ]
 }

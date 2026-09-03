@@ -5,6 +5,365 @@
   "theme": "family",
   "icon": "👨‍👩‍👧‍👦",
   "words": [
-    "AUNT", "BABY", "BOY", "BROTHER", "CHILD", "COUSIN", "DAD", "DAUGHTER", "FAMILY", "FATHER", "FRIEND", "GIRL", "GRANDMA", "GRANDFATHER", "GRANDMOTHER", "GRANDPA", "KID", "MAN", "MOTHER", "MUM", "PARENT", "SISTER", "SON", "UNCLE", "WOMAN", "YOUNG", "OLDER", "SMILE", "HELP", "SHARE", "TALK", "VISIT", "LOVE", "HAPPY", "KIND"
+    "AUNT",
+    "BABY",
+    "BOY",
+    "BROTHER",
+    "CHILD",
+    "COUSIN",
+    "DAD",
+    "DAUGHTER",
+    "FAMILY",
+    "FATHER",
+    "FRIEND",
+    "GIRL",
+    "GRANDMA",
+    "GRANDFATHER",
+    "GRANDMOTHER",
+    "GRANDPA",
+    "KID",
+    "MAN",
+    "MOTHER",
+    "MUM",
+    "PARENT",
+    "SISTER",
+    "SON",
+    "UNCLE",
+    "WOMAN",
+    "YOUNG",
+    "OLDER",
+    "SMILE",
+    "HELP",
+    "SHARE",
+    "TALK",
+    "VISIT",
+    "LOVE",
+    "HAPPY",
+    "KIND",
+    {
+      "word": "ADULT",
+      "translation": "взрослый",
+      "level": "A1"
+    },
+    {
+      "word": "AGE",
+      "translation": "возраст",
+      "level": "A1"
+    },
+    {
+      "word": "AUNTIE",
+      "translation": "тётя",
+      "level": "A1"
+    },
+    {
+      "word": "BIRTHDAY",
+      "translation": "день рождения",
+      "level": "A1"
+    },
+    {
+      "word": "BOND",
+      "translation": "связь",
+      "level": "A1"
+    },
+    {
+      "word": "CARE",
+      "translation": "забота",
+      "level": "A1"
+    },
+    {
+      "word": "CELEBRATE",
+      "translation": "праздновать",
+      "level": "A1"
+    },
+    {
+      "word": "CHATTY",
+      "translation": "разговорчивый",
+      "level": "A1"
+    },
+    {
+      "word": "CLOSE",
+      "translation": "близкий",
+      "level": "A1"
+    },
+    {
+      "word": "COMPANY",
+      "translation": "компания",
+      "level": "A1"
+    },
+    {
+      "word": "COURAGE",
+      "translation": "смелость",
+      "level": "A1"
+    },
+    {
+      "word": "CUDDLE",
+      "translation": "обниматься",
+      "level": "A1"
+    },
+    {
+      "word": "FUNNY",
+      "translation": "смешной",
+      "level": "A1"
+    },
+    {
+      "word": "GENTLE",
+      "translation": "добрый",
+      "level": "A1"
+    },
+    {
+      "word": "GIVE",
+      "translation": "давать",
+      "level": "A1"
+    },
+    {
+      "word": "GRANDCHILD",
+      "translation": "внук",
+      "level": "A1"
+    },
+    {
+      "word": "GREETING",
+      "translation": "приветствие",
+      "level": "A1"
+    },
+    {
+      "word": "GROWNUP",
+      "translation": "взрослый",
+      "level": "A1"
+    },
+    {
+      "word": "HUG",
+      "translation": "обнимать",
+      "level": "A1"
+    },
+    {
+      "word": "INVITE",
+      "translation": "приглашать",
+      "level": "A1"
+    },
+    {
+      "word": "JOIN",
+      "translation": "присоединяться",
+      "level": "A1"
+    },
+    {
+      "word": "LAUGH",
+      "translation": "смеяться",
+      "level": "A1"
+    },
+    {
+      "word": "LISTEN",
+      "translation": "слушать",
+      "level": "A1"
+    },
+    {
+      "word": "MEMBER",
+      "translation": "член семьи",
+      "level": "A1"
+    },
+    {
+      "word": "NAME",
+      "translation": "имя",
+      "level": "A1"
+    },
+    {
+      "word": "NEIGHBOUR",
+      "translation": "сосед",
+      "level": "A1"
+    },
+    {
+      "word": "NIECE",
+      "translation": "племянница",
+      "level": "A1"
+    },
+    {
+      "word": "NEPHEW",
+      "translation": "племянник",
+      "level": "A1"
+    },
+    {
+      "word": "NICKNAME",
+      "translation": "прозвище",
+      "level": "A1"
+    },
+    {
+      "word": "PARTY",
+      "translation": "праздник",
+      "level": "A1"
+    },
+    {
+      "word": "PEOPLE",
+      "translation": "люди",
+      "level": "A1"
+    },
+    {
+      "word": "PERSON",
+      "translation": "человек",
+      "level": "A1"
+    },
+    {
+      "word": "PLAYDATE",
+      "translation": "встреча для игры",
+      "level": "A1"
+    },
+    {
+      "word": "POLITE",
+      "translation": "вежливый",
+      "level": "A1"
+    },
+    {
+      "word": "PROUD",
+      "translation": "гордый",
+      "level": "A1"
+    },
+    {
+      "word": "RELATIVE",
+      "translation": "родственник",
+      "level": "A1"
+    },
+    {
+      "word": "RESPECT",
+      "translation": "уважение",
+      "level": "A1"
+    },
+    {
+      "word": "SAFE",
+      "translation": "в безопасности",
+      "level": "A1"
+    },
+    {
+      "word": "SCHOOLMATE",
+      "translation": "одноклассник",
+      "level": "A1"
+    },
+    {
+      "word": "SECRET",
+      "translation": "секрет",
+      "level": "A1"
+    },
+    {
+      "word": "SHY",
+      "translation": "стеснительный",
+      "level": "A1"
+    },
+    {
+      "word": "SPEAK",
+      "translation": "говорить",
+      "level": "A1"
+    },
+    {
+      "word": "SUPPORT",
+      "translation": "поддержка",
+      "level": "A1"
+    },
+    {
+      "word": "TEAM",
+      "translation": "команда",
+      "level": "A1"
+    },
+    {
+      "word": "THANK",
+      "translation": "благодарить",
+      "level": "A1"
+    },
+    {
+      "word": "TOGETHER",
+      "translation": "вместе",
+      "level": "A1"
+    },
+    {
+      "word": "TRUST",
+      "translation": "доверять",
+      "level": "A1"
+    },
+    {
+      "word": "WELCOME",
+      "translation": "добро пожаловать",
+      "level": "A1"
+    },
+    {
+      "word": "WISH",
+      "translation": "желать",
+      "level": "A1"
+    },
+    {
+      "word": "WORRY",
+      "translation": "волноваться",
+      "level": "A1"
+    },
+    {
+      "word": "YOUNGER",
+      "translation": "младше",
+      "level": "A1"
+    },
+    {
+      "word": "TWIN",
+      "translation": "близнец",
+      "level": "A1"
+    },
+    {
+      "word": "GUEST",
+      "translation": "гость",
+      "level": "A1"
+    },
+    {
+      "word": "HOST",
+      "translation": "хозяин",
+      "level": "A1"
+    },
+    {
+      "word": "FAVOURITE",
+      "translation": "любимый",
+      "level": "A1"
+    },
+    {
+      "word": "CARING",
+      "translation": "заботливый",
+      "level": "A1"
+    },
+    {
+      "word": "CHEERFUL",
+      "translation": "весёлый",
+      "level": "A1"
+    },
+    {
+      "word": "HONEST",
+      "translation": "честный",
+      "level": "A1"
+    },
+    {
+      "word": "BRAVE",
+      "translation": "храбрый",
+      "level": "A1"
+    },
+    {
+      "word": "CALM",
+      "translation": "спокойный",
+      "level": "A1"
+    },
+    {
+      "word": "LOUD",
+      "translation": "громкий",
+      "level": "A1"
+    },
+    {
+      "word": "QUIET",
+      "translation": "тихий",
+      "level": "A1"
+    },
+    {
+      "word": "SILLY",
+      "translation": "глупый",
+      "level": "A1"
+    },
+    {
+      "word": "SURPRISE",
+      "translation": "сюрприз",
+      "level": "A1"
+    },
+    {
+      "word": "FAMILYTREE",
+      "translation": "семейное дерево",
+      "level": "A1"
+    }
   ]
 }
