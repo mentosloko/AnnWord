@@ -195,15 +195,34 @@ export const useClassicGameController = ({ route, settings, sessionOwnerId, getS
     }
 
     finishingRef.current = true;
-    setGameState(prev => ({ ...prev, guesses, history: [...prev.history, { word, translation }], currentGuess: '', gameStatus: 'playing', rowIndex: prev.rowIndex + 1, hint: null, error: 'Сохраняем результат…' }));
-    try {
-      await onStatsUpdate(terminalStatus === 'won', gameState.secretWord).catch(error => console.error('Failed to save Classic result', error));
-      if (onDailyQuestResult) await onDailyQuestResult(terminalStatus === 'won', gameState.secretWord, guesses.length).catch(error => console.error('Failed to reconcile Classic daily quest', error));
-    }
-    finally {
-      finishingRef.current = false;
-      setGameState(prev => ({ ...prev, gameStatus: terminalStatus, error: null }));
-    }
+    const finishedState: GameState = {
+      ...gameState,
+      guesses,
+      history: [...gameState.history, { word, translation }],
+      currentGuess: '',
+      gameStatus: terminalStatus,
+      rowIndex: gameState.rowIndex + 1,
+      hint: null,
+      error: null,
+    };
+    gameStateRef.current = finishedState;
+    setGameState(finishedState);
+    finishingRef.current = false;
+
+    void (async () => {
+      try {
+        await onStatsUpdate(terminalStatus === 'won', gameState.secretWord);
+      } catch (error) {
+        console.error('Failed to save Classic result', error);
+      }
+      if (onDailyQuestResult) {
+        try {
+          await onDailyQuestResult(terminalStatus === 'won', gameState.secretWord, guesses.length);
+        } catch (error) {
+          console.error('Failed to reconcile Classic daily quest', error);
+        }
+      }
+    })();
   }, [gameState, getValidationPool, getWordTranslation, onDailyQuestResult, onStatsUpdate, settings.wordLength, shake]);
 
   useEffect(() => { const onKey = (event: KeyboardEvent) => { if (route !== 'game' || event.ctrlKey || event.metaKey || event.altKey) return; if (event.key === 'Enter') void handleEnter(); else if (event.key === 'Backspace') handleDelete(); else { const char = event.key.toUpperCase(); if (/^[A-Z]$/.test(char)) handleChar(char); } }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, [handleChar, handleDelete, handleEnter, route]);
