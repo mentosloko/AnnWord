@@ -102,7 +102,7 @@ test.describe('unified resumable game sessions', () => {
   test('1 из 2 resumes exact progress and restart clears the previous round', async ({ page }) => {
     await installBackend(page);
     await page.goto('/kids');
-    await startMode(page, /^1 из 2/, '1 из 2');
+    await startMode(page, /^Выбери перевод: 1 из 2/, '1 из 2');
     await waitForSavedType(page, 'translation');
 
     const first = await readSession(page);

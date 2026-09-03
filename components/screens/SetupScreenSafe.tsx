@@ -48,7 +48,7 @@ const SPOTLIGHT_STORAGE_PREFIX = 'annword_spotlight_selection_v1:';
 const waitForDictionaryRuntime = async (promise: Promise<void>): Promise<void> => {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   const timeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error('Словарь загружается слишком долго. Проверьте соединение и повторите.')), DICTIONARY_START_TIMEOUT_MS);
+    timeoutId = setTimeout(() => reject(new Error('Не удалось загрузить словарь. Проверьте интернет и попробуйте ещё раз.')), DICTIONARY_START_TIMEOUT_MS);
   });
   try { await Promise.race([promise, timeout]); }
   finally { if (timeoutId !== null) clearTimeout(timeoutId); }
@@ -115,7 +115,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
       await onCommitDictionarySettings(nextSettings);
       return true;
     } catch (error) {
-      setStartError(error instanceof Error ? error.message : 'Не удалось сохранить выбор словаря.');
+      setStartError(error instanceof Error ? error.message : 'Не удалось сохранить выбор словаря. Попробуйте ещё раз.');
       return false;
     } finally {
       setIsSavingSource(false);
@@ -176,7 +176,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
       } else if (dictionaryRuntime.status !== 'ready') {
         void dictionaryRuntime.ensureReady().catch(() => undefined);
       }
-      if (!dictionarySnapshot.length) throw new Error('В выбранном словаре нет слов для этой игры.');
+      if (!dictionarySnapshot.length) throw new Error('В выбранном словаре нет слов для этой игры. Выберите другой словарь или режим.');
       await onStartGame(dictionarySnapshot);
     } catch (error) {
       setStartError(error instanceof Error ? error.message : 'Не удалось подготовить игру. Попробуйте снова.');
@@ -209,7 +209,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
     {questContext && <div className="mb-4"><QuestContextBanner quest={questContext} /></div>}
     <div className="rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-indigo-100 sm:p-6">
       <section aria-labelledby="dictionary-source-title"><h2 id="dictionary-source-title" className={experienceUi.eyebrow}>Слова для игры</h2><div className="mt-3 grid grid-cols-3 gap-2" role="group" aria-label="Источник слов">
-        <button type="button" disabled={isSavingSource} aria-pressed={source === 'builtin'} onClick={() => selectSource('builtin')} className={`min-w-0 rounded-2xl p-3 text-left ring-2 disabled:opacity-60 ${source === 'builtin' ? 'bg-indigo-50 ring-indigo-300' : 'ring-indigo-50'}`}><div className="text-xl" aria-hidden="true">{parentMode && assignedCount ? '🎓' : parentMode ? '🌈' : '📚'}</div><div className="mt-1 truncate text-sm font-bold">{parentMode && assignedCount ? 'От учителя' : parentMode ? 'Детский' : 'База'}</div><div className="truncate text-[11px] font-medium text-slate-400">{parentMode && assignedCount ? `${assignedCount} слов` : parentMode ? 'бесплатно' : 'по уровню'}</div></button>
+        <button type="button" disabled={isSavingSource} aria-pressed={source === 'builtin'} onClick={() => selectSource('builtin')} className={`min-w-0 rounded-2xl p-3 text-left ring-2 disabled:opacity-60 ${source === 'builtin' ? 'bg-indigo-50 ring-indigo-300' : 'ring-indigo-50'}`}><div className="text-xl" aria-hidden="true">{parentMode && assignedCount ? '🎓' : parentMode ? '🌈' : '📚'}</div><div className="mt-1 truncate text-sm font-bold">{parentMode && assignedCount ? 'От учителя' : parentMode ? 'Все уровни' : 'База'}</div><div className="truncate text-[11px] font-medium text-slate-400">{parentMode && assignedCount ? `${assignedCount} слов` : parentMode ? 'A1–C2' : 'по уровню'}</div></button>
         <button type="button" disabled={isSavingSource} aria-pressed={source === 'custom' && hasPremium} onClick={() => selectSource('custom')} className={`relative min-w-0 rounded-2xl p-3 text-left ring-2 disabled:opacity-60 ${source === 'custom' && hasPremium ? 'bg-purple-50 ring-purple-300' : 'ring-indigo-50'}`}><span className="absolute right-2 top-2 text-xs" aria-hidden="true">{hasPremium ? '✨' : '🔒'}</span><div className="text-xl" aria-hidden="true">🧩</div><div className="mt-1 truncate text-sm font-bold">Свои слова</div><div className="truncate text-[11px] font-medium text-slate-400">{hasPremium ? (customDictionaryWords.length ? 'готово' : 'пусто') : 'Premium'}</div></button>
         <button type="button" disabled={isSavingSource} aria-pressed={source === 'premium' && hasPremium} onClick={() => selectSource('premium')} className={`relative min-w-0 rounded-2xl p-3 text-left ring-2 disabled:opacity-60 ${source === 'premium' && hasPremium ? 'bg-amber-50 ring-amber-300' : 'ring-indigo-50'}`}><span className="absolute right-2 top-2 text-xs" aria-hidden="true">{hasPremium ? '✓' : '🔒'}</span><div className="text-xl" aria-hidden="true">✨</div><div className="mt-1 truncate text-sm font-bold">Темы</div><div className="truncate text-[11px] font-medium text-slate-400">Premium</div></button>
       </div></section>
@@ -231,7 +231,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
         </div>}
       </section>}
       {hasActiveClassicGame && selectedPlayMode === 'game' && onResumeClassicGame && <button type="button" onClick={onResumeClassicGame} className="mt-5 w-full rounded-2xl bg-emerald-50 py-3 font-bold text-emerald-700 ring-1 ring-emerald-100">Продолжить сохранённую игру</button>}
-      <button type="button" onClick={() => void (dictionaryRuntime.status === 'error' ? retryDictionaryLoad() : startGame())} disabled={!sourceReady || isStarting || isSavingSource || dictionaryLoadBlocksStart} className={`mt-3 w-full py-4 ${sourceReady && !dictionaryLoadBlocksStart ? experienceUi.primaryButton : 'rounded-2xl bg-slate-100 font-bold text-slate-400'}`}>{!sourceReady ? source === 'custom' && !hasPremium ? 'Нужен Premium' : 'Нет слов для игры' : loadingLabel}</button>
+      <button type="button" onClick={() => void (dictionaryRuntime.status === 'error' ? retryDictionaryLoad() : startGame())} disabled={!sourceReady || isStarting || isSavingSource || dictionaryLoadBlocksStart} className={`mt-3 w-full py-4 ${sourceReady && !dictionaryLoadBlocksStart ? experienceUi.primaryButton : 'rounded-2xl bg-slate-100 font-bold text-slate-400'}`}>{!sourceReady ? source === 'custom' && !hasPremium ? 'Нужен Premium' : 'В этом наборе пока нет подходящих слов' : loadingLabel}</button>
     </div>
   </ScreenContainer>;
 };

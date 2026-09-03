@@ -173,7 +173,7 @@ test('teacher PANDA/TIGER/ZEBRA assignment is playable in child 1-of-2 and Anagr
   await loginAs(page, CHILD.email);
   await expect(page.getByRole('heading', { name: /Поиграем со словами|Серия:/i })).toBeVisible();
 
-  await page.getByRole('button', { name: /^1 из 2/ }).click();
+  await page.getByRole('button', { name: /^Выбери перевод: 1 из 2/ }).click();
   await dismissRulesIfVisible(page);
   await expect(page.getByRole('heading', { name: '1 из 2', exact: true })).toBeVisible();
   await expect(page.getByText('Нет доступных слов')).toHaveCount(0);

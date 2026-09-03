@@ -64,8 +64,8 @@ export const DifficultyPicker: React.FC<DifficultyPickerProps> = ({
 
   if (layout === 'mobile') {
     return <div>
-      {loadState === 'loading' && <p className="mb-3 rounded-2xl bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-700">Проверяю, какие уровни готовы для игр…</p>}
-      {loadState === 'error' && <p role="alert" className="mb-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">Не удалось проверить переводы уровней. Попробуйте открыть выбор словаря ещё раз.</p>}
+      {loadState === 'loading' && <p className="mb-3 rounded-2xl bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-700">Готовим список слов…</p>}
+      {loadState === 'error' && <p role="alert" className="mb-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">Не получилось подготовить уровни. Попробуйте ещё раз или выберите другой словарь.</p>}
       <div className="grid grid-cols-2 gap-3">
         {DIFFICULTY_LEVELS.map(level => {
           const item = availabilityByLevel.get(level);
@@ -82,20 +82,20 @@ export const DifficultyPicker: React.FC<DifficultyPickerProps> = ({
           >
             <div className="flex items-center justify-between gap-2"><span className="text-xl font-black text-indigo-950">{labelFor(level)}</span>{disabled && ready && <span aria-hidden="true">🔒</span>}</div>
             <div className="mt-1 text-xs font-bold text-slate-500">{disabled && ready
-              ? 'Пока недостаточно переведённых слов'
+              ? 'Этот уровень пока недоступен'
               : level === 'ALL'
                 ? `${item?.playableCount || 0} игровых слов · все уровни`
                 : `${item?.playableCount || 0} игровых слов · уровень ${level}`}</div>
           </button>;
         })}
       </div>
-      {ready && unavailableLevels.length > 0 && <p className="mt-3 text-xs font-bold leading-5 text-slate-500">Недоступные уровни откроются, когда в них будет достаточно слов с русским переводом для стабильных раундов.</p>}
+      {ready && unavailableLevels.length > 0 && <p className="mt-3 text-xs font-bold leading-5 text-slate-500">Некоторые уровни временно недоступны. Выберите другой уровень или попробуйте позже.</p>}
     </div>;
   }
 
   return <div>
-    {loadState === 'loading' && <p className="mt-3 rounded-2xl bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-700">Проверяю, какие уровни готовы для игр…</p>}
-    {loadState === 'error' && <p role="alert" className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">Не удалось проверить переводы уровней. Выбор уровня временно недоступен.</p>}
+    {loadState === 'loading' && <p className="mt-3 rounded-2xl bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-700">Готовим список слов…</p>}
+    {loadState === 'error' && <p role="alert" className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">Не получилось подготовить уровни. Попробуйте ещё раз или выберите другой словарь.</p>}
     <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7" role="group" aria-label="Уровень сложности">
       {DIFFICULTY_LEVELS.map(level => {
         const item = availabilityByLevel.get(level);
@@ -113,6 +113,6 @@ export const DifficultyPicker: React.FC<DifficultyPickerProps> = ({
         >{labelFor(level)}{disabled && ready ? ' 🔒' : ''}</button>;
       })}
     </div>
-    {ready && unavailableLevels.length > 0 && <p className="mt-3 text-xs font-bold leading-5 text-slate-500">🔒 Недоступный уровень пока содержит меньше трёх подходящих игровых слов с русским переводом. Он не запускается, чтобы ребёнок не попадал на пустой экран.</p>}
+    {ready && unavailableLevels.length > 0 && <p className="mt-3 text-xs font-bold leading-5 text-slate-500">🔒 Некоторые уровни временно недоступны. Выберите другой уровень или попробуйте позже.</p>}
   </div>;
 };

@@ -29,9 +29,9 @@ interface DictionarySettingsScreenProps {
 }
 
 const SOURCE_OPTIONS: Array<{ source: DictionarySource; icon: string; title: string; note: string }> = [
-  { source: 'builtin', icon: '📚', title: 'Общий', note: 'General English' },
-  { source: 'premium', icon: '✨', title: 'Тематический', note: 'слова под цель' },
-  { source: 'custom', icon: '🧩', title: 'Свой', note: 'ваш список' },
+  { source: 'builtin', icon: '📚', title: 'Все уровни', note: 'A1–C2' },
+  { source: 'premium', icon: '✨', title: 'Темы', note: 'слова по теме' },
+  { source: 'custom', icon: '🧩', title: 'Мой словарь', note: 'слова из вашего списка' },
 ];
 
 const SPOTLIGHT_STORAGE_PREFIX = 'annword_spotlight_selection_v1:';
@@ -229,7 +229,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
       }
       leaveDictionarySettings();
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Не удалось сохранить выбор словаря.');
+      setSaveError(error instanceof Error ? error.message : 'Не удалось сохранить выбор словаря. Попробуйте ещё раз.');
     } finally {
       setSaving(false);
     }
@@ -241,7 +241,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
       ? draftSettings.activePremiumDictionaryId === SPOTLIGHT_PREMIUM_DICTIONARY_ID
         ? `Школьные (Spotlight) · ${getSpotlightSelectionLabel(spotlightGrade, selectedSpotlightSectionId)}`
         : selectedTopic?.title || 'Тематический словарь'
-      : kidsMode ? 'Детский словарь' : `General English · ${draftSettings.difficulty === 'ALL' ? 'все уровни' : draftSettings.difficulty}`;
+      : kidsMode ? 'Все уровни' : `General English · ${draftSettings.difficulty === 'ALL' ? 'все уровни' : draftSettings.difficulty}`;
 
   return <ScreenContainer className="max-w-4xl pb-20 pt-3 sm:pt-4">
     <header className="mb-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
@@ -255,7 +255,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
       {saveError && <div role="alert" className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{saveError}</div>}
 
       <div className="mt-4 md:hidden">
-        <p className="text-sm font-bold leading-6 text-slate-500">Сначала выберите источник слов, затем уровень, тему или свой список.</p>
+        <p className="text-sm font-bold leading-6 text-slate-500">Сначала выберите словарь, затем уровень, тему или свой список.</p>
         <button type="button" onClick={() => { setMobileStep('source'); setMobileWizardOpen(true); }} className="mt-4 w-full rounded-2xl bg-indigo-600 px-5 py-4 text-base font-black text-white">Выбрать другой словарь</button>
       </div>
 
@@ -272,8 +272,8 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
         </div>
 
         {source === 'builtin' && <section className="mt-4 rounded-3xl border-2 border-indigo-100 bg-indigo-50/45 p-4">
-          <h2 className="text-lg font-black text-indigo-950">{kidsMode ? 'Детский словарь' : 'General English'}</h2>
-          <p className="mt-1 text-sm font-bold text-slate-500">{kidsMode ? 'Выберите уровень A1–C2: все уровни доступны в детском CEFR-словаре.' : 'Выберите сложность только для общего словаря. На тематические наборы этот уровень не влияет.'}</p>
+          <h2 className="text-lg font-black text-indigo-950">{kidsMode ? 'Все уровни' : 'General English'}</h2>
+          <p className="mt-1 text-sm font-bold text-slate-500">{kidsMode ? 'Выберите уровень сложности: доступны все уровни от A1 до C2.' : 'Выберите сложность только для общего словаря. На тематические наборы этот уровень не влияет.'}</p>
           <DifficultyPicker
             value={draftSettings.difficulty}
             kidsMode={kidsMode}
