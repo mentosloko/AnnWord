@@ -26,14 +26,15 @@ describe('user-reported UX regressions', () => {
     expect(weekly).toContain("requiredEnv('WEEKLY_REPORT_FROM_EMAIL')");
   });
 
-  it('shows grade dictionaries so existing A2/B1 words can be selected', () => {
+  it('shows eight honest editable Kids theme dictionaries plus Spotlight', () => {
     const catalog = getKidsDictionaryCatalog();
     expect(catalog).toHaveLength(8);
     expect(catalog.some(item => item.theme === 'grade')).toBe(false);
     expect(catalog.map(item => item.shortTitle)).toEqual(expect.arrayContaining([
       'Животные', 'Еда', 'Дом', 'Школа', 'Семья', 'Природа', 'Транспорт', 'Хобби',
     ]));
-    expect(catalog.every(item => item.wordCount >= 150)).toBe(true);
+    expect(catalog.every(item => item.wordCount > 0)).toBe(true);
+    expect(catalog.some(item => item.wordCount < 150)).toBe(true);
     expect(getDefaultKidsDictionaryId()).toBe('kids_animals');
     expect(getPremiumDictionaryMeta('premium_spotlight_school').title).toBe('Школьные (Spotlight)');
   });

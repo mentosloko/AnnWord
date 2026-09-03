@@ -35,11 +35,11 @@ type Props = {
   onOpenPremium?: () => void;
 };
 
-type Game = { title: string; image: string; note: string; action: () => void; badge?: string };
+type Game = { title: string; image: string; note: string; action: () => void };
 const dayWord = (days: number) => { const mod100 = days % 100, mod10 = days % 10; return mod100 >= 11 && mod100 <= 14 ? 'дней' : mod10 === 1 ? 'день' : mod10 >= 2 && mod10 <= 4 ? 'дня' : 'дней'; };
-const GameTile: React.FC<Game> = ({ title, image, note, action, badge }) => <button type="button" onClick={action} className="relative flex min-h-[8.5rem] flex-col rounded-2xl bg-indigo-50/60 p-3 text-left transition hover:-translate-y-0.5 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-100 sm:min-h-[10rem] sm:p-4">{badge && <span className="absolute right-2 top-2 rounded-full bg-white px-2 py-1 text-[10px] font-bold text-indigo-600 shadow-sm">{badge}</span>}<img src={image} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-12 w-12 object-contain sm:h-16 sm:w-16" draggable={false} /><div className="mt-2 text-lg font-bold text-indigo-950">{title}</div><div className="mt-1 text-xs font-medium leading-relaxed text-slate-500">{note}</div></button>;
+const GameTile: React.FC<Game> = ({ title, image, note, action }) => <button type="button" onClick={action} className="relative flex min-h-[8.5rem] flex-col rounded-2xl bg-indigo-50/60 p-3 text-left transition hover:-translate-y-0.5 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-100 sm:min-h-[10rem] sm:p-4"><img src={image} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-12 w-12 object-contain sm:h-16 sm:w-16" draggable={false} /><div className="mt-2 text-lg font-bold text-indigo-950">{title}</div><div className="mt-1 text-xs font-medium leading-relaxed text-slate-500">{note}</div></button>;
 
-export const KidsHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, onStartDailyQuest, hasActiveClassicGame, hasActiveAnagramGame, savedGameType, onContinueSavedGame, activeDictionaryName, onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare, onOpenShop, onOpenProfile, onOpenPetRoom, onOpenAdultRoom, onOpenDictionary, onOpenPremium }) => {
+export const KidsHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, onStartDailyQuest, hasActiveClassicGame, hasActiveAnagramGame, onContinueSavedGame, activeDictionaryName, onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare, onOpenShop, onOpenProfile, onOpenPetRoom, onOpenAdultRoom, onOpenDictionary, onOpenPremium }) => {
   const petUrl = getPetCharacterAssetUrl(userProfile.pet);
   const [petReady, setPetReady] = useState(false);
   useEffect(() => setPetReady(false), [petUrl]);
@@ -54,15 +54,14 @@ export const KidsHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, onSta
   const dictionaryLabel = activeDictionaryName || 'Все уровни';
   const dictionaryPillClass = 'mt-4 inline-flex max-w-full items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-left text-xs font-bold text-white/90 ring-1 ring-white/15 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/25';
   const dictionaryPillContent = <><span aria-hidden="true">{(userProfile.assignedWords || []).length ? '🎓' : '📚'}</span><span className="truncate">Слова для игр: {dictionaryLabel}</span>{onOpenDictionary && <span aria-hidden="true" className="shrink-0 text-white/70">›</span>}</>;
-  const savedBadge = (mode: SavedGameType) => savedGameType === mode ? 'Продолжить' : undefined;
   const games: Game[] = [
-    { title: 'Классика', image: '/assets/games/game_classic.webp', note: 'Угадайте слово за шесть попыток.', action: onStartClassic, badge: savedBadge('game') || (hasActiveClassicGame ? 'Продолжить' : undefined) },
-    { title: 'Анаграммы', image: '/assets/games/game_anagrams.webp', note: 'Соберите слово из букв.', action: onStartAnagrams, badge: savedBadge('anagrams') || (hasActiveAnagramGame ? 'Продолжить' : undefined) },
-    { title: 'Выбери перевод: 1 из 2', image: '/assets/games/game_one_of_two.webp', note: 'Выберите правильный перевод.', action: onStartTranslation, badge: savedBadge('translation') },
+    { title: 'Классика', image: '/assets/games/game_classic.webp', note: 'Угадайте слово за шесть попыток.', action: onStartClassic },
+    { title: 'Анаграммы', image: '/assets/games/game_anagrams.webp', note: 'Соберите слово из букв.', action: onStartAnagrams },
+    { title: 'Выбери перевод: 1 из 2', image: '/assets/games/game_one_of_two.webp', note: 'Выберите правильный перевод.', action: onStartTranslation },
     { title: 'Спринт', image: '/assets/games/game_sprint.webp', note: 'Отвечайте быстро и собирайте звёзды.', action: onStartSprint },
     { title: 'Виселица', image: '/assets/games/game_hangman.webp', note: 'Открывайте слово по буквам.', action: onStartHangman },
-    { title: 'Память', image: '/assets/games/game_memory.webp', note: 'Найдите пары слово–перевод.', action: onStartMemory, badge: savedBadge('memory') },
-    { title: 'Змейка', image: '/assets/games/line_game-card.webp', note: 'Соединяйте соседние буквы.', action: onStartLetterSquare, badge: savedBadge('letter_square') },
+    { title: 'Память', image: '/assets/games/game_memory.webp', note: 'Найдите пары слово–перевод.', action: onStartMemory },
+    { title: 'Змейка', image: '/assets/games/line_game-card.webp', note: 'Соединяйте соседние буквы.', action: onStartLetterSquare },
   ];
 
   return <ScreenContainer className="max-w-6xl pb-24 pt-4 sm:pb-20 sm:pt-6">

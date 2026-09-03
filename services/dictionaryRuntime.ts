@@ -43,9 +43,9 @@ const premiumLoaders: Record<StandardPremiumDictionaryId, () => Promise<PremiumD
 const isStandardPremiumDictionaryId = (id?: string): id is StandardPremiumDictionaryId =>
   Object.prototype.hasOwnProperty.call(premiumLoaders, id || '');
 
-export const resolvePremiumDictionaryId = (id?: string): PremiumDictionaryId => {
+export const resolvePremiumDictionaryId = (id?: string): PremiumDictionaryId | null => {
   if (id === SPOTLIGHT_PREMIUM_DICTIONARY_ID) return SPOTLIGHT_PREMIUM_DICTIONARY_ID;
-  return isStandardPremiumDictionaryId(id) ? id : 'premium_business_english';
+  return isStandardPremiumDictionaryId(id) ? id : null;
 };
 
 export const ensureGeneralDictionaryLoaded = async (): Promise<GeneralDictionaryData> => {
@@ -69,6 +69,7 @@ export const ensureGeneralDictionaryLoaded = async (): Promise<GeneralDictionary
 
 export const ensurePremiumDictionaryLoaded = async (id?: string): Promise<PremiumDictionaryFile> => {
   const resolvedId = resolvePremiumDictionaryId(id);
+  if (!resolvedId) throw new Error('Неизвестный тематический словарь. Выберите словарь заново.');
   if (resolvedId === SPOTLIGHT_PREMIUM_DICTIONARY_ID) {
     throw new Error('Spotlight загружается через отдельный школьный словарь.');
   }
@@ -102,7 +103,7 @@ export const readGeneralDictionary = (): GeneralDictionaryData | null => general
 
 export const readPremiumDictionary = (id?: string): PremiumDictionaryFile | null => {
   const resolvedId = resolvePremiumDictionaryId(id);
-  if (resolvedId === SPOTLIGHT_PREMIUM_DICTIONARY_ID) return null;
+  if (!resolvedId || resolvedId === SPOTLIGHT_PREMIUM_DICTIONARY_ID) return null;
   return premiumDictionaries.get(resolvedId as StandardPremiumDictionaryId) || null;
 };
 

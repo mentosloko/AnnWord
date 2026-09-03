@@ -1,0 +1,10 @@
+{
+  "id": "kids_transport_travel",
+  "title": "Транспорт и путешествия",
+  "shortTitle": "Транспорт",
+  "theme": "transport",
+  "icon": "🚆",
+  "words": [
+    "AIRPLANE", "AIRPORT", "BAG", "BICYCLE", "BOAT", "BRIDGE", "BUS", "BUSSTOP", "CAR", "DRIVER", "FLIGHT", "HELICOPTER", "HOTEL", "JOURNEY", "MAP", "METRO", "MOTORBIKE", "MOUNTAIN", "PASSENGER", "PLANE", "ROAD", "ROCKET", "SHIP", "STATION", "STREET", "SUBWAY", "SUITCASE", "TAXI", "TICKET", "TRAIN", "TRAVEL", "TRIP", "TRUCK", "WALK", "WHEEL"
+  ]
+}

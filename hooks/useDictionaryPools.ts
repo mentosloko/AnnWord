@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getCustomWordsAvailableInBuiltinDictionary, hasRussianTranslation, isAllowedSecretWord, isAllowedValidationWord, toCustomEnrichedWords } from '../services/dictionaryEngine';
 import { ensureDictionaryRuntime, readGeneralDictionary, readPremiumDictionary, resolvePremiumDictionaryId, type PremiumDictionaryWord } from '../services/dictionaryRuntime';
 import { setActiveGameDictionaryEntries } from '../services/gameSessionEngine';
@@ -82,6 +82,7 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
     : 'none';
   const loadKey = runtimeEnabled ? `general:${premiumDictionaryId || 'none'}:${spotlightSelectionKey}` : 'disabled';
   const [loadState, setLoadState] = useState<LoadState>({ key: 'disabled', status: 'idle', error: null });
+  const readyKeyRef = useRef<string | null>(null);
 
   const ensureReady = useCallback(async (): Promise<void> => {
     if (!runtimeEnabled) return;
@@ -90,8 +91,10 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
       : { key: loadKey, status: 'loading', error: null });
     try {
       await ensureDictionaryRuntime(premiumDictionaryId);
+      readyKeyRef.current = loadKey;
       setLoadState({ key: loadKey, status: 'ready', error: null });
     } catch (error) {
+      if (readyKeyRef.current === loadKey) readyKeyRef.current = null;
       const message = error instanceof Error ? error.message : 'Не удалось загрузить словарь.';
       setLoadState({ key: loadKey, status: 'error', error: message });
       throw error;
@@ -100,6 +103,7 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
 
   useEffect(() => {
     if (!runtimeEnabled) {
+      readyKeyRef.current = null;
       setLoadState({ key: 'disabled', status: 'idle', error: null });
       return;
     }
@@ -126,24 +130,30 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
     const isPracticeCustomDictionary = !currentKidsMode && settings.dictionarySource === 'custom';
 
     if (currentKidsMode) {
-      if (settings.dictionarySource === 'premium' && currentHasPremium) {
-        pool = isSpotlightId(settings.activePremiumDictionaryId)
-          ? readSelectedSpotlightEntries()
-          : getKidsPremiumDictionaryEntries(settings.activePremiumDictionaryId, 'ALL');
-      } else if (settings.dictionarySource === 'custom' && currentHasPremium) {
-        pool = toCustomEnrichedWords([...(userProfile.customDictionaryEn || []), ...assignedWords], assignedTranslations);
+      if (settings.dictionarySource === 'premium') {
+        pool = !currentHasPremium
+          ? []
+          : isSpotlightId(settings.activePremiumDictionaryId)
+            ? readSelectedSpotlightEntries()
+            : getKidsPremiumDictionaryEntries(settings.activePremiumDictionaryId, 'ALL');
+      } else if (settings.dictionarySource === 'custom') {
+        pool = currentHasPremium
+          ? toCustomEnrichedWords([...(userProfile.customDictionaryEn || []), ...assignedWords], assignedTranslations)
+          : [];
       } else if (assignedWords.length > 0 && currentHasPremium) {
         pool = toCustomEnrichedWords(assignedWords, assignedTranslations);
       } else {
         pool = getKidsCefrEntries(readGeneralDictionary()?.COMMON_WORDS_EN || []);
         if (settings.difficulty !== 'ALL') pool = pool.filter(word => word.level === settings.difficulty);
       }
-    } else if (settings.dictionarySource === 'premium' && currentHasPremium) {
-      pool = isSpotlightId(settings.activePremiumDictionaryId)
-        ? readSelectedSpotlightEntries()
-        : getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL');
+    } else if (settings.dictionarySource === 'premium') {
+      pool = !currentHasPremium
+        ? []
+        : isSpotlightId(settings.activePremiumDictionaryId)
+          ? readSelectedSpotlightEntries()
+          : getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL');
     } else if (settings.dictionarySource === 'custom') {
-      pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
+      pool = currentHasPremium ? toCustomEnrichedWords(userProfile.customDictionaryEn) : [];
     } else {
       pool = (readGeneralDictionary()?.COMMON_WORDS_EN || []).filter(word => hasRussianTranslation(word.translation));
       if (settings.difficulty !== 'ALL') {
@@ -161,11 +171,14 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
     const validationWordLength = wordLengthOverride ?? settings.wordLength;
     const currentKidsMode = isKidsMode(userProfile);
     const currentHasPremium = hasPremiumDictionaryAccess(userProfile);
-    const premiumWords = settings.dictionarySource === 'premium' && currentHasPremium && isSpotlightId(settings.activePremiumDictionaryId)
-      ? readSelectedSpotlightEntries().map(entry => entry.word)
-      : currentKidsMode
-        ? (currentHasPremium ? getKidsPremiumDictionaryWords(settings.activePremiumDictionaryId, 'ALL') : [])
-        : (settings.dictionarySource === 'premium' && currentHasPremium ? getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL').map(entry => entry.word) : []);
+    let premiumWords: string[] = [];
+    if (settings.dictionarySource === 'premium' && currentHasPremium) {
+      premiumWords = isSpotlightId(settings.activePremiumDictionaryId)
+        ? readSelectedSpotlightEntries().map(entry => entry.word)
+        : currentKidsMode
+          ? getKidsPremiumDictionaryWords(settings.activePremiumDictionaryId, 'ALL')
+          : getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL').map(entry => entry.word);
+    }
     const kidsWords = currentKidsMode ? getAllKidsDictionaryWords() : [];
     const customWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.customDictionaryEn || []);
     const assignedWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.assignedWords || [], userProfile.assignedWordTranslations || {});
@@ -184,13 +197,14 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
   }, [readSelectedSpotlightEntries, settings.activePremiumDictionaryId, settings.dictionarySource, settings.wordLength, userProfile]);
 
   const getModeWords = useCallback((options: ModeWordPoolOptions = {}): string[] => {
+    if (runtimeEnabled && readyKeyRef.current !== loadKey) return [];
     const secretPool = getSecretWordPool();
     const filteredPool = options.respectWordLength
       ? secretPool.filter(entry => entry.word.length === settings.wordLength)
       : secretPool;
 
     return filteredPool.map(entry => entry.word);
-  }, [getSecretWordPool, settings.wordLength]);
+  }, [getSecretWordPool, loadKey, runtimeEnabled, settings.wordLength]);
 
   const getWordTranslation = useCallback((word: string): string | null => {
     const normalized = normalizeWord(word);

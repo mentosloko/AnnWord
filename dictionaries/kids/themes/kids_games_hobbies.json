@@ -1,0 +1,10 @@
+{
+  "id": "kids_games_hobbies",
+  "title": "Игры и хобби",
+  "shortTitle": "Хобби",
+  "theme": "hobbies",
+  "icon": "🎨",
+  "words": [
+    "BALL", "BOARDGAME", "BOOK", "CAMERA", "CHESS", "CLAY", "COLOR", "COMIC", "DANCE", "DRAW", "DRUM", "FILM", "GAME", "GUITAR", "KITE", "MUSIC", "PAINT", "PHOTO", "PIANO", "PLAY", "PUZZLE", "READ", "ROBOT", "RUN", "SING", "SKATE", "SPORT", "SWIM", "TOY", "VIDEO", "WRITE"
+  ]
+}

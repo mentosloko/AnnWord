@@ -1,0 +1,10 @@
+{
+  "id": "kids_nature_weather",
+  "title": "Природа и погода",
+  "shortTitle": "Природа",
+  "theme": "nature",
+  "icon": "🌦️",
+  "words": [
+    "AIR", "AUTUMN", "BEACH", "CLOUD", "COLD", "EARTH", "FIRE", "FLOWER", "FOREST", "FROST", "GARDEN", "GRASS", "HILL", "HOT", "ICE", "ISLAND", "LAKE", "LEAF", "LIGHTNING", "MOON", "MOUNTAIN", "NATURE", "OCEAN", "PLANT", "RAIN", "RAINBOW", "RIVER", "ROCK", "SAND", "SEA", "SKY", "SNOW", "SPRING", "STAR", "STORM", "SUN", "SUMMER", "TREE", "WARM", "WATER", "WEATHER", "WIND", "WINTER"
+  ]
+}

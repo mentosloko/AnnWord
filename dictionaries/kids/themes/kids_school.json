@@ -1,0 +1,10 @@
+{
+  "id": "kids_school",
+  "title": "Школа и день",
+  "shortTitle": "Школа",
+  "theme": "school",
+  "icon": "🎒",
+  "words": [
+    "ANSWER", "BACKPACK", "BOARD", "BOOK", "BREAK", "CLASS", "CLASSROOM", "COLOR", "COUNT", "DESK", "DRAW", "ENGLISH", "ERASER", "EXERCISE", "HOMEWORK", "LEARN", "LESSON", "LETTER", "LINE", "MAP", "MARKER", "MUSIC", "NOTE", "NUMBER", "PAGE", "PAINT", "PAPER", "PENCIL", "PEN", "QUESTION", "READ", "RULER", "SCHOOL", "SPELL", "STUDENT", "TEACH", "TEACHER", "TEST", "TEXT", "TITLE", "WORD", "WRITE"
+  ]
+}

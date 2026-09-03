@@ -161,14 +161,14 @@ export const getSpotlightEntries = (grade?: number, sectionId?: string): Enriche
     return mergeEntries(gradeData.sections.flatMap(section => section.words));
   }
   const section = gradeData.sections.find(item => item.id === normalizedSectionId && !item.hidden);
-  return section ? mergeEntries(section.words) : mergeEntries(gradeData.sections.flatMap(item => item.words));
+  return section ? mergeEntries(section.words) : [];
 };
 
 export const getSpotlightSelectionLabel = (grade?: number, sectionId?: string): string => {
   const normalizedGrade = normalizeGrade(grade);
   if (!sectionId || sectionId === SPOTLIGHT_ALL_SECTIONS_ID) return `${normalizedGrade} класс · Весь класс`;
   const section = getSpotlightSections(normalizedGrade).find(item => item.id === sectionId);
-  return `${normalizedGrade} класс · ${section?.label || 'Весь класс'}`;
+  return `${normalizedGrade} класс · ${section?.label || 'Раздел недоступен'}`;
 };
 
 export const resetSpotlightDictionaryForTests = (): void => {

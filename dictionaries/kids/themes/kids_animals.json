@@ -1,0 +1,10 @@
+{
+  "id": "kids_animals",
+  "title": "Животные",
+  "shortTitle": "Животные",
+  "theme": "animals",
+  "icon": "🐾",
+  "words": [
+    "ANT", "BAT", "BEAR", "BEE", "BIRD", "BUTTERFLY", "CAMEL", "CAT", "CHICK", "CHICKEN", "COW", "CROCODILE", "DEER", "DOG", "DOLPHIN", "DONKEY", "DUCK", "EAGLE", "ELEPHANT", "FISH", "FLY", "FOX", "FROG", "GIRAFFE", "GOAT", "HAMSTER", "HEN", "HIPPO", "HORSE", "KANGAROO", "KOALA", "LAMB", "LION", "LIZARD", "MONKEY", "MOUSE", "OWL", "PANDA", "PARROT", "PEACOCK", "PENGUIN", "PIG", "PUPPY", "RABBIT", "SHEEP", "SNAKE", "SPIDER", "SQUIRREL", "TIGER", "TURTLE", "WHALE", "WOLF", "ZEBRA"
+  ]
+}

@@ -36,10 +36,14 @@ describe('CEFR compatibility', () => {
     }
   });
 
-  it('keeps the free and each themed Kids dictionary at least 150 words', () => {
+  it('keeps the free Kids pool broad but never pads themed dictionaries from CEFR', () => {
     expect(getFreeKidsDictionaryEntries()).toHaveLength(150);
     for (const dictionary of getKidsDictionaryCatalog()) {
-      expect(getKidsPremiumDictionaryEntries(dictionary.id)).toHaveLength(150);
+      const entries = getKidsPremiumDictionaryEntries(dictionary.id);
+      const words = entries.map(entry => entry.word);
+      expect(entries.length).toBeGreaterThan(0);
+      expect(entries.length).toBeLessThanOrEqual(dictionary.wordCount);
+      expect(words).not.toEqual(expect.arrayContaining(['ABLE', 'ACTS', 'ADDS', 'ALSO']));
     }
   });
 
