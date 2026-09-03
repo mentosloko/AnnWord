@@ -153,6 +153,14 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
     onSettingsChange(previous => applyActiveWordSourceToSettings({ ...previous, wordLength: draftSettings.wordLength, username: profile.username }, profile.activeWordSource));
   };
 
+  const routeLegacyResumeThroughCurrentDictionary = (mode: PlayableModeRoute): boolean => {
+    setDictionarySnapshot(null);
+    setResumeSavedType(null);
+    setQuickStartRequested(hasKnownDictionary);
+    onSelectedPlayModeChange(mode);
+    onRouteChange('setup');
+    return true;
+  };
   const resumeSavedGame = (): boolean => {
     const saved = readPersistedGameSession(sessionOwnerId);
     if (saved) {
@@ -163,21 +171,17 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
       onRouteChange('setup');
       return true;
     }
-    if (hasActiveClassicGame && classicGame.resumeGame?.()) return true;
+    if (hasActiveClassicGame) return routeLegacyResumeThroughCurrentDictionary('game');
     if (hasLegacyAnagramGame) {
       clearSavedAnagramSession(userProfile.username);
-      setDictionarySnapshot(null);
-      setResumeSavedType(null);
-      setQuickStartRequested(hasKnownDictionary);
-      onSelectedPlayModeChange('anagrams');
-      onRouteChange('setup');
-      return true;
+      return routeLegacyResumeThroughCurrentDictionary('anagrams');
     }
     return false;
   };
   const requestQuickLaunch = (mode: PlayableModeRoute) => {
     if (isTeacher) return;
-    setResumeSavedType(null);
+    const saved = readPersistedGameSession(sessionOwnerId);
+    setResumeSavedType(saved?.gameType === mode ? saved.gameType : null);
     onSelectedPlayModeChange(mode);
     setDictionarySnapshot(null);
     setQuickStartRequested(hasKnownDictionary);
