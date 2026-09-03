@@ -29,9 +29,10 @@ describe('Classic result fast path', () => {
     expect(repository).toContain('coins = greatest(0, coins + $4::integer)');
   });
 
-  it('combines Classic profile persistence and daily quest reconciliation in one HTTP endpoint', () => {
+  it('combines Classic profile persistence and daily quest reconciliation in one rate-limited HTTP endpoint', () => {
     const routes = source('server/routes/dailyQuestRoutes.ts');
-    expect(routes).toContain('dailyQuestRouter.post("/classic-result"');
+    expect(routes).toContain('rateLimit({ scope: "game-mutation", max: 240, windowMs: 60_000 })');
+    expect(routes).toContain('dailyQuestRouter.post("/classic-result", classicResultLimit');
     expect(routes).toContain('applyClassicResultIdempotently');
     expect(routes).toContain('applyDailyQuestResult');
   });
