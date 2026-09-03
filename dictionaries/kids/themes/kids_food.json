@@ -1,0 +1,10 @@
+{
+  "id": "kids_food",
+  "title": "Еда и напитки",
+  "shortTitle": "Еда",
+  "theme": "food",
+  "icon": "🍎",
+  "words": [
+    "APPLE", "BANANA", "BERRY", "BREAD", "BURGER", "BUTTER", "CAKE", "CANDY", "CARROT", "CHEESE", "CHICKEN", "CHOCOLATE", "COOKIE", "CORN", "CREAM", "CUCUMBER", "EGG", "FISH", "FRUIT", "GRAPE", "HONEY", "ICE", "ICECREAM", "JUICE", "LEMON", "LUNCH", "MANGO", "MEAT", "MILK", "NOODLE", "ORANGE", "PANCAKE", "PEAR", "PIZZA", "POTATO", "RICE", "SALAD", "SANDWICH", "SAUSAGE", "SOUP", "SUGAR", "TEA", "TOMATO", "WATER", "YOGURT"
+  ]
+}
