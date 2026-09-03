@@ -9,7 +9,7 @@ import {
   MIN_PLAYABLE_CEFR_WORDS,
 } from '../services/difficultyAvailability';
 import { ensureGeneralDictionaryLoaded } from '../services/dictionaryRuntime';
-import { getFreeKidsDictionaryEntries } from '../services/kidsDictionaryCatalog';
+import { getKidsCefrEntries } from '../services/kidsCefrDictionary';
 import type { EnrichedWord } from '../types';
 
 let generalEntries: EnrichedWord[] = [];
@@ -19,15 +19,19 @@ beforeAll(async () => {
 });
 
 describe('CEFR compatibility', () => {
-  it('keeps only actually playable kids CEFR levels available', () => {
-    const availability = buildDifficultyAvailability(getFreeKidsDictionaryEntries('ALL'));
-    const byLevel = new Map(availability.map(item => [item.level, item]));
+  it('exposes every CEFR level from the filtered Kids pool', () => {
+    const entries = getKidsCefrEntries(generalEntries);
+    const availability = buildDifficultyAvailability(entries);
 
-    expect(byLevel.get('ALL')?.available).toBe(true);
-    expect(byLevel.get('A1')?.available).toBe(true);
-    for (const level of ['A2', 'B1', 'B2', 'C1', 'C2'] as const) {
-      expect(byLevel.get(level)?.available).toBe(false);
-      expect(byLevel.get(level)?.playableCount).toBe(0);
+    expect(entries).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ word: 'BEER' }),
+      expect.objectContaining({ word: 'MURDER' }),
+      expect.objectContaining({ word: 'PORN' }),
+    ]));
+    for (const level of CEFR_LEVELS) {
+      const item = availability.find(candidate => candidate.level === level);
+      expect(item?.available).toBe(true);
+      expect(item?.playableCount).toBeGreaterThanOrEqual(MIN_PLAYABLE_CEFR_WORDS);
     }
   });
 
@@ -45,12 +49,12 @@ describe('CEFR compatibility', () => {
     }
   });
 
-  it('disables incomplete levels and explains why they cannot be selected', () => {
+  it('keeps every Kids CEFR selector available', () => {
     render(<DifficultyPicker value="ALL" kidsMode onChange={vi.fn()} />);
 
-    const unavailableA2 = screen.getByRole('button', { name: /Уровень A2 пока недоступен/ });
-    expect(unavailableA2).toBeDisabled();
-    expect(screen.getByText(/меньше трёх подходящих игровых слов с русским переводом/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'A1' })).toBeEnabled();
+    for (const level of CEFR_LEVELS) {
+      expect(screen.getByRole('button', { name: level })).toBeEnabled();
+    }
+    expect(screen.queryByText(/меньше трёх подходящих игровых слов с русским переводом/)).not.toBeInTheDocument();
   });
 });
