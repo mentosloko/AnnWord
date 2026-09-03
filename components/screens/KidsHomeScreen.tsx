@@ -51,7 +51,7 @@ export const KidsHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, onSta
   const startQuest = () => dailyQuest && onStartDailyQuest ? onStartDailyQuest(dailyQuest) : onStartClassic();
   const randomGameActions = [onStartClassic, onStartAnagrams, onStartTranslation, onStartSprint, onStartHangman, onStartMemory, onStartLetterSquare];
   const playRandomGame = () => randomGameActions[Math.floor(Math.random() * randomGameActions.length)]?.();
-  const dictionaryLabel = activeDictionaryName || 'Детский словарь';
+  const dictionaryLabel = activeDictionaryName || 'Все уровни';
   const dictionaryPillClass = 'mt-4 inline-flex max-w-full items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-left text-xs font-bold text-white/90 ring-1 ring-white/15 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/25';
   const dictionaryPillContent = <><span aria-hidden="true">{(userProfile.assignedWords || []).length ? '🎓' : '📚'}</span><span className="truncate">Слова для игр: {dictionaryLabel}</span>{onOpenDictionary && <span aria-hidden="true" className="shrink-0 text-white/70">›</span>}</>;
   const savedBadge = (mode: SavedGameType) => savedGameType === mode ? 'Продолжить' : undefined;

@@ -136,7 +136,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
       ? premiumMeta.title
       : hasAssignedWords
         ? 'Слова от преподавателя'
-        : isParentAccount ? 'Детский словарь' : 'General English';
+        : isParentAccount ? 'Все уровни' : 'General English';
   const activeDictionaryIcon = hasAssignedWords && settings.dictionarySource === 'builtin' ? '🎓' : settings.dictionarySource === 'custom' || settings.useCustomDictionary ? '📖' : settings.dictionarySource === 'premium' ? premiumMeta.icon : isParentAccount ? '🌈' : '📚';
   const currentDictionaryId = activeWordSourceKey(activeWordSourceFromSettings(settings));
   const setupQuestContext = dailyQuest && getDailyQuestTargetModes(dailyQuest).includes(selectedPlayMode) ? dailyQuest : null;
