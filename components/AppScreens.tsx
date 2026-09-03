@@ -102,9 +102,10 @@ const ScreenLoading = () => <div className="mx-auto mt-10 max-w-md rounded-3xl b
 export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userProfile, isAuthenticated, sessionOwnerId, dailyQuest, dailyQuestReward, onCloseDailyQuestReward, settings, modeWords, activeDictionaryWordCount, selectedPlayMode, classicGame, dictionaryUpload, onRouteChange, onEntryPathChange, onSelectedPlayModeChange, onSettingsChange, onOpenLogin, onOpenRegister, onBuy, onUseItem, onUpdatePet, onSaveDictionary, onSelectAccountMode, onCreateChild, onChildSetupComplete, onGameReward, onWordPractice, onCharacterOnboardingComplete, onGameStarted, onTestUnlockPremium, onDictionaryPeek }) => {
   const [quickStartRequested, setQuickStartRequested] = React.useState(false);
   const [dictionarySnapshot, setDictionarySnapshot] = React.useState<GameDictionarySnapshot | null>(null);
+  const [resumeSavedType, setResumeSavedType] = React.useState<PersistedGameType | null>(null);
   const ownWords = ownWordList(userProfile);
   const safeRoute = resolveAccessibleRoute(route, userProfile, isAuthenticated);
-  const goHome = () => { setQuickStartRequested(false); setDictionarySnapshot(null); onRouteChange('landing'); };
+  const goHome = () => { setQuickStartRequested(false); setDictionarySnapshot(null); setResumeSavedType(null); onRouteChange('landing'); };
   const openEntry = (path: ClientEntryPath) => { onEntryPathChange(path); onRouteChange('landing'); };
   const startRegisterFor = (path: 'practice' | 'kids' | 'teacher') => { openEntry(path); onOpenRegister(path); };
   const isParentAccount = userProfile.role === 'parent' || userProfile.accountMode === 'parent';
@@ -155,31 +156,18 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
   const resumeSavedGame = (): boolean => {
     const saved = readPersistedGameSession(sessionOwnerId);
     if (saved) {
-      const currentWords = normalizeSnapshotWords(modeWords);
-      const savedMatchesCurrentDictionary = saved.dictionaryId === currentDictionaryId
-        && currentWords.length > 0
-        && sameWordSnapshot(saved.dictionaryWords, currentWords);
-
-      if (!savedMatchesCurrentDictionary) {
-        clearPersistedGameSession(sessionOwnerId);
-        setDictionarySnapshot(null);
-        setQuickStartRequested(hasKnownDictionary);
-        onSelectedPlayModeChange(saved.gameType);
-        onRouteChange('setup');
-        return true;
-      }
-
-      setDictionarySnapshot({ words: currentWords, label: activeDictionaryName, icon: activeDictionaryIcon, key: currentDictionaryId });
-      setQuickStartRequested(false);
+      setDictionarySnapshot(null);
+      setResumeSavedType(saved.gameType);
+      setQuickStartRequested(hasKnownDictionary);
       onSelectedPlayModeChange(saved.gameType);
-      if (saved.gameType === 'game') return classicGame.resumeGame?.() === true;
-      onRouteChange(routeForPersistedGame(saved.gameType));
+      onRouteChange('setup');
       return true;
     }
     if (hasActiveClassicGame && classicGame.resumeGame?.()) return true;
     if (hasLegacyAnagramGame) {
       clearSavedAnagramSession(userProfile.username);
       setDictionarySnapshot(null);
+      setResumeSavedType(null);
       setQuickStartRequested(hasKnownDictionary);
       onSelectedPlayModeChange('anagrams');
       onRouteChange('setup');
@@ -189,6 +177,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
   };
   const requestQuickLaunch = (mode: PlayableModeRoute) => {
     if (isTeacher) return;
+    setResumeSavedType(null);
     onSelectedPlayModeChange(mode);
     setDictionarySnapshot(null);
     setQuickStartRequested(hasKnownDictionary);
@@ -196,13 +185,22 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
   };
   const startSelectedMode = (snapshotWords?: string[]) => {
     const words = normalizeSnapshotWords(snapshotWords || modeWords);
-    clearPersistedGameSession(sessionOwnerId);
+    const saved = resumeSavedType ? readPersistedGameSession(sessionOwnerId) : null;
+    const canResumeSavedProgress = Boolean(saved
+      && saved.gameType === resumeSavedType
+      && saved.gameType === selectedPlayMode
+      && saved.dictionaryId === currentDictionaryId
+      && sameWordSnapshot(saved.dictionaryWords, words));
+
+    if (!canResumeSavedProgress) clearPersistedGameSession(sessionOwnerId);
     if (selectedPlayMode === 'anagrams') clearSavedAnagramSession(userProfile.username);
     const snapshot: GameDictionarySnapshot = { words, label: activeDictionaryName, icon: activeDictionaryIcon, key: currentDictionaryId };
     setDictionarySnapshot(snapshot);
     setQuickStartRequested(false);
-    onGameStarted?.(selectedPlayMode);
+    setResumeSavedType(null);
+    if (!canResumeSavedProgress) onGameStarted?.(selectedPlayMode);
     if (selectedPlayMode === 'game') {
+      if (canResumeSavedProgress && classicGame.resumeGame?.()) return;
       classicGame.startNewGame(words, { dictionaryId: snapshot.key, dictionaryWords: snapshot.words, dictionaryLabel: snapshot.label, dictionaryIcon: snapshot.icon });
       return;
     }
