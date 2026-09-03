@@ -5,6 +5,341 @@
   "theme": "home",
   "icon": "🏠",
   "words": [
-    "BATH", "BATHROOM", "BED", "BEDROOM", "BLANKET", "BOOKSHELF", "BOTTLE", "BOWL", "CARPET", "CHAIR", "CLOCK", "CUP", "CURTAIN", "DOOR", "DRAWER", "FLOOR", "FRIDGE", "GARDEN", "GLASS", "HALL", "HOME", "HOUSE", "KITCHEN", "LAMP", "LIVINGROOM", "MIRROR", "PILLOW", "PLATE", "ROOM", "ROOF", "SHELF", "SHOWER", "SOFA", "SPOON", "STAIRS", "TABLE", "TOILET", "TOWEL", "WALL", "WARDROBE", "WINDOW"
+    "BATH",
+    "BATHROOM",
+    "BED",
+    "BEDROOM",
+    "BLANKET",
+    "BOOKSHELF",
+    "BOTTLE",
+    "BOWL",
+    "CARPET",
+    "CHAIR",
+    "CLOCK",
+    "CUP",
+    "CURTAIN",
+    "DOOR",
+    "DRAWER",
+    "FLOOR",
+    "FRIDGE",
+    "GARDEN",
+    "GLASS",
+    "HALL",
+    "HOME",
+    "HOUSE",
+    "KITCHEN",
+    "LAMP",
+    "LIVINGROOM",
+    "MIRROR",
+    "PILLOW",
+    "PLATE",
+    "ROOM",
+    "ROOF",
+    "SHELF",
+    "SHOWER",
+    "SOFA",
+    "SPOON",
+    "STAIRS",
+    "TABLE",
+    "TOILET",
+    "TOWEL",
+    "WALL",
+    "WARDROBE",
+    "WINDOW",
+    {
+      "word": "ARMCHAIR",
+      "translation": "кресло",
+      "level": "A1"
+    },
+    {
+      "word": "ATTIC",
+      "translation": "чердак",
+      "level": "A1"
+    },
+    {
+      "word": "BALCONY",
+      "translation": "балкон",
+      "level": "A1"
+    },
+    {
+      "word": "BASKET",
+      "translation": "корзина",
+      "level": "A1"
+    },
+    {
+      "word": "BIN",
+      "translation": "мусорная корзина",
+      "level": "A1"
+    },
+    {
+      "word": "BROOM",
+      "translation": "метла",
+      "level": "A1"
+    },
+    {
+      "word": "CABINET",
+      "translation": "шкафчик",
+      "level": "A1"
+    },
+    {
+      "word": "CEILING",
+      "translation": "потолок",
+      "level": "A1"
+    },
+    {
+      "word": "CLEAN",
+      "translation": "убирать",
+      "level": "A1"
+    },
+    {
+      "word": "COOKER",
+      "translation": "плита",
+      "level": "A1"
+    },
+    {
+      "word": "COOKING",
+      "translation": "готовка",
+      "level": "A1"
+    },
+    {
+      "word": "COUCH",
+      "translation": "диван",
+      "level": "A1"
+    },
+    {
+      "word": "CUSHION",
+      "translation": "подушка",
+      "level": "A1"
+    },
+    {
+      "word": "DISH",
+      "translation": "блюдо",
+      "level": "A1"
+    },
+    {
+      "word": "DUST",
+      "translation": "пыль",
+      "level": "A1"
+    },
+    {
+      "word": "FAN",
+      "translation": "вентилятор",
+      "level": "A1"
+    },
+    {
+      "word": "FENCE",
+      "translation": "забор",
+      "level": "A1"
+    },
+    {
+      "word": "GATE",
+      "translation": "ворота",
+      "level": "A1"
+    },
+    {
+      "word": "GARAGE",
+      "translation": "гараж",
+      "level": "A1"
+    },
+    {
+      "word": "HANDLE",
+      "translation": "ручка",
+      "level": "A1"
+    },
+    {
+      "word": "HANGER",
+      "translation": "вешалка",
+      "level": "A1"
+    },
+    {
+      "word": "HEATER",
+      "translation": "обогреватель",
+      "level": "A1"
+    },
+    {
+      "word": "IRON",
+      "translation": "утюг",
+      "level": "A1"
+    },
+    {
+      "word": "JAR",
+      "translation": "банка",
+      "level": "A1"
+    },
+    {
+      "word": "KEY",
+      "translation": "ключ",
+      "level": "A1"
+    },
+    {
+      "word": "LAUNDRY",
+      "translation": "стирка",
+      "level": "A1"
+    },
+    {
+      "word": "LOCK",
+      "translation": "замок",
+      "level": "A1"
+    },
+    {
+      "word": "MOP",
+      "translation": "швабра",
+      "level": "A1"
+    },
+    {
+      "word": "NAPKIN",
+      "translation": "салфетка",
+      "level": "A1"
+    },
+    {
+      "word": "OVEN",
+      "translation": "духовка",
+      "level": "A1"
+    },
+    {
+      "word": "PAN",
+      "translation": "сковорода",
+      "level": "A1"
+    },
+    {
+      "word": "POT",
+      "translation": "кастрюля",
+      "level": "A1"
+    },
+    {
+      "word": "RUG",
+      "translation": "коврик",
+      "level": "A1"
+    },
+    {
+      "word": "SINK",
+      "translation": "раковина",
+      "level": "A1"
+    },
+    {
+      "word": "SOAP",
+      "translation": "мыло",
+      "level": "A1"
+    },
+    {
+      "word": "SOCKET",
+      "translation": "розетка",
+      "level": "A1"
+    },
+    {
+      "word": "STOVE",
+      "translation": "печь",
+      "level": "A1"
+    },
+    {
+      "word": "SWITCH",
+      "translation": "выключатель",
+      "level": "A1"
+    },
+    {
+      "word": "TAP",
+      "translation": "кран",
+      "level": "A1"
+    },
+    {
+      "word": "TIDY",
+      "translation": "убирать",
+      "level": "A1"
+    },
+    {
+      "word": "TRAY",
+      "translation": "поднос",
+      "level": "A1"
+    },
+    {
+      "word": "VACUUM",
+      "translation": "пылесос",
+      "level": "A1"
+    },
+    {
+      "word": "VASE",
+      "translation": "ваза",
+      "level": "A1"
+    },
+    {
+      "word": "WASH",
+      "translation": "мыть",
+      "level": "A1"
+    },
+    {
+      "word": "WASHING",
+      "translation": "мытьё",
+      "level": "A1"
+    },
+    {
+      "word": "YARD",
+      "translation": "двор",
+      "level": "A1"
+    },
+    {
+      "word": "APARTMENT",
+      "translation": "квартира",
+      "level": "A1"
+    },
+    {
+      "word": "BASEMENT",
+      "translation": "подвал",
+      "level": "A1"
+    },
+    {
+      "word": "BELL",
+      "translation": "звонок",
+      "level": "A1"
+    },
+    {
+      "word": "BUCKET",
+      "translation": "ведро",
+      "level": "A1"
+    },
+    {
+      "word": "CHIMNEY",
+      "translation": "дымоход",
+      "level": "A1"
+    },
+    {
+      "word": "CLOSET",
+      "translation": "кладовка",
+      "level": "A1"
+    },
+    {
+      "word": "CUPBOARD",
+      "translation": "буфет",
+      "level": "A1"
+    },
+    {
+      "word": "DOORMAT",
+      "translation": "коврик у двери",
+      "level": "A1"
+    },
+    {
+      "word": "FREEZER",
+      "translation": "морозилка",
+      "level": "A1"
+    },
+    {
+      "word": "PARKING",
+      "translation": "парковка",
+      "level": "A1"
+    },
+    {
+      "word": "PORCH",
+      "translation": "крыльцо",
+      "level": "A1"
+    },
+    {
+      "word": "TUB",
+      "translation": "ванна",
+      "level": "A1"
+    },
+    {
+      "word": "MAILBOX",
+      "translation": "почтовый ящик",
+      "level": "A1"
+    }
   ]
 }
