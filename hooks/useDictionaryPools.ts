@@ -126,24 +126,30 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
     const isPracticeCustomDictionary = !currentKidsMode && settings.dictionarySource === 'custom';
 
     if (currentKidsMode) {
-      if (settings.dictionarySource === 'premium' && currentHasPremium) {
-        pool = isSpotlightId(settings.activePremiumDictionaryId)
-          ? readSelectedSpotlightEntries()
-          : getKidsPremiumDictionaryEntries(settings.activePremiumDictionaryId, 'ALL');
-      } else if (settings.dictionarySource === 'custom' && currentHasPremium) {
-        pool = toCustomEnrichedWords([...(userProfile.customDictionaryEn || []), ...assignedWords], assignedTranslations);
+      if (settings.dictionarySource === 'premium') {
+        pool = !currentHasPremium
+          ? []
+          : isSpotlightId(settings.activePremiumDictionaryId)
+            ? readSelectedSpotlightEntries()
+            : getKidsPremiumDictionaryEntries(settings.activePremiumDictionaryId, 'ALL');
+      } else if (settings.dictionarySource === 'custom') {
+        pool = currentHasPremium
+          ? toCustomEnrichedWords([...(userProfile.customDictionaryEn || []), ...assignedWords], assignedTranslations)
+          : [];
       } else if (assignedWords.length > 0 && currentHasPremium) {
         pool = toCustomEnrichedWords(assignedWords, assignedTranslations);
       } else {
         pool = getKidsCefrEntries(readGeneralDictionary()?.COMMON_WORDS_EN || []);
         if (settings.difficulty !== 'ALL') pool = pool.filter(word => word.level === settings.difficulty);
       }
-    } else if (settings.dictionarySource === 'premium' && currentHasPremium) {
-      pool = isSpotlightId(settings.activePremiumDictionaryId)
-        ? readSelectedSpotlightEntries()
-        : getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL');
+    } else if (settings.dictionarySource === 'premium') {
+      pool = !currentHasPremium
+        ? []
+        : isSpotlightId(settings.activePremiumDictionaryId)
+          ? readSelectedSpotlightEntries()
+          : getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL');
     } else if (settings.dictionarySource === 'custom') {
-      pool = toCustomEnrichedWords(userProfile.customDictionaryEn);
+      pool = currentHasPremium ? toCustomEnrichedWords(userProfile.customDictionaryEn) : [];
     } else {
       pool = (readGeneralDictionary()?.COMMON_WORDS_EN || []).filter(word => hasRussianTranslation(word.translation));
       if (settings.difficulty !== 'ALL') {
@@ -161,11 +167,14 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
     const validationWordLength = wordLengthOverride ?? settings.wordLength;
     const currentKidsMode = isKidsMode(userProfile);
     const currentHasPremium = hasPremiumDictionaryAccess(userProfile);
-    const premiumWords = settings.dictionarySource === 'premium' && currentHasPremium && isSpotlightId(settings.activePremiumDictionaryId)
-      ? readSelectedSpotlightEntries().map(entry => entry.word)
-      : currentKidsMode
-        ? (currentHasPremium ? getKidsPremiumDictionaryWords(settings.activePremiumDictionaryId, 'ALL') : [])
-        : (settings.dictionarySource === 'premium' && currentHasPremium ? getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL').map(entry => entry.word) : []);
+    let premiumWords: string[] = [];
+    if (settings.dictionarySource === 'premium' && currentHasPremium) {
+      premiumWords = isSpotlightId(settings.activePremiumDictionaryId)
+        ? readSelectedSpotlightEntries().map(entry => entry.word)
+        : currentKidsMode
+          ? getKidsPremiumDictionaryWords(settings.activePremiumDictionaryId, 'ALL')
+          : getLoadedPremiumEntries(settings.activePremiumDictionaryId, 'ALL').map(entry => entry.word);
+    }
     const kidsWords = currentKidsMode ? getAllKidsDictionaryWords() : [];
     const customWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.customDictionaryEn || []);
     const assignedWords = getCustomWordsAvailableInBuiltinDictionary(userProfile.assignedWords || [], userProfile.assignedWordTranslations || {});
