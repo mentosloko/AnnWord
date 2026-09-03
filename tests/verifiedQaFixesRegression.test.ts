@@ -33,12 +33,12 @@ describe('verified QA fixes', () => {
 
   it('uses teacher-assigned words with assigned translations as the active Kids pool and labels the source', () => {
     const pools = read('hooks/useDictionaryPools.ts');
-    const appScreens = read('components/AppScreens.tsx');
+    const descriptor = read('services/activeDictionaryDescriptor.ts');
     const setup = read('components/screens/SetupScreenSafe.tsx');
     expect(pools).toContain('assignedWords.length > 0 && currentHasPremium');
     expect(pools).toContain('const assignedTranslations = userProfile.assignedWordTranslations || {}');
     expect(pools).toContain('toCustomEnrichedWords(assignedWords, assignedTranslations)');
-    expect(appScreens).toContain("'Слова от преподавателя'");
+    expect(descriptor).toContain("'Слова от преподавателя'");
     expect(setup).toContain("'От учителя'");
   });
 
