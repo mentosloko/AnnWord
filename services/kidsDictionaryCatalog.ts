@@ -101,8 +101,11 @@ export const getKidsPremiumDictionaryWords = (id?: string, difficulty: Difficult
 
 export const getAllKidsDictionaryEntries = (): EnrichedWord[] => {
   const seen = new Set<string>();
-  return [getFreeKidsDictionaryEntries(), ...Object.values(dictionaries).flatMap(item => buildEntries(item.seeds))]
-    .filter(entry => !seen.has(entry.word) && seen.add(entry.word));
+  const entries: EnrichedWord[] = [
+    ...getFreeKidsDictionaryEntries(),
+    ...Object.values(dictionaries).flatMap<EnrichedWord>(item => buildEntries(item.seeds)),
+  ];
+  return entries.filter(entry => !seen.has(entry.word) && seen.add(entry.word));
 };
 
 export const getAllKidsDictionaryWords = (): string[] => getAllKidsDictionaryEntries().map(entry => entry.word);
