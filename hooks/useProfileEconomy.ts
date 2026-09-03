@@ -1,6 +1,7 @@
-import { useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { PetState, ShopItem, UserProfile, UserStats } from '../types';
 import { analyticsService, QueuedAnalyticsEvent } from '../services/analyticsService';
+import { classicResultOutboxService } from '../services/classicResultOutboxService';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 import { applyItemUseLocally, applyPurchaseLocally } from '../services/economyEngine';
 import { gameEventLedgerService } from '../services/gameEventLedgerService';
@@ -30,8 +31,25 @@ const createHintOperationId = (): string => {
   return `hint:${random}`;
 };
 
+const queueAnalyticsEvent = (event: QueuedAnalyticsEvent): void => {
+  analyticsService.trackEvent({
+    userId: event.user_id,
+    eventType: event.event_type,
+    eventName: event.event_name,
+    gameType: event.game_type,
+    route: event.route,
+    payload: event.payload,
+  });
+};
+
 export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }: UseProfileEconomyArgs) => {
   const pendingHintCoinOperationRef = useRef<PendingHintCoinOperation | null>(null);
+
+  useEffect(() => {
+    classicResultOutboxService.setActiveUser(currentUserId);
+    if (!currentUserId) return undefined;
+    return classicResultOutboxService.subscribe(currentUserId, profile => setUserProfile(profile));
+  }, [currentUserId, setUserProfile]);
 
   const winCoins = useCallback(async (amount: number) => {
     setUserProfile(prev => ({ ...prev, coins: Math.max(0, prev.coins + amount) }));
@@ -233,6 +251,31 @@ export const useProfileEconomy = ({ currentUserId, userProfile, setUserProfile }
     setUserProfile(nextProfile);
 
     if (currentUserId) {
+      const classicFinishedEvent = input.type === 'wordle'
+        ? (options.analyticsEvents || []).find(event => event.event_name === 'game_finished' && typeof event.payload?.word === 'string')
+        : undefined;
+      const classicWord = typeof classicFinishedEvent?.payload?.word === 'string'
+        ? classicFinishedEvent.payload.word.trim().toUpperCase()
+        : '';
+
+      if (input.type === 'wordle' && classicWord) {
+        const analyticsEvents = [...(options.analyticsEvents || []), rewardEvent];
+        analyticsEvents.forEach(queueAnalyticsEvent);
+        const rewardLedgerEvents = gameEventLedgerService
+          .createRewardEvents(currentUserId, input, analyticsEvents, reward)
+          .filter(event => event.eventType === 'reward_granted');
+        void gameEventLedgerService.sendNow(rewardLedgerEvents)
+          .catch(error => console.error('Failed to queue Classic reward ledger event', error));
+
+        const committed = await classicResultOutboxService.commit(currentUserId, {
+          word: classicWord,
+          won: input.won === true,
+          coinsAdjustment: Math.round(input.coinsAdjustment || 0),
+        });
+        if (committed?.profile) setUserProfile(committed.profile);
+        return { reward, progress };
+      }
+
       try {
         const userService = await getUserService();
         const analyticsEvents = [...(options.analyticsEvents || []), rewardEvent];

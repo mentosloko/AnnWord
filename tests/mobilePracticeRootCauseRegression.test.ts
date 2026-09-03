@@ -61,15 +61,16 @@ describe('mobile Practice root-cause regressions', () => {
     expect(userService).toContain('return registeredProfile || profileApiService.getCurrentProfile();');
   });
 
-  it('reconciles stats and daily quest before publishing the terminal Classic state', () => {
+  it('publishes the terminal Classic state before background stats and daily quest reconciliation', () => {
     const controller = read('hooks/useClassicGameController.ts');
+    const terminalPublish = controller.indexOf('gameStatus: terminalStatus');
     const rewardSave = controller.indexOf('await onStatsUpdate');
     const questSave = controller.indexOf('await onDailyQuestResult');
-    const terminalPublish = controller.indexOf('gameStatus: terminalStatus');
-    expect(rewardSave).toBeGreaterThan(-1);
+    expect(terminalPublish).toBeGreaterThan(-1);
+    expect(rewardSave).toBeGreaterThan(terminalPublish);
     expect(questSave).toBeGreaterThan(rewardSave);
-    expect(terminalPublish).toBeGreaterThan(questSave);
-    expect(controller).toContain('finishingRef.current');
+    expect(controller).toContain('void (async () => {');
+    expect(controller).not.toContain('Сохраняем результат…');
   });
 
   it('keeps registration consents standard and concise', () => {
