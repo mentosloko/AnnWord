@@ -22,6 +22,7 @@ env:
   YC_BACKEND_IMAGE: annword-api
   AWS_DEFAULT_REGION: ru-central1
   AUTH_FROM_EMAIL: noreply@annword.ru
+  YC_CDN_RESOURCE_ID: bc8rtn34qpens6hppppp
 
 jobs:
   build-and-deploy:
@@ -264,6 +265,13 @@ jobs:
                 --cache-control 'public,max-age=31536000,immutable'
             fi
           done < <(find dist/assets -type f -print | sort)
+
+      # HTML is cached by CDN independently of Object Storage. Clear stale route
+      # variants so visitors immediately receive the new content-hashed bundles.
+      - name: Purge Yandex CDN after frontend upload
+        run: |
+          set -euo pipefail
+          yc cdn cache purge --resource-id "$YC_CDN_RESOURCE_ID" --all
 
       - name: Verify live Yandex production
         env:
