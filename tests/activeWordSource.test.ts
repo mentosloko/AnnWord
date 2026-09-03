@@ -64,7 +64,7 @@ describe('canonical active word source', () => {
     expect(authHook).not.toContain('activePremiumDictionaryId: settings.activePremiumDictionaryId');
     expect(screen).toContain('const [draftSettings, setDraftSettings]');
     expect(screen).toContain('onCommitSettings: (settings: GameSettings) => Promise<void>');
-    expect(screen).toContain('Изменения ещё не влияют на игры.');
+    expect(screen).toContain('Сохраните выбор, чтобы применить его к играм.');
     expect(screen).not.toContain('onSettingsChange: (settings: GameSettings) => void');
     expect(appScreens).toContain("profileApiService.updateActiveWordSource(activeWordSourceFromSettings(draftSettings))");
     expect(appScreens).toContain('dispatchOwnedProfileUpdate(ownerId, profile)');
