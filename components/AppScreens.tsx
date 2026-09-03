@@ -9,13 +9,12 @@ import type { ClassicGameSessionMeta } from '../hooks/useClassicGameController';
 import type { PremiumDictionaryDraft } from '../services/premiumDictionaryService';
 import type { ChildSetupResult } from '../services/familyAccountService';
 import { activeWordSourceFromSettings, activeWordSourceKey, applyActiveWordSourceToSettings } from '../services/activeWordSource';
+import { resolveActiveDictionaryDescriptor } from '../services/activeDictionaryDescriptor';
 import { profileApiService } from '../services/profileApiService';
 import { dispatchOwnedProfileUpdate, getCurrentProfileOwnerId } from '../services/profileUpdateEvent';
 import { getDailyQuestPrimaryMode, getDailyQuestTargetModes } from '../services/dailyQuest';
-import { getKidsDictionaryMeta } from '../services/kidsDictionaryCatalog';
-import { getPremiumDictionaryMeta } from '../services/premiumDictionaryCatalog';
 import { clearSavedAnagramSession, hasSavedAnagramSession } from '../services/anagramSessionStatus';
-import { clearPersistedGameSession, readPersistedGameSession, routeForPersistedGame, type PersistedGameSession, type PersistedGameType } from '../services/gameSessionStore';
+import { clearPersistedGameSession, readPersistedGameSession, routeForPersistedGame, type PersistedGameType } from '../services/gameSessionStore';
 import { resolveAccessibleRoute } from '../services/routeAccess';
 import { DailyQuestRewardModal } from './DailyQuestCard';
 import { clearPremiumIntent, getPremiumSuccessRoute, readPremiumIntent, rememberPremiumIntent, type PremiumIntentKind } from '../services/premiumIntent';
@@ -90,6 +89,14 @@ type GameDictionarySnapshot = { words: string[]; label: string; icon: string; ke
 const WORD_LENGTHS: WordLength[] = [4, 5, 6];
 const randomWordLength = (): WordLength => WORD_LENGTHS[Math.floor(Math.random() * WORD_LENGTHS.length)];
 const ownWordList = (profile: UserProfile): string[] => Array.from(new Set([...(profile.customDictionaryEn || []), ...(profile.assignedWords || [])]));
+const normalizeSnapshotWords = (words: string[]): string[] => Array.from(new Set(words.map(word => word.trim().toUpperCase()).filter(Boolean)));
+const sameWordSnapshot = (first: string[], second: string[]): boolean => {
+  const left = normalizeSnapshotWords(first);
+  const right = normalizeSnapshotWords(second);
+  if (left.length !== right.length) return false;
+  const rightSet = new Set(right);
+  return left.every(word => rightSet.has(word));
+};
 const ScreenLoading = () => <div className="mx-auto mt-10 max-w-md rounded-3xl bg-white p-8 text-center font-bold text-indigo-700 shadow-sm ring-1 ring-indigo-100">Открываю раздел…</div>;
 
 export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userProfile, isAuthenticated, sessionOwnerId, dailyQuest, dailyQuestReward, onCloseDailyQuestReward, settings, modeWords, activeDictionaryWordCount, selectedPlayMode, classicGame, dictionaryUpload, onRouteChange, onEntryPathChange, onSelectedPlayModeChange, onSettingsChange, onOpenLogin, onOpenRegister, onBuy, onUseItem, onUpdatePet, onSaveDictionary, onSelectAccountMode, onCreateChild, onChildSetupComplete, onGameReward, onWordPractice, onCharacterOnboardingComplete, onGameStarted, onTestUnlockPremium, onDictionaryPeek }) => {
@@ -128,19 +135,12 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
   const hasLegacyAnagramGame = !savedGameSession && isAuthenticated && hasSavedAnagramSession(userProfile.username);
   const hasActiveClassicGame = Boolean(classicGame.hasActiveGame);
   const hasActiveAnagramGame = savedGameSession?.gameType === 'anagrams' || hasLegacyAnagramGame;
-  const premiumMeta = isParentAccount ? getKidsDictionaryMeta(settings.activePremiumDictionaryId) : getPremiumDictionaryMeta(settings.activePremiumDictionaryId);
-  const hasAssignedWords = isParentAccount && (userProfile.assignedWords || []).length > 0;
-  const activeDictionaryName = settings.dictionarySource === 'custom' || settings.useCustomDictionary
-    ? hasAssignedWords ? 'Свои слова и слова преподавателя' : 'Слова из вашего списка'
-    : settings.dictionarySource === 'premium'
-      ? premiumMeta.title
-      : hasAssignedWords
-        ? 'Слова от преподавателя'
-        : isParentAccount ? 'Все уровни' : 'General English';
-  const activeDictionaryIcon = hasAssignedWords && settings.dictionarySource === 'builtin' ? '🎓' : settings.dictionarySource === 'custom' || settings.useCustomDictionary ? '📖' : settings.dictionarySource === 'premium' ? premiumMeta.icon : isParentAccount ? '🌈' : '📚';
+  const activeDictionary = resolveActiveDictionaryDescriptor(settings, userProfile, isParentAccount);
+  const activeDictionaryName = activeDictionary.title;
+  const activeDictionaryIcon = activeDictionary.icon;
   const currentDictionaryId = activeWordSourceKey(activeWordSourceFromSettings(settings));
   const setupQuestContext = dailyQuest && getDailyQuestTargetModes(dailyQuest).includes(selectedPlayMode) ? dailyQuest : null;
-  const hasKnownDictionary = Boolean(activeDictionaryWordCount || modeWords.length || ownWords.length || settings.dictionarySource === 'builtin' || settings.dictionarySource === 'premium');
+  const hasKnownDictionary = activeDictionary.available && Boolean(activeDictionaryWordCount || modeWords.length || ownWords.length || settings.dictionarySource === 'builtin' || settings.dictionarySource === 'premium');
 
   const commitDictionarySettings = async (draftSettings: GameSettings): Promise<void> => {
     const ownerId = getCurrentProfileOwnerId();
@@ -152,18 +152,24 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
     onSettingsChange(previous => applyActiveWordSourceToSettings({ ...previous, wordLength: draftSettings.wordLength, username: profile.username }, profile.activeWordSource));
   };
 
-  const applySavedDictionary = (saved: PersistedGameSession) => {
-    setDictionarySnapshot({
-      words: saved.dictionaryWords,
-      label: saved.dictionaryLabel || activeDictionaryName,
-      icon: saved.dictionaryIcon || activeDictionaryIcon,
-      key: saved.dictionaryId,
-    });
-  };
   const resumeSavedGame = (): boolean => {
     const saved = readPersistedGameSession(sessionOwnerId);
     if (saved) {
-      applySavedDictionary(saved);
+      const currentWords = normalizeSnapshotWords(modeWords);
+      const savedMatchesCurrentDictionary = saved.dictionaryId === currentDictionaryId
+        && currentWords.length > 0
+        && sameWordSnapshot(saved.dictionaryWords, currentWords);
+
+      if (!savedMatchesCurrentDictionary) {
+        clearPersistedGameSession(sessionOwnerId);
+        setDictionarySnapshot(null);
+        setQuickStartRequested(hasKnownDictionary);
+        onSelectedPlayModeChange(saved.gameType);
+        onRouteChange('setup');
+        return true;
+      }
+
+      setDictionarySnapshot({ words: currentWords, label: activeDictionaryName, icon: activeDictionaryIcon, key: currentDictionaryId });
       setQuickStartRequested(false);
       onSelectedPlayModeChange(saved.gameType);
       if (saved.gameType === 'game') return classicGame.resumeGame?.() === true;
@@ -172,26 +178,24 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
     }
     if (hasActiveClassicGame && classicGame.resumeGame?.()) return true;
     if (hasLegacyAnagramGame) {
-      setDictionarySnapshot({ words: modeWords, label: activeDictionaryName, icon: activeDictionaryIcon, key: currentDictionaryId });
-      setQuickStartRequested(false);
+      clearSavedAnagramSession(userProfile.username);
+      setDictionarySnapshot(null);
+      setQuickStartRequested(hasKnownDictionary);
       onSelectedPlayModeChange('anagrams');
-      onRouteChange('anagrams');
+      onRouteChange('setup');
       return true;
     }
     return false;
   };
   const requestQuickLaunch = (mode: PlayableModeRoute) => {
     if (isTeacher) return;
-    const saved = readPersistedGameSession(sessionOwnerId);
-    const canResume = saved?.gameType === mode || (mode === 'game' && !saved && hasActiveClassicGame) || (mode === 'anagrams' && !saved && hasLegacyAnagramGame);
-    if (canResume && resumeSavedGame()) return;
     onSelectedPlayModeChange(mode);
     setDictionarySnapshot(null);
     setQuickStartRequested(hasKnownDictionary);
     onRouteChange('setup');
   };
   const startSelectedMode = (snapshotWords?: string[]) => {
-    const words: string[] = Array.from(new Set<string>((snapshotWords || modeWords).map(word => word.trim().toUpperCase()).filter(Boolean)));
+    const words = normalizeSnapshotWords(snapshotWords || modeWords);
     clearPersistedGameSession(sessionOwnerId);
     if (selectedPlayMode === 'anagrams') clearSavedAnagramSession(userProfile.username);
     const snapshot: GameDictionarySnapshot = { words, label: activeDictionaryName, icon: activeDictionaryIcon, key: currentDictionaryId };
