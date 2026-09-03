@@ -10,6 +10,7 @@ import {
 } from '../services/difficultyAvailability';
 import { ensureGeneralDictionaryLoaded } from '../services/dictionaryRuntime';
 import { getKidsCefrEntries } from '../services/kidsCefrDictionary';
+import { getFreeKidsDictionaryEntries, getKidsDictionaryCatalog, getKidsPremiumDictionaryEntries } from '../services/kidsDictionaryCatalog';
 import type { EnrichedWord } from '../types';
 
 let generalEntries: EnrichedWord[] = [];
@@ -32,6 +33,13 @@ describe('CEFR compatibility', () => {
       const item = availability.find(candidate => candidate.level === level);
       expect(item?.available).toBe(true);
       expect(item?.playableCount).toBeGreaterThanOrEqual(MIN_PLAYABLE_CEFR_WORDS);
+    }
+  });
+
+  it('keeps the free and each themed Kids dictionary at least 150 words', () => {
+    expect(getFreeKidsDictionaryEntries()).toHaveLength(150);
+    for (const dictionary of getKidsDictionaryCatalog()) {
+      expect(getKidsPremiumDictionaryEntries(dictionary.id)).toHaveLength(150);
     }
   });
 
