@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getCustomWordsAvailableInBuiltinDictionary, hasRussianTranslation, isAllowedSecretWord, isAllowedValidationWord, toCustomEnrichedWords } from '../services/dictionaryEngine';
 import { ensureDictionaryRuntime, readGeneralDictionary, readPremiumDictionary, resolvePremiumDictionaryId, type PremiumDictionaryWord } from '../services/dictionaryRuntime';
 import { setActiveGameDictionaryEntries } from '../services/gameSessionEngine';
-import { getAllKidsDictionaryWords, getFreeKidsDictionaryEntries, getKidsPremiumDictionaryEntries, getKidsPremiumDictionaryWords } from '../services/kidsDictionaryCatalog';
+import { getAllKidsDictionaryWords, getKidsPremiumDictionaryEntries, getKidsPremiumDictionaryWords } from '../services/kidsDictionaryCatalog';
+import { getKidsCefrEntries } from '../services/kidsCefrDictionary';
 import { isKidsMode } from '../services/modeFlags';
 import { hasPremiumDictionaryAccess } from '../services/premiumDictionaryCatalog';
 import { getSpotlightEntries, resolveSpotlightSelection, SPOTLIGHT_PREMIUM_DICTIONARY_ID } from '../services/spotlightDictionary';
@@ -134,7 +135,8 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
       } else if (assignedWords.length > 0 && currentHasPremium) {
         pool = toCustomEnrichedWords(assignedWords, assignedTranslations);
       } else {
-        pool = getFreeKidsDictionaryEntries(settings.difficulty);
+        pool = getKidsCefrEntries(readGeneralDictionary()?.COMMON_WORDS_EN || []);
+        if (settings.difficulty !== 'ALL') pool = pool.filter(word => word.level === settings.difficulty);
       }
     } else if (settings.dictionarySource === 'premium' && currentHasPremium) {
       pool = isSpotlightId(settings.activePremiumDictionaryId)
