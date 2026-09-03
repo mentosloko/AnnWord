@@ -5,6 +5,333 @@
   "theme": "nature",
   "icon": "🌦️",
   "words": [
-    "AIR", "AUTUMN", "BEACH", "CLOUD", "COLD", "EARTH", "FIRE", "FLOWER", "FOREST", "FROST", "GARDEN", "GRASS", "HILL", "HOT", "ICE", "ISLAND", "LAKE", "LEAF", "LIGHTNING", "MOON", "MOUNTAIN", "NATURE", "OCEAN", "PLANT", "RAIN", "RAINBOW", "RIVER", "ROCK", "SAND", "SEA", "SKY", "SNOW", "SPRING", "STAR", "STORM", "SUN", "SUMMER", "TREE", "WARM", "WATER", "WEATHER", "WIND", "WINTER"
+    "AIR",
+    "AUTUMN",
+    "BEACH",
+    "CLOUD",
+    "COLD",
+    "EARTH",
+    "FIRE",
+    "FLOWER",
+    "FOREST",
+    "FROST",
+    "GARDEN",
+    "GRASS",
+    "HILL",
+    "HOT",
+    "ICE",
+    "ISLAND",
+    "LAKE",
+    "LEAF",
+    "LIGHTNING",
+    "MOON",
+    "MOUNTAIN",
+    "NATURE",
+    "OCEAN",
+    "PLANT",
+    "RAIN",
+    "RAINBOW",
+    "RIVER",
+    "ROCK",
+    "SAND",
+    "SEA",
+    "SKY",
+    "SNOW",
+    "SPRING",
+    "STAR",
+    "STORM",
+    "SUN",
+    "SUMMER",
+    "TREE",
+    "WARM",
+    "WATER",
+    "WEATHER",
+    "WIND",
+    "WINTER",
+    {
+      "word": "ANIMAL",
+      "translation": "животное",
+      "level": "A1"
+    },
+    {
+      "word": "BREEZE",
+      "translation": "лёгкий ветер",
+      "level": "A1"
+    },
+    {
+      "word": "BUTTERFLY",
+      "translation": "бабочка",
+      "level": "A1"
+    },
+    {
+      "word": "CAVE",
+      "translation": "пещера",
+      "level": "A1"
+    },
+    {
+      "word": "CLIFF",
+      "translation": "утёс",
+      "level": "A1"
+    },
+    {
+      "word": "COAST",
+      "translation": "побережье",
+      "level": "A1"
+    },
+    {
+      "word": "DESERT",
+      "translation": "пустыня",
+      "level": "A1"
+    },
+    {
+      "word": "DEW",
+      "translation": "роса",
+      "level": "A1"
+    },
+    {
+      "word": "DROUGHT",
+      "translation": "засуха",
+      "level": "A1"
+    },
+    {
+      "word": "FEATHER",
+      "translation": "перо",
+      "level": "A1"
+    },
+    {
+      "word": "FIELD",
+      "translation": "поле",
+      "level": "A1"
+    },
+    {
+      "word": "FOG",
+      "translation": "туман",
+      "level": "A1"
+    },
+    {
+      "word": "GLACIER",
+      "translation": "ледник",
+      "level": "A1"
+    },
+    {
+      "word": "GLOW",
+      "translation": "свечение",
+      "level": "A1"
+    },
+    {
+      "word": "HAIL",
+      "translation": "град",
+      "level": "A1"
+    },
+    {
+      "word": "HARVEST",
+      "translation": "урожай",
+      "level": "A1"
+    },
+    {
+      "word": "HEAT",
+      "translation": "жара",
+      "level": "A1"
+    },
+    {
+      "word": "HORIZON",
+      "translation": "горизонт",
+      "level": "A1"
+    },
+    {
+      "word": "JUNGLE",
+      "translation": "джунгли",
+      "level": "A1"
+    },
+    {
+      "word": "LAND",
+      "translation": "земля",
+      "level": "A1"
+    },
+    {
+      "word": "MEADOW",
+      "translation": "луг",
+      "level": "A1"
+    },
+    {
+      "word": "MUD",
+      "translation": "грязь",
+      "level": "A1"
+    },
+    {
+      "word": "NIGHT",
+      "translation": "ночь",
+      "level": "A1"
+    },
+    {
+      "word": "PEBBLE",
+      "translation": "камешек",
+      "level": "A1"
+    },
+    {
+      "word": "POND",
+      "translation": "пруд",
+      "level": "A1"
+    },
+    {
+      "word": "DAYLIGHT",
+      "translation": "дневной свет",
+      "level": "A1"
+    },
+    {
+      "word": "SEASON",
+      "translation": "время года",
+      "level": "A1"
+    },
+    {
+      "word": "SEED",
+      "translation": "семя",
+      "level": "A1"
+    },
+    {
+      "word": "SHADE",
+      "translation": "тень",
+      "level": "A1"
+    },
+    {
+      "word": "SHORE",
+      "translation": "берег",
+      "level": "A1"
+    },
+    {
+      "word": "SOIL",
+      "translation": "почва",
+      "level": "A1"
+    },
+    {
+      "word": "SPACE",
+      "translation": "космос",
+      "level": "A1"
+    },
+    {
+      "word": "THUNDER",
+      "translation": "гром",
+      "level": "A1"
+    },
+    {
+      "word": "THUNDERSTORM",
+      "translation": "гроза",
+      "level": "A1"
+    },
+    {
+      "word": "TIDE",
+      "translation": "прилив",
+      "level": "A1"
+    },
+    {
+      "word": "VOLCANO",
+      "translation": "вулкан",
+      "level": "A1"
+    },
+    {
+      "word": "WAVE",
+      "translation": "волна",
+      "level": "A1"
+    },
+    {
+      "word": "WET",
+      "translation": "мокрый",
+      "level": "A1"
+    },
+    {
+      "word": "WILDFLOWER",
+      "translation": "полевой цветок",
+      "level": "A1"
+    },
+    {
+      "word": "WILDLIFE",
+      "translation": "дикая природа",
+      "level": "A1"
+    },
+    {
+      "word": "WOOD",
+      "translation": "лес",
+      "level": "A1"
+    },
+    {
+      "word": "SUNNY",
+      "translation": "солнечный",
+      "level": "A1"
+    },
+    {
+      "word": "CLOUDY",
+      "translation": "облачный",
+      "level": "A1"
+    },
+    {
+      "word": "RAINY",
+      "translation": "дождливый",
+      "level": "A1"
+    },
+    {
+      "word": "SNOWY",
+      "translation": "снежный",
+      "level": "A1"
+    },
+    {
+      "word": "WINDY",
+      "translation": "ветреный",
+      "level": "A1"
+    },
+    {
+      "word": "DRY",
+      "translation": "сухой",
+      "level": "A1"
+    },
+    {
+      "word": "FREEZE",
+      "translation": "замерзать",
+      "level": "A1"
+    },
+    {
+      "word": "MELT",
+      "translation": "таять",
+      "level": "A1"
+    },
+    {
+      "word": "BLOOM",
+      "translation": "цвести",
+      "level": "A1"
+    },
+    {
+      "word": "BUD",
+      "translation": "бутон",
+      "level": "A1"
+    },
+    {
+      "word": "BRANCH",
+      "translation": "ветка",
+      "level": "A1"
+    },
+    {
+      "word": "BUSH",
+      "translation": "куст",
+      "level": "A1"
+    },
+    {
+      "word": "CAMP",
+      "translation": "лагерь",
+      "level": "A1"
+    },
+    {
+      "word": "CAMPFIRE",
+      "translation": "костёр",
+      "level": "A1"
+    },
+    {
+      "word": "PATH",
+      "translation": "тропинка",
+      "level": "A1"
+    },
+    {
+      "word": "PINE",
+      "translation": "сосна",
+      "level": "A1"
+    }
   ]
 }
