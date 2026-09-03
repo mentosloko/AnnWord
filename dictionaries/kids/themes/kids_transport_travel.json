@@ -5,6 +5,365 @@
   "theme": "transport",
   "icon": "🚆",
   "words": [
-    "AIRPLANE", "AIRPORT", "BAG", "BICYCLE", "BOAT", "BRIDGE", "BUS", "BUSSTOP", "CAR", "DRIVER", "FLIGHT", "HELICOPTER", "HOTEL", "JOURNEY", "MAP", "METRO", "MOTORBIKE", "MOUNTAIN", "PASSENGER", "PLANE", "ROAD", "ROCKET", "SHIP", "STATION", "STREET", "SUBWAY", "SUITCASE", "TAXI", "TICKET", "TRAIN", "TRAVEL", "TRIP", "TRUCK", "WALK", "WHEEL"
+    "AIRPLANE",
+    "AIRPORT",
+    "BAG",
+    "BICYCLE",
+    "BOAT",
+    "BRIDGE",
+    "BUS",
+    "BUSSTOP",
+    "CAR",
+    "DRIVER",
+    "FLIGHT",
+    "HELICOPTER",
+    "HOTEL",
+    "JOURNEY",
+    "MAP",
+    "METRO",
+    "MOTORBIKE",
+    "MOUNTAIN",
+    "PASSENGER",
+    "PLANE",
+    "ROAD",
+    "ROCKET",
+    "SHIP",
+    "STATION",
+    "STREET",
+    "SUBWAY",
+    "SUITCASE",
+    "TAXI",
+    "TICKET",
+    "TRAIN",
+    "TRAVEL",
+    "TRIP",
+    "TRUCK",
+    "WALK",
+    "WHEEL",
+    {
+      "word": "ADVENTURE",
+      "translation": "приключение",
+      "level": "A1"
+    },
+    {
+      "word": "ARRIVE",
+      "translation": "прибывать",
+      "level": "A1"
+    },
+    {
+      "word": "AVENUE",
+      "translation": "проспект",
+      "level": "A1"
+    },
+    {
+      "word": "BORDER",
+      "translation": "граница",
+      "level": "A1"
+    },
+    {
+      "word": "CAB",
+      "translation": "такси",
+      "level": "A1"
+    },
+    {
+      "word": "CAMPER",
+      "translation": "автодом",
+      "level": "A1"
+    },
+    {
+      "word": "CANOE",
+      "translation": "каноэ",
+      "level": "A1"
+    },
+    {
+      "word": "CAPTAIN",
+      "translation": "капитан",
+      "level": "A1"
+    },
+    {
+      "word": "CARRIAGE",
+      "translation": "вагон",
+      "level": "A1"
+    },
+    {
+      "word": "CROSSING",
+      "translation": "переход",
+      "level": "A1"
+    },
+    {
+      "word": "CRUISE",
+      "translation": "круиз",
+      "level": "A1"
+    },
+    {
+      "word": "CYCLE",
+      "translation": "велосипед",
+      "level": "A1"
+    },
+    {
+      "word": "DEPART",
+      "translation": "отправляться",
+      "level": "A1"
+    },
+    {
+      "word": "DESTINATION",
+      "translation": "место назначения",
+      "level": "A1"
+    },
+    {
+      "word": "DIRECTION",
+      "translation": "направление",
+      "level": "A1"
+    },
+    {
+      "word": "ELEVATOR",
+      "translation": "лифт",
+      "level": "A1"
+    },
+    {
+      "word": "ESCALATOR",
+      "translation": "эскалатор",
+      "level": "A1"
+    },
+    {
+      "word": "EXPLORE",
+      "translation": "исследовать",
+      "level": "A1"
+    },
+    {
+      "word": "FERRY",
+      "translation": "паром",
+      "level": "A1"
+    },
+    {
+      "word": "FUEL",
+      "translation": "топливо",
+      "level": "A1"
+    },
+    {
+      "word": "GUIDE",
+      "translation": "гид",
+      "level": "A1"
+    },
+    {
+      "word": "HARBOUR",
+      "translation": "гавань",
+      "level": "A1"
+    },
+    {
+      "word": "HIGHWAY",
+      "translation": "шоссе",
+      "level": "A1"
+    },
+    {
+      "word": "HOLIDAY",
+      "translation": "каникулы",
+      "level": "A1"
+    },
+    {
+      "word": "LANDING",
+      "translation": "приземление",
+      "level": "A1"
+    },
+    {
+      "word": "LUGGAGE",
+      "translation": "багаж",
+      "level": "A1"
+    },
+    {
+      "word": "MOTORWAY",
+      "translation": "автомагистраль",
+      "level": "A1"
+    },
+    {
+      "word": "MUSEUM",
+      "translation": "музей",
+      "level": "A1"
+    },
+    {
+      "word": "NAVIGATE",
+      "translation": "ориентироваться",
+      "level": "A1"
+    },
+    {
+      "word": "PASSPORT",
+      "translation": "паспорт",
+      "level": "A1"
+    },
+    {
+      "word": "PATH",
+      "translation": "маршрут",
+      "level": "A1"
+    },
+    {
+      "word": "PLATFORM",
+      "translation": "платформа",
+      "level": "A1"
+    },
+    {
+      "word": "PORT",
+      "translation": "порт",
+      "level": "A1"
+    },
+    {
+      "word": "RAILWAY",
+      "translation": "железная дорога",
+      "level": "A1"
+    },
+    {
+      "word": "ROUTE",
+      "translation": "маршрут",
+      "level": "A1"
+    },
+    {
+      "word": "SAIL",
+      "translation": "плыть под парусом",
+      "level": "A1"
+    },
+    {
+      "word": "SEAT",
+      "translation": "место",
+      "level": "A1"
+    },
+    {
+      "word": "SIGN",
+      "translation": "знак",
+      "level": "A1"
+    },
+    {
+      "word": "SPEED",
+      "translation": "скорость",
+      "level": "A1"
+    },
+    {
+      "word": "STOP",
+      "translation": "остановка",
+      "level": "A1"
+    },
+    {
+      "word": "TERMINAL",
+      "translation": "терминал",
+      "level": "A1"
+    },
+    {
+      "word": "TOUR",
+      "translation": "экскурсия",
+      "level": "A1"
+    },
+    {
+      "word": "TOURIST",
+      "translation": "турист",
+      "level": "A1"
+    },
+    {
+      "word": "TRAFFIC",
+      "translation": "движение",
+      "level": "A1"
+    },
+    {
+      "word": "TUNNEL",
+      "translation": "туннель",
+      "level": "A1"
+    },
+    {
+      "word": "UNDERGROUND",
+      "translation": "метро",
+      "level": "A1"
+    },
+    {
+      "word": "VACATION",
+      "translation": "каникулы",
+      "level": "A1"
+    },
+    {
+      "word": "VEHICLE",
+      "translation": "транспортное средство",
+      "level": "A1"
+    },
+    {
+      "word": "VISA",
+      "translation": "виза",
+      "level": "A1"
+    },
+    {
+      "word": "WAGON",
+      "translation": "вагон",
+      "level": "A1"
+    },
+    {
+      "word": "WAY",
+      "translation": "путь",
+      "level": "A1"
+    },
+    {
+      "word": "WEEKEND",
+      "translation": "выходные",
+      "level": "A1"
+    },
+    {
+      "word": "WORLD",
+      "translation": "мир",
+      "level": "A1"
+    },
+    {
+      "word": "YACHT",
+      "translation": "яхта",
+      "level": "A1"
+    },
+    {
+      "word": "ZEBRACROSSING",
+      "translation": "пешеходный переход",
+      "level": "A1"
+    },
+    {
+      "word": "BICYCLELANE",
+      "translation": "велодорожка",
+      "level": "A1"
+    },
+    {
+      "word": "BOARDING",
+      "translation": "посадка",
+      "level": "A1"
+    },
+    {
+      "word": "COMPASS",
+      "translation": "компас",
+      "level": "A1"
+    },
+    {
+      "word": "CUSTOMS",
+      "translation": "таможня",
+      "level": "A1"
+    },
+    {
+      "word": "EXCURSION",
+      "translation": "экскурсия",
+      "level": "A1"
+    },
+    {
+      "word": "GASSTATION",
+      "translation": "заправка",
+      "level": "A1"
+    },
+    {
+      "word": "LIGHTHOUSE",
+      "translation": "маяк",
+      "level": "A1"
+    },
+    {
+      "word": "PARKING",
+      "translation": "парковка",
+      "level": "A1"
+    },
+    {
+      "word": "TRAM",
+      "translation": "трамвай",
+      "level": "A1"
+    },
+    {
+      "word": "TRAVELLER",
+      "translation": "путешественник",
+      "level": "A1"
+    }
   ]
 }
