@@ -28,9 +28,12 @@ describe('user-reported UX regressions', () => {
 
   it('shows grade dictionaries so existing A2/B1 words can be selected', () => {
     const catalog = getKidsDictionaryCatalog();
-    expect(catalog.some(item => item.theme === 'grade')).toBe(true);
-    expect(catalog.map(item => item.shortTitle)).toEqual(expect.arrayContaining(['1 класс', '2 класс', '3 класс']));
-    expect(catalog.find(item => item.id === 'kids_grade_3')?.levelCounts?.B1).toBeGreaterThan(0);
+    expect(catalog).toHaveLength(8);
+    expect(catalog.some(item => item.theme === 'grade')).toBe(false);
+    expect(catalog.map(item => item.shortTitle)).toEqual(expect.arrayContaining([
+      'Животные', 'Еда', 'Дом', 'Школа', 'Семья', 'Природа', 'Транспорт', 'Хобби',
+    ]));
+    expect(catalog.every(item => item.wordCount >= 150)).toBe(true);
     expect(getDefaultKidsDictionaryId()).toBe('kids_animals');
     expect(getPremiumDictionaryMeta('premium_spotlight_school').title).toBe('Школьные (Spotlight)');
   });

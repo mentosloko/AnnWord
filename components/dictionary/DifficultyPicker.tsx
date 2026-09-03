@@ -6,7 +6,7 @@ import {
   DIFFICULTY_LEVELS,
 } from '../../services/difficultyAvailability';
 import { ensureGeneralDictionaryLoaded, readGeneralDictionary } from '../../services/dictionaryRuntime';
-import { getFreeKidsDictionaryEntries } from '../../services/kidsDictionaryCatalog';
+import { getKidsCefrEntries } from '../../services/kidsCefrDictionary';
 
 type DifficultyPickerProps = {
   value: DifficultyLevel;
@@ -27,13 +27,9 @@ export const DifficultyPicker: React.FC<DifficultyPickerProps> = ({
 }) => {
   const cachedGeneral = readGeneralDictionary()?.COMMON_WORDS_EN || null;
   const [generalEntries, setGeneralEntries] = useState<EnrichedWord[] | null>(cachedGeneral);
-  const [loadState, setLoadState] = useState<LoadState>(kidsMode || cachedGeneral ? 'ready' : 'idle');
+  const [loadState, setLoadState] = useState<LoadState>(cachedGeneral ? 'ready' : 'idle');
 
   useEffect(() => {
-    if (kidsMode) {
-      setLoadState('ready');
-      return;
-    }
     const cached = readGeneralDictionary()?.COMMON_WORDS_EN || null;
     if (cached) {
       setGeneralEntries(cached);
@@ -55,7 +51,7 @@ export const DifficultyPicker: React.FC<DifficultyPickerProps> = ({
   }, [kidsMode]);
 
   const entries = useMemo(
-    () => kidsMode ? getFreeKidsDictionaryEntries('ALL') : generalEntries || [],
+    () => kidsMode ? getKidsCefrEntries(generalEntries || []) : generalEntries || [],
     [generalEntries, kidsMode],
   );
   const availability = useMemo(() => buildDifficultyAvailability(entries), [entries]);
