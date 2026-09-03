@@ -3,8 +3,10 @@ import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { applyClassicResultIdempotently } from "../classicResultRepository";
 import { applyDailyQuestResult, getOrCreateDailyQuest } from "../dailyQuestRepository";
+import { rateLimit } from "../requestRateLimit";
 
 export const dailyQuestRouter = Router();
+const classicResultLimit = rateLimit({ scope: "game-mutation", max: 240, windowMs: 60_000 });
 
 dailyQuestRouter.use(requireAuth);
 
@@ -18,7 +20,7 @@ dailyQuestRouter.get("/today", async (req: AuthenticatedRequest, res) => {
   }
 });
 
-dailyQuestRouter.post("/classic-result", async (req: AuthenticatedRequest, res) => {
+dailyQuestRouter.post("/classic-result", classicResultLimit, async (req: AuthenticatedRequest, res) => {
   try {
     const operationId = typeof req.body?.operationId === "string" ? req.body.operationId.trim().slice(0, 160) : "";
     const word = typeof req.body?.word === "string" ? req.body.word.trim().toUpperCase() : "";
