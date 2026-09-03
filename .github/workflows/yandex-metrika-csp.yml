@@ -34,7 +34,7 @@ jobs:
           curl -sSI -H 'Accept-Encoding: gzip' "$APP_ORIGIN/" | tr -d '\r' > /tmp/current-headers.txt || true
           CSP="$(sed -n 's/^content-security-policy:[[:space:]]*//Ip' /tmp/current-headers.txt | head -n 1)"
           INDEX_BODY="$(curl -fsS "$APP_ORIGIN/" || true)"
-          HASHED_ASSET="$(printf '%s' "$INDEX_BODY" | grep -Eo '/assets/[^"'"' ]+-[A-Za-z0-9_-]{8,}\.js' | head -n 1)"
+          HASHED_ASSET="$(printf '%s' "$INDEX_BODY" | grep -oE '/assets/[^"]+\.js' | head -n 1 || true)"
           JS_ENCODING="$(curl -sSI -H 'Accept-Encoding: gzip' "${APP_ORIGIN}${HASHED_ASSET}" | tr -d '\r' | sed -n 's/^content-encoding:[[:space:]]*//Ip' | head -n 1)"
           if printf '%s' "$CSP" | grep -Fq 'https://mc.yandex.ru' \
             && printf '%s' "$CSP" | grep -Fq 'https://mc.yandex.com' \
@@ -98,7 +98,7 @@ jobs:
             curl -sSI -H 'Accept-Encoding: gzip' "$APP_ORIGIN/" | tr -d '\r' > /tmp/headers.txt || true
             CSP="$(sed -n 's/^content-security-policy:[[:space:]]*//Ip' /tmp/headers.txt | head -n 1)"
             INDEX_BODY="$(curl -fsS "$APP_ORIGIN/" || true)"
-            HASHED_ASSET="$(printf '%s' "$INDEX_BODY" | grep -Eo '/assets/[^"'"' ]+-[A-Za-z0-9_-]{8,}\.js' | head -n 1)"
+            HASHED_ASSET="$(printf '%s' "$INDEX_BODY" | grep -oE '/assets/[^"]+\.js' | head -n 1 || true)"
             ENCODING_HEADERS="$(curl -sSI -H 'Accept-Encoding: gzip' "${APP_ORIGIN}${HASHED_ASSET}" | tr -d '\r')"
             ENCODING="$(printf '%s\n' "$ENCODING_HEADERS" | sed -n 's/^content-encoding:[[:space:]]*//Ip' | head -n 1)"
             if printf '%s' "$CSP" | grep -Fq 'https://mc.yandex.ru' \
