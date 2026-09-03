@@ -1,0 +1,10 @@
+{
+  "id": "kids_home",
+  "title": "Дом и быт",
+  "shortTitle": "Дом",
+  "theme": "home",
+  "icon": "🏠",
+  "words": [
+    "BATH", "BATHROOM", "BED", "BEDROOM", "BLANKET", "BOOKSHELF", "BOTTLE", "BOWL", "CARPET", "CHAIR", "CLOCK", "CUP", "CURTAIN", "DOOR", "DRAWER", "FLOOR", "FRIDGE", "GARDEN", "GLASS", "HALL", "HOME", "HOUSE", "KITCHEN", "LAMP", "LIVINGROOM", "MIRROR", "PILLOW", "PLATE", "ROOM", "ROOF", "SHELF", "SHOWER", "SOFA", "SPOON", "STAIRS", "TABLE", "TOILET", "TOWEL", "WALL", "WARDROBE", "WINDOW"
+  ]
+}
