@@ -5,6 +5,293 @@
   "theme": "animals",
   "icon": "🐾",
   "words": [
-    "ANT", "BAT", "BEAR", "BEE", "BIRD", "BUTTERFLY", "CAMEL", "CAT", "CHICK", "CHICKEN", "COW", "CROCODILE", "DEER", "DOG", "DOLPHIN", "DONKEY", "DUCK", "EAGLE", "ELEPHANT", "FISH", "FLY", "FOX", "FROG", "GIRAFFE", "GOAT", "HAMSTER", "HEN", "HIPPO", "HORSE", "KANGAROO", "KOALA", "LAMB", "LION", "LIZARD", "MONKEY", "MOUSE", "OWL", "PANDA", "PARROT", "PEACOCK", "PENGUIN", "PIG", "PUPPY", "RABBIT", "SHEEP", "SNAKE", "SPIDER", "SQUIRREL", "TIGER", "TURTLE", "WHALE", "WOLF", "ZEBRA"
+    "ANT",
+    "BAT",
+    "BEAR",
+    "BEE",
+    "BIRD",
+    "BUTTERFLY",
+    "CAMEL",
+    "CAT",
+    "CHICK",
+    "CHICKEN",
+    "COW",
+    "CROCODILE",
+    "DEER",
+    "DOG",
+    "DOLPHIN",
+    "DONKEY",
+    "DUCK",
+    "EAGLE",
+    "ELEPHANT",
+    "FISH",
+    "FLY",
+    "FOX",
+    "FROG",
+    "GIRAFFE",
+    "GOAT",
+    "HAMSTER",
+    "HEN",
+    "HIPPO",
+    "HORSE",
+    "KANGAROO",
+    "KOALA",
+    "LAMB",
+    "LION",
+    "LIZARD",
+    "MONKEY",
+    "MOUSE",
+    "OWL",
+    "PANDA",
+    "PARROT",
+    "PEACOCK",
+    "PENGUIN",
+    "PIG",
+    "PUPPY",
+    "RABBIT",
+    "SHEEP",
+    "SNAKE",
+    "SPIDER",
+    "SQUIRREL",
+    "TIGER",
+    "TURTLE",
+    "WHALE",
+    "WOLF",
+    "ZEBRA",
+    {
+      "word": "ALLIGATOR",
+      "translation": "аллигатор",
+      "level": "A1"
+    },
+    {
+      "word": "BADGER",
+      "translation": "барсук",
+      "level": "A1"
+    },
+    {
+      "word": "BEAVER",
+      "translation": "бобр",
+      "level": "A1"
+    },
+    {
+      "word": "BISON",
+      "translation": "бизон",
+      "level": "A1"
+    },
+    {
+      "word": "BULL",
+      "translation": "бык",
+      "level": "A1"
+    },
+    {
+      "word": "CALF",
+      "translation": "телёнок",
+      "level": "A1"
+    },
+    {
+      "word": "CANARY",
+      "translation": "канарейка",
+      "level": "A1"
+    },
+    {
+      "word": "CHEETAH",
+      "translation": "гепард",
+      "level": "A1"
+    },
+    {
+      "word": "CRAB",
+      "translation": "краб",
+      "level": "A1"
+    },
+    {
+      "word": "CRICKET",
+      "translation": "сверчок",
+      "level": "A1"
+    },
+    {
+      "word": "CUB",
+      "translation": "детёныш",
+      "level": "A1"
+    },
+    {
+      "word": "FERRET",
+      "translation": "хорёк",
+      "level": "A1"
+    },
+    {
+      "word": "FLAMINGO",
+      "translation": "фламинго",
+      "level": "A1"
+    },
+    {
+      "word": "GOOSE",
+      "translation": "гусь",
+      "level": "A1"
+    },
+    {
+      "word": "GORILLA",
+      "translation": "горилла",
+      "level": "A1"
+    },
+    {
+      "word": "HEDGEHOG",
+      "translation": "ёж",
+      "level": "A1"
+    },
+    {
+      "word": "INSECT",
+      "translation": "насекомое",
+      "level": "A1"
+    },
+    {
+      "word": "JAGUAR",
+      "translation": "ягуар",
+      "level": "A1"
+    },
+    {
+      "word": "LADYBIRD",
+      "translation": "божья коровка",
+      "level": "A1"
+    },
+    {
+      "word": "LEOPARD",
+      "translation": "леопард",
+      "level": "A1"
+    },
+    {
+      "word": "LOBSTER",
+      "translation": "омар",
+      "level": "A1"
+    },
+    {
+      "word": "MOLE",
+      "translation": "крот",
+      "level": "A1"
+    },
+    {
+      "word": "MOSQUITO",
+      "translation": "комар",
+      "level": "A1"
+    },
+    {
+      "word": "OCTOPUS",
+      "translation": "осьминог",
+      "level": "A1"
+    },
+    {
+      "word": "OTTER",
+      "translation": "выдра",
+      "level": "A1"
+    },
+    {
+      "word": "PONY",
+      "translation": "пони",
+      "level": "A1"
+    },
+    {
+      "word": "RAVEN",
+      "translation": "ворон",
+      "level": "A1"
+    },
+    {
+      "word": "REINDEER",
+      "translation": "северный олень",
+      "level": "A1"
+    },
+    {
+      "word": "RHINO",
+      "translation": "носорог",
+      "level": "A1"
+    },
+    {
+      "word": "SALMON",
+      "translation": "лосось",
+      "level": "A1"
+    },
+    {
+      "word": "SEAL",
+      "translation": "тюлень",
+      "level": "A1"
+    },
+    {
+      "word": "SHARK",
+      "translation": "акула",
+      "level": "A1"
+    },
+    {
+      "word": "SNAIL",
+      "translation": "улитка",
+      "level": "A1"
+    },
+    {
+      "word": "SWAN",
+      "translation": "лебедь",
+      "level": "A1"
+    },
+    {
+      "word": "TAIL",
+      "translation": "хвост",
+      "level": "A1"
+    },
+    {
+      "word": "TOAD",
+      "translation": "жаба",
+      "level": "A1"
+    },
+    {
+      "word": "TURKEY",
+      "translation": "индейка",
+      "level": "A1"
+    },
+    {
+      "word": "WASP",
+      "translation": "оса",
+      "level": "A1"
+    },
+    {
+      "word": "WHISKERS",
+      "translation": "усы",
+      "level": "A1"
+    },
+    {
+      "word": "WING",
+      "translation": "крыло",
+      "level": "A1"
+    },
+    {
+      "word": "HERD",
+      "translation": "стадо",
+      "level": "A1"
+    },
+    {
+      "word": "WORM",
+      "translation": "червяк",
+      "level": "A1"
+    },
+    {
+      "word": "YAK",
+      "translation": "як",
+      "level": "A1"
+    },
+    {
+      "word": "ZOO",
+      "translation": "зоопарк",
+      "level": "A1"
+    },
+    {
+      "word": "PAW",
+      "translation": "лапа",
+      "level": "A1"
+    },
+    {
+      "word": "FUR",
+      "translation": "шерсть",
+      "level": "A1"
+    },
+    {
+      "word": "NEST",
+      "translation": "гнездо",
+      "level": "A1"
+    }
   ]
 }
