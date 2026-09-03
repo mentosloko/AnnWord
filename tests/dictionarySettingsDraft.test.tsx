@@ -53,7 +53,7 @@ describe('DictionarySettingsScreen draft selection', () => {
     fireEvent.click(screen.getByRole('button', { name: /Животные/ }));
 
     expect(onCommitSettings).not.toHaveBeenCalled();
-    expect(screen.getByText('Изменения ещё не влияют на игры.')).toBeInTheDocument();
+    expect(screen.getByText('Сохраните выбор, чтобы применить его к играм.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Готово' }));
     await waitFor(() => expect(onCommitSettings).toHaveBeenCalledTimes(1));
@@ -79,7 +79,7 @@ describe('DictionarySettingsScreen draft selection', () => {
     />);
 
     fireEvent.click(screen.getByRole('button', { name: /Свой/ }));
-    expect(screen.getByText('Изменения ещё не влияют на игры.')).toBeInTheDocument();
+    expect(screen.getByText('Сохраните выбор, чтобы применить его к играм.')).toBeInTheDocument();
 
     rerender(<DictionarySettingsScreen
       settings={settings}
@@ -93,7 +93,7 @@ describe('DictionarySettingsScreen draft selection', () => {
     />);
 
     expect(screen.getAllByText('Ваш список').length).toBeGreaterThan(0);
-    expect(screen.getByText('Изменения ещё не влияют на игры.')).toBeInTheDocument();
+    expect(screen.getByText('Сохраните выбор, чтобы применить его к играм.')).toBeInTheDocument();
     expect(onCommitSettings).not.toHaveBeenCalled();
   });
 });
