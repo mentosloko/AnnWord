@@ -15,9 +15,9 @@ describe('friends and family release fixes', () => {
 
   it('uses a compact staged dictionary selector', () => {
     const selector = read('components/screens/DictionarySettingsScreen.tsx');
-    expect(selector).toContain("title: 'Общий'");
-    expect(selector).toContain("title: 'Тематический'");
-    expect(selector).toContain("title: 'Свой'");
+    expect(selector).toContain("title: 'Все уровни'");
+    expect(selector).toContain("title: 'Темы'");
+    expect(selector).toContain("title: 'Мой словарь'");
     expect(selector).toContain("source === 'builtin'");
     expect(selector).toContain("source === 'premium'");
     expect(selector).toContain("source === 'custom'");
