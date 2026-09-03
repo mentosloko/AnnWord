@@ -21,6 +21,13 @@ type KidsDictionaryDefinition = Omit<KidsDictionaryMeta, 'wordCount' | 'levelCou
 
 const MIN_THEME_WORDS = 150;
 
+// A few early Kids words are deliberately absent from the common corpus. Keep
+// their verified translations so parent-assigned and custom dictionaries retain
+// the same translation coverage after the catalog expansion.
+const KIDS_TRANSLATION_FALLBACKS: EnrichedWord[] = [
+  { word: 'PANDA', translation: 'панда', level: 'A1' },
+];
+
 const FREE_KIDS_SEEDS = [
   'APPLE','BABY','BALL','BEAR','BIRD','BOOK','CAKE','CAT','CHAIR','CLOUD','DOG','DOOR','DUCK','FISH','GAME','GIRL','HAPPY','HOUSE','JUICE','MILK','MOON','MOUSE','PANDA','PIZZA','ROBOT','SCHOOL','SMILE','STAR','SUN','TABLE','TEDDY','TRAIN','TREE','WATER','YUMMY',
   'AIRPLANE','ANT','ARM','BAG','BANANA','BATH','BED','BEE','BICYCLE','BLUE','BOAT','BREAD','BROTHER','BUS','BUTTER','CAR','CARROT','CHEESE','CHICKEN','CHILD','CLASS','CLOCK','COAT','COLOR','COOKIE','COW','DANCE','DAY','DOLL','DRESS','EAR','EGG','ELEPHANT','EYE','FACE','FAMILY','FARM','FATHER','FLOWER','FOOT','FROG','FRIEND','FROST','GARDEN','GOAT','GREEN','HAND','HAT','HEAD','HEART','HORSE','ICE','JACKET','KITCHEN','KITE','LAMP','LEMON','LION','MANGO','MOTHER','MUSIC','NIGHT','NOSE','ORANGE','PAPER','PARK','PENCIL','PEN','PIG','PLANE','PLAY','RAIN','RED','RIVER','ROOM','SAND','SHEEP','SHOE','SISTER','SKY','SNOW','SONG','SPOON','STREET','SWIM','TEACHER','TIGER','TOY','UMBRELLA','VILLAGE','WALL','WATCH','WEATHER','WINDOW','WIND','WRITE','YELLOW','ZEBRA',
@@ -55,9 +62,10 @@ const dictionaries: Record<KidsDictionaryId, KidsDictionaryDefinition> = {
 
 const normalize = (word: string): string => word.trim().toUpperCase().replace(/[^A-Z]/g, '');
 
-const generalKidsFoundation = (): EnrichedWord[] => getKidsCefrEntries(
-  readGeneralDictionary()?.COMMON_WORDS_EN || [],
-).filter(entry => entry.level === 'A1' || entry.level === 'A2');
+const generalKidsFoundation = (): EnrichedWord[] => getKidsCefrEntries([
+  ...(readGeneralDictionary()?.COMMON_WORDS_EN || []),
+  ...KIDS_TRANSLATION_FALLBACKS,
+]).filter(entry => entry.level === 'A1' || entry.level === 'A2');
 
 const buildEntries = (seeds: string[], minimum = MIN_THEME_WORDS): EnrichedWord[] => {
   const byWord = new Map(generalKidsFoundation().map(entry => [normalize(entry.word), entry]));
