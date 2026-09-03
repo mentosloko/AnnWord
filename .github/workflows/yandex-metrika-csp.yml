@@ -33,13 +33,15 @@ jobs:
           set -euo pipefail
           curl -sSI -H 'Accept-Encoding: gzip' "$APP_ORIGIN/" | tr -d '\r' > /tmp/current-headers.txt || true
           CSP="$(sed -n 's/^content-security-policy:[[:space:]]*//Ip' /tmp/current-headers.txt | head -n 1)"
-          ENCODING="$(sed -n 's/^content-encoding:[[:space:]]*//Ip' /tmp/current-headers.txt | head -n 1)"
+          INDEX_BODY="$(curl -fsS "$APP_ORIGIN/" || true)"
+          HASHED_ASSET="$(printf '%s' "$INDEX_BODY" | grep -Eo '/assets/[^"'"' ]+-[A-Za-z0-9_-]{8,}\.js' | head -n 1)"
+          JS_ENCODING="$(curl -sSI -H 'Accept-Encoding: gzip' "${APP_ORIGIN}${HASHED_ASSET}" | tr -d '\r' | sed -n 's/^content-encoding:[[:space:]]*//Ip' | head -n 1)"
           if printf '%s' "$CSP" | grep -Fq 'https://mc.yandex.ru' \
             && printf '%s' "$CSP" | grep -Fq 'https://mc.yandex.com' \
             && printf '%s' "$CSP" | grep -Fq 'https://yastatic.net' \
             && printf '%s' "$CSP" | grep -Fq "child-src 'self' blob:" \
             && printf '%s' "$CSP" | grep -Fq 'https://metrika.yandex.ru' \
-            && [ "$ENCODING" = 'gzip' ]; then
+            && [ "$JS_ENCODING" = 'gzip' ]; then
             echo 'ready=true' >> "$GITHUB_OUTPUT"
             echo 'CDN CSP and Gzip are already active; no Yandex Cloud update needed.'
           else
