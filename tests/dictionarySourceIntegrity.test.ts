@@ -65,12 +65,14 @@ describe('active dictionary source integrity', () => {
 
   it('keeps ordinary game tiles separate from the explicit saved-game resume path', () => {
     const source = readFileSync('components/AppScreens.tsx', 'utf8');
-    const quickLaunch = source.slice(source.indexOf('const requestQuickLaunch'), source.indexOf('const startSelectedMode'));
     const resume = source.slice(source.indexOf('const resumeSavedGame'), source.indexOf('const requestQuickLaunch'));
+    const quickLaunch = source.slice(source.indexOf('const requestQuickLaunch'), source.indexOf('const startSelectedMode'));
+    const start = source.slice(source.indexOf('const startSelectedMode'), source.indexOf('const startDailyQuest'));
 
     expect(quickLaunch).not.toContain('resumeSavedGame()');
-    expect(resume).toContain('saved.dictionaryId === currentDictionaryId');
-    expect(resume).toContain('sameWordSnapshot(saved.dictionaryWords, currentWords)');
+    expect(resume).toContain('setResumeSavedType(saved.gameType)');
     expect(resume).toContain("onRouteChange('setup')");
+    expect(start).toContain('saved.dictionaryId === currentDictionaryId');
+    expect(start).toContain('sameWordSnapshot(saved.dictionaryWords, words)');
   });
 });
