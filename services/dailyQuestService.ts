@@ -3,7 +3,7 @@ import type { GameRewardInput } from './gamificationRules';
 import { normalizeDailyQuest } from './dailyQuest';
 import { backendApiRequest } from './backendApiClient';
 
-interface DailyQuestGameResult {
+export interface DailyQuestGameResult {
   quest: DailyQuestState;
   reward: DailyQuestCompletionReward | null;
   profile: UserProfile | null;
@@ -12,6 +12,7 @@ interface DailyQuestGameResult {
 const QUEST_CACHE_TTL_MS = 60_000;
 let primedTodayQuest: DailyQuestState | null | undefined;
 let primedAt = 0;
+let pendingClassicCommits: Array<Promise<DailyQuestGameResult | null>> = [];
 
 const cacheQuest = (quest: DailyQuestState | null | undefined): void => {
   primedTodayQuest = quest === undefined ? undefined : normalizeDailyQuest(quest);
@@ -21,6 +22,11 @@ const cacheQuest = (quest: DailyQuestState | null | undefined): void => {
 export const dailyQuestService = {
   primeTodayQuest: (quest: DailyQuestState | null | undefined): void => {
     cacheQuest(quest);
+    if (quest === undefined) pendingClassicCommits = [];
+  },
+
+  registerClassicResultCommit: (commit: Promise<DailyQuestGameResult | null>): void => {
+    pendingClassicCommits.push(commit);
   },
 
   getTodayQuest: async (): Promise<DailyQuestState | null> => {
@@ -34,6 +40,16 @@ export const dailyQuestService = {
   },
 
   submitGameResult: async (input: GameRewardInput): Promise<DailyQuestGameResult> => {
+    if (input.type === 'wordle' && pendingClassicCommits.length > 0) {
+      const commit = pendingClassicCommits.shift()!;
+      const result = await commit;
+      if (!result) {
+        throw new Error('Результат Классики сохранён локально и будет синхронизирован при восстановлении связи.');
+      }
+      cacheQuest(result.quest);
+      return result;
+    }
+
     const data = await backendApiRequest<DailyQuestGameResult>('/api/daily-quest/result', {
       method: 'POST',
       body: input,
