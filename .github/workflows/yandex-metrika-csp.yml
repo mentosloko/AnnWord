@@ -1,6 +1,11 @@
 name: Configure Yandex CDN headers and compression
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/yandex-metrika-csp.yml
   workflow_dispatch:
   workflow_run:
     workflows:
@@ -17,7 +22,7 @@ env:
 
 jobs:
   configure:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     name: Configure CDN security headers and Gzip
     runs-on: ubuntu-latest
     timeout-minutes: 20
