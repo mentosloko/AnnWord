@@ -17,7 +17,7 @@ export interface KidsDictionaryMeta {
   levelCounts?: Partial<Record<DifficultyLevel, number>>;
 }
 
-type KidsDictionaryDefinition = Omit<KidsDictionaryMeta, 'wordCount' | 'levelCounts'> & { seeds: string[] };
+type KidsDictionaryDefinition = Omit<KidsDictionaryMeta, 'wordCount' | 'levelCounts'> & { seeds: string[]; excludedWords?: string[] };
 
 const MIN_THEME_WORDS = 150;
 
@@ -34,7 +34,7 @@ const FREE_KIDS_SEEDS = [
 ];
 
 const dictionaries: Record<KidsDictionaryId, KidsDictionaryDefinition> = {
-  kids_animals: { id:'kids_animals', title:'Животные', shortTitle:'Животные', theme:'animals', icon:'🐾', seeds:[
+  kids_animals: { id:'kids_animals', title:'Животные', shortTitle:'Животные', theme:'animals', icon:'🐾', excludedWords:['APPLE','SCHOOL'], seeds:[
     'ANT','BAT','BEAR','BEE','BIRD','BUTTERFLY','CAMEL','CAT','CHICK','CHICKEN','COW','CROCODILE','DEER','DOG','DOLPHIN','DONKEY','DUCK','EAGLE','ELEPHANT','FISH','FLY','FOX','FROG','GIRAFFE','GOAT','HAMSTER','HEN','HIPPO','HORSE','KANGAROO','KOALA','LAMB','LION','LIZARD','MONKEY','MOUSE','OWL','PANDA','PARROT','PEACOCK','PENGUIN','PIG','PUPPY','RABBIT','SHEEP','SNAKE','SPIDER','SQUIRREL','TIGER','TURTLE','WHALE','WOLF','ZEBRA'
   ]},
   kids_food: { id:'kids_food', title:'Еда и напитки', shortTitle:'Еда', theme:'food', icon:'🍎', seeds:[
@@ -67,14 +67,15 @@ const generalKidsFoundation = (): EnrichedWord[] => getKidsCefrEntries([
   ...KIDS_TRANSLATION_FALLBACKS,
 ]).filter(entry => entry.level === 'A1' || entry.level === 'A2');
 
-const buildEntries = (seeds: string[], minimum = MIN_THEME_WORDS): EnrichedWord[] => {
+const buildEntries = (seeds: string[], minimum = MIN_THEME_WORDS, excludedWords: string[] = []): EnrichedWord[] => {
   const byWord = new Map(generalKidsFoundation().map(entry => [normalize(entry.word), entry]));
+  const excluded = new Set(excludedWords.map(normalize));
   const selected: EnrichedWord[] = [];
   const seen = new Set<string>();
   for (const candidate of [...seeds, ...generalKidsFoundation().map(entry => entry.word)]) {
     const word = normalize(candidate);
     const entry = byWord.get(word);
-    if (!entry || seen.has(word)) continue;
+    if (!entry || seen.has(word) || excluded.has(word)) continue;
     seen.add(word);
     selected.push(entry);
     if (selected.length >= minimum) break;
@@ -101,7 +102,8 @@ export const getKidsDictionaryMeta = (id?: string): KidsDictionaryMeta =>
 
 export const getKidsPremiumDictionaryEntries = (id?: string, difficulty: DifficultyLevel = 'ALL'): EnrichedWord[] => {
   const dictionaryId = dictionaries[id as KidsDictionaryId] ? id as KidsDictionaryId : getDefaultKidsDictionaryId();
-  return buildEntries(dictionaries[dictionaryId].seeds).filter(entry => matchesDifficulty(entry, difficulty));
+  const dictionary = dictionaries[dictionaryId];
+  return buildEntries(dictionary.seeds, MIN_THEME_WORDS, dictionary.excludedWords).filter(entry => matchesDifficulty(entry, difficulty));
 };
 
 export const getKidsPremiumDictionaryWords = (id?: string, difficulty: DifficultyLevel = 'ALL'): string[] =>
@@ -111,7 +113,7 @@ export const getAllKidsDictionaryEntries = (): EnrichedWord[] => {
   const seen = new Set<string>();
   const entries: EnrichedWord[] = [
     ...getFreeKidsDictionaryEntries(),
-    ...Object.values(dictionaries).flatMap<EnrichedWord>(item => buildEntries(item.seeds)),
+    ...Object.values(dictionaries).flatMap<EnrichedWord>(item => buildEntries(item.seeds, MIN_THEME_WORDS, item.excludedWords)),
   ];
   return entries.filter(entry => !seen.has(entry.word) && seen.add(entry.word));
 };
