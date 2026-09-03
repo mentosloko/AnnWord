@@ -230,7 +230,7 @@ test.describe('dictionary integrity browser E2E', () => {
 
     await page.getByRole('button', { name: /Тематический/ }).click();
     await page.getByRole('button', { name: /Животные/ }).click();
-    await expect(page.getByText('Изменения ещё не влияют на игры.')).toBeVisible();
+    await expect(page.getByText('Сохраните выбор, чтобы применить его к играм.')).toBeVisible();
     await page.getByRole('button', { name: 'Готово' }).click();
 
     await expect(page.getByText('Слова для игр: Животные')).toBeVisible();
@@ -284,7 +284,7 @@ test.describe('dictionary integrity browser E2E', () => {
 
     const patchesBeforeDraft = backend.sourcePatchCount();
     await page.getByRole('button', { name: /Свой/ }).click();
-    await expect(page.getByText('Изменения ещё не влияют на игры.')).toBeVisible();
+    await expect(page.getByText('Сохраните выбор, чтобы применить его к играм.')).toBeVisible();
     await expect(page.getByText('Ваш список').first()).toBeVisible();
 
     const staleProfile = makeProfile({
@@ -300,7 +300,7 @@ test.describe('dictionary integrity browser E2E', () => {
       window.dispatchEvent(new CustomEvent('annword:profile-updated', { detail: { userId, profile } }));
     }, { userId: USER.id, profile: staleProfile });
 
-    await expect(page.getByText('Изменения ещё не влияют на игры.')).toBeVisible();
+    await expect(page.getByText('Сохраните выбор, чтобы применить его к играм.')).toBeVisible();
     await expect(page.getByText('Ваш список').first()).toBeVisible();
     expect(backend.sourcePatchCount()).toBe(patchesBeforeDraft);
     expect(backend.activeSource()).toMatchObject({ source: 'premium', premiumDictionaryId: 'kids_animals' });
@@ -310,7 +310,7 @@ test.describe('dictionary integrity browser E2E', () => {
 
     await openDictionarySelection(page, 'Животные');
     await expect(page.getByText('Выбрано сейчас')).toBeVisible();
-    await expect(page.getByText('Изменения ещё не влияют на игры.')).toHaveCount(0);
+    await expect(page.getByText('Сохраните выбор, чтобы применить его к играм.')).toHaveCount(0);
   });
 
   test('parent workspace -> dictionary -> Back returns to parent workspace', async ({ page }) => {

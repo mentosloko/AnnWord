@@ -251,7 +251,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
     </header>
 
     <section className="rounded-[2rem] border-2 border-indigo-50 bg-white p-4 shadow-sm sm:p-6">
-      <div className="rounded-2xl bg-indigo-50 px-4 py-3"><div className="text-[10px] font-black uppercase tracking-widest text-indigo-400">{dirty ? 'Будет выбрано после сохранения' : 'Выбрано сейчас'}</div><div className="mt-1 text-lg font-black text-indigo-950">{currentLabel}</div>{dirty && <div className="mt-1 text-xs font-bold text-amber-700">Изменения ещё не влияют на игры.</div>}</div>
+      <div className="rounded-2xl bg-indigo-50 px-4 py-3"><div className="text-[10px] font-black uppercase tracking-widest text-indigo-400">{dirty ? 'Будет выбрано после сохранения' : 'Выбрано сейчас'}</div><div className="mt-1 text-lg font-black text-indigo-950">{currentLabel}</div>{dirty && <div className="mt-1 text-xs font-bold text-amber-700">Сохраните выбор, чтобы применить его к играм.</div>}</div>
       {saveError && <div role="alert" className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{saveError}</div>}
 
       <div className="mt-4 md:hidden">
@@ -273,7 +273,7 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
 
         {source === 'builtin' && <section className="mt-4 rounded-3xl border-2 border-indigo-100 bg-indigo-50/45 p-4">
           <h2 className="text-lg font-black text-indigo-950">{kidsMode ? 'Детский словарь' : 'General English'}</h2>
-          <p className="mt-1 text-sm font-bold text-slate-500">{kidsMode ? 'Базовый детский словарь содержит A1. Для A2 выберите тематический набор или «2 класс», для B1 — «3 класс». B2–C2 пока не входят в Kids-каталог, поэтому остаются закрытыми.' : 'Выберите сложность только для общего словаря. На тематические наборы этот уровень не влияет.'}</p>
+          <p className="mt-1 text-sm font-bold text-slate-500">{kidsMode ? 'Выберите уровень A1–C2: все уровни доступны в детском CEFR-словаре.' : 'Выберите сложность только для общего словаря. На тематические наборы этот уровень не влияет.'}</p>
           <DifficultyPicker
             value={draftSettings.difficulty}
             kidsMode={kidsMode}
