@@ -65,6 +65,7 @@ jobs:
 
           python3 -m pip install --user --disable-pip-version-check --quiet 'PyYAML==6.0.2'
           python3 - <<'PY'
+          from copy import deepcopy
           from pathlib import Path
           import yaml
 
@@ -86,17 +87,56 @@ jobs:
           paths = spec.get('paths') or {}
           if not isinstance(paths, dict):
               raise SystemExit('paths must be a mapping')
-          for path_name, path_item in paths.items():
+
+          bridged_paths = 0
+          for index, (path_name, path_item) in enumerate(paths.items(), start=1):
               if not isinstance(path_item, dict):
                   continue
-              if 'x-yc-apigateway-cors' in path_item and path_item.get('x-yc-apigateway-cors') != {'origin': False}:
+
+              any_method = path_item.get('x-yc-apigateway-any-method')
+              integration_type = None
+              if isinstance(any_method, dict):
+                  integration = any_method.get('x-yc-apigateway-integration')
+                  if isinstance(integration, dict):
+                      integration_type = integration.get('type')
+
+              # Disable API Gateway's synthetic preflight response. For proxy routes,
+              # add an explicit OPTIONS operation that reuses the same integration so
+              # Express/cors is the single source of truth for allowed origins.
+              if isinstance(any_method, dict):
+                  if path_item.get('x-yc-apigateway-cors') != {'origin': False}:
+                      path_item['x-yc-apigateway-cors'] = {'origin': False}
+                      changed = True
+
+                  options = path_item.get('options')
+                  if not isinstance(options, dict) or 'x-yc-apigateway-integration' not in options:
+                      options = deepcopy(any_method)
+                      options.pop('operationId', None)
+                      options['operationId'] = f'annwordCorsPreflight{index}'
+                      path_item['options'] = options
+                      changed = True
+                      bridged_paths += 1
+              elif 'x-yc-apigateway-cors' in path_item and path_item.get('x-yc-apigateway-cors') != {'origin': False}:
                   path_item['x-yc-apigateway-cors'] = {'origin': False}
                   changed = True
+
+              print(
+                  f'gateway_path={path_name} '
+                  f'any_method={str(isinstance(any_method, dict)).lower()} '
+                  f'options={str(isinstance(path_item.get("options"), dict)).lower()} '
+                  f'integration={integration_type or "none"}'
+              )
+
+          if not any(
+              isinstance(path_item, dict) and isinstance(path_item.get('x-yc-apigateway-any-method'), dict)
+              for path_item in paths.values()
+          ):
+              raise SystemExit('No x-yc-apigateway-any-method proxy route found; refusing to rewrite gateway CORS blindly')
 
           path.write_text(yaml.safe_dump(spec, sort_keys=False, allow_unicode=True))
           if changed:
               Path('/tmp/gateway-cors-changed').write_text('1')
-          print(f'gateway_cors_spec_changed={str(changed).lower()}')
+          print(f'gateway_cors_spec_changed={str(changed).lower()} bridged_paths={bridged_paths}')
           PY
 
           if [ -f /tmp/gateway-cors-changed ]; then
@@ -118,21 +158,23 @@ jobs:
           }
           trap restore_on_failure EXIT
 
+          trusted_headers=''
+          foreign_headers=''
           verify_cors() {
-            TRUSTED="$(curl -sSI -X OPTIONS \
+            trusted_headers="$(curl -sSI -X OPTIONS \
               -H "Origin: ${APP_ORIGIN}" \
               -H 'Access-Control-Request-Method: POST' \
               -H 'Access-Control-Request-Headers: content-type,x-annword-session' \
-              "${API_BASE}/api/profile/coins" | tr -d '\r')"
-            FOREIGN="$(curl -sSI -X OPTIONS \
+              "${API_BASE}/api/profile/coins?cors_probe=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" | tr -d '\r')"
+            foreign_headers="$(curl -sSI -X OPTIONS \
               -H 'Origin: https://untrusted.example' \
               -H 'Access-Control-Request-Method: POST' \
-              "${API_BASE}/api/profile/coins" | tr -d '\r')"
+              "${API_BASE}/api/profile/coins?cors_probe=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" | tr -d '\r')"
 
-            printf '%s\n' "$TRUSTED" | grep -Eq '^HTTP/[^ ]+ 204 ' || return 1
-            printf '%s\n' "$TRUSTED" | grep -Eqi '^access-control-max-age:[[:space:]]*3600([[:space:]]|$)' || return 1
-            printf '%s\n' "$TRUSTED" | grep -Eqi '^access-control-allow-origin:[[:space:]]*https://annword\.ru([[:space:]]|$)' || return 1
-            if printf '%s\n' "$FOREIGN" | grep -Eqi '^access-control-allow-origin:'; then
+            printf '%s\n' "$trusted_headers" | grep -Eq '^HTTP/[^ ]+ 204 ' || return 1
+            printf '%s\n' "$trusted_headers" | grep -Eqi '^access-control-max-age:[[:space:]]*3600([[:space:]]|$)' || return 1
+            printf '%s\n' "$trusted_headers" | grep -Eqi '^access-control-allow-origin:[[:space:]]*https://annword\.ru([[:space:]]|$)' || return 1
+            if printf '%s\n' "$foreign_headers" | grep -Eqi '^access-control-allow-origin:'; then
               return 1
             fi
           }
@@ -145,6 +187,11 @@ jobs:
             fi
             sleep 2
           done
+
+          echo 'Trusted preflight after gateway hardening:'
+          printf '%s\n' "$trusted_headers"
+          echo 'Foreign preflight after gateway hardening:'
+          printf '%s\n' "$foreign_headers"
 
           if [ "$verified" != "1" ]; then
             echo 'Trusted/untrusted CORS verification did not converge after the gateway update.'
