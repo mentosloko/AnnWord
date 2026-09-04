@@ -58,7 +58,7 @@ const delayedQuest = {
   rewardWorldId: null,
 };
 
-const installBackend = async (page: Page, currentProfile: TestProfile = profile) => {
+const installBackend = async (page: Page, currentProfile: TestProfile = profile, questDelayMs = 0) => {
   await page.route(`${API_ORIGIN}/api/**`, async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -78,7 +78,7 @@ const installBackend = async (page: Page, currentProfile: TestProfile = profile)
       return;
     }
     if (path === '/api/daily-quest/today') {
-      await new Promise(resolve => setTimeout(resolve, 700));
+      if (questDelayMs > 0) await new Promise(resolve => setTimeout(resolve, questDelayMs));
       await fulfillJson(route, { quest: delayedQuest });
       return;
     }
@@ -104,7 +104,7 @@ const expectHeaderFitsViewport = async (page: Page) => {
 
 const expectPremiumHeader = async (page: Page) => {
   const header = page.locator('header').first();
-  const premiumLabel = header.getByText('Premium', { exact: true });
+  const premiumLabel = header.getByLabel('Premium');
   const coinsButton = header.getByRole('button', { name: /Монеты:/ });
 
   await expect(premiumLabel).toBeVisible();
@@ -135,7 +135,7 @@ test('mobile Kids keeps CLS at or below 0.1 while quest state hydrates', async (
     }).observe({ type: 'layout-shift', buffered: true });
     (window as any).__annwordReadCls = () => cls;
   });
-  await installBackend(page);
+  await installBackend(page, profile, 2500);
 
   const questResponse = page.waitForResponse(response => response.url().includes('/api/daily-quest/today') && response.status() === 200);
   await page.goto('/kids', { waitUntil: 'domcontentloaded' });
@@ -155,7 +155,7 @@ test('Premium parent header is compact and consistent on mobile and desktop', as
   for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/kids', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'Поиграем со словами?' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Большое приключение' })).toBeVisible();
     await expectHeaderFitsViewport(page);
     await expectPremiumHeader(page);
   }
@@ -170,10 +170,10 @@ test('parent without Premium has no Family or Premium mode label', async ({ page
   await page.setViewportSize({ width: 390, height: 844 });
   await installBackend(page, freeProfile);
   await page.goto('/kids', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: 'Поиграем со словами?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Большое приключение' })).toBeVisible();
 
   const header = page.locator('header').first();
   await expect(header.getByText('Семья', { exact: true })).toHaveCount(0);
-  await expect(header.getByText('Premium', { exact: true })).toHaveCount(0);
+  await expect(header.getByLabel('Premium')).toHaveCount(0);
   await expectHeaderFitsViewport(page);
 });
