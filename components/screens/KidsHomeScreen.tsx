@@ -3,6 +3,7 @@ import { DailyQuestCompletionReward, DailyQuestState, UserProfile } from '../../
 import { getCharacterXpProgress, normalizeMoodScore } from '../../services/gamificationRules';
 import { getMoodDisplay } from '../../services/moodDisplay';
 import { getPetCharacterAssetUrl } from '../../services/petAssets';
+import { getEarnedStickers, STREAK_STICKERS } from '../../services/premiumFeatureCatalog';
 import { hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
 import { CoinIcon } from '../CoinIcon';
 import { ScreenContainer } from '../layout/ScreenContainer';
@@ -44,7 +45,10 @@ export const KidsHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, onSta
   const [petReady, setPetReady] = useState(false);
   useEffect(() => setPetReady(false), [petUrl]);
   const mood = getMoodDisplay(normalizeMoodScore(userProfile.pet));
-  const streak = dailyQuest?.completed ? Math.max(1, Math.round(userProfile.pet.dailyStreak || 0)) : Math.max(0, Math.round(userProfile.pet.dailyStreak || 0));
+  const streak = Math.max(0, Math.round(userProfile.pet.dailyStreak || 0));
+  const stickers = userProfile.featureFlags?.streakStickers ? getEarnedStickers(userProfile.pet) : [];
+  const nextSticker = userProfile.featureFlags?.streakStickers ? STREAK_STICKERS.find(sticker => !stickers.some(item => item.id === sticker.id)) : undefined;
+  const daysToNextSticker = nextSticker ? Math.max(0, nextSticker.days - streak) : 0;
   const xp = getCharacterXpProgress(userProfile.pet);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
   const continueAction = onContinueSavedGame || (hasActiveClassicGame ? onStartClassic : hasActiveAnagramGame ? onStartAnagrams : null);
@@ -66,9 +70,16 @@ export const KidsHomeScreen: React.FC<Props> = ({ userProfile, dailyQuest, onSta
 
   return <ScreenContainer className="max-w-6xl pb-24 pt-4 sm:pb-20 sm:pt-6">
     <section className="grid overflow-hidden rounded-[2rem] bg-gradient-to-br from-purple-700 to-indigo-700 text-white shadow-xl lg:grid-cols-[1fr_21rem]">
-      <div className="p-5 sm:p-8"><div className="text-xs font-bold uppercase tracking-wider text-white/65">Задание на сегодня</div><h1 className="mt-2 min-h-[4.5rem] text-3xl font-bold leading-tight sm:min-h-0 sm:text-5xl">{dailyQuest?.completed ? `Серия: ${streak} ${dayWord(streak)}` : dailyQuest?.title || 'Поиграем со словами?'}</h1><p className="mt-3 min-h-[4.5rem] max-w-2xl text-sm font-medium leading-relaxed text-white/80 sm:min-h-0 sm:text-base">{dailyQuest?.completed ? 'Задание выполнено. Питомец получил награду, а теперь можно выбрать любую игру.' : dailyQuest?.description || 'Короткая игра поможет продлить серию и порадовать питомца.'}</p>{onOpenDictionary ? <button type="button" onClick={onOpenDictionary} aria-label={`Выбрать слова для игр. Сейчас: ${dictionaryLabel}`} className={dictionaryPillClass}>{dictionaryPillContent}</button> : <div className={dictionaryPillClass}>{dictionaryPillContent}</div>}<div className="mt-6 flex min-h-[7.5rem] flex-col gap-2 sm:min-h-0 sm:flex-row"><button type="button" onClick={dailyQuest?.completed ? (continueAction || playRandomGame) : startQuest} className="rounded-2xl bg-white px-6 py-3.5 font-bold text-indigo-700 shadow-sm">{dailyQuest?.completed ? continueAction ? 'Продолжить игру' : 'Играть ещё' : 'Начать задание'}</button>{!dailyQuest?.completed && continueAction && <button type="button" onClick={continueAction} className="rounded-2xl bg-white/10 px-6 py-3.5 font-bold text-white ring-1 ring-white/25">Продолжить сохранённую</button>}</div></div>
+      <div className="p-5 sm:p-8"><div className="text-xs font-bold uppercase tracking-wider text-white/65">Задание на сегодня</div><h1 className="mt-2 min-h-[4.5rem] text-3xl font-bold leading-tight sm:min-h-0 sm:text-5xl">{dailyQuest?.completed ? 'Задание выполнено!' : dailyQuest?.title || 'Поиграем со словами?'}</h1><p className="mt-3 min-h-[4.5rem] max-w-2xl text-sm font-medium leading-relaxed text-white/80 sm:min-h-0 sm:text-base">{dailyQuest?.completed ? 'Питомец получил награду, а теперь можно выбрать любую игру.' : dailyQuest?.description || 'Короткая игра поможет продлить серию и порадовать питомца.'}</p>{onOpenDictionary ? <button type="button" onClick={onOpenDictionary} aria-label={`Выбрать слова для игр. Сейчас: ${dictionaryLabel}`} className={dictionaryPillClass}>{dictionaryPillContent}</button> : <div className={dictionaryPillClass}>{dictionaryPillContent}</div>}<div className="mt-6 flex min-h-[7.5rem] flex-col gap-2 sm:min-h-0 sm:flex-row"><button type="button" onClick={dailyQuest?.completed ? (continueAction || playRandomGame) : startQuest} className="rounded-2xl bg-white px-6 py-3.5 font-bold text-indigo-700 shadow-sm">{dailyQuest?.completed ? continueAction ? 'Продолжить игру' : 'Играть ещё' : 'Начать задание'}</button>{!dailyQuest?.completed && continueAction && <button type="button" onClick={continueAction} className="rounded-2xl bg-white/10 px-6 py-3.5 font-bold text-white ring-1 ring-white/25">Продолжить сохранённую</button>}</div></div>
       <button type="button" onClick={onOpenPetRoom} className="relative hidden min-h-[17rem] items-end justify-center overflow-hidden bg-white/10 lg:flex"><span className="sr-only">Открыть комнату питомца</span>{!petReady && <div className="absolute inset-6 animate-pulse rounded-[2rem] bg-white/10" />}{petUrl && <img src={petUrl} alt="" onLoad={() => setPetReady(true)} className={`h-72 w-72 object-cover object-center transition-opacity ${petReady ? 'opacity-100' : 'opacity-0'}`} draggable={false} />}</button>
     </section>
+
+    <SectionCard className="mt-5 border-orange-100 bg-gradient-to-r from-orange-50 to-amber-50">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div><div className="text-xs font-bold uppercase tracking-wider text-orange-600">Серия игр</div><div className="mt-1 flex items-baseline gap-2"><span className="text-3xl" aria-hidden="true">🔥</span><strong className="text-3xl font-black text-orange-700">{streak} {dayWord(streak)}</strong>{dailyQuest?.completed && <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-black text-green-700">Сегодня засчитано ✓</span>}</div><p className="mt-2 text-sm font-medium text-slate-600">{streak > 0 ? 'Играй каждый день, чтобы серия росла и открывались новые наклейки.' : 'Заверши сегодняшнее задание, чтобы начать свою серию.'}</p></div>
+        {userProfile.featureFlags?.streakStickers && <div className="rounded-2xl bg-white/80 p-3 sm:min-w-[17rem]"><div className="text-xs font-black uppercase text-amber-600">Наклейки за серию</div><div className="mt-2 flex gap-2">{STREAK_STICKERS.map(sticker => <span key={sticker.id} title={sticker.description} className={stickers.some(item => item.id === sticker.id) ? 'text-2xl' : 'text-2xl grayscale opacity-30'}>{sticker.emoji}</span>)}</div>{nextSticker ? <div className="mt-2 text-xs font-bold text-amber-700">До «{nextSticker.title}» осталось: {daysToNextSticker} {dayWord(daysToNextSticker)}</div> : <div className="mt-2 text-xs font-bold text-green-700">Все наклейки серии уже собраны 🎉</div>}</div>}
+      </div>
+    </SectionCard>
 
     <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <SectionCard><div className={experienceUi.eyebrow}>Другие игры</div><h2 className={`mt-1 ${experienceUi.sectionTitle}`}>Выберите игру</h2><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{games.map(game => <GameTile key={game.title} {...game} />)}</div></SectionCard>

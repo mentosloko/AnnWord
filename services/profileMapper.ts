@@ -113,6 +113,10 @@ export const normalizeInventory = (value: unknown): InventoryItem[] => Array.isA
 export const mapProfileFromDB = (data: any): UserProfile => {
   const featureFlags = normalizeFeatureFlags(data?.feature_flags);
   const rawActiveWordSource = isPlainObject(data?.active_word_source) ? data.active_word_source : {};
+  const normalizedPet = normalizePet(data?.pet);
+  const petWardrobeAutoRemoved = featureFlags.levelWardrobe === true
+    && normalizeMoodScore(normalizedPet) < 34
+    && normalizedPet.equippedAccessories.length > 0;
   return {
     username: typeof data?.username === 'string' && data.username.trim() ? data.username : 'Гость',
     role: ['admin', 'parent', 'teacher'].includes(String(data?.role)) ? data.role : 'user',
@@ -130,8 +134,9 @@ export const mapProfileFromDB = (data: any): UserProfile => {
     dictionaryCollections: Array.isArray(data?.dictionary_collections) ? data.dictionary_collections : [],
     managedLearners: Array.isArray(data?.managed_learners) ? data.managed_learners : [],
     weeklyReportEmail: typeof data?.weekly_report_email === 'string' ? data.weekly_report_email : undefined,
+    petWardrobeAutoRemoved,
     stats: normalizeStats(data?.stats),
-    pet: normalizePet(data?.pet, featureFlags.levelWardrobe === true),
+    pet: petWardrobeAutoRemoved ? { ...normalizedPet, equippedAccessories: [] } : normalizedPet,
     coins: typeof data?.coins === 'number' ? data.coins : 0,
     inventory: normalizeInventory(data?.inventory),
   };
