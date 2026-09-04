@@ -79,14 +79,14 @@ export const WeeklyReportSettingsCard: React.FC<Props> = ({ userProfile, premium
   const accountEmail = status?.accountEmail || '';
   return <section className="rounded-2xl bg-indigo-50 p-4" aria-labelledby="weekly-report-title">
     <div className="flex items-start justify-between gap-3">
-      <div><div id="weekly-report-title" className="text-xs font-black uppercase text-indigo-500">Еженедельный отчёт</div><p className="mt-2 text-sm font-bold leading-relaxed text-indigo-900">Получать краткий отчёт о тренировках ребёнка на почту аккаунта.</p></div>
+      <div><div id="weekly-report-title" className="text-xs font-black uppercase text-indigo-500">Еженедельный отчёт</div><p className="mt-2 text-sm font-bold leading-relaxed text-indigo-900">Получать понятный итог недели ребёнка на почту аккаунта.</p></div>
       <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black uppercase ${enabled ? 'bg-green-100 text-green-700' : 'bg-white text-gray-500'}`}>{enabled ? 'включён' : 'выключен'}</span>
     </div>
     <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl bg-white p-3">
       <input type="checkbox" checked={enabled} disabled={busy || statusLoading || !accountEmail} onChange={event => void toggleReport(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded" />
       <span className="min-w-0"><span className="block text-sm font-black text-indigo-950">Отправлять отчёт по понедельникам</span><span className="mt-1 block break-all text-xs font-bold text-indigo-500">{statusLoading ? 'Проверяем email аккаунта…' : accountEmail || 'Email аккаунта недоступен'}</span></span>
     </label>
-    <p className="mt-3 text-xs font-bold leading-relaxed text-indigo-700/80">В отчёте будут игры за неделю, точность и слова, которые стоит повторить.</p>
+    <p className="mt-3 text-xs font-bold leading-relaxed text-indigo-700/80">В отчёте будут дни занятий, игры, точность, слова, которые уже получаются, что стоит повторить и короткий совет на следующую неделю.</p>
     {error && <p role="alert" className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{error}</p>}
     {message && <p role="status" aria-live="polite" className="mt-3 rounded-xl bg-green-50 px-3 py-2 text-xs font-bold text-green-700">{message}</p>}
     {enabled && <div className="mt-3 rounded-xl bg-white/80 p-3 text-xs font-bold text-indigo-800">
