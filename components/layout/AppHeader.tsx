@@ -16,7 +16,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ route, userProfile, isAuth
   const showKidsEconomy = isAuthenticated && isParent;
   const isSetupStage = setupRoutes.includes(route);
   const premium = isAuthenticated && !isTeacher && isPremiumActive(userProfile);
-  const streak = Math.max(0, Math.round(userProfile.pet.dailyStreak || 0));
   const modeLabel = isSetupStage || !isAuthenticated ? 'AnnWord' : isAdmin ? 'Admin' : isTeacher ? 'Teacher' : isParent ? 'Семья' : isPractice ? 'Practice' : 'AnnWord';
   const profileLabel = isTeacher ? 'Профиль преподавателя' : isParent ? 'Твой прогресс' : isAdmin ? 'Профиль администратора' : 'Прогресс';
   const cabinetLabel = isTeacher ? 'Ученики' : 'Кабинет родителя';
@@ -62,7 +61,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ route, userProfile, isAuth
     {navItems.length > 0 && <nav className="hidden items-center gap-1 lg:flex" aria-label="Основная навигация">{navItems.map(item => <button key={item.label} type="button" onClick={item.onClick} aria-current={item.active ? 'page' : undefined} className={`${navButton} ${item.active ? 'bg-indigo-50 text-indigo-700' : 'text-indigo-900'}`}>{item.label}</button>)}</nav>}
     {guestParentLanding && <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Навигация по AnnWord"><a href="/#how-it-works" className={navButton + ' text-indigo-950'}>Как это работает</a><a href="/#game-modes" className={navButton + ' text-indigo-950'}>Режимы игры</a><a href="/#for-parents" className={navButton + ' text-indigo-950'}>Для родителей</a></nav>}
     <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-      {streak > 0 && !isSetupStage && <span aria-label={`Серия ежедневных заданий: ${streak}`} title={`Серия: ${streak}`} className="inline-flex items-center gap-1 rounded-xl border border-orange-100 bg-orange-50 px-2.5 py-2 text-xs font-black text-orange-700"><span aria-hidden="true">🔥</span><span>{streak}</span></span>}
       {premium && !isSetupStage && <button type="button" onClick={onProfileClick} aria-label="Premium подключён. Открыть профиль и оплаты" title="Premium подключён" className="inline-flex items-center gap-1 rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs font-black text-amber-700 transition hover:bg-amber-100"><span aria-hidden="true">✦</span><span className="hidden sm:inline">Premium</span></button>}
       {showKidsEconomy && !isSetupStage && <button type="button" onClick={onShopClick} aria-label={'Монеты: ' + userProfile.coins + '. Открыть магазин'} className="flex items-center gap-1 rounded-xl border border-yellow-100 bg-yellow-50 px-2.5 py-2 text-sm font-black text-yellow-700 transition hover:bg-yellow-100 sm:px-3"><span>{userProfile.coins}</span><CoinIcon className="text-base" /></button>}
       {!isAuthenticated && !guestParentLanding && <a href={guestTeacherLanding ? '/' : '/teacher'} className="hidden rounded-xl px-3 py-2 text-sm font-black text-indigo-700 transition hover:bg-indigo-50 sm:inline-flex">{guestTeacherLanding ? 'Для родителей' : 'Преподавателям'}</a>}
