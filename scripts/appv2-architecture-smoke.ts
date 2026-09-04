@@ -12,6 +12,7 @@ const landing = read('components/screens/LandingMixScreen.tsx');
 const profile = read('components/screens/ProfileScreen.tsx');
 const shop = read('components/Shop.tsx');
 const room = read('components/PetRoom.tsx');
+const feedingHandoff = read('services/petFeedingHandoff.ts');
 
 assert(app.includes('<AppShell') && app.includes('<AppScreens'), 'AppV2 screen composition');
 assert(shell.includes('<AppHeader') && shell.includes('<AppModals'), 'shell composition');
@@ -40,10 +41,13 @@ assert(landing.includes('Без рекламы — гарантировано'),
 assert(landing.includes('Создать аккаунт преподавателя'), 'teacher public entry');
 assert(profile.includes('onOpenPetRoom'), 'profile pet entry');
 assert(shop.includes('onClose: () => void') && shop.includes('onClick={onClose}'), 'shop close contract');
-assert(shop.includes('onOpenPetRoom?: () => void') && shop.includes('const goPetRoom = () => { onClose(); onOpenPetRoom?.(); };'), 'shop pet room shortcut contract');
+assert(shop.includes('onOpenPetRoom?: () => void') && shop.includes('Угостить ${petName}'), 'shop pet room feeding shortcut contract');
+assert(shop.includes('annword_pet_feeding_item'), 'shop records purchased treat for feeding');
 assert(shop.includes('<PurchaseCelebrationModal') && shop.includes('onOpenPetRoom={onOpenPetRoom}'), 'purchase celebration forwards pet room navigation');
 assert((room.includes('onClose:()=>void') || room.includes('onClose: () => void')) && room.includes('onClick={onClose}'), 'pet room close contract');
 assert(room.includes('onUpdatePet') && room.includes('onOpenShop'), 'pet room update/shop contract');
-assert(room.includes('overflow-x-auto'), 'mobile room horizontal scrolling');
+assert(room.includes("backgroundSize: '100% 100%'") && !room.includes('overflow-x-auto rounded-[2rem] bg-white shadow-sm'), 'room fills viewport without horizontal scene crop');
+assert(room.includes('takePurchasedTreatForFeeding') && room.includes('foodPickerOpen') && room.includes('feedingReaction'), 'pet feeding handoff and reaction flow');
+assert(feedingHandoff.includes('sessionStorage') && feedingHandoff.includes('removeItem'), 'one-shot feeding handoff storage');
 
 console.log(JSON.stringify({ ok: true, checked: 'appv2-current-route-flow' }, null, 2));

@@ -52,9 +52,14 @@ describe('user-reported UX regressions', () => {
     expect(room).not.toContain('доступно предметов');
     expect(room).toContain('Перейти в магазин');
     expect(room).toContain('setPettingBurst(value => value + 1)');
-    expect(room).toContain('Ой, как вкусно!');
+    expect(room).toContain('feedingPhrase');
+    expect(room).toContain('Ммм! «${name}»! Спасибо! 😊');
+    expect(room).toContain('foodPickerOpen');
+    expect(room).toContain("backgroundSize: '100% 100%'");
     expect(shop).toContain('readInitialShopTab');
     expect(shop).toContain('annword_shop_initial_tab');
+    expect(shop).toContain('annword_pet_feeding_item');
+    expect(shop).toContain('Угостить ${petName}');
   });
 
   it('starts the compound daily quest with Snake and counts Snake completion', () => {
