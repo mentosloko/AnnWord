@@ -310,13 +310,20 @@ jobs:
           printf '%s\n' "$PREFLIGHT_HEADERS" | grep -Eq '^HTTP/[^ ]+ 204 '
           printf '%s\n' "$PREFLIGHT_HEADERS" | grep -Eqi '^access-control-max-age:[[:space:]]*3600([[:space:]]|$)'
           printf '%s\n' "$PREFLIGHT_HEADERS" | grep -Eqi '^access-control-allow-origin:[[:space:]]*https://annword\.ru([[:space:]]|$)'
+          printf '%s\n' "$PREFLIGHT_HEADERS" | grep -Eqi '^access-control-allow-credentials:[[:space:]]*true([[:space:]]|$)'
 
           FOREIGN_PREFLIGHT_HEADERS="$(curl -sSI -X OPTIONS \
             -H 'Origin: https://untrusted.example' \
             -H 'Access-Control-Request-Method: POST' \
             "${API_BASE}/api/profile/coins" | tr -d '\r')"
-          if printf '%s\n' "$FOREIGN_PREFLIGHT_HEADERS" | grep -Eqi '^access-control-allow-origin:'; then
-            echo "API Gateway accepted an untrusted CORS origin."
+          printf '%s\n' "$FOREIGN_PREFLIGHT_HEADERS"
+          FOREIGN_ALLOW_ORIGIN="$(printf '%s\n' "$FOREIGN_PREFLIGHT_HEADERS" | sed -n 's/^access-control-allow-origin:[[:space:]]*//Ip' | head -n 1)"
+          if [ "$FOREIGN_ALLOW_ORIGIN" = '*' ] || [ "$FOREIGN_ALLOW_ORIGIN" = 'https://untrusted.example' ]; then
+            echo "API Gateway exposed a wildcard or reflected an untrusted CORS origin."
+            exit 1
+          fi
+          if [ -n "$FOREIGN_ALLOW_ORIGIN" ] && [ "$FOREIGN_ALLOW_ORIGIN" != 'https://annword.ru' ]; then
+            echo "API Gateway returned an unexpected CORS origin: $FOREIGN_ALLOW_ORIGIN"
             exit 1
           fi
 

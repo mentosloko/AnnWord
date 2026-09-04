@@ -32,4 +32,14 @@ describe('Yandex production deployment workflow', () => {
     expect(workflow).toContain('/api/auth/email/account');
     expect(workflow).toContain('Yandex Production');
   });
+
+  it('accepts only the AnnWord CORS origin and rejects wildcard or reflected foreign origins', () => {
+    expect(workflow).toContain("Origin: https://annword.ru");
+    expect(workflow).toContain("Origin: https://untrusted.example");
+    expect(workflow).toContain('FOREIGN_ALLOW_ORIGIN');
+    expect(workflow).toContain("[ \"$FOREIGN_ALLOW_ORIGIN\" = '*' ]");
+    expect(workflow).toContain("[ \"$FOREIGN_ALLOW_ORIGIN\" = 'https://untrusted.example' ]");
+    expect(workflow).toContain("[ \"$FOREIGN_ALLOW_ORIGIN\" != 'https://annword.ru' ]");
+    expect(workflow).toContain('access-control-allow-credentials');
+  });
 });
