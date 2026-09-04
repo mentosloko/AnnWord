@@ -15,6 +15,7 @@ import { magicLinkRouter } from "./routes/magicLinkRoutes";
 import { authRouter } from "./routes/authRoutes";
 import { profileRouter } from "./routes/profileRoutes";
 import { paymentRouter } from "./routes/paymentRoutes";
+import { adminPremiumRouter } from "./routes/adminPremiumRoutes";
 import { parentPinRecoveryRouter } from "./routes/parentPinRecoveryRoutes";
 import { actionTokenStatusRouter } from "./routes/actionTokenStatusRoutes";
 import { familyRouter } from "./routes/familyRoutes";
@@ -297,6 +298,7 @@ app.use("/api/analytics", performanceEvidenceRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/game-events", gameEventRouter);
 app.use("/api/reports/weekly", weeklyReportRouter);
+app.use("/api/admin/premium", adminPremiumRouter);
 app.use("/api/admin/migration", migrationSchemaRouter);
 app.use("/api/admin/migration", migrationRouter);
 
