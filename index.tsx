@@ -5,6 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { PasswordResetOverlay } from './components/auth/PasswordResetOverlay';
 import { MagicLinkOverlay } from './components/auth/MagicLinkOverlay';
 import { ParentPinResetOverlay } from './components/auth/ParentPinResetOverlay';
+import { PetFeedingPrototype } from './components/prototypes/PetFeedingPrototype';
 import { getKnownClientPaths } from './services/clientRoute';
 import { applyNotFoundMetadata } from './services/pageMetadata';
 import './visualAssets.css';
@@ -46,11 +47,14 @@ const NotFoundScreen: React.FC = () => {
 };
 
 const pathname = window.location.pathname;
-const content = pathname.startsWith('/api/')
-  ? <FrontendApiFallback />
-  : isKnownClientPath(pathname)
-    ? <><App /><PasswordResetOverlay /><MagicLinkOverlay /><ParentPinResetOverlay /></>
-    : <NotFoundScreen />;
+const prototypePath = normalizePath(pathname) === '/prototype/pet-feeding';
+const content = prototypePath
+  ? <PetFeedingPrototype />
+  : pathname.startsWith('/api/')
+    ? <FrontendApiFallback />
+    : isKnownClientPath(pathname)
+      ? <><App /><PasswordResetOverlay /><MagicLinkOverlay /><ParentPinResetOverlay /></>
+      : <NotFoundScreen />;
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
