@@ -12,21 +12,22 @@ describe('Yandex API Gateway CORS hardening workflow', () => {
     expect(workflow).not.toContain('container revision deploy');
   });
 
-  it('delegates CORS to the backend and rejects foreign origins', () => {
-    expect(workflow).toContain("gateway['cors'] = {'origin': False}");
-    expect(workflow).toContain("path_item['x-yc-apigateway-cors'] = {'origin': False}");
+  it('pins preflight responses to the AnnWord origin instead of wildcard CORS', () => {
+    expect(workflow).toContain("'origin': 'https://annword.ru'");
+    expect(workflow).toContain("'allowedHeaders': ['content-type', 'x-annword-session']");
+    expect(workflow).toContain("'credentials': True");
+    expect(workflow).toContain("'maxAge': 3600");
+    expect(workflow).toContain("'optionsSuccessStatus': 204");
+    expect(workflow).toContain("path_item['x-yc-apigateway-cors'] = deepcopy(cors_rule)");
+    expect(workflow).toContain("foreign_origin" );
+    expect(workflow).toContain("[ \"$foreign_origin\" = '*' ]");
     expect(workflow).toContain('https://untrusted.example');
-    expect(workflow).toContain('access-control-allow-origin');
-    expect(workflow).toContain('access-control-max-age');
   });
 
-  it('adds an explicit OPTIONS bridge to the existing proxy integration', () => {
-    expect(workflow).toContain('from copy import deepcopy');
+  it('removes only the AnnWord experimental OPTIONS bridge and keeps proxy routing intact', () => {
+    expect(workflow).toContain("operation_id.startswith('annwordCorsPreflight')");
+    expect(workflow).toContain("del path_item['options']");
     expect(workflow).toContain("any_method = path_item.get('x-yc-apigateway-any-method')");
-    expect(workflow).toContain('options = deepcopy(any_method)');
-    expect(workflow).toContain("options.pop('operationId', None)");
-    expect(workflow).toContain("options['operationId'] = f'annwordCorsPreflight{index}'");
-    expect(workflow).toContain("path_item['options'] = options");
     expect(workflow).toContain('No x-yc-apigateway-any-method proxy route found');
   });
 
