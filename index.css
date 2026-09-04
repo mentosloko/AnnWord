@@ -5,6 +5,27 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  *,
+  *::before,
+  *::after {
+    min-width: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  p,
+  span,
+  button {
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
   button,
