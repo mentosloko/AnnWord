@@ -94,15 +94,17 @@ jobs:
                   changed = True
 
           path.write_text(yaml.safe_dump(spec, sort_keys=False, allow_unicode=True))
+          if changed:
+              Path('/tmp/gateway-cors-changed').write_text('1')
           print(f'gateway_cors_spec_changed={str(changed).lower()}')
           PY
 
-          if cmp -s /tmp/gateway-before.yaml /tmp/gateway-after.yaml; then
-            echo 'API Gateway CORS is already delegated to the AnnWord backend.'
-            UPDATED=0
-          else
+          if [ -f /tmp/gateway-cors-changed ]; then
             UPDATED=1
             yc serverless api-gateway update --id "$GATEWAY_ID" --spec /tmp/gateway-after.yaml
+          else
+            echo 'API Gateway CORS is already delegated to the AnnWord backend.'
+            UPDATED=0
           fi
 
           restore_on_failure() {
