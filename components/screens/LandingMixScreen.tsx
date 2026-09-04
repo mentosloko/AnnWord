@@ -146,8 +146,8 @@ const SprintPreview = () => (
 );
 
 const SnakePreview = () => {
-  const cells = ['M','A','P','L','B','O','O','K','S','H','I','P','D','F','R','E'];
-  const selected = new Map([[4, 1], [5, 2], [6, 3], [7, 4]]);
+  const cells = ['M','A','P','L','E','T','S','H','B','O','O','K'];
+  const selected = new Map([[8, 1], [9, 2], [10, 3], [11, 4]]);
   return (
     <div className="flex h-full flex-col rounded-[1.35rem] bg-gradient-to-b from-rose-50 via-white to-pink-50 p-3 shadow-inner">
       <div className="rounded-xl bg-white px-3 py-2 text-center shadow-sm"><div className="text-sm font-black text-indigo-950">книга</div><div className="mt-0.5 text-[8px] font-bold text-slate-400">4 буквы · рядом</div></div>
