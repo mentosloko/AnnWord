@@ -43,6 +43,8 @@ const profile = {
   inventory: [],
 };
 
+type TestProfile = typeof profile;
+
 const delayedQuest = {
   questDate: '2026-08-26',
   kind: 'all_five_games',
@@ -56,7 +58,7 @@ const delayedQuest = {
   rewardWorldId: null,
 };
 
-const installBackend = async (page: Page) => {
+const installBackend = async (page: Page, currentProfile: TestProfile = profile, questDelayMs = 0) => {
   await page.route(`${API_ORIGIN}/api/**`, async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -68,15 +70,15 @@ const installBackend = async (page: Page) => {
     if (path === '/api/profile/bootstrap') {
       // Deliberately omit `quest`: auth bootstrap must render the Kids shell first,
       // then the normal daily-quest request hydrates the dynamic hero below.
-      await fulfillJson(route, { user: { id: 'parent-cls', email: 'parent@example.ru', name: 'Parent' }, profile });
+      await fulfillJson(route, { user: { id: 'parent-cls', email: 'parent@example.ru', name: 'Parent' }, profile: currentProfile });
       return;
     }
     if (path === '/api/profile/me') {
-      await fulfillJson(route, { profile });
+      await fulfillJson(route, { profile: currentProfile });
       return;
     }
     if (path === '/api/daily-quest/today') {
-      await new Promise(resolve => setTimeout(resolve, 700));
+      if (questDelayMs > 0) await new Promise(resolve => setTimeout(resolve, questDelayMs));
       await fulfillJson(route, { quest: delayedQuest });
       return;
     }
@@ -86,6 +88,40 @@ const installBackend = async (page: Page) => {
     }
     await fulfillJson(route, { ok: true });
   });
+};
+
+const expectHeaderFitsViewport = async (page: Page) => {
+  const header = page.locator('header').first();
+  await expect(header).toBeVisible();
+  const fits = await header.evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    return element.scrollWidth <= element.clientWidth + 1
+      && rect.left >= -1
+      && rect.right <= window.innerWidth + 1;
+  });
+  expect(fits).toBe(true);
+};
+
+const expectPremiumHeader = async (page: Page) => {
+  const header = page.locator('header').first();
+  const premiumLabel = header.getByLabel('Premium');
+  const coinsButton = header.getByRole('button', { name: /Монеты:/ });
+
+  await expect(premiumLabel).toBeVisible();
+  await expect(header.getByText('Семья', { exact: true })).toHaveCount(0);
+  await expect(header.getByRole('button', { name: /Premium подключён/ })).toHaveCount(0);
+  await expect(coinsButton).toBeVisible();
+
+  const premiumBox = await premiumLabel.boundingBox();
+  const coinsBox = await coinsButton.boundingBox();
+  expect(premiumBox).not.toBeNull();
+  expect(coinsBox).not.toBeNull();
+  expect(premiumBox!.x).toBeLessThan(coinsBox!.x);
+
+  await header.getByRole('button', { name: /Открыть меню аккаунта Parent/ }).click();
+  const menu = page.getByRole('menu', { name: 'Меню аккаунта' });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByText(/Premium подключён/)).toHaveCount(0);
 };
 
 test('mobile Kids keeps CLS at or below 0.1 while quest state hydrates', async ({ page }) => {
@@ -99,7 +135,7 @@ test('mobile Kids keeps CLS at or below 0.1 while quest state hydrates', async (
     }).observe({ type: 'layout-shift', buffered: true });
     (window as any).__annwordReadCls = () => cls;
   });
-  await installBackend(page);
+  await installBackend(page, profile, 2500);
 
   const questResponse = page.waitForResponse(response => response.url().includes('/api/daily-quest/today') && response.status() === 200);
   await page.goto('/kids', { waitUntil: 'domcontentloaded' });
@@ -111,4 +147,33 @@ test('mobile Kids keeps CLS at or below 0.1 while quest state hydrates', async (
   const cls = await page.evaluate(() => Number((window as any).__annwordReadCls?.() || 0));
   console.log(`KIDS_CLS_REPORT ${JSON.stringify({ viewport: '390x844', cls: Number(cls.toFixed(4)) })}`);
   expect(cls).toBeLessThanOrEqual(0.1);
+});
+
+test('Premium parent header is compact and consistent on mobile and desktop', async ({ page }) => {
+  await installBackend(page);
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/kids', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Большое приключение' })).toBeVisible();
+    await expectHeaderFitsViewport(page);
+    await expectPremiumHeader(page);
+  }
+});
+
+test('parent without Premium has no Family or Premium mode label', async ({ page }) => {
+  const freeProfile: TestProfile = {
+    ...profile,
+    subscriptionTier: 'free',
+    featureFlags: { ...profile.featureFlags, premiumDictionaries: false },
+  };
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installBackend(page, freeProfile);
+  await page.goto('/kids', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: 'Большое приключение' })).toBeVisible();
+
+  const header = page.locator('header').first();
+  await expect(header.getByText('Семья', { exact: true })).toHaveCount(0);
+  await expect(header.getByLabel('Premium')).toHaveCount(0);
+  await expectHeaderFitsViewport(page);
 });
