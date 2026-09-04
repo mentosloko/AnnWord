@@ -40,7 +40,7 @@ describe('admin Premium gifts', () => {
 
     expect(screen).toContain('<AdminPremiumGiftPanel />');
     expect(panel).toContain('Подарочный Premium');
-    expect(panel).toContain('Найти аккаунт по точному email');
+    expect(panel).toContain('Найдите аккаунт по точному email');
     expect(panel).toContain('Подтвердить бесплатную выдачу?');
     expect(panel).toContain('Да, выдать Premium');
     expect(client).toContain('/api/admin/premium/user?email=');
