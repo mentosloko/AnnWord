@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   harden-cors:
-    name: Disable gateway-managed CORS
+    name: Pin gateway CORS to AnnWord origin
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -42,7 +42,7 @@ jobs:
           yc config set cloud-id "$YC_CLOUD_ID"
           yc config set folder-id "$YC_FOLDER_ID"
 
-      - name: Disable automatic API Gateway CORS with rollback protection
+      - name: Apply strict API Gateway CORS allowlist with rollback protection
         env:
           YC_API_PUBLIC_URL: ${{ secrets.YC_API_PUBLIC_URL }}
         run: |
@@ -74,6 +74,15 @@ jobs:
           if not isinstance(spec, dict):
               raise SystemExit('API Gateway specification is not a mapping')
 
+          cors_rule = {
+              'origin': 'https://annword.ru',
+              'methods': ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+              'allowedHeaders': ['content-type', 'x-annword-session'],
+              'credentials': True,
+              'maxAge': 3600,
+              'optionsSuccessStatus': 204,
+          }
+
           gateway = spec.get('x-yc-apigateway')
           if gateway is None:
               gateway = {}
@@ -81,69 +90,57 @@ jobs:
           if not isinstance(gateway, dict):
               raise SystemExit('x-yc-apigateway must be a mapping')
 
-          changed = gateway.get('cors') != {'origin': False}
-          gateway['cors'] = {'origin': False}
+          changed = gateway.get('cors') != cors_rule
+          gateway['cors'] = deepcopy(cors_rule)
 
           paths = spec.get('paths') or {}
           if not isinstance(paths, dict):
               raise SystemExit('paths must be a mapping')
 
-          bridged_paths = 0
-          for index, (path_name, path_item) in enumerate(paths.items(), start=1):
+          proxy_paths = 0
+          for path_name, path_item in paths.items():
               if not isinstance(path_item, dict):
                   continue
 
               any_method = path_item.get('x-yc-apigateway-any-method')
-              integration_type = None
-              if isinstance(any_method, dict):
-                  integration = any_method.get('x-yc-apigateway-integration')
-                  if isinstance(integration, dict):
-                      integration_type = integration.get('type')
+              if not isinstance(any_method, dict):
+                  continue
+              proxy_paths += 1
 
-              # Disable API Gateway's synthetic preflight response. For proxy routes,
-              # add an explicit OPTIONS operation that reuses the same integration so
-              # Express/cors is the single source of truth for allowed origins.
-              if isinstance(any_method, dict):
-                  if path_item.get('x-yc-apigateway-cors') != {'origin': False}:
-                      path_item['x-yc-apigateway-cors'] = {'origin': False}
-                      changed = True
+              integration = any_method.get('x-yc-apigateway-integration')
+              integration_type = integration.get('type') if isinstance(integration, dict) else None
+              if path_item.get('x-yc-apigateway-cors') != cors_rule:
+                  path_item['x-yc-apigateway-cors'] = deepcopy(cors_rule)
+                  changed = True
 
-                  options = path_item.get('options')
-                  if not isinstance(options, dict) or 'x-yc-apigateway-integration' not in options:
-                      options = deepcopy(any_method)
-                      options.pop('operationId', None)
-                      options['operationId'] = f'annwordCorsPreflight{index}'
-                      path_item['options'] = options
-                      changed = True
-                      bridged_paths += 1
-              elif 'x-yc-apigateway-cors' in path_item and path_item.get('x-yc-apigateway-cors') != {'origin': False}:
-                  path_item['x-yc-apigateway-cors'] = {'origin': False}
+              # Clean up only the OPTIONS bridge created by the previous AnnWord hardening
+              # experiment. Never remove an unrelated explicit OPTIONS operation.
+              options = path_item.get('options')
+              operation_id = options.get('operationId') if isinstance(options, dict) else None
+              if isinstance(operation_id, str) and operation_id.startswith('annwordCorsPreflight'):
+                  del path_item['options']
                   changed = True
 
               print(
                   f'gateway_path={path_name} '
-                  f'any_method={str(isinstance(any_method, dict)).lower()} '
-                  f'options={str(isinstance(path_item.get("options"), dict)).lower()} '
+                  f'cors_origin={cors_rule["origin"]} '
                   f'integration={integration_type or "none"}'
               )
 
-          if not any(
-              isinstance(path_item, dict) and isinstance(path_item.get('x-yc-apigateway-any-method'), dict)
-              for path_item in paths.values()
-          ):
+          if proxy_paths == 0:
               raise SystemExit('No x-yc-apigateway-any-method proxy route found; refusing to rewrite gateway CORS blindly')
 
           path.write_text(yaml.safe_dump(spec, sort_keys=False, allow_unicode=True))
           if changed:
               Path('/tmp/gateway-cors-changed').write_text('1')
-          print(f'gateway_cors_spec_changed={str(changed).lower()} bridged_paths={bridged_paths}')
+          print(f'gateway_cors_spec_changed={str(changed).lower()} proxy_paths={proxy_paths}')
           PY
 
           if [ -f /tmp/gateway-cors-changed ]; then
             UPDATED=1
             yc serverless api-gateway update --id "$GATEWAY_ID" --spec /tmp/gateway-after.yaml
           else
-            echo 'API Gateway CORS is already delegated to the AnnWord backend.'
+            echo 'API Gateway already uses the strict AnnWord CORS allowlist.'
             UPDATED=0
           fi
 
@@ -174,7 +171,13 @@ jobs:
             printf '%s\n' "$trusted_headers" | grep -Eq '^HTTP/[^ ]+ 204 ' || return 1
             printf '%s\n' "$trusted_headers" | grep -Eqi '^access-control-max-age:[[:space:]]*3600([[:space:]]|$)' || return 1
             printf '%s\n' "$trusted_headers" | grep -Eqi '^access-control-allow-origin:[[:space:]]*https://annword\.ru([[:space:]]|$)' || return 1
-            if printf '%s\n' "$foreign_headers" | grep -Eqi '^access-control-allow-origin:'; then
+            printf '%s\n' "$trusted_headers" | grep -Eqi '^access-control-allow-credentials:[[:space:]]*true([[:space:]]|$)' || return 1
+
+            foreign_origin="$(printf '%s\n' "$foreign_headers" | sed -n 's/^access-control-allow-origin:[[:space:]]*//Ip' | head -n 1)"
+            if [ "$foreign_origin" = '*' ] || [ "$foreign_origin" = 'https://untrusted.example' ]; then
+              return 1
+            fi
+            if [ -n "$foreign_origin" ] && [ "$foreign_origin" != "$APP_ORIGIN" ]; then
               return 1
             fi
           }
@@ -194,11 +197,11 @@ jobs:
           printf '%s\n' "$foreign_headers"
 
           if [ "$verified" != "1" ]; then
-            echo 'Trusted/untrusted CORS verification did not converge after the gateway update.'
+            echo 'Strict CORS allowlist verification did not converge after the gateway update.'
             exit 1
           fi
 
           HEALTH_BODY="$(curl -fsS "${API_BASE}/api/health")"
           printf '%s' "$HEALTH_BODY" | grep -Eqi 'ok|healthy'
           trap - EXIT
-          echo 'Yandex API Gateway now delegates CORS to the AnnWord backend; trusted origin passes and foreign origin is rejected.'
+          echo 'Yandex API Gateway CORS is pinned to https://annword.ru; wildcard and reflected foreign origins are rejected.'
