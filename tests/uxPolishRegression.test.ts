@@ -66,22 +66,37 @@ describe('UAT UX polish regressions', () => {
     expect(parent).toContain("russianPlural(word.mistakes, ['ошибка', 'ошибки', 'ошибок'])");
   });
 
-  it('requires a complete four-digit parent PIN before enabling unlock', () => {
-    const parent = read('components/screens/AdultRoomScreen.tsx');
-    expect(parent).toContain('const pinReady = /^\\d{4}$/.test(pin);');
-    expect(parent).toContain("id=\"parent-pin-error\"");
-    expect(parent).toContain("disabled={!pinReady || busyAction === 'unlock' || busyAction === 'pin-reset'}");
-    expect(parent).toContain("aria-describedby={pinError ? 'parent-pin-error parent-pin-help' : 'parent-pin-help'}");
+  it('requires a complete four-digit parent PIN before enabling unlock on both parent gates', () => {
+    const adultRoom = read('components/screens/AdultRoomScreen.tsx');
+    const parentDashboard = read('components/screens/ParentDashboardScreen.tsx');
+    expect(adultRoom).toContain('const pinReady = /^\\d{4}$/.test(pin);');
+    expect(adultRoom).toContain("id=\"parent-pin-error\"");
+    expect(adultRoom).toContain("disabled={!pinReady || busyAction === 'unlock' || busyAction === 'pin-reset'}");
+    expect(adultRoom).toContain("aria-describedby={pinError ? 'parent-pin-error parent-pin-help' : 'parent-pin-help'}");
+    expect(parentDashboard).toContain('pattern="[0-9]{4}"');
+    expect(parentDashboard).toContain('disabled={Boolean(busy) || pin.length !== 4}');
   });
 
-  it('keeps /login and /register on the app shell and opens the matching auth modal', () => {
+  it('keeps the selected Kids builtin level visible in home and dictionary summaries', () => {
+    const descriptor = read('services/activeDictionaryDescriptor.ts');
+    const dictionary = read('components/screens/DictionarySettingsScreen.tsx');
+    expect(descriptor).toContain("settings.difficulty === 'ALL' ? 'Все уровни' : settings.difficulty");
+    expect(dictionary).toContain("draftSettings.difficulty === 'ALL' ? 'Все уровни' : draftSettings.difficulty");
+  });
+
+  it('keeps /login and /register on the app shell and generates production fallback pages', () => {
     const shell = read('components/AppShell.tsx');
     const route = read('services/clientRoute.ts');
+    const vite = read('vite.config.ts');
     expect(route).toContain("login: '/login'");
     expect(route).toContain("register: '/register'");
     expect(shell).toContain('getClientAuthModeFromPathname(window.location.pathname)');
     expect(shell).toContain('const effectiveShowLoginModal = showLoginModal || (authPathOpen && !isAuthenticated)');
     expect(shell).toContain('authMode={effectiveAuthMode}');
+    expect(vite).toContain("  'login',");
+    expect(vite).toContain("  'register',");
+    expect(vite).toContain("login: 'Вход — AnnWord'");
+    expect(vite).toContain("register: 'Регистрация — AnnWord'");
   });
 
   it('makes the insufficient-coins notice dismissible and self-expiring', () => {
