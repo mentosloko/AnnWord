@@ -6,6 +6,7 @@ import type { AccountMode, DailyQuestCompletionReward, DailyQuestState, GameSett
 import type { GameRewardInput } from '../services/gamificationRules';
 import type { WordPracticeResult } from '../services/gameSessionEngine';
 import type { ClassicGameSessionMeta } from '../hooks/useClassicGameController';
+import { useDictionaryPools } from '../hooks/useDictionaryPools';
 import type { PremiumDictionaryDraft } from '../services/premiumDictionaryService';
 import type { ChildSetupResult } from '../services/familyAccountService';
 import { activeWordSourceFromSettings, activeWordSourceKey, applyActiveWordSourceToSettings } from '../services/activeWordSource';
@@ -16,6 +17,7 @@ import { getDailyQuestPrimaryMode, getDailyQuestTargetModes } from '../services/
 import { clearSavedAnagramSession, hasSavedAnagramSession } from '../services/anagramSessionStatus';
 import { clearPersistedGameSession, readPersistedGameSession, routeForPersistedGame, type PersistedGameType } from '../services/gameSessionStore';
 import { resolveAccessibleRoute } from '../services/routeAccess';
+import { SPOTLIGHT_PREMIUM_DICTIONARY_ID } from '../services/spotlightDictionary';
 import { DailyQuestRewardModal } from './DailyQuestCard';
 import { clearPremiumIntent, getPremiumSuccessRoute, readPremiumIntent, rememberPremiumIntent, type PremiumIntentKind } from '../services/premiumIntent';
 
@@ -46,6 +48,9 @@ const Shop = React.lazy(() => import('./Shop').then(module => ({ default: module
 const PetRoom = React.lazy(() => import('./PetRoom').then(module => ({ default: module.PetRoom })));
 
 export type PlayableModeRoute = 'game' | 'anagrams' | 'translation' | 'sprint' | 'memory' | 'hangman' | 'letter_square';
+const LENGTH_AGNOSTIC_MODES = new Set<PlayableModeRoute>(['anagrams', 'translation', 'sprint', 'memory', 'letter_square']);
+const DICTIONARY_RUNTIME_ROUTES = new Set<ViewState>(['setup', 'game', 'anagrams', 'translation', 'sprint', 'memory', 'hangman', 'letter_square']);
+const DICTIONARY_SUMMARY_ROUTES = new Set<ViewState>(['landing', 'profile', 'dictionary_settings']);
 export interface ClassicGameScreenBindings { setupError: string | null; gameState: GameState; keyStatuses: Record<string, CharStatus>; shakeRowIndex: number | null; hasActiveGame?: boolean; resumeGame?: () => boolean; startNewGame: (dictionarySnapshot?: string[], sessionMeta?: ClassicGameSessionMeta) => void; handleChar: (char: string) => void; handleDelete: () => void; handleEnter: () => void | Promise<void>; fetchHint: () => void | Promise<void>; }
 export interface DictionaryUploadBindings { isUploadingDictionary: boolean; error: string | null; onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void; }
 export interface AppScreensProps {
@@ -98,6 +103,7 @@ const sameWordSnapshot = (first: string[], second: string[]): boolean => {
   return left.every(word => rightSet.has(word));
 };
 const ScreenLoading = () => <div className="mx-auto mt-10 max-w-md rounded-3xl bg-white p-8 text-center font-bold text-indigo-700 shadow-sm ring-1 ring-indigo-100">Открываю раздел…</div>;
+const DictionaryLoadError: React.FC<{ onRetry: () => void }> = ({ onRetry }) => <div className="mx-auto mt-10 max-w-md rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-red-100"><div className="text-lg font-bold text-gray-900">Не удалось загрузить словарь</div><p className="mt-2 text-sm text-gray-600">Проверьте соединение и попробуйте ещё раз.</p><button type="button" onClick={onRetry} className="mt-5 rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white hover:bg-indigo-700">Повторить</button></div>;
 
 export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userProfile, isAuthenticated, sessionOwnerId, dailyQuest, dailyQuestReward, onCloseDailyQuestReward, settings, modeWords, activeDictionaryWordCount, selectedPlayMode, classicGame, dictionaryUpload, onRouteChange, onEntryPathChange, onSelectedPlayModeChange, onSettingsChange, onOpenLogin, onOpenRegister, onBuy, onUseItem, onUpdatePet, onSaveDictionary, onSelectAccountMode, onCreateChild, onChildSetupComplete, onGameReward, onWordPractice, onCharacterOnboardingComplete, onGameStarted, onTestUnlockPremium, onDictionaryPeek }) => {
   const [quickStartRequested, setQuickStartRequested] = React.useState(false);
@@ -112,6 +118,21 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
   const isTeacher = userProfile.role === 'teacher' || userProfile.accountMode === 'teacher';
   const hasChosenAccountMode = userProfile.role === 'admin' || Boolean(userProfile.accountMode);
   const rulesViewerKey = `${userProfile.accountMode || userProfile.role || 'guest'}:${userProfile.username || 'guest'}`;
+  const spotlightSummaryNeedsRuntime = settings.dictionarySource === 'premium'
+    && settings.activePremiumDictionaryId === SPOTLIGHT_PREMIUM_DICTIONARY_ID
+    && DICTIONARY_SUMMARY_ROUTES.has(safeRoute);
+  const dictionaryRuntimeRequired = isAuthenticated && !isTeacher && (DICTIONARY_RUNTIME_ROUTES.has(safeRoute) || spotlightSummaryNeedsRuntime);
+  const dictionaryRuntime = useDictionaryPools({ settings, userProfile, enabled: dictionaryRuntimeRequired });
+  const runtimeIgnoresWordLength = safeRoute === 'setup'
+    ? LENGTH_AGNOSTIC_MODES.has(selectedPlayMode)
+    : safeRoute === 'anagrams' || safeRoute === 'translation' || safeRoute === 'sprint' || safeRoute === 'memory' || safeRoute === 'letter_square';
+  const runtimeModeWords = dictionaryRuntime.status === 'ready'
+    ? dictionaryRuntime.getModeWords({ respectWordLength: !runtimeIgnoresWordLength })
+    : [];
+  const resolvedModeWords = dictionaryRuntimeRequired ? runtimeModeWords : modeWords;
+  const resolvedActiveDictionaryWordCount = dictionaryRuntime.status === 'ready'
+    ? dictionaryRuntime.getModeWords({ respectWordLength: false }).length
+    : activeDictionaryWordCount;
 
   React.useEffect(() => {
     if (safeRoute !== route) onRouteChange(safeRoute);
@@ -141,7 +162,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
   const activeDictionaryIcon = activeDictionary.icon;
   const currentDictionaryId = activeWordSourceKey(activeWordSourceFromSettings(settings));
   const setupQuestContext = dailyQuest && getDailyQuestTargetModes(dailyQuest).includes(selectedPlayMode) ? dailyQuest : null;
-  const hasKnownDictionary = activeDictionary.available && Boolean(activeDictionaryWordCount || modeWords.length || ownWords.length || settings.dictionarySource === 'builtin' || settings.dictionarySource === 'premium');
+  const hasKnownDictionary = activeDictionary.available && Boolean(resolvedActiveDictionaryWordCount || resolvedModeWords.length || ownWords.length || settings.dictionarySource === 'builtin' || settings.dictionarySource === 'premium');
 
   const commitDictionarySettings = async (draftSettings: GameSettings): Promise<void> => {
     const ownerId = getCurrentProfileOwnerId();
@@ -188,7 +209,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
     onRouteChange('setup');
   };
   const startSelectedMode = (snapshotWords?: string[]) => {
-    const words = normalizeSnapshotWords(snapshotWords || modeWords);
+    const words = normalizeSnapshotWords(snapshotWords || resolvedModeWords);
     const saved = resumeSavedType ? readPersistedGameSession(sessionOwnerId) : null;
     const canResumeSavedProgress = Boolean(saved
       && saved.gameType === resumeSavedType
@@ -216,7 +237,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
     requestQuickLaunch(mode);
   };
 
-  const playWords = dictionarySnapshot?.words || modeWords;
+  const playWords = dictionarySnapshot?.words || resolvedModeWords;
   const playDictionaryName = dictionarySnapshot?.label || activeDictionaryName;
   const playDictionaryIcon = dictionarySnapshot?.icon || activeDictionaryIcon;
   const playDictionaryId = dictionarySnapshot?.key || currentDictionaryId;
@@ -256,6 +277,9 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
     shop: isParentAccount ? <Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} onOpenPetRoom={() => onRouteChange('pet_room')} /> : homeScreen,
     pet_room: isParentAccount ? <div className="h-[100dvh] min-h-[100svh] overflow-y-auto overscroll-contain"><PetRoom userProfile={userProfile} onUseItem={onUseItem} onBuy={onBuy} onUpdatePet={onUpdatePet} onClose={goHome} onOpenShop={() => onRouteChange('shop')} /></div> : homeScreen,
   };
+
+  if (dictionaryRuntimeRequired && dictionaryRuntime.status === 'loading') return <ScreenLoading />;
+  if (dictionaryRuntimeRequired && dictionaryRuntime.status === 'error') return <DictionaryLoadError onRetry={() => { void dictionaryRuntime.ensureReady().catch(() => undefined); }} />;
 
   const rewardStreakDays = Math.max(0, Math.round(userProfile.pet.dailyStreak || 0));
   return <><React.Suspense fallback={<ScreenLoading />}><AppRouter route={safeRoute} screens={screens} fallback={screens.landing} /></React.Suspense>{dailyQuestReward && onCloseDailyQuestReward && <DailyQuestRewardModal reward={dailyQuestReward} streakDays={rewardStreakDays} onClose={onCloseDailyQuestReward} onOpenPetRoom={isParentAccount ? () => onRouteChange('pet_room') : undefined} onOpenShop={isParentAccount ? () => onRouteChange('shop') : undefined} />}</>;
