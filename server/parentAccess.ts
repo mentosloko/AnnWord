@@ -78,12 +78,27 @@ export const requireParentAccess = (req: AuthenticatedRequest, res: Response, ne
   res.status(403).json({ code: 'parent_access_required', error: 'Введите PIN родителя, чтобы продолжить.' });
 };
 
+const isDictionaryCollectionRequest = (req: AuthenticatedRequest): boolean =>
+  req.path === '/dictionary-collections' && (req.method === 'GET' || req.method === 'POST');
+
 export const requireParentAccessForKids = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   const userId = req.user?.id;
   if (!userId) {
     res.status(401).json({ code: 'unauthorized', error: 'Unauthorized' });
     return;
   }
+
+  // Dictionary collections are part of the normal Kids learning flow: the same
+  // screen lets the family choose and edit the words used in games. Requiring a
+  // short-lived parent PIN cookie only at persistence time made the editor look
+  // successful while the server rejected the save, so the list disappeared on
+  // the next bootstrap. Keep PIN protection for sensitive settings/payments,
+  // but allow authenticated dictionary collection reads and writes.
+  if (isDictionaryCollectionRequest(req)) {
+    next();
+    return;
+  }
+
   const result = await query<{ role: string | null; account_mode: string | null }>('select role, account_mode from profiles where id = $1', [userId]);
   const profile = result.rows[0];
   const kidsMode = profile?.role === 'parent' || profile?.account_mode === 'parent';
