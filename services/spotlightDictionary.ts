@@ -168,7 +168,7 @@ export const getSpotlightSelectionLabel = (grade?: number, sectionId?: string): 
   const normalizedGrade = normalizeGrade(grade);
   if (!sectionId || sectionId === SPOTLIGHT_ALL_SECTIONS_ID) return `${normalizedGrade} класс · Весь класс`;
   const section = getSpotlightSections(normalizedGrade).find(item => item.id === sectionId);
-  return `${normalizedGrade} класс · ${section?.label || 'Раздел недоступен'}`;
+  return `${normalizedGrade} класс · ${section?.title || 'Раздел недоступен'}`;
 };
 
 export const resetSpotlightDictionaryForTests = (): void => {
