@@ -2,26 +2,96 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { EnrichedWord, UserProfile } from '../types';
 import { COMMON_WORDS_EN } from '../dictionaries/english';
 import { buildPlayableGameDictionary, pickNextSessionWord, WordPracticeResult } from '../services/gameSessionEngine';
+import { clearPersistedGameSession, isPersistedSessionFor, persistGameSession, readPersistedGameSession } from '../services/gameSessionStore';
 import { motion } from 'motion/react';
 import { GameResultOverlay } from './GameResultOverlay';
 import { PersonalScoreboard } from './PersonalScoreboard';
 import { applyGameRewardToCharacter, calculateGameReward, GameRewardInput } from '../services/gamificationRules';
 import { isKidsMode } from '../services/modeFlags';
 
-interface HangmanGameProps { onBack: () => void; userProfile: UserProfile; onGameReward: (input: GameRewardInput) => void | Promise<void>; onWordPractice?: (word: string, result: WordPracticeResult) => void | Promise<void>; }
+interface HangmanGameProps {
+  onBack: () => void;
+  userProfile: UserProfile;
+  onGameReward: (input: GameRewardInput) => void | Promise<void>;
+  onWordPractice?: (word: string, result: WordPracticeResult) => void | Promise<void>;
+  sessionOwnerId?: string | null;
+  dictionaryId?: string;
+  dictionaryLabel?: string;
+  dictionaryIcon?: string;
+}
+interface SavedHangmanState { currentWord: string; guessedLetters: string[]; mistakes: number; }
 export const buildHangmanDictionary = (customDictionaryEn: string[] = [], fallbackDictionary: EnrichedWord[] = COMMON_WORDS_EN): EnrichedWord[] => buildPlayableGameDictionary(customDictionaryEn, fallbackDictionary).map(entry => ({ ...entry, word: entry.word.toUpperCase().replace(/[^A-Z]/g, '') })).filter(entry => Boolean(entry.word));
 
-export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, onGameReward, onWordPractice }) => {
+const normalizeSavedHangmanState = (value: unknown, dictionary: EnrichedWord[], maxMistakes: number): { currentWord: EnrichedWord; guessedLetters: string[]; mistakes: number } | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const raw = value as Partial<SavedHangmanState>;
+  const currentWord = typeof raw.currentWord === 'string' ? dictionary.find(entry => entry.word === raw.currentWord) : undefined;
+  if (!currentWord || !Array.isArray(raw.guessedLetters)) return null;
+  const guessedLetters = Array.from(new Set(raw.guessedLetters.filter((letter): letter is string => typeof letter === 'string' && /^[A-Z]$/.test(letter))));
+  const mistakes = Math.max(0, Math.min(maxMistakes - 1, Math.round(Number(raw.mistakes) || 0)));
+  return { currentWord, guessedLetters, mistakes };
+};
+
+export const HangmanGame: React.FC<HangmanGameProps> = ({ onBack, userProfile, onGameReward, onWordPractice, sessionOwnerId, dictionaryId = 'live', dictionaryLabel, dictionaryIcon }) => {
   const dictionarySignature = userProfile.customDictionaryEn.join('|');
   const dictionary = useMemo(() => buildHangmanDictionary(userProfile.customDictionaryEn), [dictionarySignature]);
+  const maxMistakes = 7;
+  const restored = useMemo(() => {
+    const session = readPersistedGameSession(sessionOwnerId);
+    return isPersistedSessionFor(session, 'hangman', dictionaryId) ? normalizeSavedHangmanState(session?.state, dictionary, maxMistakes) : null;
+  }, [dictionary, dictionaryId, sessionOwnerId]);
   const rewardAppliedRef = useRef(false);
-  const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(null), [guessedLetters, setGuessedLetters] = useState<string[]>([]), [mistakes, setMistakes] = useState(0), [finalMistakes, setFinalMistakes] = useState(0);
-  const [status, setStatus] = useState<'playing' | 'won' | 'lost'>('playing'), [liveMessage, setLiveMessage] = useState('');
-  const showKidsRewards = isKidsMode(userProfile), maxMistakes = 7;
-  const pickNewWord = useCallback(() => { if (!dictionary.length) return; const word = pickNextSessionWord('hangman', dictionary) || dictionary[Math.floor(Math.random() * dictionary.length)]; setCurrentWord(word); setGuessedLetters([]); setMistakes(0); setFinalMistakes(0); setStatus('playing'); setLiveMessage('Новая игра. Выберите букву.'); rewardAppliedRef.current = false; }, [dictionary]);
+  const [currentWord, setCurrentWord] = useState<EnrichedWord | null>(restored?.currentWord || null), [guessedLetters, setGuessedLetters] = useState<string[]>(restored?.guessedLetters || []), [mistakes, setMistakes] = useState(restored?.mistakes || 0), [finalMistakes, setFinalMistakes] = useState(0);
+  const [status, setStatus] = useState<'playing' | 'won' | 'lost'>('playing'), [liveMessage, setLiveMessage] = useState(restored ? 'Продолжаем сохранённую игру.' : '');
+  const showKidsRewards = isKidsMode(userProfile);
+  const persistActiveRound = useCallback((word: EnrichedWord, letters: string[], mistakeCount: number) => {
+    persistGameSession(sessionOwnerId, {
+      gameType: 'hangman',
+      dictionaryId,
+      dictionaryWords: dictionary.map(entry => entry.word),
+      dictionaryLabel,
+      dictionaryIcon,
+      state: { currentWord: word.word, guessedLetters: letters, mistakes: mistakeCount },
+      score: { mistakes: mistakeCount, guessedLetters: letters.length },
+      rewardState: 'active',
+    });
+  }, [dictionary, dictionaryIcon, dictionaryId, dictionaryLabel, sessionOwnerId]);
+  const pickNewWord = useCallback(() => {
+    if (!dictionary.length) return;
+    clearPersistedGameSession(sessionOwnerId, 'hangman');
+    const word = pickNextSessionWord('hangman', dictionary) || dictionary[Math.floor(Math.random() * dictionary.length)];
+    setCurrentWord(word); setGuessedLetters([]); setMistakes(0); setFinalMistakes(0); setStatus('playing'); setLiveMessage('Новая игра. Выберите букву.'); rewardAppliedRef.current = false;
+    persistActiveRound(word, [], 0);
+  }, [dictionary, persistActiveRound, sessionOwnerId]);
   useEffect(() => { if (!currentWord) pickNewWord(); }, [currentWord, pickNewWord]);
-  useEffect(() => { if ((status === 'won' || status === 'lost') && !rewardAppliedRef.current) { rewardAppliedRef.current = true; void onGameReward({ type: 'hangman', won: status === 'won', mistakes: finalMistakes, maxMistakes }); if (currentWord) void Promise.resolve(onWordPractice?.(currentWord.word, status === 'won' ? 'mastered' : 'failed')).catch(error => console.error('Failed to save hangman word practice', error)); } }, [status, finalMistakes, maxMistakes, onGameReward, onWordPractice, currentWord]);
-  const handleLetterClick = (rawLetter: string) => { const letter = rawLetter.toUpperCase(); if (status !== 'playing' || guessedLetters.includes(letter) || !currentWord) return; const nextGuessedLetters = [...guessedLetters, letter]; setGuessedLetters(nextGuessedLetters); if (!currentWord.word.includes(letter)) { setMistakes(previous => { const next = previous + 1; setLiveMessage(`Буквы ${letter} нет в слове. Осталось попыток: ${Math.max(0, maxMistakes - next)}.`); if (next >= maxMistakes) { setFinalMistakes(next); setStatus('lost'); } return next; }); } else if (currentWord.word.split('').every(character => nextGuessedLetters.includes(character))) { setFinalMistakes(mistakes); setLiveMessage(`Буква ${letter} есть в слове. Слово угадано.`); setStatus('won'); } else setLiveMessage(`Буква ${letter} есть в слове.`); };
+  useEffect(() => {
+    if ((status === 'won' || status === 'lost') && !rewardAppliedRef.current) {
+      rewardAppliedRef.current = true;
+      clearPersistedGameSession(sessionOwnerId, 'hangman');
+      void onGameReward({ type: 'hangman', won: status === 'won', mistakes: finalMistakes, maxMistakes });
+      if (currentWord) void Promise.resolve(onWordPractice?.(currentWord.word, status === 'won' ? 'mastered' : 'failed')).catch(error => console.error('Failed to save hangman word practice', error));
+    }
+  }, [status, finalMistakes, maxMistakes, onGameReward, onWordPractice, currentWord, sessionOwnerId]);
+  const handleLetterClick = (rawLetter: string) => {
+    const letter = rawLetter.toUpperCase();
+    if (status !== 'playing' || guessedLetters.includes(letter) || !currentWord) return;
+    const nextGuessedLetters = [...guessedLetters, letter];
+    setGuessedLetters(nextGuessedLetters);
+    if (!currentWord.word.includes(letter)) {
+      const nextMistakes = mistakes + 1;
+      setMistakes(nextMistakes);
+      setLiveMessage(`Буквы ${letter} нет в слове. Осталось попыток: ${Math.max(0, maxMistakes - nextMistakes)}.`);
+      if (nextMistakes >= maxMistakes) { setFinalMistakes(nextMistakes); setStatus('lost'); }
+      else persistActiveRound(currentWord, nextGuessedLetters, nextMistakes);
+      return;
+    }
+    if (currentWord.word.split('').every(character => nextGuessedLetters.includes(character))) {
+      setFinalMistakes(mistakes); setLiveMessage(`Буква ${letter} есть в слове. Слово угадано.`); setStatus('won');
+      return;
+    }
+    setLiveMessage(`Буква ${letter} есть в слове.`);
+    persistActiveRound(currentWord, nextGuessedLetters, mistakes);
+  };
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), rewardInput: GameRewardInput = { type: 'hangman', won: status === 'won', mistakes: finalMistakes, maxMistakes };
   const rewardPreview = status === 'playing' ? null : calculateGameReward(rewardInput), progressPreview = showKidsRewards && rewardPreview ? applyGameRewardToCharacter(userProfile.pet, rewardPreview) : null, remainingAttempts = Math.max(0, maxMistakes - finalMistakes);
   const getLetterLabel = (letter: string) => !guessedLetters.includes(letter) ? `Буква ${letter}, не выбрана` : currentWord?.word.includes(letter) ? `Буква ${letter}, есть в слове` : `Буква ${letter}, ошибка`;
