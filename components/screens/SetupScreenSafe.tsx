@@ -87,7 +87,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
   const autoStartedRef = React.useRef(false);
   const assignedCount = parentMode ? (userProfile.assignedWords || []).length : 0;
   const premiumSourceWithoutAccess = source !== 'builtin' && !hasPremium;
-  const sourceReady = source === 'builtin' || (source === 'premium' && hasPremium) || (source === 'custom' && hasPremium && customDictionaryWords.length > 0);
+  const sourceConfigured = source === 'builtin' || (source === 'premium' && hasPremium) || (source === 'custom' && hasPremium && customDictionaryWords.length > 0);
   const practicePremiumCatalog = getPremiumDictionaryCatalog();
   const spotlightMeta = practicePremiumCatalog.find(item => item.id === SPOTLIGHT_PREMIUM_DICTIONARY_ID);
   const premiumCatalog = parentMode
@@ -101,7 +101,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
   const respectWordLength = !LENGTH_AGNOSTIC_MODES.has(selectedPlayMode);
   const readModeWords = React.useCallback(() => dictionaryRuntime.getModeWords({ respectWordLength }), [dictionaryRuntime, respectWordLength]);
   const immediateWordCount = readModeWords().length;
+  const customModeUnavailable = source === 'custom' && hasPremium && customDictionaryWords.length > 0 && dictionaryRuntime.status === 'ready' && immediateWordCount === 0;
+  const sourceReady = sourceConfigured && !customModeUnavailable;
   const dictionaryLoadBlocksStart = dictionaryRuntime.status === 'loading' && immediateWordCount === 0;
+  const customAvailabilityLabel = !customDictionaryWords.length
+    ? 'пусто'
+    : dictionaryRuntime.status === 'loading'
+      ? 'проверяю'
+      : immediateWordCount > 0
+        ? 'можно играть'
+        : 'нет слов для режима';
+  const customAvailabilityText = !customDictionaryWords.length
+    ? 'Добавьте слова, чтобы начать.'
+    : dictionaryRuntime.status === 'loading'
+      ? 'Проверяем, какие слова подходят для выбранной игры.'
+      : immediateWordCount > 0
+        ? `Для «${MODE_LABELS[selectedPlayMode]}» доступно слов: ${immediateWordCount}.`
+        : `Список сохранён, но для «${MODE_LABELS[selectedPlayMode]}» пока нет доступных слов с русским переводом${respectWordLength ? ` длиной ${settings.wordLength}` : ''}.`;
 
   React.useEffect(() => {
     setStartError(null);
@@ -189,7 +205,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
     if (autoStartedRef.current) return;
     if (!sourceReady || premiumSourceWithoutAccess) {
       autoStartedRef.current = true;
-      setStartError(source === 'custom' ? 'В выбранном списке пока нет слов. Добавьте слова или выберите встроенный словарь.' : 'Выбранный словарь сейчас недоступен.');
+      setStartError(source === 'custom' ? 'В выбранном списке пока нет слов, подходящих для этой игры. Измените список или выберите другой режим.' : 'Выбранный словарь сейчас недоступен.');
       onAutoStartComplete?.();
       return;
     }
@@ -210,12 +226,12 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
     <div className="rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-indigo-100 sm:p-6">
       <section aria-labelledby="dictionary-source-title"><h2 id="dictionary-source-title" className={experienceUi.eyebrow}>Слова для игры</h2><div className="mt-3 grid grid-cols-3 gap-2" role="group" aria-label="Источник слов">
         <button type="button" disabled={isSavingSource} aria-pressed={source === 'builtin'} onClick={() => selectSource('builtin')} className={`min-w-0 rounded-2xl p-3 text-left ring-2 disabled:opacity-60 ${source === 'builtin' ? 'bg-indigo-50 ring-indigo-300' : 'ring-indigo-50'}`}><div className="text-xl" aria-hidden="true">{parentMode && assignedCount ? '🎓' : parentMode ? '🌈' : '📚'}</div><div className="mt-1 truncate text-sm font-bold">{parentMode && assignedCount ? 'От учителя' : parentMode ? 'Все уровни' : 'База'}</div><div className="truncate text-[11px] font-medium text-slate-400">{parentMode && assignedCount ? `${assignedCount} слов` : parentMode ? 'A1–C2' : 'по уровню'}</div></button>
-        <button type="button" disabled={isSavingSource} aria-pressed={source === 'custom' && hasPremium} onClick={() => selectSource('custom')} className={`relative min-w-0 rounded-2xl p-3 text-left ring-2 disabled:opacity-60 ${source === 'custom' && hasPremium ? 'bg-purple-50 ring-purple-300' : 'ring-indigo-50'}`}><span className="absolute right-2 top-2 text-xs" aria-hidden="true">{hasPremium ? '✨' : '🔒'}</span><div className="text-xl" aria-hidden="true">🧩</div><div className="mt-1 truncate text-sm font-bold">Свои слова</div><div className="truncate text-[11px] font-medium text-slate-400">{hasPremium ? (customDictionaryWords.length ? 'готово' : 'пусто') : 'Premium'}</div></button>
+        <button type="button" disabled={isSavingSource} aria-pressed={source === 'custom' && hasPremium} onClick={() => selectSource('custom')} className={`relative min-w-0 rounded-2xl p-3 text-left ring-2 disabled:opacity-60 ${source === 'custom' && hasPremium ? 'bg-purple-50 ring-purple-300' : 'ring-indigo-50'}`}><span className="absolute right-2 top-2 text-xs" aria-hidden="true">{hasPremium ? '✨' : '🔒'}</span><div className="text-xl" aria-hidden="true">🧩</div><div className="mt-1 truncate text-sm font-bold">Свои слова</div><div className="truncate text-[11px] font-medium text-slate-400">{hasPremium ? customAvailabilityLabel : 'Premium'}</div></button>
         <button type="button" disabled={isSavingSource} aria-pressed={source === 'premium' && hasPremium} onClick={() => selectSource('premium')} className={`relative min-w-0 rounded-2xl p-3 text-left ring-2 disabled:opacity-60 ${source === 'premium' && hasPremium ? 'bg-amber-50 ring-amber-300' : 'ring-indigo-50'}`}><span className="absolute right-2 top-2 text-xs" aria-hidden="true">{hasPremium ? '✓' : '🔒'}</span><div className="text-xl" aria-hidden="true">✨</div><div className="mt-1 truncate text-sm font-bold">Темы</div><div className="truncate text-[11px] font-medium text-slate-400">Premium</div></button>
       </div></section>
       {source === 'builtin' && parentMode && assignedCount > 0 && hasPremium && <section className="mt-4 rounded-2xl bg-indigo-50 p-4"><div className="font-bold text-indigo-950">Назначено преподавателем: {assignedCount} слов</div><p className="mt-1 text-xs font-medium text-indigo-600">Эти слова будут использоваться в играх вместо общего детского набора.</p></section>}
       {!hasPremium && <button type="button" onClick={onOpenPremium} className="mt-4 w-full rounded-2xl bg-amber-50 px-4 py-3 text-left ring-1 ring-amber-100"><span className="block text-sm font-bold text-amber-900">Нужны свои слова?</span><span className="mt-1 block text-xs font-medium leading-relaxed text-amber-800/80">В Premium можно выбрать тему или добавить слова из школы, курса или работы.</span></button>}
-      {source === 'custom' && hasPremium && <section className="mt-4 rounded-2xl bg-purple-50/70 p-4"><span className="block font-bold text-indigo-950">{customDictionaryWords.length ? `Выбрано слов: ${customDictionaryWords.length}` : 'Список слов пока пуст'}</span><p className="mt-1 text-xs font-medium text-purple-700/80">{customDictionaryWords.length ? 'Список готов для игр.' : 'Добавьте слова, чтобы начать.'}</p>{isUploadingDictionary && <p className="mt-2 text-xs font-bold text-purple-700">Сохраняю слова…</p>}<button type="button" onClick={onOpenDictionaryStudio} className={`mt-3 w-full ${experienceUi.primaryButton}`}>{customDictionaryWords.length ? 'Изменить слова' : 'Добавить слова'}</button></section>}
+      {source === 'custom' && hasPremium && <section className="mt-4 rounded-2xl bg-purple-50/70 p-4"><span className="block font-bold text-indigo-950">{customDictionaryWords.length ? `Сохранено слов: ${customDictionaryWords.length}` : 'Список слов пока пуст'}</span><p className="mt-1 text-xs font-medium text-purple-700/80">{customAvailabilityText}</p>{isUploadingDictionary && <p className="mt-2 text-xs font-bold text-purple-700">Сохраняю слова…</p>}<button type="button" onClick={onOpenDictionaryStudio} className={`mt-3 w-full ${experienceUi.primaryButton}`}>{customDictionaryWords.length ? 'Изменить слова' : 'Добавить слова'}</button></section>}
       {source === 'premium' && hasPremium && <section className="mt-4 rounded-2xl bg-amber-50/70 p-4">
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-amber-600">Выберите словарь</h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Выбор Premium-словаря">{premiumCatalog.map(item => <button type="button" disabled={isSavingSource} key={item.id} onClick={() => selectPremiumDictionary(item.id)} className={`rounded-2xl bg-white p-3 text-left ring-2 disabled:opacity-60 ${settings.activePremiumDictionaryId === item.id ? 'ring-amber-300' : 'ring-transparent'}`}><div className="text-xl" aria-hidden="true">{item.icon}</div><div className="mt-1 truncate text-xs font-bold text-indigo-950">{item.shortTitle}</div></button>)}</div>
@@ -231,7 +247,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
         </div>}
       </section>}
       {hasActiveClassicGame && selectedPlayMode === 'game' && onResumeClassicGame && <button type="button" onClick={onResumeClassicGame} className="mt-5 w-full rounded-2xl bg-emerald-50 py-3 font-bold text-emerald-700 ring-1 ring-emerald-100">Продолжить сохранённую игру</button>}
-      <button type="button" onClick={() => void (dictionaryRuntime.status === 'error' ? retryDictionaryLoad() : startGame())} disabled={!sourceReady || isStarting || isSavingSource || dictionaryLoadBlocksStart} className={`mt-3 w-full py-4 ${sourceReady && !dictionaryLoadBlocksStart ? experienceUi.primaryButton : 'rounded-2xl bg-slate-100 font-bold text-slate-400'}`}>{!sourceReady ? source === 'custom' && !hasPremium ? 'Нужен Premium' : 'В этом наборе пока нет подходящих слов' : loadingLabel}</button>
+      <button type="button" onClick={() => void (dictionaryRuntime.status === 'error' ? retryDictionaryLoad() : startGame())} disabled={!sourceReady || isStarting || isSavingSource || dictionaryLoadBlocksStart} className={`mt-3 w-full py-4 ${sourceReady && !dictionaryLoadBlocksStart ? experienceUi.primaryButton : 'rounded-2xl bg-slate-100 font-bold text-slate-400'}`}>{!sourceReady ? source === 'custom' && !hasPremium ? 'Нужен Premium' : source === 'custom' && customModeUnavailable ? `Нет слов для «${MODE_LABELS[selectedPlayMode]}»` : 'В этом наборе пока нет подходящих слов' : loadingLabel}</button>
     </div>
   </ScreenContainer>;
 };
