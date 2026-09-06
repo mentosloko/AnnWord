@@ -66,6 +66,16 @@ export const ClassicGameScreen: React.FC<Props> = ({ gameState, settings, userPr
     try { window.localStorage.setItem(rulesStorageKey, 'true'); } catch { /* rules persistence must not block the game */ }
     blur();
   };
+  useEffect(() => {
+    if (!showRules || typeof window === 'undefined') return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      closeRules();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showRules, rulesStorageKey]);
   const clickHint = () => { if (!authenticated) return; blur(); setShowRules(false); setShowHint(true); if (!gameState.hint && !gameState.loadingHint && !hintUsed) onHint(); };
   const register = () => { blur(); if (onRegister) onRegister(); else onBackHome(); };
   const restart = () => {

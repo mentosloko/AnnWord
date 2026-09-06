@@ -35,6 +35,16 @@ export const GameModeShell: React.FC<GameModeShellProps> = ({ gameId, viewerKey 
   }, [introStorageKey, rules.length]);
   const closeRules = () => { try { window.localStorage.setItem(introStorageKey, 'true'); } catch { /* persistence must not block a game */ } setShowRules(false); };
   const reopenRules = () => { setRulesReopened(true); setShowRules(true); };
+  useEffect(() => {
+    if (!showRules || typeof window === 'undefined') return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      closeRules();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showRules, introStorageKey]);
   const child = isValidElement(children) ? React.cloneElement(children as React.ReactElement<{ paused?: boolean }>, { paused: showRules }) : children;
 
   return <ScreenContainer compact className="h-[100dvh] min-h-[100svh] max-w-none overflow-hidden px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-4 lg:px-6">

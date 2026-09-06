@@ -5,6 +5,7 @@ import { MobileBottomNav } from './layout/MobileBottomNav';
 import { AppModals } from './AppModals';
 import { UserProfile, ViewState } from '../types';
 import { applyPageMetadata } from '../services/pageMetadata';
+import { getClientAuthModeFromPathname, type ClientAuthMode } from '../services/clientRoute';
 
 interface AppShellProps {
   route: ViewState;
@@ -48,6 +49,9 @@ const navigateToDictionarySelection = (fallback?: () => void): void => {
   window.dispatchEvent(new PopStateEvent('popstate'));
 };
 
+const readAuthPathMode = (): ClientAuthMode | null =>
+  typeof window === 'undefined' ? null : getClientAuthModeFromPathname(window.location.pathname);
+
 export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile, isAuthenticated, showLoginModal, showRulesModal, authMode, tempUsername, tempPassword, authError, isAuthLoading, onHomeClick, onLoginClick, onRegisterClick, onLogoutClick, onProfileClick, onShopClick, onAdminClick, onAdultRoomClick, onDictionaryStudioClick, onCloseLogin, onCloseRules, onAuthModeChange, onUsernameChange, onPasswordChange, onAuthSubmit, onYandexLogin }) => {
   const isGameRoute = GAME_ROUTES.includes(route);
   const showMobileNav = isAuthenticated && !isGameRoute;
@@ -55,10 +59,22 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
   const onDictionaryClick = isTeacher
     ? onDictionaryStudioClick
     : () => navigateToDictionarySelection(onDictionaryStudioClick);
+  const initialAuthPathMode = React.useMemo(() => readAuthPathMode(), []);
+  const [authPathOpen, setAuthPathOpen] = React.useState(Boolean(initialAuthPathMode));
+  const [authPathMode, setAuthPathMode] = React.useState<ClientAuthMode | null>(initialAuthPathMode);
+  const effectiveAuthMode = authPathMode || authMode;
+  const effectiveShowLoginModal = showLoginModal || (authPathOpen && !isAuthenticated);
   const openRegistration = onRegisterClick || (() => { onLoginClick(); onAuthModeChange('register'); });
+  const changeAuthMode = (mode: ClientAuthMode) => {
+    if (authPathOpen) setAuthPathMode(mode);
+    onAuthModeChange(mode);
+  };
   const closeAuth = () => {
+    const cameFromAuthPath = authPathOpen && Boolean(readAuthPathMode());
+    setAuthPathOpen(false);
+    setAuthPathMode(null);
     onCloseLogin();
-    if (!isAuthenticated && authMode === 'register') onHomeClick();
+    if (cameFromAuthPath || (!isAuthenticated && effectiveAuthMode === 'register')) onHomeClick();
   };
   const routeViewportClass = isAuthenticated && !isGameRoute ? 'min-h-[calc(100dvh-4rem)]' : '';
   const shellProvidesMain = route === 'pet_room';
@@ -68,6 +84,30 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
   React.useEffect(() => {
     applyPageMetadata(route);
   }, [route, isAuthenticated, userProfile.accountMode, userProfile.role]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const syncAuthPath = () => {
+      const nextMode = readAuthPathMode();
+      if (!nextMode) {
+        setAuthPathOpen(false);
+        setAuthPathMode(null);
+        return;
+      }
+      if (isAuthenticated) {
+        setAuthPathOpen(false);
+        setAuthPathMode(null);
+        onHomeClick();
+        return;
+      }
+      setAuthPathOpen(true);
+      setAuthPathMode(nextMode);
+      onAuthModeChange(nextMode);
+    };
+    syncAuthPath();
+    window.addEventListener('popstate', syncAuthPath);
+    return () => window.removeEventListener('popstate', syncAuthPath);
+  }, [isAuthenticated, onAuthModeChange, onHomeClick]);
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-gray-900">
@@ -94,16 +134,16 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
       {!isGameRoute && <LegalFooter />}
       {!isGameRoute && <MobileBottomNav route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} onHomeClick={onHomeClick} onProfileClick={onProfileClick} onShopClick={onShopClick} onAdultRoomClick={onAdultRoomClick} onDictionaryStudioClick={onDictionaryClick} />}
       <AppModals
-        showLoginModal={showLoginModal}
+        showLoginModal={effectiveShowLoginModal}
         showRulesModal={showRulesModal}
-        authMode={authMode}
+        authMode={effectiveAuthMode}
         tempUsername={tempUsername}
         tempPassword={tempPassword}
         authError={authError}
         isAuthLoading={isAuthLoading}
         onCloseLogin={closeAuth}
         onCloseRules={onCloseRules}
-        onAuthModeChange={onAuthModeChange}
+        onAuthModeChange={changeAuthMode}
         onUsernameChange={onUsernameChange}
         onPasswordChange={onPasswordChange}
         onAuthSubmit={onAuthSubmit}
