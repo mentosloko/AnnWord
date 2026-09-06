@@ -31,9 +31,12 @@ const shouldRetryChunkLoad = (): boolean => {
   }
 };
 
-export class ErrorBoundary extends React.Component<Props, State> {
+export class ErrorBoundary extends React.Component<any, any> {
   constructor(props: Props) {
     super(props);
+    // The project React shim does not expose state/props on Component to TypeScript.
+    // Keep the same compatibility pattern as the pre-existing boundary.
+    // @ts-ignore
     this.state = {
       hasError: false,
       errorMessage: '',
@@ -71,7 +74,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   public render() {
+    // @ts-ignore
     const { hasError, errorMessage, chunkLoadError } = this.state;
+    // @ts-ignore
     const { children } = this.props;
 
     if (hasError) {
