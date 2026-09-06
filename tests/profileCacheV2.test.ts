@@ -12,6 +12,11 @@ const fullProfile = (): UserProfile => ({
   childShareCode: 'KATYA1',
   childSlotsLimit: 1,
   featureFlags: { adultRoom: true, premiumDictionaries: true },
+  activeWordSource: {
+    source: 'builtin',
+    difficulty: 'A1',
+    updatedAt: '2026-09-06T17:45:00.000Z',
+  },
   customDictionaryEn: ['APPLE'],
   assignedWords: ['SCHOOL'],
   dictionaryCollections: [{ id: 'collection-1', title: 'Школа', source: 'manual', words: ['SCHOOL'], createdAt: '2026-07-19T10:00:00.000Z' }],
@@ -43,6 +48,11 @@ describe('profileCache v2', () => {
       childShareCode: 'KATYA1',
       weeklyReportEmail: 'parent@example.ru',
       assignedWords: ['SCHOOL'],
+      activeWordSource: {
+        source: 'builtin',
+        difficulty: 'A1',
+        updatedAt: '2026-09-06T17:45:00.000Z',
+      },
     });
     expect(snapshot?.profile.dictionaryCollections).toHaveLength(1);
     expect(snapshot?.profile.managedLearners).toHaveLength(1);
@@ -58,6 +68,7 @@ describe('profileCache v2', () => {
     }));
 
     expect(profileCache.readSnapshot()?.profile.childDisplayName).toBe('Катя');
+    expect(profileCache.readSnapshot()?.profile.activeWordSource).toMatchObject({ source: 'builtin', difficulty: 'A1' });
     expect(profileCache.getFreshness()).toBe('cached');
   });
 
