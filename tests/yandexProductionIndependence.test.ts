@@ -64,7 +64,6 @@ describe('Yandex-only production contract', () => {
   it('keeps Vercel out of the Yandex deployment and operations chain', () => {
     const workflows = [
       '.github/workflows/yandex-deploy.yml',
-      '.github/workflows/yandex-smoke.yml',
       '.github/workflows/production-operations.yml',
     ];
     const forbiddenRuntimeReferences = /VERCEL_|vercel\.app|api\.vercel\.com|\bvercel\s+(pull|build|deploy|promote)\b/i;
@@ -72,12 +71,14 @@ describe('Yandex-only production contract', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('does not keep repo-owned Vercel workflows or redeploy trigger files', () => {
+  it('does not keep retired deployment and diagnostic workflows', () => {
     const retiredFiles = [
       '.github/workflows/vercel-prebuilt-production.yml',
       '.github/workflows/vercel-production-verification.yml',
       '.github/workflows/vercel-promote-verified-preview.yml',
       '.github/workflows/retire-vercel-project-once.yml',
+      '.github/workflows/yandex-smoke.yml',
+      '.github/workflows/production-performance-evidence.yml',
       '.production-redeploy-memory-hotfix',
       '.runtime-hotfix-trigger',
       '.vercel-force-redeploy-20260719',
