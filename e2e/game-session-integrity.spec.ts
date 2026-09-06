@@ -225,12 +225,12 @@ test.describe('unified resumable game sessions', () => {
     const wrongLetter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').find(letter => !word.includes(letter));
     expect(wrongLetter).toBeTruthy();
     await page.getByRole('button', { name: `Буква ${wrongLetter}, не выбрана` }).click();
-    await expect(page.getByText('Осталось попыток: 6')).toBeVisible();
+    await expect(page.getByText('Осталось попыток: 6', { exact: true })).toBeVisible();
     await expect.poll(async () => (await readSession(page))?.state?.mistakes).toBe(1);
 
     await page.reload();
     await dismissRules(page, 'Виселица');
-    await expect(page.getByText('Осталось попыток: 6')).toBeVisible();
+    await expect(page.getByText('Осталось попыток: 6', { exact: true })).toBeVisible();
     const restored = await readSession(page);
     expect(restored.state.currentWord).toBe(word);
     expect(restored.state.guessedLetters).toContain(wrongLetter);
