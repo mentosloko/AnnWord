@@ -53,6 +53,8 @@ const normalizeProfile = (profile: UserProfile): UserProfile => {
       child_share_code: profile.childShareCode,
       child_slots_limit: profile.childSlotsLimit,
       feature_flags: profile.featureFlags,
+      active_word_source: profile.activeWordSource,
+      active_word_source_updated_at: profile.activeWordSource?.updatedAt,
       custom_dictionary_en: normalizeDictionaryField(profile.customDictionaryEn || []),
       dictionary_collections: Array.isArray(profile.dictionaryCollections) ? profile.dictionaryCollections : [],
       managed_learners: Array.isArray(profile.managedLearners) ? profile.managedLearners : [],
