@@ -139,6 +139,24 @@ test.describe('unified resumable game sessions', () => {
     expect(restarted.score.correct).toBe(0);
   });
 
+  test('1 из 2 survives a full browser reload with the same score and card', async ({ page }) => {
+    await installBackend(page);
+    await page.goto('/kids');
+    await startMode(page, /^Выбери перевод: 1 из 2/, '1 из 2');
+    await waitForSavedType(page, 'translation');
+    const first = await readSession(page);
+    const correct = first.state.question.correct as string;
+    await page.getByRole('button', { name: correct, exact: true }).click();
+    await expect(page.getByText('1/10 · ⭐ 1')).toBeVisible();
+    await expect.poll(async () => (await readSession(page))?.state?.answered).toBe(1);
+    const savedQuestion = (await readSession(page)).state.question.correct;
+
+    await page.reload();
+    await dismissRules(page, '1 из 2');
+    await expect(page.getByText('1/10 · ⭐ 1')).toBeVisible();
+    await expect.poll(async () => (await readSession(page))?.state?.question?.correct).toBe(savedQuestion);
+  });
+
   test('Anagrams never restores a completed skip as a fresh payable turn', async ({ page }) => {
     await installBackend(page);
     await page.goto('/kids');
@@ -178,6 +196,44 @@ test.describe('unified resumable game sessions', () => {
     await expect.poll(async () => (await readSession(page))?.state?.flippedCards?.length).toBeLessThan(2);
     const playableCards = page.getByRole('button', { name: /Закрытая карточка\. Открыть/ });
     if (await playableCards.count()) await playableCards.first().click();
+  });
+
+  test('Memory keeps a single opened card across a full browser reload', async ({ page }) => {
+    await installBackend(page);
+    await page.goto('/kids');
+    await startMode(page, /^Память/, 'Память');
+    await waitForSavedType(page, 'memory');
+    const closedCard = page.getByRole('button', { name: /Закрытая карточка\. Открыть/ }).first();
+    await closedCard.click();
+    await expect.poll(async () => (await readSession(page))?.state?.flippedCards?.length).toBe(1);
+    const saved = await readSession(page);
+    const openedId = saved.state.flippedCards[0];
+
+    await page.reload();
+    await dismissRules(page, 'Память');
+    await expect.poll(async () => (await readSession(page))?.state?.flippedCards?.[0]).toBe(openedId);
+    await expect(page.getByRole('button', { name: /Открытая карточка:/ })).toHaveCount(1);
+  });
+
+  test('Hangman keeps the current word, letters and mistakes across reload', async ({ page }) => {
+    await installBackend(page);
+    await page.goto('/kids');
+    await startMode(page, /^Виселица/, 'Виселица');
+    await waitForSavedType(page, 'hangman');
+    const initial = await readSession(page);
+    const word = String(initial.state.currentWord);
+    const wrongLetter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').find(letter => !word.includes(letter));
+    expect(wrongLetter).toBeTruthy();
+    await page.getByRole('button', { name: `Буква ${wrongLetter}, не выбрана` }).click();
+    await expect(page.getByText('Осталось попыток: 6')).toBeVisible();
+    await expect.poll(async () => (await readSession(page))?.state?.mistakes).toBe(1);
+
+    await page.reload();
+    await dismissRules(page, 'Виселица');
+    await expect(page.getByText('Осталось попыток: 6')).toBeVisible();
+    const restored = await readSession(page);
+    expect(restored.state.currentWord).toBe(word);
+    expect(restored.state.guessedLetters).toContain(wrongLetter);
   });
 
   test('Snake keeps partial path and Continue opens the latest saved game', async ({ page }) => {
