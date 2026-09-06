@@ -54,7 +54,8 @@ export const getClientLocationFromPathname = (pathname: string): ClientLocationS
   const normalized = normalizePathname(pathname);
   const entryPath = getEntryPathFromPathname(normalized);
   const isEntryPath = normalized === '/' || entryPath !== 'home';
-  if (isEntryPath || getClientAuthModeFromPathname(normalized)) return { route: 'landing', entryPath: 'home' };
+  if (isEntryPath) return { route: 'landing', entryPath };
+  if (getClientAuthModeFromPathname(normalized)) return { route: 'landing', entryPath: 'home' };
   return { route: PATH_ROUTES.get(normalized) || 'landing', entryPath: 'home' };
 };
 
