@@ -21,7 +21,7 @@ const normalizeCollection = (value: any): CustomDictionaryCollection | null => {
   if (!words.length) return null;
   return {
     id: String(value?.id || crypto.randomUUID()),
-    title: readText(value, 'title') || readText(value?.title) || "Словарь",
+    title: readText(value?.title) || "Словарь",
     source: SOURCES.has(value?.source) ? value.source : "manual",
     words,
     wordTranslations: normalizeDictionaryTranslations(value?.wordTranslations || value?.word_translations),
