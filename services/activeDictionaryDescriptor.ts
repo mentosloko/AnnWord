@@ -45,5 +45,6 @@ export const resolveActiveDictionaryDescriptor = (
   }
 
   if (assignedCount) return { title: 'Слова от преподавателя', icon: '🎓', available: true };
-  return { title: kidsMode ? 'Все уровни' : 'General English', icon: kidsMode ? '🌈' : '📚', available: true };
+  if (kidsMode) return { title: settings.difficulty === 'ALL' ? 'Все уровни' : settings.difficulty, icon: '🌈', available: true };
+  return { title: 'General English', icon: '📚', available: true };
 };
