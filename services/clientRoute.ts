@@ -6,6 +6,8 @@ export interface ClientLocationState {
   entryPath: ClientEntryPath;
 }
 
+export type ClientAuthMode = 'login' | 'register';
+
 const ROUTE_PATHS: Record<Exclude<ViewState, 'landing'>, string> = {
   profile: '/profile',
   setup: '/play/setup',
@@ -30,17 +32,29 @@ const ROUTE_PATHS: Record<Exclude<ViewState, 'landing'>, string> = {
   premium_success: '/premium/success',
 };
 
+const AUTH_PATHS: Record<ClientAuthMode, string> = {
+  login: '/login',
+  register: '/register',
+};
+
 const PATH_ROUTES = new Map<string, ViewState>(
   Object.entries(ROUTE_PATHS).map(([route, path]) => [path, route as ViewState]),
 );
 
 const normalizePathname = (pathname: string): string => pathname.replace(/\/+$/, '') || '/';
 
+export const getClientAuthModeFromPathname = (pathname: string): ClientAuthMode | null => {
+  const normalized = normalizePathname(pathname);
+  if (normalized === AUTH_PATHS.login) return 'login';
+  if (normalized === AUTH_PATHS.register) return 'register';
+  return null;
+};
+
 export const getClientLocationFromPathname = (pathname: string): ClientLocationState => {
   const normalized = normalizePathname(pathname);
   const entryPath = getEntryPathFromPathname(normalized);
   const isEntryPath = normalized === '/' || entryPath !== 'home';
-  if (isEntryPath) return { route: 'landing', entryPath };
+  if (isEntryPath || getClientAuthModeFromPathname(normalized)) return { route: 'landing', entryPath: 'home' };
   return { route: PATH_ROUTES.get(normalized) || 'landing', entryPath: 'home' };
 };
 
@@ -68,5 +82,6 @@ export const getKnownClientPaths = (): string[] => [
   '/kids',
   '/teacher',
   '/landing-mix',
+  ...Object.values(AUTH_PATHS),
   ...Object.values(ROUTE_PATHS),
 ];
