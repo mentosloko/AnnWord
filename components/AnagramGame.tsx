@@ -306,7 +306,7 @@ export const AnagramGame: React.FC<AnagramGameProps> = ({ onBack, userProfile, o
   return <div className="flex w-full max-w-md flex-col items-center rounded-3xl bg-white p-3 shadow-xl sm:p-6">
     <div className="mb-4 flex w-full items-center justify-between gap-2 sm:mb-5">
       <button type="button" onClick={finishSession} className="rounded-xl bg-indigo-50 px-2.5 py-2 text-xs font-black text-indigo-700 sm:px-3 sm:text-sm">Закончить игру</button>
-      <div className="flex gap-1.5 text-xs font-black sm:gap-2"><span className="rounded-full bg-indigo-50 px-2.5 py-2 text-indigo-700 sm:px-3">⭐ {score}</span>{showKidsRewards && <span className="rounded-full bg-amber-50 px-2.5 py-2 text-amber-700 sm:px-3">Монеты: {coinsEarned}</span>}</div>
+      <div className="flex gap-1.5 text-xs font-black sm:gap-2"><span className="rounded-full bg-indigo-50 px-2.5 py-2 text-indigo-700 sm:px-3">⭐ {score}</span>{showKidsRewards && <span className="rounded-full bg-amber-50 px-2.5 py-2 text-amber-700 sm:px-3">Монеты: +{coinsEarned}</span>}</div>
     </div>
     <div className="mb-5 text-center sm:mb-7">
       <div className="mb-1 text-sm uppercase tracking-tighter text-gray-400">Перевод</div>
