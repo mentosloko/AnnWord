@@ -21,7 +21,7 @@ const normalizeCollection = (value: any): CustomDictionaryCollection | null => {
   if (!words.length) return null;
   return {
     id: String(value?.id || crypto.randomUUID()),
-    title: readText(value?.title) || "Словарь",
+    title: readText(value, 'title') || readText(value?.title) || "Словарь",
     source: SOURCES.has(value?.source) ? value.source : "manual",
     words,
     wordTranslations: normalizeDictionaryTranslations(value?.wordTranslations || value?.word_translations),
@@ -45,8 +45,8 @@ export async function saveDictionaryCollection(userId: string, draft: Partial<Cu
   const explicitId = readText(draft.id);
 
   const collection = await transaction(async client => {
-    const locked = await client.query<{ role: string | null; account_mode: string | null; dictionary_collections: unknown }>(
-      "select role, account_mode, dictionary_collections from profiles where id = $1 for update",
+    const locked = await client.query<{ role: string | null; account_mode: string | null; dictionary_collections: unknown; active_word_source: unknown }>(
+      "select role, account_mode, dictionary_collections, active_word_source from profiles where id = $1 for update",
       [userId],
     );
     const profile = locked.rows[0];
@@ -84,13 +84,24 @@ export async function saveDictionaryCollection(userId: string, draft: Partial<Cu
     const nextCollections = existingIndex >= 0
       ? [nextCollection, ...current.filter((_, index) => index !== existingIndex)]
       : [nextCollection, ...current];
+    const shouldAutoSelect = !isTeacher && !isAdmin;
+    const currentSource = profile.active_word_source && typeof profile.active_word_source === "object" && !Array.isArray(profile.active_word_source)
+      ? profile.active_word_source as Record<string, unknown>
+      : {};
+    const difficulty = typeof currentSource.difficulty === "string" && ["ALL", "A1", "A2", "B1", "B2", "C1", "C2"].includes(currentSource.difficulty)
+      ? currentSource.difficulty
+      : "ALL";
+    const nextActiveWordSource = shouldAutoSelect ? { source: "custom", difficulty } : currentSource;
+
     await client.query(
       `update profiles
           set dictionary_collections = $2::jsonb,
               custom_dictionary_en = case when $3::boolean then custom_dictionary_en else $4::jsonb end,
+              active_word_source = case when $5::boolean then $6::jsonb else active_word_source end,
+              active_word_source_updated_at = case when $5::boolean then now() else active_word_source_updated_at end,
               updated_at = now()
         where id = $1`,
-      [userId, JSON.stringify(nextCollections), isTeacher || isAdmin, JSON.stringify(words)],
+      [userId, JSON.stringify(nextCollections), isTeacher || isAdmin, JSON.stringify(words), shouldAutoSelect, JSON.stringify(nextActiveWordSource)],
     );
     return nextCollection;
   });
