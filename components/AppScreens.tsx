@@ -237,7 +237,7 @@ export const AppScreens: React.FC<AppScreensProps> = ({ route, entryPath, userPr
     admin: <AdminControlCenterScreen userProfile={userProfile} onBackHome={goHome} />,
     adult_room: isParentAccount ? <ParentDashboardScreen userProfile={userProfile} onBackHome={goHome} onOpenDictionaryStudio={() => onRouteChange('dictionary_settings')} /> : <AdultRoomScreen userProfile={userProfile} onBackHome={goHome} onOpenDictionaryStudio={() => onRouteChange('dictionary_studio')} />,
     dictionary_settings: <DictionarySettingsScreen settings={settings} userProfile={userProfile} customDictionaryWords={ownWords} isAuthenticated={isAuthenticated} onCommitSettings={commitDictionarySettings} onOpenDictionaryStudio={() => onRouteChange('dictionary_studio')} onOpenPremium={() => openPremiumFrom('dictionary_settings', 'dictionary_settings')} onBack={goHome} />,
-    dictionary_studio: <DictionaryStudioScreen userProfile={userProfile} onBack={() => onRouteChange(isParentAccount || isTeacher ? 'adult_room' : 'dictionary_settings')} onSaveDictionary={onSaveDictionary} />,
+    dictionary_studio: <DictionaryStudioScreen userProfile={userProfile} onBack={() => onRouteChange(isTeacher ? 'adult_room' : 'dictionary_settings')} onSaveDictionary={onSaveDictionary} />,
     premium: <PremiumScreen userProfile={userProfile} onBack={returnFromPremium} onOpenDictionarySetup={() => onRouteChange('dictionary_settings')} onTestUnlockPremium={onTestUnlockPremium || (() => undefined)} />,
     premium_success: <PremiumSuccessScreen userProfile={userProfile} onPrimaryAction={openAfterPayment} onBackHome={goHome} />,
     account_mode_setup: hasChosenAccountMode ? homeScreen : accountModeSetup,
