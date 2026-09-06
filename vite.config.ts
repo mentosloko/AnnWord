@@ -74,6 +74,8 @@ const spaFallbackRoutes = [
   'kids',
   'teacher',
   'landing-mix',
+  'login',
+  'register',
   'profile',
   'review',
   'shop',
@@ -127,6 +129,8 @@ const STATIC_PUBLIC_ENTRY_METADATA: Record<string, StaticHtmlMetadata> = {
 };
 
 const STATIC_PRIVATE_ROUTE_TITLES: Record<string, string> = {
+  login: 'Вход — AnnWord',
+  register: 'Регистрация — AnnWord',
   profile: 'Прогресс и аккаунт — AnnWord',
   review: 'Повторение слов — AnnWord',
   shop: 'Магазин — AnnWord',
