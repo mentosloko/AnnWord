@@ -21,7 +21,6 @@ The production deployment chain is:
 main
   -> .github/workflows/yandex-deploy.yml
   -> Yandex Container Registry / Serverless Container / Object Storage
-  -> .github/workflows/yandex-smoke.yml
   -> .github/workflows/production-operations.yml
 ```
 
@@ -98,8 +97,8 @@ The CI workflows run TypeScript checks, tests, smoke checks and production build
 A successful production release is not established by a build alone. The expected sequence is:
 
 1. `Deploy to Yandex Cloud` succeeds for the `main` commit.
-2. The live frontend release marker exposes that commit SHA.
-3. `Yandex Runtime Smoke` verifies frontend routes, API, PostgreSQL, Postbox and protected endpoints.
-4. `Production Operations` verifies monitoring and PostgreSQL backups.
+2. Its built-in live verification confirms the exact frontend release SHA, API and PostgreSQL health, CORS policy and static-delivery cache policy.
+3. `Production Operations` continues recurring availability/report checks and PostgreSQL backup verification.
+4. Browser production smoke remains manual/release-based for meaningful product changes rather than a mandatory post-deploy diagnostic workflow.
 
 Vercel previews, old Supabase migrations and other legacy files must never be treated as the source of truth for production.
