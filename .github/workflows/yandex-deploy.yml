@@ -242,9 +242,12 @@ jobs:
           S3_FRONTEND_BUCKET: ${{ secrets.S3_FRONTEND_BUCKET }}
         run: |
           set -euo pipefail
-          python -m awscli --endpoint-url "$S3_ENDPOINT" s3 sync dist "s3://${S3_FRONTEND_BUCKET}" --delete --exclude ".well-known/acme-challenge/*"
+          # Do not delete previous content-hashed assets during a release. A tab opened
+          # before this deploy may lazy-load one of those files after the new HTML is live.
+          python -m awscli --endpoint-url "$S3_ENDPOINT" s3 sync dist "s3://${S3_FRONTEND_BUCKET}" --exclude ".well-known/acme-challenge/*"
 
-          # Every generated HTML entry point must revalidate so route fallbacks never reference deleted bundles.
+          # Every generated HTML entry point must revalidate so new visits immediately
+          # receive the current manifest and current content-hashed bundle names.
           while IFS= read -r file; do
             rel="${file#dist/}"
             python -m awscli --endpoint-url "$S3_ENDPOINT" s3 cp "$file" "s3://${S3_FRONTEND_BUCKET}/${rel}" \
@@ -265,6 +268,40 @@ jobs:
                 --cache-control 'public,max-age=31536000,immutable'
             fi
           done < <(find dist/assets -type f -print | sort)
+
+          # Keep orphaned assets for 14 days so long-lived tabs survive releases, then
+          # remove only files that are both old and absent from the current build.
+          python -m awscli --endpoint-url "$S3_ENDPOINT" s3api list-objects-v2 \
+            --bucket "$S3_FRONTEND_BUCKET" --prefix 'assets/' --output json > /tmp/frontend-assets.json
+          python - <<'PY' > /tmp/stale-frontend-assets.txt
+          import json
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
+
+          payload = json.loads(Path('/tmp/frontend-assets.json').read_text('utf-8'))
+          current = {
+              path.relative_to('dist').as_posix()
+              for path in Path('dist/assets').rglob('*')
+              if path.is_file()
+          }
+          cutoff = datetime.now(timezone.utc) - timedelta(days=14)
+          for item in payload.get('Contents', []):
+              key = str(item.get('Key') or '')
+              if not key or key in current:
+                  continue
+              raw_modified = str(item.get('LastModified') or '')
+              try:
+                  modified = datetime.fromisoformat(raw_modified.replace('Z', '+00:00'))
+              except ValueError:
+                  continue
+              if modified < cutoff:
+                  print(key)
+          PY
+          while IFS= read -r key; do
+            [ -n "$key" ] || continue
+            echo "Removing stale frontend asset older than 14 days: $key"
+            python -m awscli --endpoint-url "$S3_ENDPOINT" s3 rm "s3://${S3_FRONTEND_BUCKET}/${key}"
+          done < /tmp/stale-frontend-assets.txt
 
       # HTML is cached by CDN independently of Object Storage. Clear stale route
       # variants so visitors immediately receive the new content-hashed bundles.
