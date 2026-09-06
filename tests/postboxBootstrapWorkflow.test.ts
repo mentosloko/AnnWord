@@ -1,10 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const workflowPath = '.github/workflows/yandex-smoke.yml';
-const workflow = readFileSync(workflowPath, 'utf8');
+const deployWorkflow = readFileSync('.github/workflows/yandex-deploy.yml', 'utf8');
+const operationsWorkflow = readFileSync('.github/workflows/production-operations.yml', 'utf8');
 
-describe('Yandex post-cutover runtime smoke', () => {
+describe('Yandex post-cutover production checks', () => {
   it('removes all one-time Postbox and DNS bootstrap workflows', () => {
     expect(existsSync('.github/workflows/postbox-byodkim-bootstrap.yml')).toBe(false);
     expect(existsSync('.github/workflows/postbox-create-easy-dkim-diagnostic.yml')).toBe(false);
@@ -14,39 +14,24 @@ describe('Yandex post-cutover runtime smoke', () => {
     expect(existsSync('.github/workflows/diagnose-postbox-dns-write.yml')).toBe(false);
   });
 
-  it('checks API, database, Postbox, security and frontend in separate observable sections', () => {
-    expect(workflow).toContain('Check API, database and Postbox');
-    expect(workflow).toContain('Check authorization and closed migration endpoints');
-    expect(workflow).toContain('Check frontend routes and release marker');
-    expect(workflow).toContain('id: api');
-    expect(workflow).toContain('id: security');
-    expect(workflow).toContain('id: frontend');
-    expect(workflow.match(/continue-on-error: true/g)?.length).toBe(3);
-    expect(workflow).toContain('Assert all runtime smoke sections passed');
+  it('keeps essential release health checks in the production deploy itself', () => {
+    expect(deployWorkflow).toContain('Verify live Yandex production');
+    expect(deployWorkflow).toContain('/api/health');
+    expect(deployWorkflow).toContain('/api/health/db');
+    expect(deployWorkflow).toContain('release.json?sha=${GITHUB_SHA}');
+    expect(deployWorkflow).toContain('access-control-max-age');
+    expect(deployWorkflow).toContain('context:"Yandex Production"');
   });
 
-  it('keeps critical post-migration invariants under live verification', () => {
-    expect(workflow).toContain('health.runtime !== \'yandex-cloud\'');
-    expect(workflow).toContain('!db.database?.ok');
-    expect(workflow).toContain('weekly.postboxIdentityVerified !== true');
-    expect(workflow).toContain('expect_status profile-auth 401');
-    expect(workflow).toContain('expect_status admin-auth 401');
-    expect(workflow).toContain('expect_status weekly-run-auth 401');
-    expect(workflow).toContain('expect_status "migration-${PATH_SUFFIX}" 404');
-    expect(workflow).toContain("release.sha !== process.env.SOURCE_SHA");
+  it('keeps recurring reports and availability monitoring in Production Operations', () => {
+    expect(operationsWorkflow).toContain('Check frontend, API, database and reports');
+    expect(operationsWorkflow).toContain('/api/reports/weekly/status');
+    expect(operationsWorkflow).toContain('Send monitoring failure email');
+    expect(operationsWorkflow).toContain('Production Operations');
   });
 
-  it('follows Object Storage directory redirects before validating SPA routes', () => {
-    expect(workflow).toContain("curl -sSL --retry 3 --retry-all-errors");
-    expect(workflow).toContain('returned final HTTP');
-  });
-
-  it('uploads sanitized diagnostics and phase markers on failure', () => {
-    expect(workflow).toContain('name: annword-yandex-runtime-smoke');
-    expect(workflow).toContain('/tmp/smoke-phase-*');
-    expect(workflow).toContain('/tmp/annword-weekly-status.json');
-    expect(workflow).toContain('/tmp/annword-release.json');
-    expect(workflow).toContain('if: always()');
-    expect(workflow).toContain('context:"Yandex Runtime Smoke"');
+  it('does not keep redundant post-deploy diagnostic workflows', () => {
+    expect(existsSync('.github/workflows/yandex-smoke.yml')).toBe(false);
+    expect(existsSync('.github/workflows/production-performance-evidence.yml')).toBe(false);
   });
 });

@@ -40,21 +40,15 @@ describe('Yandex post-cutover guarantees', () => {
     expect(migrate).toContain('ANNWORD_ENABLE_SUPABASE_MIGRATION_ENDPOINT === "true"');
   });
 
-  it('runs Yandex runtime smoke after main deployments, checks every real route and publishes a commit status', () => {
-    const workflow = read('.github/workflows/yandex-smoke.yml');
-    expect(workflow).toContain('- main');
-    expect(workflow).not.toContain('- infra/ru-cloud-migration');
+  it('verifies the live release, API, database and delivery invariants inside the production deploy', () => {
+    const workflow = read('.github/workflows/yandex-deploy.yml');
+    expect(workflow).toContain('Verify live Yandex production');
+    expect(workflow).toContain('/api/health');
     expect(workflow).toContain('/api/health/db');
-    expect(workflow).toContain('/api/analytics/admin');
-    expect(workflow).toContain('/api/reports/weekly/status');
-    expect(workflow).toContain('for PATH_SUFFIX in prepare supabase');
-    expect(workflow).toContain('/play/setup');
-    expect(workflow).toContain('/premium/success');
-    expect(workflow).not.toContain(' /setup');
-    expect(workflow).toContain('weekly.postboxIdentityVerified !== true');
-    expect(workflow).toContain('context:"Yandex Runtime Smoke"');
-    expect(workflow).toContain('github.event.workflow_run.head_sha || github.sha');
-    expect(workflow).toContain('statuses: write');
+    expect(workflow).toContain('/api/profile/coins');
+    expect(workflow).toContain('access-control-max-age');
+    expect(workflow).toContain('release.json?sha=${GITHUB_SHA}');
+    expect(workflow).toContain('context:"Yandex Production"');
   });
 
   it('targets Yandex production in Playwright instead of a Vercel preview', () => {

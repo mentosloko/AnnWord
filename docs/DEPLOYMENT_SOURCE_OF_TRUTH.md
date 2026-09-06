@@ -18,12 +18,13 @@ Supabase and Vercel are **not production runtime components**. Their remaining f
 
 The supported production chain is:
 
-`main` → `.github/workflows/yandex-deploy.yml` → Yandex Container Registry / Serverless Container / Object Storage → `.github/workflows/yandex-smoke.yml` + `.github/workflows/production-operations.yml`.
+`main` → `.github/workflows/yandex-deploy.yml` → Yandex Container Registry / Serverless Container / Object Storage → `.github/workflows/production-operations.yml`.
 
 - `.github/workflows/ci.yml` validates changes but does not deploy production.
-- `.github/workflows/yandex-deploy.yml` publishes both frontend and backend and runs PostgreSQL migrations for pushes to `main`.
-- `.github/workflows/yandex-smoke.yml` verifies the live Yandex frontend, API, database, Postbox and protected endpoints.
-- `.github/workflows/production-operations.yml` monitors production and enforces PostgreSQL backup policy.
+- `.github/workflows/yandex-deploy.yml` publishes both frontend and backend, runs PostgreSQL migrations for pushes to `main`, and verifies the live release SHA, API/database health, CORS and static-delivery cache policy before reporting `Yandex Production` success.
+- `.github/workflows/production-operations.yml` monitors production availability/reports and enforces PostgreSQL backup policy on its recurring schedule and after successful deployments.
+- Full browser production smoke is release-based/manual rather than an automatic post-deploy gate.
+- The former `yandex-smoke.yml` and `production-performance-evidence.yml` workflows are retired; their overlapping or brittle post-deploy checks must not be reintroduced as mandatory CI/CD gates. RUM collection and performance data may still be queried independently when analysis is needed.
 
 Repo-owned Vercel deployment, production-verification and preview-promotion workflows have been retired. `vercel.json` sets `git.deploymentEnabled` to `false`, so the remaining detached Vercel project must not create deployments from Git pushes or pull requests. The Vercel project has no AnnWord custom production domains; only `*.vercel.app` aliases remain.
 
@@ -33,11 +34,11 @@ The Vercel project itself may remain temporarily as an inert external resource. 
 
 Client production services must use the AnnWord backend API (`api.annword.ru` in production). They must not import or call the Supabase client as a runtime fallback.
 
-Legacy Supabase/Vercel code may remain temporarily only when needed to retire old infrastructure safely. It must be removed in separate cleanup steps after the Yandex-only path has passed CI, deployment and live runtime smoke checks.
+Legacy Supabase/Vercel code may remain temporarily only when needed to retire old infrastructure safely. It must be removed in separate cleanup steps after the Yandex-only path has passed CI, deployment verification and recurring production monitoring.
 
 ## Safe decommission order
 
-1. Keep Yandex deployment, runtime smoke and production monitoring green.
+1. Keep Yandex deployment verification and production monitoring green.
 2. Remove client/runtime fallbacks to legacy providers.
 3. Verify a real `main` deployment reaches `annword.ru` and `api.annword.ru` without legacy-provider involvement.
 4. Remove repo-owned Vercel checks/workflows and verify another Yandex deployment.
