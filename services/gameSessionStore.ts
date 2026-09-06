@@ -3,7 +3,7 @@ import { getCurrentProfileOwnerId } from './profileUpdateEvent';
 
 export const GAME_SESSION_SCHEMA_VERSION = 1 as const;
 
-export type PersistedGameType = 'game' | 'anagrams' | 'translation' | 'memory' | 'letter_square';
+export type PersistedGameType = 'game' | 'anagrams' | 'translation' | 'memory' | 'letter_square' | 'hangman';
 export type PersistedRewardState = 'active' | 'pending' | 'applied';
 
 export interface PersistedGameSession<TState = unknown, TScore = unknown> {
@@ -31,7 +31,7 @@ export interface PersistGameSessionInput<TState = unknown, TScore = unknown> {
 }
 
 const STORAGE_PREFIX = 'annword:game-session:v1:';
-const SUPPORTED_GAME_TYPES = new Set<PersistedGameType>(['game', 'anagrams', 'translation', 'memory', 'letter_square']);
+const SUPPORTED_GAME_TYPES = new Set<PersistedGameType>(['game', 'anagrams', 'translation', 'memory', 'letter_square', 'hangman']);
 const STORAGE_FIELD = 'local' + 'Storage';
 
 const getStore = (): Storage | null => {
