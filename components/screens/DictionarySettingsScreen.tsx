@@ -244,7 +244,9 @@ export const DictionarySettingsScreen: React.FC<DictionarySettingsScreenProps> =
       ? draftSettings.activePremiumDictionaryId === SPOTLIGHT_PREMIUM_DICTIONARY_ID
         ? `Школьные (Spotlight) · ${getSpotlightSelectionLabel(spotlightGrade, selectedSpotlightSectionId)}`
         : selectedTopic?.title || 'Тематический словарь'
-      : kidsMode ? 'Все уровни' : `General English · ${draftSettings.difficulty === 'ALL' ? 'все уровни' : draftSettings.difficulty}`;
+      : kidsMode
+        ? draftSettings.difficulty === 'ALL' ? 'Все уровни' : draftSettings.difficulty
+        : `General English · ${draftSettings.difficulty === 'ALL' ? 'все уровни' : draftSettings.difficulty}`;
 
   return <ScreenContainer className="max-w-4xl pb-20 pt-3 sm:pt-4">
     <header className="mb-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
