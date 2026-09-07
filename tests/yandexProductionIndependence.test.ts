@@ -1,25 +1,29 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
 const read = (path: string): string => readFileSync(path, 'utf8');
-
-const serviceFiles = (): string[] => readdirSync('services', { withFileTypes: true })
-  .filter(entry => entry.isFile() && /\.(ts|tsx)$/.test(entry.name))
-  .map(entry => `services/${entry.name}`);
+const retiredProvider = ['supa', 'base'].join('');
 
 describe('Yandex-only production contract', () => {
-  it('keeps Supabase out of the client runtime', () => {
-    const offenders = serviceFiles().filter(path => /from\s+['"]\.\.\/supabase['"]|from\s+['"]\.\/supabase['"]/.test(read(path)));
-    expect(offenders).toEqual([]);
-    expect(read('hooks/useAuthProfile.ts')).not.toContain('@supabase/supabase-js');
-    expect(existsSync('services/petMoodClock.ts')).toBe(false);
-    expect(existsSync('supabase.ts')).toBe(false);
+  it('keeps the retired database provider out of the checked-in tree', () => {
+    const grep = spawnSync('git', ['grep', '-I', '-n', '-i', retiredProvider, '--', '.'], { encoding: 'utf8' });
+    const tracked = spawnSync('git', ['ls-files'], { encoding: 'utf8' });
+    expect(grep.status, grep.stdout || grep.stderr).toBe(1);
+    expect(tracked.status, tracked.stderr).toBe(0);
+    const matchingPaths = tracked.stdout
+      .split('\n')
+      .filter(Boolean)
+      .filter(path => path.toLowerCase().includes(retiredProvider));
+    expect(matchingPaths).toEqual([]);
   });
 
-  it('does not keep the obsolete Supabase development server', () => {
+  it('does not keep obsolete provider development/runtime entrypoints', () => {
     expect(existsSync('server.ts')).toBe(false);
     const packageJson = JSON.parse(read('package.json')) as { scripts?: Record<string, string> };
     expect(packageJson.scripts?.server).toBeUndefined();
+    expect(existsSync('server/routes/migrationRoutes.ts')).toBe(false);
+    expect(existsSync('server/routes/migrationSchemaRoutes.ts')).toBe(false);
   });
 
   it('does not keep the legacy Vercel serverless API tree', () => {
@@ -27,19 +31,19 @@ describe('Yandex-only production contract', () => {
     expect(existsSync('services/premiumPlanCatalog.ts')).toBe(true);
   });
 
-  it('does not install legacy Supabase or Firebase packages', () => {
+  it('does not install retired provider or Firebase packages', () => {
     const packageJson = JSON.parse(read('package.json')) as {
       dependencies?: Record<string, string>;
       engines?: { node?: string };
     };
     const dependencies = packageJson.dependencies || {};
-    expect(dependencies['@supabase/supabase-js']).toBeUndefined();
+    expect(dependencies[`@${retiredProvider}/${retiredProvider}-js`]).toBeUndefined();
     expect(dependencies.firebase).toBeUndefined();
     expect(dependencies['firebase-admin']).toBeUndefined();
     expect(packageJson.engines?.node).toBe('>=22');
 
-    const lockfile = read('package-lock.json');
-    expect(lockfile).not.toContain('node_modules/@supabase/');
+    const lockfile = read('package-lock.json').toLowerCase();
+    expect(lockfile).not.toContain(`node_modules/@${retiredProvider}/`);
     expect(lockfile).not.toContain('node_modules/firebase"');
     expect(lockfile).not.toContain('node_modules/firebase-admin"');
   });
@@ -55,9 +59,9 @@ describe('Yandex-only production contract', () => {
     expect(yandexDeploy).not.toContain('NODE_VERSION: "20"');
   });
 
-  it('keeps legacy migration secrets out of the Yandex production deploy', () => {
-    const deploy = read('.github/workflows/yandex-deploy.yml');
-    expect(deploy).not.toContain('SUPABASE_DATABASE_URL');
+  it('keeps retired migration secrets out of the Yandex production deploy', () => {
+    const deploy = read('.github/workflows/yandex-deploy.yml').toUpperCase();
+    expect(deploy).not.toContain(`${retiredProvider.toUpperCase()}_DATABASE_URL`);
     expect(deploy).not.toContain('ANNWORD_MIGRATION_SECRET');
   });
 
@@ -95,17 +99,15 @@ describe('Yandex-only production contract', () => {
     const readme = read('README.md');
     const envExample = read('.env.example');
     expect(readme).toContain('AnnWord production is fully hosted in Yandex Cloud');
-    expect(readme).not.toContain('Supabase-backed user profiles');
     expect(readme).not.toContain('every push to `main` should create a new production deployment');
     expect(envExample).toContain('VITE_API_URL=http://localhost:8080');
-    expect(envExample).not.toContain('VITE_SUPABASE_URL');
-    expect(envExample).not.toContain('SUPABASE_SERVICE_ROLE_KEY');
+    expect(envExample.toLowerCase()).not.toContain(retiredProvider);
   });
 
   it('documents Yandex Cloud as the production source of truth', () => {
     const sourceOfTruth = read('docs/DEPLOYMENT_SOURCE_OF_TRUTH.md');
     expect(sourceOfTruth).toContain('AnnWord production is fully hosted in Yandex Cloud.');
-    expect(sourceOfTruth).toContain('Supabase and Vercel are **not production runtime components**');
     expect(sourceOfTruth).toContain('Client production services must use the AnnWord backend API');
+    expect(sourceOfTruth).toContain('Historical migration tooling is not part of the active repository');
   });
 });
