@@ -7,6 +7,7 @@ const jwtSecret = process.env.JWT_SECRET || 'annword-api-performance-benchmark-s
 const apiPort = Number(process.env.DAILY_QUEST_SMOKE_PORT || 8092);
 const apiBase = `http://127.0.0.1:${apiPort}`;
 const pool = new Pool({ connectionString: databaseUrl, ssl: false, max: 2 });
+let rewardSequence = 0;
 
 const signSession = (userId: string, email: string, version = 1): string => {
   const now = Math.floor(Date.now() / 1000);
@@ -45,6 +46,29 @@ async function jsonRequest(token: string, endpoint: string, init: RequestInit = 
   return body;
 }
 
+async function submitAuthoritativeResultThenQuest(token: string, input: Record<string, unknown>): Promise<any> {
+  rewardSequence += 1;
+  const occurredAt = new Date().toISOString();
+  const eventKey = `reward:daily-smoke:${String(input.type || 'game')}:${Date.now()}:${rewardSequence}`;
+  await jsonRequest(token, '/api/profile/game-result', {
+    method: 'POST',
+    body: JSON.stringify({
+      coinsDelta: 999999,
+      analyticsEvents: [],
+      gameEvents: [{
+        eventKey,
+        eventType: 'reward_granted',
+        gameMode: input.type,
+        coinsDelta: 999999,
+        xpDelta: 999999,
+        payload: { input },
+        occurredAt,
+      }],
+    }),
+  });
+  return jsonRequest(token, '/api/daily-quest/result', { method: 'POST', body: JSON.stringify(input) });
+}
+
 async function main(): Promise<void> {
   const userResult = await pool.query<{ id: string; email: string; session_version: number }>("select id, email, session_version from app_users where email = 'perf-3@annword.test' limit 1");
   const user = userResult.rows[0];
@@ -81,7 +105,7 @@ async function main(): Promise<void> {
     ];
 
     for (let index = 0; index < firstThree.length; index += 1) {
-      const result = await jsonRequest(token, '/api/daily-quest/result', { method: 'POST', body: JSON.stringify(firstThree[index].input) });
+      const result = await submitAuthoritativeResultThenQuest(token, firstThree[index].input);
       const expectedCount = index + 1;
       if ((result.quest?.completedModes || []).length !== expectedCount || !result.quest?.completedModes?.includes(firstThree[index].mode)) {
         throw new Error(`Step ${expectedCount} progress mismatch: ${JSON.stringify(result.quest)}`);
@@ -90,10 +114,7 @@ async function main(): Promise<void> {
     }
 
     for (let solved = 1; solved <= 5; solved += 1) {
-      const result = await jsonRequest(token, '/api/daily-quest/result', {
-        method: 'POST',
-        body: JSON.stringify({ type: 'anagram', guessedWords: 1, coinsAdjustment: 0 }),
-      });
+      const result = await submitAuthoritativeResultThenQuest(token, { type: 'anagram', guessedWords: 1, coinsAdjustment: 0 });
       const modes = result.quest?.completedModes || [];
       if (solved < 5 && modes.includes('anagram')) throw new Error(`Anagram checkpoint completed too early after ${solved} reachable solves.`);
       if (solved === 5 && (!modes.includes('anagram') || modes.length !== 4)) {
@@ -102,7 +123,7 @@ async function main(): Promise<void> {
       if (result.quest?.completed) throw new Error(`Quest completed before Sprint after Anagram solve ${solved}`);
     }
 
-    const final = await jsonRequest(token, '/api/daily-quest/result', { method: 'POST', body: JSON.stringify({ type: 'sprint', guessedWords: 6 }) });
+    const final = await submitAuthoritativeResultThenQuest(token, { type: 'sprint', guessedWords: 6 });
     if (!final.quest?.completed || (final.quest?.completedModes || []).length !== 5 || !final.quest?.completedModes?.includes('sprint')) {
       throw new Error(`Quest did not complete after the fifth mode: ${JSON.stringify(final.quest)}`);
     }
@@ -112,7 +133,7 @@ async function main(): Promise<void> {
     const repeat = await jsonRequest(token, '/api/daily-quest/result', { method: 'POST', body: JSON.stringify({ type: 'sprint', guessedWords: 6 }) });
     if (!repeat.quest?.completed || repeat.reward !== null) throw new Error(`Repeated completion was not idempotent: ${JSON.stringify(repeat)}`);
 
-    console.log('DAILY_QUEST_INTEGRATION_REPORT {"stableReload":"ok","reachableAnagrams":"ok","fiveModes":"ok","completedReload":"ok","idempotentReward":"ok"}');
+    console.log('DAILY_QUEST_INTEGRATION_REPORT {"stableReload":"ok","reachableAnagrams":"ok","fiveModes":"ok","completedReload":"ok","idempotentReward":"ok","authoritativeRewards":"ok"}');
   } finally {
     child.kill('SIGTERM');
     await new Promise(resolve => setTimeout(resolve, 250));
