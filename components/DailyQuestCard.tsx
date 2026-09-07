@@ -8,6 +8,16 @@ import { experienceUi } from './ui/ExperiencePrimitives';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 const MYSTERY_BOX_IMAGE = assetUrl('/assets/rewards/mystery-box.webp');
+let prefetchedRewardBackground: { url: string; image: HTMLImageElement } | null = null;
+const preloadRewardBackground = (url?: string): void => {
+  if (!url || typeof Image === 'undefined' || prefetchedRewardBackground?.url === url) return;
+  const image = new Image();
+  image.decoding = 'async';
+  image.fetchPriority = 'high';
+  image.src = url;
+  prefetchedRewardBackground = { url, image };
+  void image.decode?.().catch(() => undefined);
+};
 const moscowDateKey = (date: Date): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 const getDailyQuestCountdown = (): string => { const now = new Date(), key = moscowDateKey(now); let minutes = 1; for (; minutes <= 1500; minutes += 1) if (moscowDateKey(new Date(now.getTime() + minutes * 60000)) !== key) break; return `${Math.floor(minutes / 60)} ч ${String(minutes % 60).padStart(2, '0')} мин`; };
 const streakLabel = (days: number): string => { const value = Math.max(0, Math.round(days || 0)), mod10 = value % 10, mod100 = value % 100; const noun = mod10 === 1 && mod100 !== 11 ? 'день подряд' : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? 'дня подряд' : 'дней подряд'; return `${value} ${noun}`; };
@@ -42,6 +52,9 @@ export const DailyQuestRewardModal: React.FC<{ reward: DailyQuestCompletionRewar
   const safeStreak = Math.max(0, Math.round(streakDays || 0));
   const pending = reward.pending === true;
   useBodyScrollLock(true);
+  useEffect(() => {
+    if (!pending) preloadRewardBackground(world?.backgroundImageUrl);
+  }, [pending, world?.backgroundImageUrl]);
   useEffect(() => {
     const focusTimer = window.setTimeout(() => dialogRef.current?.focus(), 0);
     const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape' && !pending) onClose(); };
