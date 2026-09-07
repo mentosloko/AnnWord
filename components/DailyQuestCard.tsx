@@ -8,16 +8,14 @@ import { experienceUi } from './ui/ExperiencePrimitives';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 const MYSTERY_BOX_IMAGE = assetUrl('/assets/rewards/mystery-box.webp');
-let prefetchedRewardBackgroundUrl: string | null = null;
-let prefetchedRewardBackgroundImage: HTMLImageElement | null = null;
+let prefetchedRewardBackground: { url: string; image: HTMLImageElement } | null = null;
 const preloadRewardBackground = (url?: string): void => {
-  if (!url || typeof Image === 'undefined' || prefetchedRewardBackgroundUrl === url) return;
+  if (!url || typeof Image === 'undefined' || prefetchedRewardBackground?.url === url) return;
   const image = new Image();
   image.decoding = 'async';
   image.fetchPriority = 'high';
   image.src = url;
-  prefetchedRewardBackgroundUrl = url;
-  prefetchedRewardBackgroundImage = image;
+  prefetchedRewardBackground = { url, image };
   void image.decode?.().catch(() => undefined);
 };
 const moscowDateKey = (date: Date): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
