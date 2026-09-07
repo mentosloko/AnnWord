@@ -21,7 +21,6 @@ The production deployment chain is:
 main
   -> .github/workflows/yandex-deploy.yml
   -> Yandex Container Registry / Serverless Container / Object Storage
-  -> .github/workflows/production-operations.yml
 ```
 
 Supabase and Vercel are not production runtime components. Vercel Git deployments are disabled in `vercel.json`.
@@ -98,7 +97,7 @@ A successful production release is not established by a build alone. The expecte
 
 1. `Deploy to Yandex Cloud` succeeds for the `main` commit.
 2. Its built-in live verification confirms the exact frontend release SHA, API and PostgreSQL health, CORS policy and static-delivery cache policy.
-3. `Production Operations` continues recurring availability/report checks and PostgreSQL backup verification.
-4. Browser production smoke remains manual/release-based for meaningful product changes rather than a mandatory post-deploy diagnostic workflow.
+3. Recurring infrastructure monitoring and managed PostgreSQL backups stay in Yandex Cloud; GitHub Actions does not run an additional production polling layer.
+4. Weekly report delivery keeps its dedicated scheduler, and browser production smoke remains manual/release-based for meaningful product changes.
 
 Vercel previews, old Supabase migrations and other legacy files must never be treated as the source of truth for production.
