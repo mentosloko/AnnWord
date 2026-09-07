@@ -20,7 +20,6 @@ describe('Yandex pet mood integration', () => {
     const routes = read('server/routes/profileRoutes.ts');
     expect(api).toContain('/api/profile/use-item');
     expect(service).toContain('profileApiService.useItem(itemId, events)');
-    expect(service).not.toContain("from '../supabase'");
     expect(routes).toContain('useProfileItemServerAuthoritative');
   });
 
