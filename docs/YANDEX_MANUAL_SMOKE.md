@@ -1,31 +1,20 @@
 # Manual Yandex Cloud smoke checklist
 
-Use this checklist after the first Yandex deploy and before switching any production DNS.
+Use this checklist for release-level manual verification when a product change warrants browser or API smoke beyond the automated deployment gate.
 
-## 1. Apply database migrations
+## 1. Database migrations
 
-Run from an environment that can reach Yandex Managed PostgreSQL:
+Production migrations run through:
 
 ```bash
-npm install
 npm run db:yandex:migrate
 ```
 
 The migration runner reads either `DATABASE_URL` or the `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` group.
 
-Expected output:
+## 2. Backend health
 
-```text
-apply 001_core_schema.sql
-apply 002_prodamus_webhook_events.sql
-apply 003_account_fields.sql
-apply 004_runtime_indexes.sql
-Yandex PostgreSQL migrations applied.
-```
-
-## 2. Check backend health
-
-Open:
+Check:
 
 ```text
 /api/health
@@ -41,11 +30,11 @@ Expected:
 /api/runtime-config -> status ok
 ```
 
-If `/api/health/db` fails, first check the exact `DATABASE_URL` used by Serverless Container and whether the database cluster allows the container to connect.
+If `/api/health/db` fails, check the `DATABASE_URL` used by Serverless Container and the Yandex Cloud network path to Managed PostgreSQL.
 
-## 3. Check payment skeleton
+## 3. Payments
 
-Before enabling real payments, use Prodamus demo mode.
+When payment behavior changes, verify the Prodamus flow in the appropriate test/demo mode before a real payment check.
 
 Expected:
 
@@ -54,56 +43,24 @@ POST /api/payments/prodamus/create -> checkoutUrl returned
 POST /api/payments/prodamus/notify -> OK for a valid signed paid notification
 ```
 
-Payment notification must write to:
+The paid notification must persist payment/webhook state and activate the expected Premium fields on the profile.
 
-```text
-premium_payments
-prodamus_webhook_events
-```
+## 4. Family and teacher flows
 
-and paid notification must activate:
+Verify the relevant endpoints and UI flows for account mode, child profile setup, parent access and teacher linking when those areas change.
 
-```text
-profiles.subscription_tier = premium
-profiles.premium_expires_at is not null
-profiles.feature_flags.premiumDictionaries = true
-profiles.feature_flags.adultRoom = true
-```
+## 5. Release invariants
 
-## 4. Check family skeleton
-
-Expected backend endpoints:
-
-```text
-POST /api/family/account-mode
-POST /api/family/child
-POST /api/family/access-check
-```
-
-Expected database writes:
-
-```text
-profiles.role
-profiles.account_mode
-profiles.child_display_name
-profiles.child_share_code
-profiles.access_digest
-```
-
-## 5. Cutover blockers
-
-Do not switch production DNS until these are true:
+A release is healthy when:
 
 ```text
 Yandex API health is green
 Yandex DB health is green
-frontend build is uploaded to Object Storage
-email account flow is wired to backend API
-profile load/save uses backend API
-payment create and notify work through backend API
-family/teacher flows work through backend API
+frontend is served from Object Storage/CDN
+email account flow uses the AnnWord backend
+profile load/save uses the AnnWord backend
+payment create/notify use the AnnWord backend
+family/teacher flows use the AnnWord backend
 ```
 
-## 6. Rollback
-
-Until explicit cutover, keep the old Vercel/Supabase stack available. DNS should remain on the old stack until all smoke checks pass.
+The automated `Deploy to Yandex Cloud` workflow already verifies the release SHA, API/database health, CORS and static-delivery cache policy. This checklist is for additional manual product verification, not a second deployment system.
