@@ -4,10 +4,15 @@ import { isKidsMode } from '../../services/modeFlags';
 import { getKidsDictionaryCatalog } from '../../services/kidsDictionaryCatalog';
 import { getPremiumDictionaryCatalog, hasPremiumDictionaryAccess } from '../../services/premiumDictionaryCatalog';
 import {
+  canonicalizeSpotlightSectionIds,
   getSpotlightGrades,
   getSpotlightSections,
+  getSpotlightSelectionLabel,
+  readStoredSpotlightSelection,
   SPOTLIGHT_ALL_SECTIONS_ID,
   SPOTLIGHT_PREMIUM_DICTIONARY_ID,
+  storeSpotlightSelection,
+  toggleSpotlightSectionSelection,
   type SpotlightGradeNumber,
 } from '../../services/spotlightDictionary';
 import { useDictionaryPools } from '../../hooks/useDictionaryPools';
@@ -43,7 +48,6 @@ interface SetupScreenProps {
 const MODE_LABELS: Record<PlayableModeRoute, string> = { game: 'Классика', anagrams: 'Анаграммы', translation: '1 из 2', sprint: 'Спринт', memory: 'Память', hangman: 'Виселица', letter_square: 'Змейка' };
 const LENGTH_AGNOSTIC_MODES = new Set<PlayableModeRoute>(['anagrams', 'translation', 'sprint', 'memory', 'letter_square']);
 const DICTIONARY_START_TIMEOUT_MS = 10_000;
-const SPOTLIGHT_STORAGE_PREFIX = 'annword_spotlight_selection_v1:';
 
 const waitForDictionaryRuntime = async (promise: Promise<void>): Promise<void> => {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -54,27 +58,8 @@ const waitForDictionaryRuntime = async (promise: Promise<void>): Promise<void> =
   finally { if (timeoutId !== null) clearTimeout(timeoutId); }
 };
 
-const readStoredSpotlightSelection = (username: string): { grade: SpotlightGradeNumber; sectionId: string } => {
-  if (typeof window === 'undefined') return { grade: 2, sectionId: SPOTLIGHT_ALL_SECTIONS_ID };
-  try {
-    const raw = window.localStorage.getItem(`${SPOTLIGHT_STORAGE_PREFIX}${username || 'guest'}`);
-    const parsed = raw ? JSON.parse(raw) as { grade?: unknown; sectionId?: unknown } : null;
-    const grade = getSpotlightGrades().includes(parsed?.grade as SpotlightGradeNumber) ? parsed?.grade as SpotlightGradeNumber : 2;
-    const sectionId = typeof parsed?.sectionId === 'string' && parsed.sectionId ? parsed.sectionId : SPOTLIGHT_ALL_SECTIONS_ID;
-    return { grade, sectionId };
-  } catch {
-    return { grade: 2, sectionId: SPOTLIGHT_ALL_SECTIONS_ID };
-  }
-};
-
-const storeSpotlightSelection = (username: string, grade: number, sectionId: string): void => {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(`${SPOTLIGHT_STORAGE_PREFIX}${username || 'guest'}`, JSON.stringify({ grade, sectionId }));
-  } catch {
-    // Local fallback must not block the canonical server selection.
-  }
-};
+const legacySectionId = (sectionIds: string[]): string =>
+  sectionIds.includes(SPOTLIGHT_ALL_SECTIONS_ID) ? SPOTLIGHT_ALL_SECTIONS_ID : sectionIds[0] || SPOTLIGHT_ALL_SECTIONS_ID;
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, settings, customDictionaryWords, setupError, isUploadingDictionary, isAuthenticated, userProfile, questContext, hasActiveClassicGame = false, onResumeClassicGame, onCommitDictionarySettings, onOpenDictionaryStudio, onOpenPremium, onStartGame, onBack, onLogin, autoStart = false, onAutoStartComplete }) => {
   const parentMode = isKidsMode(userProfile, isAuthenticated);
@@ -96,7 +81,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
   const storedSpotlight = readStoredSpotlightSelection(userProfile.username);
   const spotlightActive = source === 'premium' && settings.activePremiumDictionaryId === SPOTLIGHT_PREMIUM_DICTIONARY_ID;
   const spotlightGrade = (getSpotlightGrades().includes(settings.activeSpotlightGrade as SpotlightGradeNumber) ? settings.activeSpotlightGrade : storedSpotlight.grade) as SpotlightGradeNumber;
-  const spotlightSectionId = settings.activeSpotlightSectionId || storedSpotlight.sectionId;
+  const configuredSpotlightSectionIds = settings.activeSpotlightSectionIds?.length
+    ? settings.activeSpotlightSectionIds
+    : settings.activeSpotlightSectionId
+      ? [settings.activeSpotlightSectionId]
+      : storedSpotlight.sectionIds;
+  const spotlightSectionIds = canonicalizeSpotlightSectionIds(spotlightGrade, configuredSpotlightSectionIds);
+  const spotlightSectionIdSet = new Set(spotlightSectionIds);
+  const allSpotlightSectionsSelected = spotlightSectionIds.includes(SPOTLIGHT_ALL_SECTIONS_ID);
   const spotlightSections = spotlightActive ? getSpotlightSections(spotlightGrade) : [];
   const respectWordLength = !LENGTH_AGNOSTIC_MODES.has(selectedPlayMode);
   const readModeWords = React.useCallback(() => dictionaryRuntime.getModeWords({ respectWordLength }), [dictionaryRuntime, respectWordLength]);
@@ -121,7 +113,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
 
   React.useEffect(() => {
     setStartError(null);
-  }, [selectedPlayMode, settings.activePremiumDictionaryId, settings.activeSpotlightGrade, settings.activeSpotlightSectionId, settings.dictionarySource, settings.difficulty, settings.wordLength]);
+  }, [selectedPlayMode, settings.activePremiumDictionaryId, settings.activeSpotlightGrade, settings.activeSpotlightSectionId, settings.activeSpotlightSectionIds?.join(','), settings.dictionarySource, settings.difficulty, settings.wordLength]);
 
   const commitSourceSettings = React.useCallback(async (nextSettings: GameSettings): Promise<boolean> => {
     if (isSavingSource) return false;
@@ -138,6 +130,19 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
     }
   }, [isSavingSource, onCommitDictionarySettings]);
 
+  const spotlightSettings = (grade: SpotlightGradeNumber, sectionIds: string[]): GameSettings => {
+    const canonical = canonicalizeSpotlightSectionIds(grade, sectionIds);
+    return {
+      ...settings,
+      dictionarySource: 'premium',
+      useCustomDictionary: false,
+      activePremiumDictionaryId: SPOTLIGHT_PREMIUM_DICTIONARY_ID,
+      activeSpotlightGrade: grade,
+      activeSpotlightSectionIds: canonical,
+      activeSpotlightSectionId: legacySectionId(canonical),
+    };
+  };
+
   const selectSource = (nextSource: DictionarySource) => {
     if ((nextSource === 'custom' || nextSource === 'premium') && !isAuthenticated) { onLogin(); return; }
     if ((nextSource === 'custom' || nextSource === 'premium') && !hasPremium) { onOpenPremium(); return; }
@@ -147,37 +152,39 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
       nextSettings.activePremiumDictionaryId = undefined;
       nextSettings.activeSpotlightGrade = undefined;
       nextSettings.activeSpotlightSectionId = undefined;
-    } else if (nextPremiumId === SPOTLIGHT_PREMIUM_DICTIONARY_ID && (!nextSettings.activeSpotlightGrade || !nextSettings.activeSpotlightSectionId)) {
+      nextSettings.activeSpotlightSectionIds = undefined;
+    } else if (nextPremiumId === SPOTLIGHT_PREMIUM_DICTIONARY_ID && !nextSettings.activeSpotlightGrade) {
       nextSettings.activeSpotlightGrade = storedSpotlight.grade;
-      nextSettings.activeSpotlightSectionId = storedSpotlight.sectionId;
+      nextSettings.activeSpotlightSectionIds = storedSpotlight.sectionIds;
+      nextSettings.activeSpotlightSectionId = legacySectionId(storedSpotlight.sectionIds);
     }
     void commitSourceSettings(nextSettings);
   };
 
   const selectPremiumDictionary = (id: string) => {
     if (id !== SPOTLIGHT_PREMIUM_DICTIONARY_ID) {
-      void commitSourceSettings({ ...settings, dictionarySource: 'premium', useCustomDictionary: false, activePremiumDictionaryId: id, activeSpotlightGrade: undefined, activeSpotlightSectionId: undefined });
+      void commitSourceSettings({ ...settings, dictionarySource: 'premium', useCustomDictionary: false, activePremiumDictionaryId: id, activeSpotlightGrade: undefined, activeSpotlightSectionId: undefined, activeSpotlightSectionIds: undefined });
       return;
     }
-    void commitSourceSettings({
-      ...settings,
-      dictionarySource: 'premium',
-      useCustomDictionary: false,
-      activePremiumDictionaryId: id,
-      activeSpotlightGrade: settings.activeSpotlightGrade || storedSpotlight.grade,
-      activeSpotlightSectionId: settings.activeSpotlightSectionId || storedSpotlight.sectionId,
-    });
+    const grade = settings.activeSpotlightGrade || storedSpotlight.grade;
+    const sectionIds = settings.activeSpotlightSectionIds?.length
+      ? settings.activeSpotlightSectionIds
+      : settings.activeSpotlightSectionId
+        ? [settings.activeSpotlightSectionId]
+        : storedSpotlight.sectionIds;
+    void commitSourceSettings(spotlightSettings(grade as SpotlightGradeNumber, sectionIds));
   };
 
   const selectSpotlightGrade = (grade: SpotlightGradeNumber) => {
-    const sectionId = SPOTLIGHT_ALL_SECTIONS_ID;
-    void commitSourceSettings({ ...settings, dictionarySource: 'premium', useCustomDictionary: false, activePremiumDictionaryId: SPOTLIGHT_PREMIUM_DICTIONARY_ID, activeSpotlightGrade: grade, activeSpotlightSectionId: sectionId })
-      .then(saved => { if (saved) storeSpotlightSelection(userProfile.username, grade, sectionId); });
+    const sectionIds = [SPOTLIGHT_ALL_SECTIONS_ID];
+    void commitSourceSettings(spotlightSettings(grade, sectionIds))
+      .then(saved => { if (saved) storeSpotlightSelection(userProfile.username, { grade, sectionIds }); });
   };
 
   const selectSpotlightSection = (sectionId: string) => {
-    void commitSourceSettings({ ...settings, dictionarySource: 'premium', useCustomDictionary: false, activePremiumDictionaryId: SPOTLIGHT_PREMIUM_DICTIONARY_ID, activeSpotlightGrade: spotlightGrade, activeSpotlightSectionId: sectionId })
-      .then(saved => { if (saved) storeSpotlightSelection(userProfile.username, spotlightGrade, sectionId); });
+    const sectionIds = toggleSpotlightSectionSelection(spotlightGrade, spotlightSectionIds, sectionId);
+    void commitSourceSettings(spotlightSettings(spotlightGrade, sectionIds))
+      .then(saved => { if (saved) storeSpotlightSelection(userProfile.username, { grade: spotlightGrade, sectionIds }); });
   };
 
   const startGame = React.useCallback(async () => {
@@ -236,12 +243,17 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ selectedPlayMode, sett
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-amber-600">Выберите словарь</h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Выбор Premium-словаря">{premiumCatalog.map(item => <button type="button" disabled={isSavingSource} key={item.id} onClick={() => selectPremiumDictionary(item.id)} className={`rounded-2xl bg-white p-3 text-left ring-2 disabled:opacity-60 ${settings.activePremiumDictionaryId === item.id ? 'ring-amber-300' : 'ring-transparent'}`}><div className="text-xl" aria-hidden="true">{item.icon}</div><div className="mt-1 truncate text-xs font-bold text-indigo-950">{item.shortTitle}</div></button>)}</div>
         {spotlightActive && <div className="mt-4 rounded-2xl bg-white/80 p-3 ring-1 ring-amber-100">
-          <h3 className="text-sm font-bold text-indigo-950">Класс</h3>
-          <div className="mt-2 grid grid-cols-5 gap-2" role="group" aria-label="Класс Spotlight">{getSpotlightGrades().map(grade => <button type="button" disabled={isSavingSource} key={grade} onClick={() => selectSpotlightGrade(grade)} className={`rounded-xl px-2 py-2 text-sm font-bold ring-2 disabled:opacity-60 ${spotlightGrade === grade ? 'bg-amber-100 text-amber-900 ring-amber-300' : 'bg-white text-indigo-700 ring-indigo-50'}`}>{grade}</button>)}</div>
-          <h3 className="mt-4 text-sm font-bold text-indigo-950">Раздел</h3>
-          {dictionaryRuntime.status === 'loading' && spotlightSections.length === 0 ? <p className="mt-2 text-xs font-medium text-amber-700">Загружаю модули…</p> : <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2" role="group" aria-label="Раздел Spotlight">
-            <button type="button" disabled={isSavingSource} onClick={() => selectSpotlightSection(SPOTLIGHT_ALL_SECTIONS_ID)} className={`rounded-xl p-3 text-left ring-2 disabled:opacity-60 ${spotlightSectionId === SPOTLIGHT_ALL_SECTIONS_ID ? 'bg-amber-100 ring-amber-300' : 'bg-white ring-indigo-50'}`}><span className="block text-sm font-bold text-indigo-950">Весь класс</span><span className="mt-1 block text-[11px] font-medium text-slate-500">Все модули и дополнительные слова</span></button>
-            {spotlightSections.map(section => <button type="button" disabled={isSavingSource} key={section.id} onClick={() => selectSpotlightSection(section.id)} className={`rounded-xl p-3 text-left ring-2 disabled:opacity-60 ${spotlightSectionId === section.id ? 'bg-amber-100 ring-amber-300' : 'bg-white ring-indigo-50'}`}><span className="block text-sm font-bold text-indigo-950">{section.label}</span><span className="mt-1 block line-clamp-2 text-[11px] font-medium text-slate-500">{section.title} · {section.wordCount} слов</span></button>)}
+          <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">{getSpotlightSelectionLabel(spotlightGrade, spotlightSectionIds)}</div>
+          <h3 className="mt-3 text-sm font-bold text-indigo-950">Класс</h3>
+          <div className="mt-2 grid grid-cols-5 gap-2" role="group" aria-label="Класс Spotlight">{getSpotlightGrades().map(grade => <button type="button" disabled={isSavingSource} key={grade} aria-pressed={spotlightGrade === grade} onClick={() => selectSpotlightGrade(grade)} className={`rounded-xl px-2 py-2 text-sm font-bold ring-2 disabled:opacity-60 ${spotlightGrade === grade ? 'bg-amber-100 text-amber-900 ring-amber-300' : 'bg-white text-indigo-700 ring-indigo-50'}`}>{grade}</button>)}</div>
+          <h3 className="mt-4 text-sm font-bold text-indigo-950">Модули</h3>
+          <p className="mt-1 text-xs font-medium leading-5 text-slate-500">Можно отметить несколько модулей одного класса. «Весь класс» отменяет отдельный выбор.</p>
+          {dictionaryRuntime.status === 'loading' && spotlightSections.length === 0 ? <p className="mt-2 text-xs font-medium text-amber-700">Загружаю модули…</p> : <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2" role="group" aria-label="Модули Spotlight">
+            <button type="button" disabled={isSavingSource} aria-pressed={allSpotlightSectionsSelected} onClick={() => selectSpotlightSection(SPOTLIGHT_ALL_SECTIONS_ID)} className={`rounded-xl p-3 text-left ring-2 disabled:opacity-60 ${allSpotlightSectionsSelected ? 'bg-amber-100 ring-amber-300' : 'bg-white ring-indigo-50'}`}><span className="block text-sm font-bold text-indigo-950">Весь класс</span><span className="mt-1 block text-[11px] font-medium text-slate-500">Все модули и дополнительные слова</span></button>
+            {spotlightSections.map(section => {
+              const selected = spotlightSectionIdSet.has(section.id);
+              return <button type="button" disabled={isSavingSource} key={section.id} aria-pressed={selected} onClick={() => selectSpotlightSection(section.id)} className={`rounded-xl p-3 text-left ring-2 disabled:opacity-60 ${selected ? 'bg-amber-100 ring-amber-300' : 'bg-white ring-indigo-50'}`}><span className="block text-sm font-bold text-indigo-950">{selected ? '✓ ' : ''}{section.label}</span><span className="mt-1 block line-clamp-2 text-[11px] font-medium text-slate-500">{section.title} · {section.wordCount} слов</span></button>;
+            })}
           </div>}
           {dictionaryRuntime.status === 'ready' && <p className="mt-3 text-xs font-bold text-emerald-700">Выбрано для текущей игры: {immediateWordCount} слов</p>}
         </div>}

@@ -1,7 +1,7 @@
 import type { GameSettings, UserProfile } from '../types';
 import { getKidsDictionaryMeta } from './kidsDictionaryCatalog';
 import { getPremiumDictionaryCatalog } from './premiumDictionaryCatalog';
-import { getSpotlightSelectionLabel, SPOTLIGHT_PREMIUM_DICTIONARY_ID } from './spotlightDictionary';
+import { getSpotlightCompactSelectionLabel, SPOTLIGHT_PREMIUM_DICTIONARY_ID } from './spotlightDictionary';
 
 export type ActiveDictionaryDescriptor = {
   title: string;
@@ -27,7 +27,10 @@ export const resolveActiveDictionaryDescriptor = (
   if (settings.dictionarySource === 'premium') {
     if (settings.activePremiumDictionaryId === SPOTLIGHT_PREMIUM_DICTIONARY_ID) {
       const grade = settings.activeSpotlightGrade;
-      const selection = grade ? getSpotlightSelectionLabel(grade, settings.activeSpotlightSectionId) : '';
+      const sectionIds = settings.activeSpotlightSectionIds?.length
+        ? settings.activeSpotlightSectionIds
+        : settings.activeSpotlightSectionId;
+      const selection = grade ? getSpotlightCompactSelectionLabel(grade, sectionIds) : '';
       return { title: selection ? `Школьные (Spotlight) · ${selection}` : 'Школьные (Spotlight)', icon: '📘', available: true };
     }
 

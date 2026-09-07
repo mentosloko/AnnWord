@@ -1,7 +1,8 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DictionarySettingsScreen } from '../components/screens/DictionarySettingsScreen';
+import { ensureSpotlightDictionaryLoaded, getSpotlightGrades, getSpotlightSections, resetSpotlightDictionaryForTests, SPOTLIGHT_ALL_SECTIONS_ID, SPOTLIGHT_PREMIUM_DICTIONARY_ID } from '../services/spotlightDictionary';
 import type { GameSettings, UserProfile } from '../types';
 
 const settings: GameSettings = {
@@ -44,6 +45,20 @@ const renderScreen = (props: Partial<React.ComponentProps<typeof DictionarySetti
   />);
   return { ...result, onCommitSettings, onBack };
 };
+
+const findGradeWithSections = (minimum: number) => {
+  for (const grade of getSpotlightGrades()) {
+    const sections = getSpotlightSections(grade).filter(section => section.wordCount > 0);
+    if (sections.length >= minimum) return { grade, sections };
+  }
+  throw new Error(`Spotlight fixture needs at least ${minimum} populated sections in one grade.`);
+};
+
+afterEach(() => {
+  cleanup();
+  window.localStorage.clear();
+  resetSpotlightDictionaryForTests();
+});
 
 describe('DictionarySettingsScreen draft selection', () => {
   it('does not change the active source until Done is pressed', async () => {
@@ -95,5 +110,50 @@ describe('DictionarySettingsScreen draft selection', () => {
     expect(screen.getAllByText('Ваш список').length).toBeGreaterThan(0);
     expect(screen.getByText('Сохраните выбор, чтобы применить его к играм.')).toBeInTheDocument();
     expect(onCommitSettings).not.toHaveBeenCalled();
+  });
+
+  it('selects and saves multiple Spotlight modules in one class without committing intermediate clicks', async () => {
+    await ensureSpotlightDictionaryLoaded();
+    const { grade, sections } = findGradeWithSections(2);
+    const initialSettings: GameSettings = {
+      ...settings,
+      dictionarySource: 'premium',
+      activePremiumDictionaryId: SPOTLIGHT_PREMIUM_DICTIONARY_ID,
+      activeSpotlightGrade: grade,
+      activeSpotlightSectionId: SPOTLIGHT_ALL_SECTIONS_ID,
+      activeSpotlightSectionIds: [SPOTLIGHT_ALL_SECTIONS_ID],
+    };
+    const activeProfile = profile({
+      activeWordSource: {
+        source: 'premium',
+        difficulty: 'ALL',
+        premiumDictionaryId: SPOTLIGHT_PREMIUM_DICTIONARY_ID,
+        spotlightGrade: grade,
+        spotlightSectionId: SPOTLIGHT_ALL_SECTIONS_ID,
+        spotlightSectionIds: [SPOTLIGHT_ALL_SECTIONS_ID],
+      },
+    });
+    const { onCommitSettings } = renderScreen({ settings: initialSettings, userProfile: activeProfile });
+
+    const first = screen.getByRole('button', { name: new RegExp(sections[0].title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) });
+    const second = screen.getByRole('button', { name: new RegExp(sections[1].title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) });
+    fireEvent.click(first);
+    fireEvent.click(second);
+
+    expect(onCommitSettings).not.toHaveBeenCalled();
+    expect(first).toHaveAttribute('aria-pressed', 'true');
+    expect(second).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByText(sections[0].title, { exact: false }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(sections[1].title, { exact: false }).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Готово' }));
+    await waitFor(() => expect(onCommitSettings).toHaveBeenCalledTimes(1));
+    expect(onCommitSettings.mock.calls[0][0]).toMatchObject({
+      dictionarySource: 'premium',
+      activePremiumDictionaryId: SPOTLIGHT_PREMIUM_DICTIONARY_ID,
+      activeSpotlightGrade: grade,
+      activeSpotlightSectionId: sections[0].id,
+      activeSpotlightSectionIds: [sections[0].id, sections[1].id],
+    });
   });
 });
