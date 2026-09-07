@@ -1,4 +1,4 @@
-# Production runtime is Yandex Cloud only. Do not add Vercel or Supabase runtime dependencies here.
+# Production runtime is Yandex Cloud only. Do not add retired runtime-provider dependencies here.
 name: Deploy to Yandex Cloud
 
 on:
@@ -6,8 +6,6 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '.github/workflows/production-operations.yml'
 
 permissions:
   contents: read
