@@ -61,14 +61,10 @@ describe('Yandex-only production contract', () => {
     expect(deploy).not.toContain('ANNWORD_MIGRATION_SECRET');
   });
 
-  it('keeps Vercel out of the Yandex deployment and operations chain', () => {
-    const workflows = [
-      '.github/workflows/yandex-deploy.yml',
-      '.github/workflows/production-operations.yml',
-    ];
+  it('keeps Vercel out of the Yandex deployment chain', () => {
+    const deploy = read('.github/workflows/yandex-deploy.yml');
     const forbiddenRuntimeReferences = /VERCEL_|vercel\.app|api\.vercel\.com|\bvercel\s+(pull|build|deploy|promote)\b/i;
-    const offenders = workflows.filter(path => forbiddenRuntimeReferences.test(read(path)));
-    expect(offenders).toEqual([]);
+    expect(forbiddenRuntimeReferences.test(deploy)).toBe(false);
   });
 
   it('does not keep retired deployment and diagnostic workflows', () => {
@@ -79,6 +75,7 @@ describe('Yandex-only production contract', () => {
       '.github/workflows/retire-vercel-project-once.yml',
       '.github/workflows/yandex-smoke.yml',
       '.github/workflows/production-performance-evidence.yml',
+      '.github/workflows/production-operations.yml',
       '.production-redeploy-memory-hotfix',
       '.runtime-hotfix-trigger',
       '.vercel-force-redeploy-20260719',
