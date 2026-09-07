@@ -214,7 +214,12 @@ export const getSpotlightSections = (grade?: number, includeHidden = false): Spo
 export const getSpotlightEntries = (grade?: number, sectionIdsOrLegacy?: string | string[]): EnrichedWord[] => {
   const gradeData = spotlightDictionary?.grades.find(item => item.grade === normalizeGrade(grade));
   if (!gradeData) return [];
-  const sectionIds = canonicalizeSpotlightSectionIds(grade, sectionIdsOrLegacy);
+  const requestedSectionIds = normalizeSpotlightSectionIds(sectionIdsOrLegacy);
+  if (!requestedSectionIds.includes(SPOTLIGHT_ALL_SECTIONS_ID)) {
+    const visibleSectionIds = new Set(gradeData.sections.filter(section => !section.hidden).map(section => section.id));
+    if (!requestedSectionIds.some(sectionId => visibleSectionIds.has(sectionId))) return [];
+  }
+  const sectionIds = canonicalizeSpotlightSectionIds(grade, requestedSectionIds);
   if (sectionIds.includes(SPOTLIGHT_ALL_SECTIONS_ID)) {
     return mergeEntries(gradeData.sections.flatMap(section => section.words));
   }
