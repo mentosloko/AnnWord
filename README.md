@@ -23,7 +23,7 @@ main
   -> Yandex Container Registry / Serverless Container / Object Storage
 ```
 
-Supabase and Vercel are not production runtime components. Vercel Git deployments are disabled in `vercel.json`.
+Vercel is not a production runtime component. Vercel Git deployments are disabled in `vercel.json`.
 
 See `docs/DEPLOYMENT_SOURCE_OF_TRUTH.md` for the authoritative deployment contract.
 
@@ -100,4 +100,4 @@ A successful production release is not established by a build alone. The expecte
 3. Recurring infrastructure monitoring and managed PostgreSQL backups stay in Yandex Cloud; GitHub Actions does not run an additional production polling layer.
 4. Weekly report delivery keeps its dedicated scheduler, and browser production smoke remains manual/release-based for meaningful product changes.
 
-Vercel previews, old Supabase migrations and other legacy files must never be treated as the source of truth for production.
+Retired provider previews, migrations and compatibility files must never be treated as the source of truth for production.
