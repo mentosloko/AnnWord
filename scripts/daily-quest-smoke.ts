@@ -23,7 +23,7 @@ function runNormalizerSmoke(): void {
   assert(backendPayload?.completed === true, 'Backend camelCase completed flag was not normalized.');
   assert(backendPayload?.completedAt, 'Backend camelCase completedAt was not normalized.');
 
-  const supabasePayload = normalizeDailyQuest({
+  const snakeCasePayload = normalizeDailyQuest({
     quest_date: '2026-06-24',
     kind: 'wordle_four',
     completed: true,
@@ -32,8 +32,8 @@ function runNormalizerSmoke(): void {
     reward_world_id: null,
     variant_key: 'wordle_win',
   });
-  assert(supabasePayload?.questDate === '2026-06-24', 'Supabase snake_case questDate was not normalized.');
-  assert(supabasePayload?.completed === true, 'Supabase snake_case completed flag was not normalized.');
+  assert(snakeCasePayload?.questDate === '2026-06-24', 'snake_case questDate was not normalized.');
+  assert(snakeCasePayload?.completed === true, 'snake_case completed flag was not normalized.');
 
   const progressPayload = normalizeDailyQuest({
     questDate: '2026-06-24',
