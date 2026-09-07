@@ -1,4 +1,0 @@
--- Launch v1 family premium contract.
--- One active premium seat covers exactly one child profile.
--- Extra children are added only from the parent cabinet after buying extra premium seats.
--- Teacher linking uses a parent-generated child code; teachers add this code in their own account.

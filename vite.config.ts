@@ -262,7 +262,6 @@ const manualChunk = (id: string): string | undefined => {
   ) return 'dictionary-general';
   if (!normalized.includes('/node_modules/')) return undefined;
   if (normalized.includes('/react/') || normalized.includes('/react-dom/') || normalized.includes('/scheduler/')) return 'vendor-react';
-  if (normalized.includes('/@supabase/')) return 'vendor-supabase';
   return undefined;
 };
 

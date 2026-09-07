@@ -24,8 +24,6 @@ import { dailyQuestRouter } from "./routes/dailyQuestRoutes";
 import { analyticsRouter } from "./routes/analyticsRoutes";
 import { performanceEvidenceRouter } from "./routes/performanceEvidenceRoutes";
 import { gameEventRouter } from "./routes/gameEventRoutes";
-import { migrationRouter } from "./routes/migrationRoutes";
-import { migrationSchemaRouter } from "./routes/migrationSchemaRoutes";
 import { weeklyReportRouter } from "./routes/weeklyReportRoutes";
 import { getServerTimingHeader, runWithRequestPerformance } from "./performanceTelemetry";
 import { rateLimit, requestText } from "./requestRateLimit";
@@ -299,8 +297,6 @@ app.use("/api/analytics", analyticsRouter);
 app.use("/api/game-events", gameEventRouter);
 app.use("/api/reports/weekly", weeklyReportRouter);
 app.use("/api/admin/premium", adminPremiumRouter);
-app.use("/api/admin/migration", migrationSchemaRouter);
-app.use("/api/admin/migration", migrationRouter);
 
 app.use("/api", (_req: Request, res: Response) => {
   res.status(404).json({

@@ -1,9 +1,10 @@
 import { createHmac } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { defaultWeeklyReportFromEmail, deriveWeeklyReportCronToken, ensureWeeklyReportRuntimeConfig } from '../server/weeklyReportRuntimeConfig';
 
 const read = (path: string): string => readFileSync(path, 'utf8');
+const retiredProvider = ['supa', 'base'].join('');
 const originalJwtSecret = process.env.JWT_SECRET;
 const originalCronSecret = process.env.WEEKLY_REPORT_CRON_SECRET;
 const originalSender = process.env.WEEKLY_REPORT_FROM_EMAIL;
@@ -33,11 +34,12 @@ describe('Yandex post-cutover guarantees', () => {
     expect(routes).toContain("analyticsRouter.post('/events', optionalAuth");
   });
 
-  it('keeps both legacy database mutation endpoints disabled without an explicit enable flag', () => {
-    const prepare = read('server/routes/migrationSchemaRoutes.ts');
-    const migrate = read('server/routes/migrationRoutes.ts');
-    expect(prepare).toContain('ANNWORD_ENABLE_SUPABASE_MIGRATION_ENDPOINT === "true"');
-    expect(migrate).toContain('ANNWORD_ENABLE_SUPABASE_MIGRATION_ENDPOINT === "true"');
+  it('removes the retired cross-provider database mutation endpoints', () => {
+    const api = read('server/yandex-api.ts');
+    expect(existsSync('server/routes/migrationSchemaRoutes.ts')).toBe(false);
+    expect(existsSync('server/routes/migrationRoutes.ts')).toBe(false);
+    expect(api).not.toContain('/api/admin/migration');
+    expect(api.toLowerCase()).not.toContain(retiredProvider);
   });
 
   it('verifies the live release, API, database and delivery invariants inside the production deploy', () => {
@@ -67,7 +69,7 @@ describe('Yandex post-cutover guarantees', () => {
     expect(workflow).toContain('annword-weekly-reports-v1');
     expect(workflow).toContain('YC_API_PUBLIC_URL');
     expect(workflow).not.toContain('vercel');
-    expect(workflow).not.toContain('supabase');
+    expect(workflow.toLowerCase()).not.toContain(retiredProvider);
   });
 
   it('selects only a verified Postbox identity before report delivery', () => {

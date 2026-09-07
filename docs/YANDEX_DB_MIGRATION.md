@@ -1,45 +1,30 @@
-# Yandex PostgreSQL migration notes
+# Yandex PostgreSQL schema and migrations
 
-This document describes the new PostgreSQL schema used by the Yandex Cloud runtime.
+This document describes the PostgreSQL schema used by the Yandex Cloud runtime.
 
-## Why the schema is different from Supabase
+## Identity model
 
-Supabase stores identities in `auth.users` and app data in `public.profiles` with a foreign key to `auth.users`.
-
-Yandex Managed PostgreSQL does not provide Supabase Auth, so AnnWord now needs its own identity table:
+AnnWord owns its identity table:
 
 ```text
 public.app_users
 ```
 
-The new `profiles.id` references `app_users.id` instead of `auth.users(id)`.
+`profiles.id` references `app_users.id`. Authentication and authorization are handled by the AnnWord backend using the signed session and `req.user.id`; application code does not depend on database-provider auth helpers.
 
 ## Current migration files
 
-```text
-db/yandex/001_core_schema.sql
-```
-
-It creates:
+Authoritative schema changes live under:
 
 ```text
-app_users
-profiles
-adult_learner_links
-assigned_word_sets
-premium_payments
+db/yandex/*.sql
 ```
 
-and base functions:
-
-```text
-increment_coins
-activate_paid_premium_payment
-```
+The base schema includes application identities and profiles together with the family, teacher, Premium, analytics, game and reporting tables required by the current backend.
 
 ## Running migrations
 
-From a machine that can reach Yandex Managed PostgreSQL:
+From an environment that can reach Yandex Managed PostgreSQL:
 
 ```bash
 npm run db:yandex:migrate
@@ -47,30 +32,8 @@ npm run db:yandex:migrate
 
 The command reads connection settings from `DATABASE_URL` or from `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`.
 
-If PostgreSQL public access is disabled, run the command from a temporary VM inside the same Yandex Cloud network or from another trusted internal execution environment.
+If PostgreSQL public access is disabled, run the command from an execution environment inside the same Yandex Cloud network or another trusted environment with database access.
 
-## Auth migration strategy
+## Production rule
 
-For the first production migration:
-
-1. Copy Supabase `public.profiles` data.
-2. Create corresponding `app_users` rows with the same UUIDs where possible.
-3. Mark migrated users as requiring a new password.
-4. Ask the small number of real users to set a new password after cutover.
-5. Keep old Supabase/Vercel as rollback until the new login path is verified.
-
-## Important mapping
-
-Supabase:
-
-```text
-auth.users.id -> public.profiles.id
-```
-
-Yandex:
-
-```text
-public.app_users.id -> public.profiles.id
-```
-
-Application code must not depend on `auth.uid()` anymore. Authorization is handled in the backend API by reading the signed AnnWord session and using `req.user.id` in database queries.
+`db/yandex/*.sql` together with `scripts/yandex-db-migrate.ts` are the only supported database migration path. Historical cross-provider migration tooling is retired and must not be reintroduced into the production runtime.

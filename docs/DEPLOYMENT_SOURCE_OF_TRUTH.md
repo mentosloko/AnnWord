@@ -12,7 +12,7 @@ AnnWord production is fully hosted in Yandex Cloud.
 - Production OAuth: Yandex OAuth through the AnnWord backend.
 - Production branch: `main`.
 
-Supabase and Vercel are **not production runtime components**. Their remaining files, dependencies, migration code, external project settings or provider integrations are legacy/compatibility surfaces only and must never be treated as evidence of the production architecture.
+Vercel is **not a production runtime component**. Retired provider migration code and compatibility surfaces must not be treated as evidence of the production architecture.
 
 ## Deployment chain
 
@@ -34,14 +34,14 @@ The Vercel project itself may remain temporarily as an inert external resource. 
 
 ## Runtime dependency rule
 
-Client production services must use the AnnWord backend API (`api.annword.ru` in production). They must not import or call the Supabase client as a runtime fallback.
+Client production services must use the AnnWord backend API (`api.annword.ru` in production). They must not import or call retired provider clients as runtime fallbacks.
 
-Legacy Supabase/Vercel code may remain temporarily only when needed to retire old infrastructure safely. It must be removed in separate cleanup steps after the Yandex-only path has passed CI and deployment verification.
+Historical migration tooling is not part of the active repository. Database evolution is performed only through `db/yandex/*.sql` and `npm run db:yandex:migrate`.
 
 ## Safe decommission order
 
 1. Keep the built-in Yandex deployment verification green.
-2. Remove client/runtime fallbacks to legacy providers.
-3. Verify a real `main` deployment reaches `annword.ru` and `api.annword.ru` without legacy-provider involvement.
-4. Remove repo-owned legacy-provider checks/workflows and verify another Yandex deployment.
+2. Keep client/runtime code on the AnnWord Yandex API only.
+3. Verify a real `main` deployment reaches `annword.ru` and `api.annword.ru` without retired-provider involvement.
+4. Keep retired provider checks/workflows and migration endpoints absent.
 5. Keep production infrastructure monitoring and backups in Yandex Cloud rather than duplicating them in GitHub Actions.
