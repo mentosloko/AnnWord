@@ -12,4 +12,4 @@ alter table public.app_users
 
 alter table public.app_users
   add constraint app_users_provider_check
-  check (provider in ('email', 'yandex', 'supabase'));
+  check (provider in ('email', 'yandex'));
