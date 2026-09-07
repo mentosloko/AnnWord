@@ -2,6 +2,7 @@ import React from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DailyQuestCard, DailyQuestRewardModal } from '../components/DailyQuestCard';
+import { getWorld } from '../services/premiumFeatureCatalog';
 import type { DailyQuestState } from '../types';
 
 const quest: DailyQuestState = {
@@ -37,7 +38,21 @@ describe('DailyQuestCard all-five progress', () => {
     expect(progress.textContent?.match(/✓/g)?.length).toBe(5);
   });
 
-  it('prefetches an awarded daily world background as soon as its reward modal appears', () => {
+  it('chooses a responsive daily-world asset without changing the full-size source', () => {
+    vi.stubGlobal('innerWidth', 390);
+    vi.stubGlobal('devicePixelRatio', 2);
+    expect(getWorld('theatre').backgroundImageUrl).toBe('/assets/rooms/daily/theatre-960.webp');
+
+    vi.stubGlobal('devicePixelRatio', 3);
+    expect(getWorld('theatre').backgroundImageUrl).toBe('/assets/rooms/daily/theatre-1440.webp');
+
+    vi.stubGlobal('innerWidth', 1024);
+    vi.stubGlobal('devicePixelRatio', 2);
+    expect(getWorld('theatre').backgroundImageUrl).toBe('/assets/rooms/daily/theatre.webp');
+    expect(getWorld('default_room').backgroundImageUrl).toBe('/assets/rooms/puppy/background.webp');
+  });
+
+  it('prefetches the same responsive daily world that the pet room will use', () => {
     const created: MockImage[] = [];
     class MockImage {
       decoding = '';
@@ -46,12 +61,14 @@ describe('DailyQuestCard all-five progress', () => {
       decode = vi.fn(() => Promise.resolve());
       constructor() { created.push(this); }
     }
+    vi.stubGlobal('innerWidth', 390);
+    vi.stubGlobal('devicePixelRatio', 2);
     vi.stubGlobal('Image', MockImage);
 
     render(<DailyQuestRewardModal reward={{ quest: { ...quest, completed: true }, worldId: 'theatre' }} onClose={() => undefined} />);
 
     expect(created).toHaveLength(1);
-    expect(created[0].src).toBe('/assets/rooms/daily/theatre.webp');
+    expect(created[0].src).toBe('/assets/rooms/daily/theatre-960.webp');
     expect(created[0].decoding).toBe('async');
     expect(created[0].fetchPriority).toBe('high');
     expect(created[0].decode).toHaveBeenCalledTimes(1);
