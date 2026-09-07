@@ -3,6 +3,7 @@ import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
 import { query } from "../db";
 import { applyHintCoinOperation } from "../hintCoinRepository";
+import { profileSecurityRouter } from "./profileSecurityRoutes";
 
 export const assignedWordsRouter = Router();
 
@@ -11,6 +12,7 @@ const normalizeWords = (value: unknown): string[] => Array.isArray(value)
   : [];
 
 assignedWordsRouter.use(requireAuth);
+assignedWordsRouter.use(profileSecurityRouter);
 
 assignedWordsRouter.post("/hint-coins", async (req: AuthenticatedRequest, res) => {
   try {

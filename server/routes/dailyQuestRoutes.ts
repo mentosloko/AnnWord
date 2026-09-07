@@ -1,8 +1,14 @@
 import { Router } from "express";
 import type { AuthenticatedRequest } from "../auth";
 import { requireAuth } from "../auth";
+import {
+  claimDailyQuestSource,
+  getLatestAuthoritativeQuestSource,
+  isKidsAccount,
+} from "../authoritativeGameResultRepository";
 import { applyClassicResultIdempotently } from "../classicResultRepository";
 import { applyDailyQuestResult, getOrCreateDailyQuest } from "../dailyQuestRepository";
+import { reconcileProfileMood } from "../petMoodRepository";
 import { rateLimit } from "../requestRateLimit";
 
 export const dailyQuestRouter = Router();
@@ -51,7 +57,27 @@ dailyQuestRouter.post("/classic-result", classicResultLimit, async (req: Authent
 
 dailyQuestRouter.post("/result", async (req: AuthenticatedRequest, res) => {
   try {
-    const result = await applyDailyQuestResult(req.user!.id, req.body || {});
+    const userId = req.user!.id;
+    if (!await isKidsAccount(userId)) {
+      const result = await applyDailyQuestResult(userId, req.body || {});
+      res.json(result);
+      return;
+    }
+
+    const source = await getLatestAuthoritativeQuestSource(userId);
+    if (!source) {
+      res.status(409).json({ code: "authoritative_game_result_required", error: "Сначала сохраните результат игры." });
+      return;
+    }
+
+    const accepted = await claimDailyQuestSource(userId, source.sourceEventKey);
+    if (!accepted) {
+      const [quest, profile] = await Promise.all([getOrCreateDailyQuest(userId), reconcileProfileMood(userId, true)]);
+      res.json({ quest, reward: null, profile });
+      return;
+    }
+
+    const result = await applyDailyQuestResult(userId, source.input);
     res.json(result);
   } catch (error) {
     console.error("Daily quest result failed", error);
