@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppHeader } from './layout/AppHeader';
+import { CookieNotice } from './layout/CookieNotice';
 import { LegalFooter } from './layout/LegalFooter';
 import { MobileBottomNav } from './layout/MobileBottomNav';
 import { AppModals } from './AppModals';
@@ -132,6 +133,7 @@ export const AppShell: React.FC<AppShellProps> = ({ route, children, userProfile
         ? <main id="main-content" tabIndex={-1} className={contentClassName}>{children}</main>
         : <div className={contentClassName}>{children}</div>}
       {!isGameRoute && <LegalFooter />}
+      <CookieNotice raiseAboveMobileNav={showMobileNav} />
       {!isGameRoute && <MobileBottomNav route={route} userProfile={userProfile} isAuthenticated={isAuthenticated} onHomeClick={onHomeClick} onProfileClick={onProfileClick} onShopClick={onShopClick} onAdultRoomClick={onAdultRoomClick} onDictionaryStudioClick={onDictionaryClick} />}
       <AppModals
         showLoginModal={effectiveShowLoginModal}
