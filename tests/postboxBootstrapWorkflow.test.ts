@@ -2,7 +2,6 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const deployWorkflow = readFileSync('.github/workflows/yandex-deploy.yml', 'utf8');
-const operationsWorkflow = readFileSync('.github/workflows/production-operations.yml', 'utf8');
 
 describe('Yandex post-cutover production checks', () => {
   it('removes all one-time Postbox and DNS bootstrap workflows', () => {
@@ -23,11 +22,9 @@ describe('Yandex post-cutover production checks', () => {
     expect(deployWorkflow).toContain('context:"Yandex Production"');
   });
 
-  it('keeps recurring reports and availability monitoring in Production Operations', () => {
-    expect(operationsWorkflow).toContain('Check frontend, API, database and reports');
-    expect(operationsWorkflow).toContain('/api/reports/weekly/status');
-    expect(operationsWorkflow).toContain('Send monitoring failure email');
-    expect(operationsWorkflow).toContain('Production Operations');
+  it('retires GitHub-hosted production polling while keeping the product report scheduler', () => {
+    expect(existsSync('.github/workflows/production-operations.yml')).toBe(false);
+    expect(existsSync('.github/workflows/weekly-reports.yml')).toBe(true);
   });
 
   it('does not keep redundant post-deploy diagnostic workflows', () => {
