@@ -1,6 +1,7 @@
 import type { ActiveWordSource, DifficultyLevel, GameSettings } from '../types';
 
 const DIFFICULTIES = new Set<DifficultyLevel>(['ALL', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
+const SPOTLIGHT_ALL_SECTIONS_ID = 'all';
 
 export const DEFAULT_ACTIVE_WORD_SOURCE: ActiveWordSource = { source: 'builtin', difficulty: 'ALL' };
 
@@ -12,6 +13,17 @@ const readUpdatedAt = (value: unknown): string | undefined => {
   if (typeof value !== 'string' || !value.trim()) return undefined;
   const parsed = new Date(value);
   return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : undefined;
+};
+
+const readSpotlightSectionIds = (value: unknown, legacyValue: unknown): string[] | undefined => {
+  const raw = Array.isArray(value) ? value : typeof legacyValue === 'string' ? [legacyValue] : [];
+  const ids = Array.from(new Set(raw
+    .filter((item): item is string => typeof item === 'string')
+    .map(item => item.trim())
+    .filter(Boolean)));
+  if (ids.length === 0) return undefined;
+  if (ids.includes(SPOTLIGHT_ALL_SECTIONS_ID)) return [SPOTLIGHT_ALL_SECTIONS_ID];
+  return ids.sort((left, right) => left.localeCompare(right));
 };
 
 export const normalizeActiveWordSource = (value: unknown): ActiveWordSource => {
@@ -28,10 +40,9 @@ export const normalizeActiveWordSource = (value: unknown): ActiveWordSource => {
   const spotlightGrade = typeof record.spotlightGrade === 'number' && Number.isInteger(record.spotlightGrade) && record.spotlightGrade >= 2 && record.spotlightGrade <= 11
     ? record.spotlightGrade
     : undefined;
-  const spotlightSectionId = typeof record.spotlightSectionId === 'string' && record.spotlightSectionId.trim()
-    ? record.spotlightSectionId.trim()
-    : undefined;
-  return { source, difficulty, premiumDictionaryId, spotlightGrade, spotlightSectionId, updatedAt };
+  const spotlightSectionIds = readSpotlightSectionIds(record.spotlightSectionIds, record.spotlightSectionId);
+  const spotlightSectionId = spotlightSectionIds?.[0];
+  return { source, difficulty, premiumDictionaryId, spotlightGrade, spotlightSectionId, spotlightSectionIds, updatedAt };
 };
 
 export const activeWordSourceFromSettings = (settings: GameSettings): ActiveWordSource => normalizeActiveWordSource({
@@ -39,6 +50,7 @@ export const activeWordSourceFromSettings = (settings: GameSettings): ActiveWord
   difficulty: settings.difficulty,
   premiumDictionaryId: settings.dictionarySource === 'premium' ? settings.activePremiumDictionaryId : undefined,
   spotlightGrade: settings.dictionarySource === 'premium' ? settings.activeSpotlightGrade : undefined,
+  spotlightSectionIds: settings.dictionarySource === 'premium' ? settings.activeSpotlightSectionIds : undefined,
   spotlightSectionId: settings.dictionarySource === 'premium' ? settings.activeSpotlightSectionId : undefined,
 });
 
@@ -52,10 +64,12 @@ export const applyActiveWordSourceToSettings = (settings: GameSettings, value: u
     activePremiumDictionaryId: source.source === 'premium' ? source.premiumDictionaryId : undefined,
     activeSpotlightGrade: source.source === 'premium' ? source.spotlightGrade : undefined,
     activeSpotlightSectionId: source.source === 'premium' ? source.spotlightSectionId : undefined,
+    activeSpotlightSectionIds: source.source === 'premium' ? source.spotlightSectionIds : undefined,
   };
 };
 
 export const activeWordSourceKey = (value: unknown): string => {
   const source = normalizeActiveWordSource(value);
-  return [source.source, source.difficulty, source.premiumDictionaryId || '', source.spotlightGrade || '', source.spotlightSectionId || ''].join(':');
+  const spotlightSectionsKey = source.spotlightSectionIds?.join(',') || source.spotlightSectionId || '';
+  return [source.source, source.difficulty, source.premiumDictionaryId || '', source.spotlightGrade || '', spotlightSectionsKey].join(':');
 };
