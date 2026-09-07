@@ -49,6 +49,7 @@ export const getFulfilledRequestedTreat = (profile: UserProfile): ShopItem | nul
 };
 
 const DAILY_WORLD_ASSET_PREFIX = '/assets/rooms/daily/';
+// Never choose a responsive source narrower than the display's physical pixel width; larger displays keep the untouched original.
 const responsiveDailyWorldBackgroundUrl = (url?: string): string | undefined => {
   if (!url || !url.startsWith(DAILY_WORLD_ASSET_PREFIX) || !url.endsWith('.webp') || typeof window === 'undefined') return url;
   const viewportWidth = Math.max(1, Number(window.innerWidth) || 1);
