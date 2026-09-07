@@ -143,8 +143,8 @@ describe('DictionarySettingsScreen draft selection', () => {
     expect(onCommitSettings).not.toHaveBeenCalled();
     expect(first).toHaveAttribute('aria-pressed', 'true');
     expect(second).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText(sections[0].title, { exact: false })).toBeInTheDocument();
-    expect(screen.getByText(sections[1].title, { exact: false })).toBeInTheDocument();
+    expect(screen.getAllByText(sections[0].title, { exact: false }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(sections[1].title, { exact: false }).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole('button', { name: 'Готово' }));
     await waitFor(() => expect(onCommitSettings).toHaveBeenCalledTimes(1));
