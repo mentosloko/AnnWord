@@ -8,6 +8,7 @@ const PET_ASSET_SLUGS: Record<string, string> = {
   Dragon: 'dragon',
   RoboCat: 'robocat',
 };
+const RENDERED_CHARACTER_TYPES = new Set(['Puppy']);
 const MYSTERY_BOX_ASSET_URL = assetUrl('/assets/rewards/mystery-box.webp');
 
 const getPetAssetSlug = (petType?: string): string | null => {
@@ -15,16 +16,20 @@ const getPetAssetSlug = (petType?: string): string | null => {
   return PET_ASSET_SLUGS[petType] || null;
 };
 
+const hasRenderedCharacterAssets = (petType?: string): boolean => Boolean(petType && RENDERED_CHARACTER_TYPES.has(petType));
+
 const getPetCharacterExtension = (petType?: string): 'png' | 'webp' =>
   petType === 'Puppy' ? 'webp' : 'png';
 
 const getPetBaseAssetUrl = (petType?: string): string | null => {
+  if (!hasRenderedCharacterAssets(petType)) return null;
   const slug = getPetAssetSlug(petType);
   if (!slug) return null;
   return assetUrl(`/assets/pets/${slug}/base/idle.${getPetCharacterExtension(petType)}`);
 };
 
 const getPetRenderedBasePath = (petType?: string): string | null => {
+  if (!hasRenderedCharacterAssets(petType)) return null;
   const slug = getPetAssetSlug(petType);
   if (!slug) return null;
 
@@ -33,6 +38,7 @@ const getPetRenderedBasePath = (petType?: string): string | null => {
 };
 
 const getPetAccessoryBasePath = (petType?: string): string | null => {
+  if (!hasRenderedCharacterAssets(petType)) return null;
   const slug = getPetAssetSlug(petType);
   return slug ? assetUrl(`/assets/pets/${slug}/accessories`) : null;
 };
