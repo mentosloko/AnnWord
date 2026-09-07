@@ -13,6 +13,10 @@ import { mergeStatsForSave, PROFILE_COLUMNS } from './profileRepository';
 const AUTHORITATIVE_SOURCE = 'authoritative_game_result_v1';
 const AUTHORITATIVE_EVENT_PREFIX = 'authoritative:';
 const DAILY_QUEST_CLAIM_PREFIX = 'daily-quest:';
+const DAILY_MAX_XP = 2500;
+const DAILY_MAX_COINS = 150;
+const MAX_ANAGRAM_REWARDS_PER_MINUTE = 40;
+const MAX_SESSION_REWARDS_PER_MINUTE = 12;
 const STARTER_TYPES = new Set(STARTER_CHARACTERS.map(character => character.type));
 const MOSCOW_DATE_FORMAT = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -156,7 +160,7 @@ export const extractClientRewardClaim = (rawEvents: unknown): ClientRewardClaim 
   const eventKey = typeof (rewardEvent.eventKey ?? rewardEvent.event_key) === 'string'
     ? String(rewardEvent.eventKey ?? rewardEvent.event_key).trim()
     : '';
-  if (!/^[A-Za-z0-9:_-]{8,500}$/.test(eventKey)) throw new Error('Некорректный идентификатор игровой награды.');
+  if (!/^[A-Za-z0-9:_.-]{8,500}$/.test(eventKey)) throw new Error('Некорректный идентификатор игровой награды.');
   const payload = isRecord(rewardEvent.payload) ? rewardEvent.payload : {};
   return { eventKey, input: sanitizeGameRewardInput(payload.input) };
 };
@@ -212,6 +216,44 @@ const anagramRewardCoins = async (client: PoolClient, userId: string): Promise<n
   return count > 0 && count % 10 === 0 ? 1 : 0;
 };
 
+const enforceRewardVelocity = async (
+  client: PoolClient,
+  userId: string,
+  input: GameRewardInput,
+  reward: { coins: number; xp: number },
+): Promise<void> => {
+  const result = await client.query<{ recent_mode_rewards: string; coins_today: string; xp_today: string }>(
+    `select count(*) filter (
+              where game_mode = $3
+                and occurred_at >= now() - interval '60 seconds'
+            )::text as recent_mode_rewards,
+            coalesce(sum(greatest(coins_delta, 0)) filter (
+              where occurred_at >= (date_trunc('day', now() at time zone 'Europe/Moscow') at time zone 'Europe/Moscow')
+            ), 0)::text as coins_today,
+            coalesce(sum(greatest(xp_delta, 0)) filter (
+              where occurred_at >= (date_trunc('day', now() at time zone 'Europe/Moscow') at time zone 'Europe/Moscow')
+            ), 0)::text as xp_today
+       from game_events
+      where user_id = $1
+        and event_type = 'reward_granted'
+        and event_key like 'authoritative:%'
+        and payload->>'source' = $2`,
+    [userId, AUTHORITATIVE_SOURCE, input.type],
+  );
+  const row = result.rows[0];
+  const recentModeRewards = Math.max(0, Number.parseInt(row?.recent_mode_rewards || '0', 10) || 0);
+  const coinsToday = Math.max(0, Number.parseInt(row?.coins_today || '0', 10) || 0);
+  const xpToday = Math.max(0, Number.parseInt(row?.xp_today || '0', 10) || 0);
+  const minuteLimit = input.type === 'anagram' ? MAX_ANAGRAM_REWARDS_PER_MINUTE : MAX_SESSION_REWARDS_PER_MINUTE;
+  if (recentModeRewards > minuteLimit) throw new Error('Слишком много игровых наград за короткое время. Повторите позже.');
+  if (coinsToday + Math.max(0, Math.round(reward.coins || 0)) > DAILY_MAX_COINS) {
+    throw new Error('Достигнут дневной лимит игровых монет.');
+  }
+  if (xpToday + Math.max(0, Math.round(reward.xp || 0)) > DAILY_MAX_XP) {
+    throw new Error('Достигнут дневной лимит игрового опыта.');
+  }
+};
+
 export const applyAuthoritativeGameResult = async (
   userId: string,
   claim: ClientRewardClaim,
@@ -238,6 +280,7 @@ export const applyAuthoritativeGameResult = async (
     ? await anagramRewardCoins(client, userId)
     : baseReward.coins;
   const reward = { ...baseReward, coins };
+  await enforceRewardVelocity(client, userId, claim.input, reward);
   const nowMs = serverNowMs(row);
   const clock = applyServerPetMoodClock(normalizePet(row.pet), nowMs);
   const progress = applyGameRewardToCharacter(clock.pet, reward);
@@ -329,6 +372,7 @@ export const getLatestAuthoritativeQuestSource = async (userId: string): Promise
         and event_type = 'reward_granted'
         and event_key like 'authoritative:%'
         and payload->>'source' = $2
+        and occurred_at >= now() - interval '30 minutes'
       order by id desc
       limit 1`,
     [userId, AUTHORITATIVE_SOURCE],
