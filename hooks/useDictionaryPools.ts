@@ -70,15 +70,21 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
   const kidsMode = isKidsMode(userProfile);
   const hasPremium = hasPremiumDictionaryAccess(userProfile);
   const spotlightActive = settings.dictionarySource === 'premium' && hasPremium && isSpotlightId(settings.activePremiumDictionaryId);
+  const configuredSpotlightSections = settings.activeSpotlightSectionIds?.length
+    ? settings.activeSpotlightSectionIds
+    : settings.activeSpotlightSectionId;
+  const configuredSpotlightSectionsKey = Array.isArray(configuredSpotlightSections)
+    ? configuredSpotlightSections.join(',')
+    : configuredSpotlightSections || '';
   const spotlightSelection = useMemo(
-    () => resolveSpotlightSelection(settings.activeSpotlightGrade, settings.activeSpotlightSectionId, userProfile.username),
-    [settings.activeSpotlightGrade, settings.activeSpotlightSectionId, userProfile.username],
+    () => resolveSpotlightSelection(settings.activeSpotlightGrade, configuredSpotlightSections, userProfile.username),
+    [settings.activeSpotlightGrade, configuredSpotlightSectionsKey, userProfile.username],
   );
   const premiumDictionaryId = settings.dictionarySource === 'premium' && hasPremium && (spotlightActive || !kidsMode)
     ? resolvePremiumDictionaryId(settings.activePremiumDictionaryId)
     : null;
   const spotlightSelectionKey = spotlightActive
-    ? `${spotlightSelection.grade}:${spotlightSelection.sectionId}`
+    ? `${spotlightSelection.grade}:${spotlightSelection.sectionIds.join(',')}`
     : 'none';
   const loadKey = runtimeEnabled ? `general:${premiumDictionaryId || 'none'}:${spotlightSelectionKey}` : 'disabled';
   const [loadState, setLoadState] = useState<LoadState>({ key: 'disabled', status: 'idle', error: null });
@@ -118,8 +124,8 @@ export const useDictionaryPools = ({ settings, userProfile, enabled }: UseDictio
   const error = loadState.key === loadKey ? loadState.error : null;
 
   const readSelectedSpotlightEntries = useCallback((): EnrichedWord[] =>
-    getSpotlightEntries(spotlightSelection.grade, spotlightSelection.sectionId),
-  [spotlightSelection.grade, spotlightSelection.sectionId]);
+    getSpotlightEntries(spotlightSelection.grade, spotlightSelection.sectionIds),
+  [spotlightSelection.grade, spotlightSelectionKey]);
 
   const getSecretWordPool = useCallback((): EnrichedWord[] => {
     let pool: EnrichedWord[] = [];
