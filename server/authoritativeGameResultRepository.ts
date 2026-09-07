@@ -192,24 +192,25 @@ const sanitizeClientGameEvents = (rawEvents: unknown): unknown[] => Array.isArra
 const anagramRewardCoins = async (client: PoolClient, userId: string): Promise<number> => {
   const result = await client.query<{ count: string }>(
     `with boundary as (
-       select coalesce(max(id), 0) as id
-         from game_events
-        where user_id = $1
-          and event_type = 'reward_granted'
-          and game_mode = 'anagram'
-          and event_key like 'authoritative:%'
-          and payload->>'source' = $2
-          and payload->'input'->>'statsOnly' = 'true'
+       select coalesce(max(ge.id), 0) as boundary_id
+         from game_events ge
+        where ge.user_id = $1
+          and ge.event_type = 'reward_granted'
+          and ge.game_mode = 'anagram'
+          and ge.event_key like 'authoritative:%'
+          and ge.payload->>'source' = $2
+          and ge.payload->'input'->>'statsOnly' = 'true'
      )
      select count(*)::text as count
-       from game_events, boundary
-      where user_id = $1
-        and event_type = 'reward_granted'
-        and game_mode = 'anagram'
-        and event_key like 'authoritative:%'
-        and payload->>'source' = $2
-        and id > boundary.id
-        and coalesce(payload->'input'->>'statsOnly', 'false') <> 'true'`,
+       from game_events ge
+       cross join boundary b
+      where ge.user_id = $1
+        and ge.event_type = 'reward_granted'
+        and ge.game_mode = 'anagram'
+        and ge.event_key like 'authoritative:%'
+        and ge.payload->>'source' = $2
+        and ge.id > b.boundary_id
+        and coalesce(ge.payload->'input'->>'statsOnly', 'false') <> 'true'`,
     [userId, AUTHORITATIVE_SOURCE],
   );
   const count = Math.max(0, Number.parseInt(result.rows[0]?.count || '0', 10) || 0);
