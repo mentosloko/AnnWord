@@ -47,8 +47,23 @@ export const getFulfilledRequestedTreat = (profile: UserProfile): ShopItem | nul
   if (!fulfilledId) return null;
   return getShopItemsByType('food').find(item => item.id === fulfilledId) || null;
 };
-export const getWorld = (id?: PetWorldId): PetWorldDefinition => PET_WORLDS.find(world => world.id === id) || PET_WORLDS[0];
-export const getActiveWorld = (pet: PetState): PetWorldDefinition => pet.activeWorldDate === moscowDateKey() ? getWorld(pet.activeWorldId) : PET_WORLDS[0];
+
+const DAILY_WORLD_ASSET_PREFIX = '/assets/rooms/daily/';
+const responsiveDailyWorldBackgroundUrl = (url?: string): string | undefined => {
+  if (!url || !url.startsWith(DAILY_WORLD_ASSET_PREFIX) || !url.endsWith('.webp') || typeof window === 'undefined') return url;
+  const viewportWidth = Math.max(1, Number(window.innerWidth) || 1);
+  const devicePixelRatio = Math.max(1, Number(window.devicePixelRatio) || 1);
+  const requiredPixels = viewportWidth * devicePixelRatio;
+  const candidateWidth = requiredPixels <= 960 ? 960 : requiredPixels <= 1440 ? 1440 : null;
+  return candidateWidth ? url.replace(/\.webp$/, `-${candidateWidth}.webp`) : url;
+};
+
+export const getWorldBackgroundImageUrl = (world: PetWorldDefinition): string | undefined => responsiveDailyWorldBackgroundUrl(world.backgroundImageUrl);
+export const getWorld = (id?: PetWorldId): PetWorldDefinition => {
+  const world = PET_WORLDS.find(candidate => candidate.id === id) || PET_WORLDS[0];
+  return { ...world, backgroundImageUrl: getWorldBackgroundImageUrl(world) };
+};
+export const getActiveWorld = (pet: PetState): PetWorldDefinition => pet.activeWorldDate === moscowDateKey() ? getWorld(pet.activeWorldId) : getWorld('default_room');
 export const hasActiveDailyWorld = (pet: PetState): boolean => pet.activeWorldDate === moscowDateKey() && pet.activeWorldId !== undefined && pet.activeWorldId !== 'default_room';
 export const getEarnedStickers = (pet: PetState): StreakSticker[] => STREAK_STICKERS.filter(sticker => (pet.earnedStickerIds || []).includes(sticker.id) || (pet.dailyStreak || 0) >= sticker.days);
 export const getLevelAvailableAccessories = (level: number): ShopItem[] => getShopItemsByType('accessory').filter(item => item.minLevel <= level);
