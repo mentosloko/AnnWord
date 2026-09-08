@@ -128,12 +128,44 @@ test('mobile Kids keeps CLS at or below 0.1 while quest state hydrates', async (
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
     let cls = 0;
+    const shifts: unknown[] = [];
+    const selectorFor = (node: Node | null): string => {
+      if (!(node instanceof Element)) return String(node?.nodeName || 'unknown');
+      if (node.id) return `#${node.id}`;
+      const testId = node.getAttribute('data-testid');
+      if (testId) return `[data-testid="${testId}"]`;
+      const aria = node.getAttribute('aria-label');
+      if (aria) return `${node.tagName.toLowerCase()}[aria-label="${aria}"]`;
+      const classes = Array.from(node.classList).slice(0, 3).join('.');
+      return `${node.tagName.toLowerCase()}${classes ? `.${classes}` : ''}`;
+    };
     new PerformanceObserver(list => {
-      for (const entry of list.getEntries() as Array<PerformanceEntry & { value?: number; hadRecentInput?: boolean }>) {
-        if (!entry.hadRecentInput) cls += Number(entry.value || 0);
+      for (const entry of list.getEntries() as Array<PerformanceEntry & {
+        value?: number;
+        hadRecentInput?: boolean;
+        sources?: Array<{ node?: Node | null; previousRect?: DOMRectReadOnly; currentRect?: DOMRectReadOnly }>;
+      }>) {
+        if (entry.hadRecentInput) continue;
+        cls += Number(entry.value || 0);
+        shifts.push({
+          value: Number(entry.value || 0),
+          startTime: Math.round(entry.startTime),
+          sources: (entry.sources || []).map(source => ({
+            node: selectorFor(source.node || null),
+            previousRect: source.previousRect ? {
+              x: Math.round(source.previousRect.x), y: Math.round(source.previousRect.y),
+              width: Math.round(source.previousRect.width), height: Math.round(source.previousRect.height),
+            } : null,
+            currentRect: source.currentRect ? {
+              x: Math.round(source.currentRect.x), y: Math.round(source.currentRect.y),
+              width: Math.round(source.currentRect.width), height: Math.round(source.currentRect.height),
+            } : null,
+          })),
+        });
       }
     }).observe({ type: 'layout-shift', buffered: true });
     (window as any).__annwordReadCls = () => cls;
+    (window as any).__annwordReadClsShifts = () => shifts;
   });
   await installBackend(page, profile, 2500);
 
@@ -144,9 +176,12 @@ test('mobile Kids keeps CLS at or below 0.1 while quest state hydrates', async (
   await expect(page.getByRole('heading', { name: 'Большое приключение' })).toBeVisible();
   await page.waitForTimeout(500);
 
-  const cls = await page.evaluate(() => Number((window as any).__annwordReadCls?.() || 0));
-  console.log(`KIDS_CLS_REPORT ${JSON.stringify({ viewport: '390x844', cls: Number(cls.toFixed(4)) })}`);
-  expect(cls).toBeLessThanOrEqual(0.1);
+  const report = await page.evaluate(() => ({
+    cls: Number((window as any).__annwordReadCls?.() || 0),
+    shifts: (window as any).__annwordReadClsShifts?.() || [],
+  }));
+  console.log(`KIDS_CLS_REPORT ${JSON.stringify({ viewport: '390x844', cls: Number(report.cls.toFixed(4)), shifts: report.shifts })}`);
+  expect(report.cls).toBeLessThanOrEqual(0.1);
 });
 
 test('Premium parent header is compact and consistent on mobile and desktop', async ({ page }) => {
