@@ -27,80 +27,66 @@ jobs:
           app = Path('AppV2.tsx')
           text = app.read_text()
           old = "  const canRenderWhileBootstrapping = bootstrapStatus === 'loading' && !blockGuestShellOnBootstrap && (route === 'landing' || Boolean(userProfile.accountMode) || userProfile.role === 'admin');"
-          new = """  const hasEstablishedShellIdentity = Boolean(userProfile.accountMode) || userProfile.role === 'admin';
-          const canRenderPublicLandingWhileBootstrapping = route === 'landing' && entryPath === 'home';
-          const canRenderWhileBootstrapping = bootstrapStatus === 'loading'
-            && !blockGuestShellOnBootstrap
-            && (hasEstablishedShellIdentity || canRenderPublicLandingWhileBootstrapping);"""
-          if old not in text:
-              raise SystemExit('AppV2 bootstrap guard anchor not found')
+          new = "\n".join([
+              "  const hasEstablishedShellIdentity = Boolean(userProfile.accountMode) || userProfile.role === 'admin';",
+              "  const canRenderPublicLandingWhileBootstrapping = route === 'landing' && entryPath === 'home';",
+              "  const canRenderWhileBootstrapping = bootstrapStatus === 'loading'",
+              "    && !blockGuestShellOnBootstrap",
+              "    && (hasEstablishedShellIdentity || canRenderPublicLandingWhileBootstrapping);",
+          ])
+          if text.count(old) != 1:
+              raise SystemExit(f'AppV2 bootstrap guard anchor count={text.count(old)}')
           app.write_text(text.replace(old, new, 1))
 
           spec = Path('e2e/kids-performance.spec.ts')
           text = spec.read_text()
-          old_init = """  await page.addInitScript(() => {
-            let cls = 0;
-            new PerformanceObserver(list => {
-              for (const entry of list.getEntries() as Array<PerformanceEntry & { value?: number; hadRecentInput?: boolean }>) {
-                if (!entry.hadRecentInput) cls += Number(entry.value || 0);
-              }
-            }).observe({ type: 'layout-shift', buffered: true });
-            (window as any).__annwordReadCls = () => cls;
-            (window as any).__annwordResetCls = () => { cls = 0; };
-          });"""
-          new_init = """  await page.addInitScript(() => {
-            window.localStorage.clear();
-            let cls = 0;
-            (window as any).__annwordGuestShellSeen = false;
-            const markGuestShell = () => {
-              const header = document.querySelector('header');
-              if (header?.textContent?.includes('Гость')) (window as any).__annwordGuestShellSeen = true;
-            };
-            const guestObserver = new MutationObserver(markGuestShell);
-            guestObserver.observe(document, { childList: true, subtree: true, characterData: true });
-            new PerformanceObserver(list => {
-              for (const entry of list.getEntries() as Array<PerformanceEntry & { value?: number; hadRecentInput?: boolean }>) {
-                if (!entry.hadRecentInput) cls += Number(entry.value || 0);
-              }
-            }).observe({ type: 'layout-shift', buffered: true });
-            (window as any).__annwordReadCls = () => cls;
-            (window as any).__annwordResetCls = () => { cls = 0; };
-          });"""
-          if old_init not in text:
-              raise SystemExit('kids-performance init anchor not found')
-          text = text.replace(old_init, new_init, 1)
 
-          old_decl = """  const reports: number[] = [];
-          const bootstrapReports: number[] = [];"""
-          new_decl = """  const reports: number[] = [];
-          const bootstrapReports: number[] = [];
-          const guestShellSeenRuns: boolean[] = [];"""
-          if old_decl not in text:
-              raise SystemExit('kids-performance declaration anchor not found')
-          text = text.replace(old_decl, new_decl, 1)
+          init_anchor = "  await page.addInitScript(() => {\n"
+          init_insert = "\n".join([
+              "  await page.addInitScript(() => {",
+              "    window.localStorage.clear();",
+              "    let cls = 0;",
+              "    (window as any).__annwordGuestShellSeen = false;",
+              "    const markGuestShell = () => {",
+              "      const header = document.querySelector('header');",
+              "      if (header?.textContent?.includes('Гость')) (window as any).__annwordGuestShellSeen = true;",
+              "    };",
+              "    const guestObserver = new MutationObserver(markGuestShell);",
+              "    guestObserver.observe(document, { childList: true, subtree: true, characterData: true });",
+          ]) + "\n"
+          old_init_prefix = init_anchor + "    let cls = 0;\n"
+          if text.count(old_init_prefix) != 1:
+              raise SystemExit(f'kids init anchor count={text.count(old_init_prefix)}')
+          text = text.replace(old_init_prefix, init_insert, 1)
 
-          old_bootstrap = """    // The blocking auth-bootstrap screen is a separate full-screen loading state.
-            // Reset at the stable Kids shell so this regression test measures only the
-            // delayed quest hydration it is meant to protect.
-            bootstrapReports.push(await page.evaluate(() => Number((window as any).__annwordReadCls?.() || 0)));
-            await page.evaluate(() => (window as any).__annwordResetCls?.());"""
-          new_bootstrap = """    // Cold /kids must not paint the guest header/footer before the authenticated
-            // parent shell is known. Keep bootstrap and quest hydration as separate strict gates.
-            const bootstrapCls = await page.evaluate(() => Number((window as any).__annwordReadCls?.() || 0));
-            const guestShellSeen = await page.evaluate(() => Boolean((window as any).__annwordGuestShellSeen));
-            bootstrapReports.push(bootstrapCls);
-            guestShellSeenRuns.push(guestShellSeen);
-            expect(guestShellSeen).toBe(false);
-            expect(bootstrapCls).toBeLessThanOrEqual(0.1);
-            await page.evaluate(() => (window as any).__annwordResetCls?.());"""
-          if old_bootstrap not in text:
-              raise SystemExit('kids-performance bootstrap anchor not found')
-          text = text.replace(old_bootstrap, new_bootstrap, 1)
+          decl = "  const bootstrapReports: number[] = [];"
+          if text.count(decl) != 1:
+              raise SystemExit(f'bootstrap declaration count={text.count(decl)}')
+          text = text.replace(decl, decl + "\n  const guestShellSeenRuns: boolean[] = [];", 1)
 
-          old_log = """  console.log(`KIDS_CLS_REPORT ${JSON.stringify({ viewport: '390x844', questHydrationRuns: reports, bootstrapTransitions: bootstrapReports.map(value => Number(value.toFixed(4))) })}`);"""
-          new_log = """  console.log(`KIDS_CLS_REPORT ${JSON.stringify({ viewport: '390x844', questHydrationRuns: reports, bootstrapTransitions: bootstrapReports.map(value => Number(value.toFixed(4))), guestShellSeenRuns })}`);"""
-          if old_log not in text:
-              raise SystemExit('kids-performance log anchor not found')
+          text = text.replace(
+              "    // The blocking auth-bootstrap screen is a separate full-screen loading state.\n    // Reset at the stable Kids shell so this regression test measures only the\n    // delayed quest hydration it is meant to protect.\n",
+              "    // Cold /kids must not paint the guest header/footer before the authenticated\n    // parent shell is known. Keep bootstrap and quest hydration as separate strict gates.\n",
+              1,
+          )
+
+          bootstrap_line = "    bootstrapReports.push(await page.evaluate(() => Number((window as any).__annwordReadCls?.() || 0)));"
+          bootstrap_block = "\n".join([
+              "    const bootstrapCls = await page.evaluate(() => Number((window as any).__annwordReadCls?.() || 0));",
+              "    const guestShellSeen = await page.evaluate(() => Boolean((window as any).__annwordGuestShellSeen));",
+              "    bootstrapReports.push(bootstrapCls);",
+              "    guestShellSeenRuns.push(guestShellSeen);",
+              "    expect(guestShellSeen).toBe(false);",
+              "    expect(bootstrapCls).toBeLessThanOrEqual(0.1);",
+          ])
+          if text.count(bootstrap_line) != 1:
+              raise SystemExit(f'bootstrap metric line count={text.count(bootstrap_line)}')
+          text = text.replace(bootstrap_line, bootstrap_block, 1)
+
+          old_log = "  console.log(`KIDS_CLS_REPORT ${JSON.stringify({ viewport: '390x844', questHydrationRuns: reports, bootstrapTransitions: bootstrapReports.map(value => Number(value.toFixed(4))) })}`);"
+          new_log = "  console.log(`KIDS_CLS_REPORT ${JSON.stringify({ viewport: '390x844', questHydrationRuns: reports, bootstrapTransitions: bootstrapReports.map(value => Number(value.toFixed(4))), guestShellSeenRuns })}`);"
+          if text.count(old_log) != 1:
+              raise SystemExit(f'kids report line count={text.count(old_log)}')
           spec.write_text(text.replace(old_log, new_log, 1))
           PY
 
