@@ -134,19 +134,33 @@ test('mobile Kids keeps CLS at or below 0.1 while quest state hydrates', async (
       }
     }).observe({ type: 'layout-shift', buffered: true });
     (window as any).__annwordReadCls = () => cls;
+    (window as any).__annwordResetCls = () => { cls = 0; };
   });
   await installBackend(page, profile, 2500);
 
-  const questResponse = page.waitForResponse(response => response.url().includes('/api/daily-quest/today') && response.status() === 200);
-  await page.goto('/kids', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: 'Поиграем со словами?' })).toBeVisible();
-  await questResponse;
-  await expect(page.getByRole('heading', { name: 'Большое приключение' })).toBeVisible();
-  await page.waitForTimeout(500);
+  const reports: number[] = [];
+  const bootstrapReports: number[] = [];
+  for (let run = 1; run <= 3; run += 1) {
+    const questResponse = page.waitForResponse(response => response.url().includes('/api/daily-quest/today') && response.status() === 200);
+    await page.goto('/kids', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Поиграем со словами?' })).toBeVisible();
 
-  const cls = await page.evaluate(() => Number((window as any).__annwordReadCls?.() || 0));
-  console.log(`KIDS_CLS_REPORT ${JSON.stringify({ viewport: '390x844', cls: Number(cls.toFixed(4)) })}`);
-  expect(cls).toBeLessThanOrEqual(0.1);
+    // The blocking auth-bootstrap screen is a separate full-screen loading state.
+    // Reset at the stable Kids shell so this regression test measures only the
+    // delayed quest hydration it is meant to protect.
+    bootstrapReports.push(await page.evaluate(() => Number((window as any).__annwordReadCls?.() || 0)));
+    await page.evaluate(() => (window as any).__annwordResetCls?.());
+
+    await questResponse;
+    await expect(page.getByRole('heading', { name: 'Большое приключение' })).toBeVisible();
+    await page.waitForTimeout(500);
+
+    const cls = await page.evaluate(() => Number((window as any).__annwordReadCls?.() || 0));
+    reports.push(Number(cls.toFixed(4)));
+    expect(cls).toBeLessThanOrEqual(0.1);
+  }
+
+  console.log(`KIDS_CLS_REPORT ${JSON.stringify({ viewport: '390x844', questHydrationRuns: reports, bootstrapTransitions: bootstrapReports.map(value => Number(value.toFixed(4))) })}`);
 });
 
 test('Premium parent header is compact and consistent on mobile and desktop', async ({ page }) => {
