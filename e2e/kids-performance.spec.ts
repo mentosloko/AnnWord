@@ -127,7 +127,15 @@ const expectPremiumHeader = async (page: Page) => {
 test('mobile Kids keeps CLS at or below 0.1 while quest state hydrates', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
+    window.localStorage.clear();
     let cls = 0;
+    (window as any).__annwordGuestShellSeen = false;
+    const markGuestShell = () => {
+      const header = document.querySelector('header');
+      if (header?.textContent?.includes('Гость')) (window as any).__annwordGuestShellSeen = true;
+    };
+    const guestObserver = new MutationObserver(markGuestShell);
+    guestObserver.observe(document, { childList: true, subtree: true, characterData: true });
     new PerformanceObserver(list => {
       for (const entry of list.getEntries() as Array<PerformanceEntry & { value?: number; hadRecentInput?: boolean }>) {
         if (!entry.hadRecentInput) cls += Number(entry.value || 0);
@@ -140,15 +148,20 @@ test('mobile Kids keeps CLS at or below 0.1 while quest state hydrates', async (
 
   const reports: number[] = [];
   const bootstrapReports: number[] = [];
+  const guestShellSeenRuns: boolean[] = [];
   for (let run = 1; run <= 3; run += 1) {
     const questResponse = page.waitForResponse(response => response.url().includes('/api/daily-quest/today') && response.status() === 200);
     await page.goto('/kids', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Поиграем со словами?' })).toBeVisible();
 
-    // The blocking auth-bootstrap screen is a separate full-screen loading state.
-    // Reset at the stable Kids shell so this regression test measures only the
-    // delayed quest hydration it is meant to protect.
-    bootstrapReports.push(await page.evaluate(() => Number((window as any).__annwordReadCls?.() || 0)));
+    // Cold /kids must not paint the guest header/footer before the authenticated
+    // parent shell is known. Keep bootstrap and quest hydration as separate strict gates.
+    const bootstrapCls = await page.evaluate(() => Number((window as any).__annwordReadCls?.() || 0));
+    const guestShellSeen = await page.evaluate(() => Boolean((window as any).__annwordGuestShellSeen));
+    bootstrapReports.push(bootstrapCls);
+    guestShellSeenRuns.push(guestShellSeen);
+    expect(guestShellSeen).toBe(false);
+    expect(bootstrapCls).toBeLessThanOrEqual(0.1);
     await page.evaluate(() => (window as any).__annwordResetCls?.());
 
     await questResponse;
@@ -160,7 +173,7 @@ test('mobile Kids keeps CLS at or below 0.1 while quest state hydrates', async (
     expect(cls).toBeLessThanOrEqual(0.1);
   }
 
-  console.log(`KIDS_CLS_REPORT ${JSON.stringify({ viewport: '390x844', questHydrationRuns: reports, bootstrapTransitions: bootstrapReports.map(value => Number(value.toFixed(4))) })}`);
+  console.log(`KIDS_CLS_REPORT ${JSON.stringify({ viewport: '390x844', questHydrationRuns: reports, bootstrapTransitions: bootstrapReports.map(value => Number(value.toFixed(4))), guestShellSeenRuns })}`);
 });
 
 test('Premium parent header is compact and consistent on mobile and desktop', async ({ page }) => {
