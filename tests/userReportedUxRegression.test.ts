@@ -85,4 +85,22 @@ describe('user-reported UX regressions', () => {
     expect(snake).toContain('pool.filter(item => !excluded.has(item.word))');
     expect(snake).toContain('usedWordsRef.current.clear()');
   });
+
+  it('keeps tall game result dialogs scrollable on mobile', () => {
+    const dialog = read('components/a11y/AccessibleDialog.tsx');
+    expect(dialog).toContain('overflow-y-auto overscroll-contain');
+    expect(dialog).toContain('min-h-full items-center justify-center');
+    expect(dialog).toContain('safe-area-inset-top');
+    expect(dialog).toContain('safe-area-inset-bottom');
+  });
+
+  it('charges one coin before revealing the first Snake letter in Kids mode', () => {
+    const snake = read('components/LetterSquareGameV3.tsx');
+    const screens = read('components/AppScreens.tsx');
+    expect(snake).toContain('onHintCharge?: () => boolean | Promise<boolean>');
+    expect(snake).toContain('await Promise.resolve(onHintCharge?.() ?? false)');
+    expect(snake).toContain("'Для подсказки нужна 1 монета.'");
+    expect(snake).toContain("'Первая буква · 🪙1'");
+    expect(screens).toContain('onHintCharge={onDictionaryPeek}');
+  });
 });
