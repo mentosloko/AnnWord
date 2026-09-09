@@ -18,6 +18,7 @@ afterEach(() => {
 });
 
 describe('Snake first-letter hint economy', () => {
+  // Snake follows the same one-coin paid-hint contract as the other Kids games.
   it('reveals the hint only after a successful one-coin charge', async () => {
     const onHintCharge = vi.fn().mockResolvedValue(true);
     render(
