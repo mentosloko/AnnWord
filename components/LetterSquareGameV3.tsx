@@ -20,6 +20,7 @@ type Props = {
   dictionaryId?: string;
   dictionaryLabel?: string;
   dictionaryIcon?: string;
+  onHintCharge?: () => boolean | Promise<boolean>;
 };
 type SavedLetterSquareState = {
   round: Round;
@@ -87,7 +88,7 @@ const normalizeSavedState = (value: unknown, dictionary: EnrichedWord[]): SavedL
   };
 };
 
-export const LetterSquareGameV3: React.FC<Props> = ({ onBack, userProfile, onGameReward, onWordPractice, sessionOwnerId, dictionaryId = 'live', dictionaryLabel, dictionaryIcon }) => {
+export const LetterSquareGameV3: React.FC<Props> = ({ onBack, userProfile, onGameReward, onWordPractice, sessionOwnerId, dictionaryId = 'live', dictionaryLabel, dictionaryIcon, onHintCharge }) => {
   const dictionary = useMemo(() => buildLetterSquareDictionary(userProfile.customDictionaryEn), [userProfile.customDictionaryEn]);
   const restored = useMemo(() => {
     const session = readPersistedGameSession(sessionOwnerId);
@@ -104,10 +105,29 @@ export const LetterSquareGameV3: React.FC<Props> = ({ onBack, userProfile, onGam
   const [selected, setSelected] = useState<Coord[]>(restored?.selected || []), [score, setScore] = useState(restored?.score || 0), [answered, setAnswered] = useState(restored?.answered || 0);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(restored?.feedback || null), [message, setMessage] = useState(restored?.message || 'Соберите слово из соседних клеток. Диагонали нельзя.'), [hint, setHint] = useState(restored?.hint || false), [done, setDone] = useState(false);
   const [resultProgress, setResultProgress] = useState<CharacterProgressResult | null>(null);
+  const [hintPending, setHintPending] = useState(false);
   const rewardApplied = useRef(false), kids = isKidsMode(userProfile);
   const sessionLimit = Math.min(LIMIT, dictionary.length);
   const reward = useMemo(() => calculateGameReward({ type: 'letterSquare', guessedWords: score }), [score]);
   const save = (currentWord: string, result: WordPracticeResult) => { setReview(previous => updateReviewPriorities(previous, currentWord, result)); void Promise.resolve(onWordPractice?.(currentWord, result)).catch(error => console.error('Failed to save Snake practice', error)); };
+  const revealFirstLetter = async () => {
+    if (!round || hint || feedback || hintPending) return;
+    setHintPending(true);
+    try {
+      const allowed = kids ? await Promise.resolve(onHintCharge?.() ?? false) : true;
+      if (!allowed) {
+        setMessage('Для подсказки нужна 1 монета.');
+        return;
+      }
+      setHint(true);
+      setMessage(`Подсказка: первая буква — ${round.word.word[0]}.`);
+    } catch (error) {
+      console.error('Failed to charge Snake hint', error);
+      setMessage('Не удалось открыть подсказку. Попробуйте ещё раз.');
+    } finally {
+      setHintPending(false);
+    }
+  };
   const next = useCallback((previous?: string) => {
     const nextRound = makeRound(dictionary, previous, review, usedWordsRef.current);
     if (!nextRound) { setDone(true); return; }
@@ -127,7 +147,7 @@ export const LetterSquareGameV3: React.FC<Props> = ({ onBack, userProfile, onGam
     usedWordsRef.current.clear();
     const initial = makeRound(dictionary, null, review, usedWordsRef.current);
     if (initial) usedWordsRef.current.add(initial.word.word);
-    setScore(0); setAnswered(0); setDone(false); setResultProgress(null); setSelected([]); setFeedback(null); setHint(false); setRound(initial); setMessage('Соберите слово из соседних клеток. Диагонали нельзя.');
+    setScore(0); setAnswered(0); setDone(false); setResultProgress(null); setSelected([]); setFeedback(null); setHint(false); setHintPending(false); setRound(initial); setMessage('Соберите слово из соседних клеток. Диагонали нельзя.');
   };
   useEffect(() => {
     if (!round || done) return;
@@ -147,5 +167,5 @@ export const LetterSquareGameV3: React.FC<Props> = ({ onBack, userProfile, onGam
   if (!round) return <div className="rounded-3xl bg-white p-8 text-center shadow-xl"><div className="text-5xl">🔠</div><h2 className="mt-3 text-2xl font-bold">Нет доступных слов</h2><p className="mt-2 text-sm font-medium text-gray-500">Нужны слова из 3–10 букв с переводом.</p><button onClick={onBack} className="mt-5 rounded-2xl bg-indigo-600 px-5 py-3 font-bold text-white">Назад</button></div>;
   const start = round.path[0];
   const lettersRemaining = Math.max(0, round.word.word.length - selected.length);
-  return <div className="mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white p-2 shadow-xl sm:h-auto sm:p-4"><div className="flex shrink-0 justify-end"><div className="rounded-full bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700">{answered}/{sessionLimit} · ⭐ {score}</div></div><div className="mt-2 shrink-0 rounded-[1.25rem] bg-blue-50 px-3 py-2 text-center sm:rounded-[1.5rem] sm:px-4 sm:py-3"><div className="line-clamp-2 text-base font-bold leading-tight text-blue-950 sm:text-xl">{round.word.translation}</div><div className="mt-2 flex justify-center gap-2 text-[11px] font-bold text-blue-700"><span className="rounded-full bg-white px-3 py-1 shadow-sm">{round.word.word.length} {russianPlural(round.word.word.length, ['буква', 'буквы', 'букв'])}</span><button type="button" onClick={() => { setHint(true); setMessage(`Подсказка: первая буква — ${round.word.word[0]}.`); }} disabled={hint || Boolean(feedback)} className="rounded-full bg-white px-3 py-1 font-bold text-blue-700 shadow-sm disabled:opacity-50">Первая буква</button></div></div><div className="mx-auto mt-2 grid w-[min(100%,18.25rem,calc(100dvh-15rem))] shrink-0 gap-1.5 sm:mt-3 sm:w-full sm:max-w-[19rem]" style={{ gridTemplateColumns: `repeat(${SIZE}, minmax(0, 1fr))` }}>{round.grid.flat().map(cell => { const index = selected.findIndex(coord => same(coord, cell)); const showStart = hint && start && same(start, cell) && selected.length === 0 && !feedback; const isLast = selected.length > 0 && same(selected[selected.length - 1], cell); return <button key={keyOf(cell)} type="button" aria-label={`Буква ${cell.letter}, строка ${cell.row + 1}, столбец ${cell.col + 1}${index >= 0 ? `, позиция ${index + 1}` : ''}`} onClick={() => choose(cell)} disabled={Boolean(feedback)} className={`relative aspect-square rounded-xl border-2 text-xl font-bold shadow-sm disabled:opacity-100 sm:rounded-2xl sm:text-2xl ${index >= 0 ? 'border-blue-500 bg-blue-100 text-blue-950' : showStart ? 'border-blue-400 bg-blue-50 text-blue-950 ring-4 ring-blue-100' : 'border-amber-100 bg-white text-slate-800'} ${isLast ? 'ring-4 ring-blue-100' : ''}`}>{cell.letter}{index >= 0 && <span className="absolute left-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white sm:h-5 sm:w-5">{index + 1}</span>}{showStart && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-blue-500 px-1.5 text-[9px] font-bold text-white">старт</span>}</button>; })}</div><div className={`mt-2 shrink-0 rounded-2xl px-3 py-2 text-center text-xs font-bold ${feedback === 'correct' ? 'bg-green-50 text-green-700' : feedback === 'wrong' ? 'bg-rose-50 text-rose-700' : 'bg-indigo-50 text-indigo-700'}`}>{message}</div><div className="mt-2 grid shrink-0 grid-cols-2 gap-2 pb-[env(safe-area-inset-bottom)]"><button type="button" onClick={() => { if (!feedback) { setSelected([]); setMessage(hint ? 'Путь очищен. Подсказка активна.' : 'Путь очищен.'); } }} disabled={Boolean(feedback)} className="rounded-2xl border-2 border-indigo-100 bg-white px-4 py-2.5 text-sm font-bold text-indigo-700 disabled:opacity-50">Стереть</button>{feedback ? <button type="button" onClick={goNext} className="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white">{answered >= sessionLimit ? 'Завершить' : 'Продолжить'}</button> : <div className="flex items-center justify-center rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700">Осталось: {lettersRemaining} {russianPlural(lettersRemaining, ['буква', 'буквы', 'букв'])}</div>}</div><GameResultOverlay isOpen={done} status="completed" title="Змейка завершена" subtitle={`Собрано слов: ${score} из ${answered}`} emoji="🔠" pet={resultProgress?.pet} xpGained={kids ? reward.xp : 0} coinsGained={kids ? reward.coins : 0} primaryLabel="Играть снова" secondaryLabel="В меню" onPrimary={restart} onSecondary={onBack} /></div>;
+  return <div className="mx-auto flex h-full min-h-0 w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white p-2 shadow-xl sm:h-auto sm:p-4"><div className="flex shrink-0 justify-end"><div className="rounded-full bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700">{answered}/{sessionLimit} · ⭐ {score}</div></div><div className="mt-2 shrink-0 rounded-[1.25rem] bg-blue-50 px-3 py-2 text-center sm:rounded-[1.5rem] sm:px-4 sm:py-3"><div className="line-clamp-2 text-base font-bold leading-tight text-blue-950 sm:text-xl">{round.word.translation}</div><div className="mt-2 flex justify-center gap-2 text-[11px] font-bold text-blue-700"><span className="rounded-full bg-white px-3 py-1 shadow-sm">{round.word.word.length} {russianPlural(round.word.word.length, ['буква', 'буквы', 'букв'])}</span><button type="button" onClick={() => { void revealFirstLetter(); }} disabled={hint || hintPending || Boolean(feedback)} className="rounded-full bg-white px-3 py-1 font-bold text-blue-700 shadow-sm disabled:opacity-50">{hintPending ? 'Открываю…' : kids ? 'Первая буква · 🪙1' : 'Первая буква'}</button></div></div><div className="mx-auto mt-2 grid w-[min(100%,18.25rem,calc(100dvh-15rem))] shrink-0 gap-1.5 sm:mt-3 sm:w-full sm:max-w-[19rem]" style={{ gridTemplateColumns: `repeat(${SIZE}, minmax(0, 1fr))` }}>{round.grid.flat().map(cell => { const index = selected.findIndex(coord => same(coord, cell)); const showStart = hint && start && same(start, cell) && selected.length === 0 && !feedback; const isLast = selected.length > 0 && same(selected[selected.length - 1], cell); return <button key={keyOf(cell)} type="button" aria-label={`Буква ${cell.letter}, строка ${cell.row + 1}, столбец ${cell.col + 1}${index >= 0 ? `, позиция ${index + 1}` : ''}`} onClick={() => choose(cell)} disabled={Boolean(feedback)} className={`relative aspect-square rounded-xl border-2 text-xl font-bold shadow-sm disabled:opacity-100 sm:rounded-2xl sm:text-2xl ${index >= 0 ? 'border-blue-500 bg-blue-100 text-blue-950' : showStart ? 'border-blue-400 bg-blue-50 text-blue-950 ring-4 ring-blue-100' : 'border-amber-100 bg-white text-slate-800'} ${isLast ? 'ring-4 ring-blue-100' : ''}`}>{cell.letter}{index >= 0 && <span className="absolute left-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white sm:h-5 sm:w-5">{index + 1}</span>}{showStart && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-blue-500 px-1.5 text-[9px] font-bold text-white">старт</span>}</button>; })}</div><div className={`mt-2 shrink-0 rounded-2xl px-3 py-2 text-center text-xs font-bold ${feedback === 'correct' ? 'bg-green-50 text-green-700' : feedback === 'wrong' ? 'bg-rose-50 text-rose-700' : 'bg-indigo-50 text-indigo-700'}`}>{message}</div><div className="mt-2 grid shrink-0 grid-cols-2 gap-2 pb-[env(safe-area-inset-bottom)]"><button type="button" onClick={() => { if (!feedback) { setSelected([]); setMessage(hint ? 'Путь очищен. Подсказка активна.' : 'Путь очищен.'); } }} disabled={Boolean(feedback)} className="rounded-2xl border-2 border-indigo-100 bg-white px-4 py-2.5 text-sm font-bold text-indigo-700 disabled:opacity-50">Стереть</button>{feedback ? <button type="button" onClick={goNext} className="rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white">{answered >= sessionLimit ? 'Завершить' : 'Продолжить'}</button> : <div className="flex items-center justify-center rounded-2xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700">Осталось: {lettersRemaining} {russianPlural(lettersRemaining, ['буква', 'буквы', 'букв'])}</div>}</div><GameResultOverlay isOpen={done} status="completed" title="Змейка завершена" subtitle={`Собрано слов: ${score} из ${answered}`} emoji="🔠" pet={resultProgress?.pet} xpGained={kids ? reward.xp : 0} coinsGained={kids ? reward.coins : 0} primaryLabel="Играть снова" secondaryLabel="В меню" onPrimary={restart} onSecondary={onBack} /></div>;
 };
