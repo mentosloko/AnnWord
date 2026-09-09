@@ -39,9 +39,11 @@ export const AccessibleDialog: React.FC<AccessibleDialogProps> = ({ open, titleI
     };
   }, [open, onEscape]);
   if (!open) return null;
-  return <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-indigo-950/55 p-4 backdrop-blur-sm ${overlayClassName}`} role="presentation">
-    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={labelledBy || titleId} aria-describedby={describedBy || descriptionId} tabIndex={-1} className={`outline-none ${className}`}>
-      {children}
+  return <div className={`fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-indigo-950/55 backdrop-blur-sm ${overlayClassName}`} role="presentation">
+    <div className="flex min-h-full items-center justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={labelledBy || titleId} aria-describedby={describedBy || descriptionId} tabIndex={-1} className={`outline-none ${className}`}>
+        {children}
+      </div>
     </div>
   </div>;
 };
