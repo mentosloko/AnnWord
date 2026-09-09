@@ -1,0 +1,109 @@
+name: Apply mobile result and Snake hint fix once
+
+on:
+  push:
+    branches:
+      - fix/mobile-result-snake-hint
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/mobile-result-snake-hint
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply fixes and regression coverage
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one match, found {count}')
+              p.write_text(text.replace(old, new, 1))
+
+          # Mobile result overlays must remain reachable even when taller than the viewport.
+          replace_once(
+              'components/a11y/AccessibleDialog.tsx',
+              '''  return <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-indigo-950/55 p-4 backdrop-blur-sm ${overlayClassName}`} role="presentation">\n    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={labelledBy || titleId} aria-describedby={describedBy || descriptionId} tabIndex={-1} className={`outline-none ${className}`}>\n      {children}\n    </div>\n  </div>;''',
+              '''  return <div className={`fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-indigo-950/55 backdrop-blur-sm ${overlayClassName}`} role="presentation">\n    <div className="flex min-h-full items-center justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">\n      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={labelledBy || titleId} aria-describedby={describedBy || descriptionId} tabIndex={-1} className={`outline-none ${className}`}>\n        {children}\n      </div>\n    </div>\n  </div>;'''
+          )
+
+          # Snake: charge one coin before revealing the first letter in Kids mode.
+          replace_once(
+              'components/LetterSquareGameV3.tsx',
+              '''  dictionaryLabel?: string;\n  dictionaryIcon?: string;\n};''',
+              '''  dictionaryLabel?: string;\n  dictionaryIcon?: string;\n  onHintCharge?: () => boolean | Promise<boolean>;\n};'''
+          )
+          replace_once(
+              'components/LetterSquareGameV3.tsx',
+              '''export const LetterSquareGameV3: React.FC<Props> = ({ onBack, userProfile, onGameReward, onWordPractice, sessionOwnerId, dictionaryId = 'live', dictionaryLabel, dictionaryIcon }) => {''',
+              '''export const LetterSquareGameV3: React.FC<Props> = ({ onBack, userProfile, onGameReward, onWordPractice, sessionOwnerId, dictionaryId = 'live', dictionaryLabel, dictionaryIcon, onHintCharge }) => {'''
+          )
+          replace_once(
+              'components/LetterSquareGameV3.tsx',
+              '''  const [resultProgress, setResultProgress] = useState<CharacterProgressResult | null>(null);\n  const rewardApplied = useRef(false), kids = isKidsMode(userProfile);''',
+              '''  const [resultProgress, setResultProgress] = useState<CharacterProgressResult | null>(null);\n  const [hintPending, setHintPending] = useState(false);\n  const rewardApplied = useRef(false), kids = isKidsMode(userProfile);'''
+          )
+          replace_once(
+              'components/LetterSquareGameV3.tsx',
+              '''  const save = (currentWord: string, result: WordPracticeResult) => { setReview(previous => updateReviewPriorities(previous, currentWord, result)); void Promise.resolve(onWordPractice?.(currentWord, result)).catch(error => console.error('Failed to save Snake practice', error)); };''',
+              '''  const save = (currentWord: string, result: WordPracticeResult) => { setReview(previous => updateReviewPriorities(previous, currentWord, result)); void Promise.resolve(onWordPractice?.(currentWord, result)).catch(error => console.error('Failed to save Snake practice', error)); };\n  const revealFirstLetter = async () => {\n    if (!round || hint || feedback || hintPending) return;\n    setHintPending(true);\n    try {\n      const allowed = kids ? await Promise.resolve(onHintCharge?.() ?? false) : true;\n      if (!allowed) {\n        setMessage('Для подсказки нужна 1 монета.');\n        return;\n      }\n      setHint(true);\n      setMessage(`Подсказка: первая буква — ${round.word.word[0]}.`);\n    } catch (error) {\n      console.error('Failed to charge Snake hint', error);\n      setMessage('Не удалось открыть подсказку. Попробуйте ещё раз.');\n    } finally {\n      setHintPending(false);\n    }\n  };'''
+          )
+          replace_once(
+              'components/LetterSquareGameV3.tsx',
+              '''    setScore(0); setAnswered(0); setDone(false); setResultProgress(null); setSelected([]); setFeedback(null); setHint(false); setRound(initial); setMessage('Соберите слово из соседних клеток. Диагонали нельзя.');''',
+              '''    setScore(0); setAnswered(0); setDone(false); setResultProgress(null); setSelected([]); setFeedback(null); setHint(false); setHintPending(false); setRound(initial); setMessage('Соберите слово из соседних клеток. Диагонали нельзя.');'''
+          )
+          replace_once(
+              'components/LetterSquareGameV3.tsx',
+              '''<button type="button" onClick={() => { setHint(true); setMessage(`Подсказка: первая буква — ${round.word.word[0]}.`); }} disabled={hint || Boolean(feedback)} className="rounded-full bg-white px-3 py-1 font-bold text-blue-700 shadow-sm disabled:opacity-50">Первая буква</button>''',
+              '''<button type="button" onClick={() => { void revealFirstLetter(); }} disabled={hint || hintPending || Boolean(feedback)} className="rounded-full bg-white px-3 py-1 font-bold text-blue-700 shadow-sm disabled:opacity-50">{hintPending ? 'Открываю…' : kids ? 'Первая буква · 🪙1' : 'Первая буква'}</button>'''
+          )
+
+          # Reuse the same idempotent one-coin hint charge already used by other Kids hints.
+          replace_once(
+              'components/AppScreens.tsx',
+              '''onGameReward={onGameReward} onWordPractice={onWordPractice} onBack={goHome} /></GameModeShell>,''',
+              '''onGameReward={onGameReward} onWordPractice={onWordPractice} onHintCharge={onDictionaryPeek} onBack={goHome} /></GameModeShell>,'''
+          )
+
+          # Static regression guards for the two user-reported failures.
+          p = Path('tests/userReportedUxRegression.test.ts')
+          text = p.read_text()
+          marker = '''  it('excludes every already used Snake word from the current session', () => {\n    const snake = read('components/LetterSquareGameV3.tsx');\n    expect(snake).toContain('usedWordsRef');\n    expect(snake).toContain('pool.filter(item => !excluded.has(item.word))');\n    expect(snake).toContain('usedWordsRef.current.clear()');\n  });\n'''
+          if text.count(marker) != 1:
+              raise SystemExit('tests/userReportedUxRegression.test.ts: marker missing')
+          addition = marker + '''\n  it('keeps tall game result dialogs scrollable on mobile', () => {\n    const dialog = read('components/a11y/AccessibleDialog.tsx');\n    expect(dialog).toContain('overflow-y-auto overscroll-contain');\n    expect(dialog).toContain('min-h-full items-center justify-center');\n    expect(dialog).toContain('safe-area-inset-top');\n    expect(dialog).toContain('safe-area-inset-bottom');\n  });\n\n  it('charges one coin before revealing the first Snake letter in Kids mode', () => {\n    const snake = read('components/LetterSquareGameV3.tsx');\n    const screens = read('components/AppScreens.tsx');\n    expect(snake).toContain('onHintCharge?: () => boolean | Promise<boolean>');\n    expect(snake).toContain('await Promise.resolve(onHintCharge?.() ?? false)');\n    expect(snake).toContain("'Для подсказки нужна 1 монета.'");\n    expect(snake).toContain("'Первая буква · 🪙1'");\n    expect(screens).toContain('onHintCharge={onDictionaryPeek}');\n  });\n'''
+          p.write_text(text.replace(marker, addition, 1))
+
+          Path('tests/letterSquareHintEconomy.test.tsx').write_text('''import React from 'react';\nimport { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';\nimport { afterEach, describe, expect, it, vi } from 'vitest';\nimport { LetterSquareGameV3 } from '../components/LetterSquareGameV3';\nimport { GUEST_PROFILE } from '../constants/profileDefaults';\n\nconst kidsProfile = {\n  ...GUEST_PROFILE,\n  role: 'parent' as const,\n  accountMode: 'parent' as const,\n  customDictionaryEn: ['BALL'],\n  coins: 1,\n};\n\nafterEach(() => {\n  cleanup();\n  window.localStorage.clear();\n});\n\ndescribe('Snake first-letter hint economy', () => {\n  it('reveals the hint only after a successful one-coin charge', async () => {\n    const onHintCharge = vi.fn().mockResolvedValue(true);\n    render(\n      <LetterSquareGameV3\n        userProfile={kidsProfile}\n        sessionOwnerId="snake-hint-success"\n        onHintCharge={onHintCharge}\n        onGameReward={vi.fn()}\n        onBack={vi.fn()}\n      />,\n    );\n\n    const button = screen.getByRole('button', { name: /Первая буква/ });\n    expect(button.textContent).toContain('🪙1');\n    fireEvent.click(button);\n\n    await waitFor(() => expect(onHintCharge).toHaveBeenCalledTimes(1));\n    await waitFor(() => expect(screen.getByText(/Подсказка: первая буква —/)).toBeTruthy());\n    expect(button.hasAttribute('disabled')).toBe(true);\n  });\n\n  it('does not reveal the first letter when the child has no coin to spend', async () => {\n    const onHintCharge = vi.fn().mockResolvedValue(false);\n    render(\n      <LetterSquareGameV3\n        userProfile={{ ...kidsProfile, coins: 0 }}\n        sessionOwnerId="snake-hint-insufficient"\n        onHintCharge={onHintCharge}\n        onGameReward={vi.fn()}\n        onBack={vi.fn()}\n      />,\n    );\n\n    fireEvent.click(screen.getByRole('button', { name: /Первая буква/ }));\n\n    await waitFor(() => expect(onHintCharge).toHaveBeenCalledTimes(1));\n    await waitFor(() => expect(screen.getByText('Для подсказки нужна 1 монета.')).toBeTruthy());\n    expect(screen.queryByText(/Подсказка: первая буква —/)).toBeNull();\n  });\n});\n''')
+          PY
+      - name: Install dependencies
+        run: npm ci
+      - name: Run focused tests
+        run: npx vitest run tests/letterSquareHintEconomy.test.tsx tests/userReportedUxRegression.test.ts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Commit fixes and remove one-time workflow
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/fix-mobile-result-snake-hint-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/a11y/AccessibleDialog.tsx components/LetterSquareGameV3.tsx components/AppScreens.tsx tests/userReportedUxRegression.test.ts tests/letterSquareHintEconomy.test.tsx
+          git commit -m "fix: keep mobile results visible and charge Snake hint"
+          git push origin HEAD:fix/mobile-result-snake-hint
