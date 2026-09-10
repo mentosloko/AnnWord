@@ -1,29 +1,27 @@
-name: P0 Activation Patcher
+name: Temp P0 activation patch
 
 on:
   push:
-    branches: [fix/p0-activation-feedback]
+    branches:
+      - fix/p0-activation-feedback
+    paths:
+      - .github/workflows/p0-activation-patcher.yml
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fix/p0-activation-feedback
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - name: Apply activation fixes
+          fetch-depth: 0
+      - name: Patch P0 activation flow
         shell: bash
         run: |
-          python3 - <<'PY'
+          python3 <<'PY'
           from pathlib import Path
           import re
 
@@ -40,13 +38,11 @@ jobs:
               'Добавьте ребёнка и защитите родительский блок PIN-кодом. Email для входа уже сохранён в аккаунте; адрес для отчётов при необходимости можно изменить позже в кабинете родителя.',
               'Вы вошли в аккаунт родителя. Ребёнку отдельная почта не нужна: добавьте его профиль и защитите родительский блок PIN-кодом.'
           )
-
           replace(
               'components/screens/LandingMixScreen.tsx',
               '>Начать бесплатно</button>\n              </div>',
               '>Начать бесплатно</button>\n                <p className="max-w-xs text-xs font-bold leading-5 text-slate-500">Аккаунт создаёт родитель · ребёнку отдельная почта не нужна</p>\n              </div>'
           )
-
           replace(
               'components/screens/CharacterOnboardingScreen.tsx',
               'Играй, чтобы питомец получал опыт, становился сильнее и открывал новые награды.',
@@ -70,7 +66,6 @@ jobs:
               'hint: `Попробуйте слово: ${word}.${coinText}`,',
               'hint: `Проверь новые буквы: ${word}${coinText}`,'
           )
-
           replace(
               'components/screens/ClassicGameScreen.tsx',
               'w-[min(21rem,92vw)] -translate-x-1/2 rounded-3xl border-2 border-blue-100 bg-white p-4 text-sm text-blue-950 shadow-2xl',
@@ -169,60 +164,51 @@ jobs:
           e2e.write_text(text.replace(anchor, addition, 1))
 
           Path('tests/activationP0Regression.test.ts').write_text(r'''import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+          import { describe, expect, it } from 'vitest';
 
-const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+          const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-describe('P0 first-session activation contracts', () => {
-  it('makes the parent account model explicit before and during child setup', () => {
-    expect(read('components/screens/LandingMixScreen.tsx')).toContain('Аккаунт создаёт родитель · ребёнку отдельная почта не нужна');
-    expect(read('components/screens/FamilySetupScreen.tsx')).toContain('Вы вошли в аккаунт родителя. Ребёнку отдельная почта не нужна');
-  });
-
-  it('keeps the Classic hint short and constrained to a narrow mobile viewport', () => {
-    const controller = read('hooks/useClassicGameController.ts');
-    const screen = read('components/screens/ClassicGameScreen.tsx');
-    expect(controller).toContain('Проверь новые буквы: ${word}${coinText}');
-    expect(controller).toContain("' · −1★'");
-    expect(screen).toContain('w-[min(20rem,calc(100vw-1rem))]');
-    expect(screen).toContain('break-words');
-  });
-
-  it('grants one starter apple when character onboarding completes', () => {
-    const repository = read('server/authoritativeGameResultRepository.ts');
-    expect(repository).toContain('inventory = case');
-    expect(repository).toContain('Энерго-яблоко');
-    expect(repository).toContain('[userId, JSON.stringify(next), completingOnboarding]');
-    expect(read('AppV2.tsx')).toContain("replaceRoute('pet_room'); }, [currentUserId, isCurrentProfileOwner, profileEconomy, replaceRoute]);");
-  });
-
-  it('offers a direct play CTA when food is unaffordable', () => {
-    const shop = read('components/Shop.tsx');
-    const room = read('components/PetRoom.tsx');
-    const screens = read('components/AppScreens.tsx');
-    expect(shop).toContain('Монет пока не хватает. Сыграй и заработай.');
-    expect(room).toContain('Сыграть и заработать');
-    expect(room).toContain('сыграй и заработай');
-    expect(screens).toContain("onPlay={() => onRouteChange('setup')}");
-  });
-});
-''')
-
-          Path('.github/workflows/p0-activation-patcher.yml').unlink()
+          describe('P0 first-session activation contracts', () => {
+            it('makes the parent account model explicit before and during child setup', () => {
+              expect(read('components/screens/LandingMixScreen.tsx')).toContain('Аккаунт создаёт родитель · ребёнку отдельная почта не нужна');
+              expect(read('components/screens/FamilySetupScreen.tsx')).toContain('Вы вошли в аккаунт родителя. Ребёнку отдельная почта не нужна');
+            });
+            it('keeps the Classic hint short and constrained to a narrow mobile viewport', () => {
+              const controller = read('hooks/useClassicGameController.ts');
+              const screen = read('components/screens/ClassicGameScreen.tsx');
+              expect(controller).toContain('Проверь новые буквы: ${word}${coinText}');
+              expect(controller).toContain("' · −1★'");
+              expect(screen).toContain('w-[min(20rem,calc(100vw-1rem))]');
+              expect(screen).toContain('break-words');
+            });
+            it('grants one starter apple when character onboarding completes', () => {
+              const repository = read('server/authoritativeGameResultRepository.ts');
+              expect(repository).toContain('inventory = case');
+              expect(repository).toContain('Энерго-яблоко');
+              expect(repository).toContain('[userId, JSON.stringify(next), completingOnboarding]');
+              expect(read('AppV2.tsx')).toContain("replaceRoute('pet_room'); }, [currentUserId, isCurrentProfileOwner, profileEconomy, replaceRoute]);");
+            });
+            it('offers a direct play CTA when food is unaffordable', () => {
+              const shop = read('components/Shop.tsx');
+              const room = read('components/PetRoom.tsx');
+              const screens = read('components/AppScreens.tsx');
+              expect(shop).toContain('Монет пока не хватает. Сыграй и заработай.');
+              expect(room).toContain('Сыграть и заработать');
+              expect(room).toContain('сыграй и заработай');
+              expect(screens).toContain("onPlay={() => onRouteChange('setup')}");
+            });
+          });
+          ''')
           PY
-      - name: Install dependencies
-        run: npm ci
-      - name: Type-check
-        run: npm run lint
-      - name: Targeted regression tests
-        run: npx vitest run tests/activationP0Regression.test.ts tests/acquisitionFormsIntegrity.test.tsx
-      - name: Build app
-        run: npm exec -- vite build
-      - name: Commit patch
-        shell: bash
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+          npm ci
+          npm run lint
+          npx vitest run tests/activationP0Regression.test.ts tests/acquisitionFormsIntegrity.test.tsx
+          npm exec -- vite build
+
+          rm .github/workflows/p0-activation-patcher.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "fix: improve Kids first-session activation"
           git push origin HEAD:fix/p0-activation-feedback
