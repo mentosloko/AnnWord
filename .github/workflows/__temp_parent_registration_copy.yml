@@ -24,6 +24,7 @@ jobs:
         run: |
           python3 <<'PY'
           from pathlib import Path
+          import re
 
           def replace(path, old, new, count=1):
               p = Path(path)
@@ -43,7 +44,6 @@ jobs:
               '<label className="block"><span className="mb-1 block text-sm font-bold text-slate-700">Электронная почта</span><input ref={emailRef} required type="email" autoComplete="email" value={email} onChange={event => { onEmailChange(event.target.value); setSubmitAttempted(false); }}',
               '<label className="block"><span className="mb-1 block text-sm font-bold text-slate-700">{mode === \'register\' ? \'Электронная почта родителя\' : \'Электронная почта\'}</span><input ref={emailRef} required type="email" autoComplete="email" value={email} onChange={event => { onEmailChange(event.target.value); setSubmitAttempted(false); }}'
           )
-
           replace(
               'components/screens/LandingMixScreen.tsx',
               '                <p className="max-w-xs text-xs font-bold leading-5 text-slate-500">Аккаунт создаёт родитель · ребёнку отдельная почта не нужна</p>\n',
@@ -54,7 +54,6 @@ jobs:
               'Вы вошли в аккаунт родителя. Ребёнку отдельная почта не нужна: добавьте его профиль и защитите родительский блок PIN-кодом.',
               'Добавьте ребёнка и защитите родительский блок PIN-кодом.'
           )
-
           replace(
               'tests/acquisitionFormsIntegrity.test.tsx',
               "expect(screen.getByRole('dialog', { name: 'Создать аккаунт' })).toBeVisible();",
@@ -66,13 +65,10 @@ jobs:
               "fireEvent.change(screen.getByLabelText('Электронная почта родителя'), { target: { value: 'parent@example.ru' } });"
           )
 
-          replace(
-              'tests/activationP0Regression.test.ts',
-              """  it('makes the parent account model explicit before and during child setup', () => {
-            expect(read('components/screens/LandingMixScreen.tsx')).toContain('Аккаунт создаёт родитель · ребёнку отдельная почта не нужна');
-            expect(read('components/screens/FamilySetupScreen.tsx')).toContain('Вы вошли в аккаунт родителя. Ребёнку отдельная почта не нужна');
-          });""",
-              """  it('puts the parent account context in registration without duplicating explanatory copy', () => {
+          test_path = Path('tests/activationP0Regression.test.ts')
+          test_text = test_path.read_text()
+          pattern = re.compile(r"  it\('makes the parent account model explicit before and during child setup', \(\) => \{.*?\n  \}\);", re.S)
+          replacement = """  it('puts the parent account context in registration without duplicating explanatory copy', () => {
             const auth = read('components/auth/AuthModal.tsx');
             const landing = read('components/screens/LandingMixScreen.tsx');
             const familySetup = read('components/screens/FamilySetupScreen.tsx');
@@ -82,7 +78,10 @@ jobs:
             expect(familySetup).not.toContain('Вы вошли в аккаунт родителя. Ребёнку отдельная почта не нужна');
             expect(familySetup).toContain('Добавьте ребёнка и защитите родительский блок PIN-кодом.');
           });"""
-          )
+          test_text, n = pattern.subn(replacement, test_text, count=1)
+          if n != 1:
+              raise SystemExit(f'activation regression test block replacements={n}')
+          test_path.write_text(test_text)
           PY
 
           npm ci
