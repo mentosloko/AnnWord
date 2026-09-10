@@ -89,7 +89,7 @@ export const CharacterOnboardingScreen: React.FC<CharacterOnboardingScreenProps>
             <button type="button" disabled={isSaving} onClick={handleComplete} className="mt-5 w-full rounded-2xl bg-indigo-600 py-4 text-xl font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 disabled:opacity-60">
               {isSaving ? 'Сохраняю...' : 'Начать играть'}
             </button>
-            <div className="mt-4 rounded-2xl bg-indigo-50 px-4 py-3 text-xs font-bold leading-relaxed text-indigo-700">Играй, чтобы питомец получал опыт, становился сильнее и открывал новые награды.</div>
+            <div className="mt-4 rounded-2xl bg-indigo-50 px-4 py-3 text-xs font-bold leading-relaxed text-indigo-700">Первое лакомство уже ждёт в комнате питомца. Дальше играй и зарабатывай монеты.</div>
           </section>
         </div>
       </section>
