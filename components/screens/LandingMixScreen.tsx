@@ -282,7 +282,6 @@ export const LandingMixScreen: React.FC<LandingMixScreenProps> = ({ entryPath, o
               <p className="mt-5 max-w-xl text-base font-bold leading-relaxed text-slate-600 sm:text-xl">AnnWord превращает школьные слова в короткие игры с прогрессом, наградами и радостью каждый день!</p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <button type="button" onClick={onStartKids} className="rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 px-8 py-4 text-lg font-black text-white shadow-xl shadow-indigo-600/25 transition hover:-translate-y-0.5 hover:shadow-2xl">Начать бесплатно</button>
-                <p className="max-w-xs text-xs font-bold leading-5 text-slate-500">Аккаунт создаёт родитель · ребёнку отдельная почта не нужна</p>
               </div>
             </div>
             <HeroScene />

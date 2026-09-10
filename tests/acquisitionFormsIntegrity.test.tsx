@@ -65,7 +65,7 @@ describe('acquisition and forms integrity', () => {
   it('AppShell header CTA opens registration even through the integration fallback', () => {
     render(<ShellRegistrationHarness />);
     fireEvent.click(screen.getByRole('button', { name: 'Начать бесплатно' }));
-    expect(screen.getByRole('dialog', { name: 'Создать аккаунт' })).toBeVisible();
+    expect(screen.getByRole('dialog', { name: 'Создать аккаунт родителя' })).toBeVisible();
   });
 
   it('registration CTA remains disabled until required fields and consents are valid', () => {
@@ -73,7 +73,7 @@ describe('acquisition and forms integrity', () => {
     const submit = screen.getByRole('button', { name: 'Создать аккаунт' });
     expect(submit).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText('Электронная почта'), { target: { value: 'parent@example.ru' } });
+    fireEvent.change(screen.getByLabelText('Электронная почта родителя'), { target: { value: 'parent@example.ru' } });
     fireEvent.change(screen.getByLabelText('Пароль'), { target: { value: 'password123' } });
     expect(submit).toBeDisabled();
 
