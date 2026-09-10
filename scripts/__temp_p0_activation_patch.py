@@ -1,0 +1,187 @@
+from pathlib import Path
+import re
+
+
+def replace(path: str, old: str, new: str, count: int = 1) -> None:
+    target = Path(path)
+    text = target.read_text()
+    actual = text.count(old)
+    if actual != count:
+        raise SystemExit(f'{path}: expected {count} occurrences, found {actual}: {old[:100]!r}')
+    target.write_text(text.replace(old, new, count))
+
+
+replace(
+    'components/screens/FamilySetupScreen.tsx',
+    'Добавьте ребёнка и защитите родительский блок PIN-кодом. Email для входа уже сохранён в аккаунте; адрес для отчётов при необходимости можно изменить позже в кабинете родителя.',
+    'Вы вошли в аккаунт родителя. Ребёнку отдельная почта не нужна: добавьте его профиль и защитите родительский блок PIN-кодом.',
+)
+replace(
+    'components/screens/LandingMixScreen.tsx',
+    '>Начать бесплатно</button>\n              </div>',
+    '>Начать бесплатно</button>\n                <p className="max-w-xs text-xs font-bold leading-5 text-slate-500">Аккаунт создаёт родитель · ребёнку отдельная почта не нужна</p>\n              </div>',
+)
+replace(
+    'components/screens/CharacterOnboardingScreen.tsx',
+    'Играй, чтобы питомец получал опыт, становился сильнее и открывал новые награды.',
+    'Первое лакомство уже ждёт в комнате питомца. Дальше играй и зарабатывай монеты.',
+)
+
+app = Path('AppV2.tsx')
+text = app.read_text()
+old = "replaceRoute('landing'); }, [currentUserId, isCurrentProfileOwner, profileEconomy, replaceRoute]);"
+if text.count(old) != 1:
+    raise SystemExit(f'AppV2.tsx: onboarding route anchor count={text.count(old)}')
+app.write_text(text.replace(old, "replaceRoute('pet_room'); }, [currentUserId, isCurrentProfileOwner, profileEconomy, replaceRoute]);", 1))
+
+replace(
+    'hooks/useClassicGameController.ts',
+    "const coinText = availableCoins === Number.MAX_SAFE_INTEGER ? '' : ' Списана 1 монета.';",
+    "const coinText = availableCoins === Number.MAX_SAFE_INTEGER ? '' : ' · −1★';",
+)
+replace(
+    'hooks/useClassicGameController.ts',
+    'hint: `Попробуйте слово: ${word}.${coinText}`,',
+    'hint: `Проверь новые буквы: ${word}${coinText}`,',
+)
+replace(
+    'components/screens/ClassicGameScreen.tsx',
+    'w-[min(21rem,92vw)] -translate-x-1/2 rounded-3xl border-2 border-blue-100 bg-white p-4 text-sm text-blue-950 shadow-2xl',
+    'w-[min(20rem,calc(100vw-1rem))] -translate-x-1/2 rounded-2xl border-2 border-blue-100 bg-white p-3 text-xs text-blue-950 shadow-2xl sm:rounded-3xl sm:p-4 sm:text-sm',
+)
+replace(
+    'components/screens/ClassicGameScreen.tsx',
+    'className="flex-1 font-bold">{gameState.loadingHint',
+    'className="min-w-0 flex-1 break-words font-bold leading-snug">{gameState.loadingHint',
+)
+replace(
+    'components/screens/ClassicGameScreen.tsx',
+    'className="font-black text-blue-400">×</button></div></div>}',
+    'className="shrink-0 font-black text-blue-400">×</button></div></div>}',
+)
+
+server = Path('server/authoritativeGameResultRepository.ts')
+text = server.read_text()
+old = """    `update profiles set pet = $2::jsonb, updated_at = now() where id = $1 returning ${PROFILE_COLUMNS}`,
+    [userId, JSON.stringify(next)],
+"""
+new = """    `update profiles
+        set pet = $2::jsonb,
+            inventory = case
+              when $3
+               and not (coalesce(inventory, '[]'::jsonb) @> '[{\"id\":\"apple\"}]'::jsonb)
+                then coalesce(inventory, '[]'::jsonb) || '[{\"id\":\"apple\",\"name\":\"Энерго-яблоко\",\"type\":\"food\",\"quantity\":1}]'::jsonb
+              else coalesce(inventory, '[]'::jsonb)
+            end,
+            updated_at = now()
+      where id = $1
+      returning ${PROFILE_COLUMNS}`,
+    [userId, JSON.stringify(next), completingOnboarding],
+"""
+if text.count(old) != 1:
+    raise SystemExit(f'authoritativeGameResultRepository.ts: character update anchor count={text.count(old)}')
+server.write_text(text.replace(old, new, 1))
+
+replace(
+    'components/Shop.tsx',
+    'interface ShopProps { userProfile: UserProfile; onBuy?: (item: ShopItem) => Promise<void>; onClose: () => void; onOpenPetRoom?: () => void; }',
+    'interface ShopProps { userProfile: UserProfile; onBuy?: (item: ShopItem) => Promise<void>; onClose: () => void; onOpenPetRoom?: () => void; onPlay?: () => void; }',
+)
+replace(
+    'components/Shop.tsx',
+    'export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose, onOpenPetRoom }) => {',
+    'export const Shop: React.FC<ShopProps> = ({ userProfile, onBuy, onClose, onOpenPetRoom, onPlay }) => {',
+)
+replace(
+    'components/Shop.tsx',
+    '    <div id={`shop-panel-${activeTab}`}',
+    '    {activeTab === \'food\' && affordableItems.length === 0 && onPlay && <div className="mb-4 flex min-w-0 flex-col gap-2 rounded-2xl border-2 border-amber-100 bg-amber-50 p-3 sm:flex-row sm:items-center sm:justify-between"><p className="min-w-0 text-sm font-bold leading-5 text-amber-900">Монет пока не хватает. Сыграй и заработай.</p><button type="button" onClick={onPlay} className="shrink-0 rounded-xl bg-amber-500 px-4 py-2 text-sm font-black text-white">Сыграть</button></div>}\n    <div id={`shop-panel-${activeTab}`}',
+)
+
+replace(
+    'components/PetRoom.tsx',
+    'interface Props { userProfile: UserProfile; onUseItem: (id: string) => Promise<void>; onBuy: (item: ShopItem) => Promise<void>; onUpdatePet?: (pet: PetState) => Promise<void>; onClose: () => void; onOpenShop?: () => void; }',
+    'interface Props { userProfile: UserProfile; onUseItem: (id: string) => Promise<void>; onBuy: (item: ShopItem) => Promise<void>; onUpdatePet?: (pet: PetState) => Promise<void>; onClose: () => void; onOpenShop?: () => void; onPlay?: () => void; }',
+)
+replace(
+    'components/PetRoom.tsx',
+    'export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClose, onOpenShop }) => {',
+    'export const PetRoom: React.FC<Props> = ({ userProfile, onUseItem, onBuy, onClose, onOpenShop, onPlay }) => {',
+)
+replace(
+    'components/PetRoom.tsx',
+    '<div className="mt-3 rounded-2xl bg-indigo-50 p-3 text-sm font-bold text-indigo-700">Лакомств пока нет.</div>',
+    '<div className="mt-3 rounded-2xl bg-indigo-50 p-3 text-sm font-bold text-indigo-700"><div>Лакомств пока нет.</div>{onPlay && <button type="button" onClick={onPlay} className="mt-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white">Сыграть и заработать</button>}</div>',
+)
+pet = Path('components/PetRoom.tsx')
+text = pet.read_text()
+pattern = re.compile(r'\{wantedTreat && <section className="mt-5 flex justify-between rounded-\[2rem\] border-2 border-amber-100 bg-amber-50 p-4">.*?</section>\}', re.S)
+replacement = '''{wantedTreat && <section className="mt-5 flex min-w-0 flex-col gap-3 rounded-[2rem] border-2 border-amber-100 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><div className="text-xs font-black text-amber-600">ЖЕЛАНИЕ ПИТОМЦА</div><div className="break-words font-black">{wantedTreat.name}</div><div className="text-xs font-bold leading-5 text-gray-500">{profile.coins >= wantedTreat.price ? 'Можно купить сейчас' : `Не хватает ${wantedTreat.price - profile.coins} монет · сыграй и заработай`}</div></div>{profile.coins >= wantedTreat.price ? (onOpenShop && <button type="button" onClick={() => openShop('food')} className="shrink-0 rounded-xl bg-amber-500 px-4 py-2 font-black text-white">В магазин</button>) : (onPlay && <button type="button" onClick={onPlay} className="shrink-0 rounded-xl bg-amber-500 px-4 py-2 font-black text-white">Сыграть</button>)}</section>}'''
+text, replacements = pattern.subn(replacement, text, count=1)
+if replacements != 1:
+    raise SystemExit(f'PetRoom.tsx: wanted treat section replacements={replacements}')
+pet.write_text(text)
+
+screens = Path('components/AppScreens.tsx')
+text = screens.read_text()
+old_shop = "<Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} onOpenPetRoom={() => onRouteChange('pet_room')} />"
+new_shop = "<Shop userProfile={userProfile} onBuy={onBuy} onClose={goHome} onOpenPetRoom={() => onRouteChange('pet_room')} onPlay={() => onRouteChange('setup')} />"
+if text.count(old_shop) != 1:
+    raise SystemExit(f'AppScreens.tsx: shop anchor count={text.count(old_shop)}')
+text = text.replace(old_shop, new_shop, 1)
+pet_anchor = "onUpdatePet={onUpdatePet} onClose={goHome} onOpenShop={() => onRouteChange('shop')}"
+if text.count(pet_anchor) != 1:
+    raise SystemExit(f'AppScreens.tsx: pet anchor count={text.count(pet_anchor)}')
+text = text.replace(pet_anchor, pet_anchor + " onPlay={() => onRouteChange('setup')}", 1)
+screens.write_text(text)
+
+e2e = Path('e2e/classic-hint-integrity.spec.ts')
+text = e2e.read_text()
+old = "test('Classic hint -> submit -> restart -> reopen keeps a clean playable round', async ({ page }) => {\n  const backend = await installBackend(page);"
+new = "test('Classic hint -> submit -> restart -> reopen keeps a clean playable round', async ({ page }) => {\n  await page.setViewportSize({ width: 320, height: 568 });\n  const backend = await installBackend(page);"
+if text.count(old) != 1:
+    raise SystemExit('classic hint e2e test anchor missing')
+text = text.replace(old, new, 1)
+text = text.replace("toContainText('Попробуйте слово:')", "toContainText('Проверь новые буквы:')", 1)
+anchor = "  await expect(page.getByRole('dialog', { name: 'Подсказка' })).toContainText('Проверь новые буквы:');\n"
+addition = anchor + "  const hintBox = await page.getByRole('dialog', { name: 'Подсказка' }).boundingBox();\n  expect(hintBox).not.toBeNull();\n  expect(hintBox!.x).toBeGreaterThanOrEqual(0);\n  expect(hintBox!.x + hintBox!.width).toBeLessThanOrEqual(320);\n"
+if text.count(anchor) != 1:
+    raise SystemExit('classic hint mobile assertion anchor missing')
+e2e.write_text(text.replace(anchor, addition, 1))
+
+Path('tests/activationP0Regression.test.ts').write_text('''import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+
+const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+
+describe('P0 first-session activation contracts', () => {
+  it('makes the parent account model explicit before and during child setup', () => {
+    expect(read('components/screens/LandingMixScreen.tsx')).toContain('Аккаунт создаёт родитель · ребёнку отдельная почта не нужна');
+    expect(read('components/screens/FamilySetupScreen.tsx')).toContain('Вы вошли в аккаунт родителя. Ребёнку отдельная почта не нужна');
+  });
+  it('keeps the Classic hint short and constrained to a narrow mobile viewport', () => {
+    const controller = read('hooks/useClassicGameController.ts');
+    const screen = read('components/screens/ClassicGameScreen.tsx');
+    expect(controller).toContain('Проверь новые буквы: ${word}${coinText}');
+    expect(controller).toContain("' · −1★'");
+    expect(screen).toContain('w-[min(20rem,calc(100vw-1rem))]');
+    expect(screen).toContain('break-words');
+  });
+  it('grants one starter apple when character onboarding completes', () => {
+    const repository = read('server/authoritativeGameResultRepository.ts');
+    expect(repository).toContain('inventory = case');
+    expect(repository).toContain('Энерго-яблоко');
+    expect(repository).toContain('[userId, JSON.stringify(next), completingOnboarding]');
+    expect(read('AppV2.tsx')).toContain("replaceRoute('pet_room'); }, [currentUserId, isCurrentProfileOwner, profileEconomy, replaceRoute]);");
+  });
+  it('offers a direct play CTA when food is unaffordable', () => {
+    const shop = read('components/Shop.tsx');
+    const room = read('components/PetRoom.tsx');
+    const screens = read('components/AppScreens.tsx');
+    expect(shop).toContain('Монет пока не хватает. Сыграй и заработай.');
+    expect(room).toContain('Сыграть и заработать');
+    expect(room).toContain('сыграй и заработай');
+    expect(screens).toContain("onPlay={() => onRouteChange('setup')}");
+  });
+});
+''')
