@@ -4,9 +4,15 @@ import { describe, expect, it } from 'vitest';
 const read = (path: string) => readFileSync(path, 'utf8');
 
 describe('P0 first-session activation contracts', () => {
-  it('makes the parent account model explicit before and during child setup', () => {
-    expect(read('components/screens/LandingMixScreen.tsx')).toContain('Аккаунт создаёт родитель · ребёнку отдельная почта не нужна');
-    expect(read('components/screens/FamilySetupScreen.tsx')).toContain('Вы вошли в аккаунт родителя. Ребёнку отдельная почта не нужна');
+  it('puts the parent account context in registration without duplicating explanatory copy', () => {
+    const auth = read('components/auth/AuthModal.tsx');
+    const landing = read('components/screens/LandingMixScreen.tsx');
+    const familySetup = read('components/screens/FamilySetupScreen.tsx');
+    expect(auth).toContain('Создать аккаунт родителя');
+    expect(auth).toContain('Электронная почта родителя');
+    expect(landing).not.toContain('Аккаунт создаёт родитель · ребёнку отдельная почта не нужна');
+    expect(familySetup).not.toContain('Вы вошли в аккаунт родителя. Ребёнку отдельная почта не нужна');
+    expect(familySetup).toContain('Добавьте ребёнка и защитите родительский блок PIN-кодом.');
   });
   it('keeps the Classic hint short and constrained to a narrow mobile viewport', () => {
     const controller = read('hooks/useClassicGameController.ts');
