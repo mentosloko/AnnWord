@@ -22,6 +22,16 @@ jobs:
         shell: bash
         run: |
           python3 scripts/__temp_p0_activation_patch.py
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('tests/activationP0Regression.test.ts')
+          text = path.read_text()
+          old = "readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')"
+          new = "readFileSync(path, 'utf8')"
+          if old not in text:
+              raise SystemExit('regression read helper anchor missing')
+          path.write_text(text.replace(old, new, 1))
+          PY
           npm ci
           npm run lint
           npx vitest run tests/activationP0Regression.test.ts tests/acquisitionFormsIntegrity.test.tsx
