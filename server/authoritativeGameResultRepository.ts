@@ -336,8 +336,18 @@ export const updateCharacterIdentityServerAuthoritative = async (userId: string,
     characterOnboarded: current.characterOnboarded === true || completingOnboarding,
   });
   const updated = await client.query(
-    `update profiles set pet = $2::jsonb, updated_at = now() where id = $1 returning ${PROFILE_COLUMNS}`,
-    [userId, JSON.stringify(next)],
+    `update profiles
+        set pet = $2::jsonb,
+            inventory = case
+              when $3
+               and not (coalesce(inventory, '[]'::jsonb) @> '[{"id":"apple"}]'::jsonb)
+                then coalesce(inventory, '[]'::jsonb) || '[{"id":"apple","name":"Энерго-яблоко","type":"food","quantity":1}]'::jsonb
+              else coalesce(inventory, '[]'::jsonb)
+            end,
+            updated_at = now()
+      where id = $1
+      returning ${PROFILE_COLUMNS}`,
+    [userId, JSON.stringify(next), completingOnboarding],
   );
   if (!updated.rows[0]) throw new Error('Профиль не найден.');
   return mapProfileWithAssignments(updated.rows[0], assignments);

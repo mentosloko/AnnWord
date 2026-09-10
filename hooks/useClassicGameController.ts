@@ -257,10 +257,10 @@ export const useClassicGameController = ({ route, settings, sessionOwnerId, getS
         return;
       }
 
-      const coinText = availableCoins === Number.MAX_SAFE_INTEGER ? '' : ' Списана 1 монета.';
+      const coinText = availableCoins === Number.MAX_SAFE_INTEGER ? '' : ' · −1★';
       const committedState: GameState = {
         ...current,
-        hint: `Попробуйте слово: ${word}.${coinText}`,
+        hint: `Проверь новые буквы: ${word}${coinText}`,
         loadingHint: false,
         hintCoinsSpent: COST,
         error: null,

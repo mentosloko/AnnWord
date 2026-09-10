@@ -134,12 +134,17 @@ const startClassic = async (page: Page) => {
 };
 
 test('Classic hint -> submit -> restart -> reopen keeps a clean playable round', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
   const backend = await installBackend(page);
   await page.goto('/kids');
   await startClassic(page);
 
   await page.getByRole('button', { name: /Подсказка · 1★/ }).click();
-  await expect(page.getByRole('dialog', { name: 'Подсказка' })).toContainText('Попробуйте слово:');
+  await expect(page.getByRole('dialog', { name: 'Подсказка' })).toContainText('Проверь новые буквы:');
+  const hintBox = await page.getByRole('dialog', { name: 'Подсказка' }).boundingBox();
+  expect(hintBox).not.toBeNull();
+  expect(hintBox!.x).toBeGreaterThanOrEqual(0);
+  expect(hintBox!.x + hintBox!.width).toBeLessThanOrEqual(320);
   await expect.poll(async () => (await readSession(page))?.state?.gameState?.hintCoinsSpent).toBe(1);
   expect(backend.getCoins()).toBe(4);
   expect(backend.getCoinWrites()).toBe(1);
