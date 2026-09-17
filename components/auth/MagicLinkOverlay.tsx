@@ -3,45 +3,65 @@ import { magicLinkService } from '../../services/magicLinkService';
 import { StableStatusSlot } from '../ui/StatusNotice';
 import { clearRegistrationIntent, registrationEntryPathForMode } from '../../services/registrationIntent';
 
-const readToken = (): string => {
-  if (typeof window === 'undefined') return '';
-  return new URLSearchParams(window.location.search).get('magic_link_token')?.trim() || '';
+type LinkToken = { token: string; kind: 'magic' | 'weekly_report' };
+
+const readToken = (): LinkToken | null => {
+  if (typeof window === 'undefined') return null;
+  const url = new URL(window.location.href);
+  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+  const weeklyReportToken = hashParams.get('weekly_report_token')?.trim() || '';
+  if (weeklyReportToken) return { token: weeklyReportToken, kind: 'weekly_report' };
+  const magicToken = url.searchParams.get('magic_link_token')?.trim() || '';
+  return magicToken ? { token: magicToken, kind: 'magic' } : null;
 };
 
-const clearToken = (): void => {
+const clearToken = (kind: LinkToken['kind']): void => {
   if (typeof window === 'undefined') return;
   const url = new URL(window.location.href);
-  url.searchParams.delete('magic_link_token');
+  if (kind === 'weekly_report') {
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+    hashParams.delete('weekly_report_token');
+    const nextHash = hashParams.toString();
+    url.hash = nextHash ? `#${nextHash}` : '';
+  } else {
+    url.searchParams.delete('magic_link_token');
+  }
   window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}` || '/');
 };
 
 export const MagicLinkOverlay: React.FC = () => {
-  const token = useMemo(readToken, []);
+  const linkToken = useMemo(readToken, []);
+  const token = linkToken?.token || '';
+  const weeklyReport = linkToken?.kind === 'weekly_report';
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(token ? 'loading' : 'idle');
   const [message, setMessage] = useState<string | null>(null);
   const [accountMode, setAccountMode] = useState<'player' | 'parent' | 'teacher' | null>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !linkToken) return;
     let cancelled = false;
     magicLinkService.confirm(token)
       .then(result => {
         if (cancelled) return;
-        clearToken();
+        clearToken(linkToken.kind);
+        if (result.redirectTo) {
+          window.location.replace(result.redirectTo);
+          return;
+        }
         setMessage(result.message);
         setAccountMode(result.accountMode || null);
         setStatus('success');
       })
       .catch(problem => {
         if (cancelled) return;
-        clearToken();
+        clearToken(linkToken.kind);
         setMessage(problem instanceof Error ? problem.message : 'Ссылка недействительна или уже использована.');
         setStatus('error');
       });
     return () => { cancelled = true; };
-  }, [token]);
+  }, [linkToken, token]);
 
-  if (!token) return null;
+  if (!linkToken) return null;
 
   const finish = () => {
     clearRegistrationIntent();
@@ -53,9 +73,9 @@ export const MagicLinkOverlay: React.FC = () => {
     <div className="fixed inset-0 z-[75] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="presentation">
       <section role="dialog" aria-modal="true" aria-labelledby="magic-link-title" className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
         <div className="text-xs font-black uppercase tracking-widest text-indigo-500">AnnWord</div>
-        <h1 id="magic-link-title" className="mt-2 text-2xl font-black text-indigo-950">Подтверждение входа</h1>
+        <h1 id="magic-link-title" className="mt-2 text-2xl font-black text-indigo-950">{weeklyReport ? 'Открываем отчёт' : 'Подтверждение входа'}</h1>
         <p className="mt-3 text-sm font-bold leading-relaxed text-slate-600">
-          {status === 'loading' ? 'Проверяем одноразовую ссылку и подтверждаем email…' : status === 'success' ? 'Аккаунт подтверждён.' : 'Не удалось подтвердить ссылку.'}
+          {status === 'loading' ? (weeklyReport ? 'Проверяем безопасную ссылку и открываем кабинет родителя…' : 'Проверяем одноразовую ссылку и подтверждаем email…') : status === 'success' ? 'Аккаунт подтверждён.' : 'Не удалось подтвердить ссылку.'}
         </p>
         <div className="mt-4">
           <StableStatusSlot message={message} tone={status === 'success' ? 'success' : status === 'error' ? 'error' : 'info'} role={status === 'error' ? 'alert' : 'status'} />

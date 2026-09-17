@@ -108,6 +108,12 @@ export const familyAccountService = {
     return mentorRoomService.primeLearners(result);
   },
 
+  async resumeAdultRoom(): Promise<MentorRoomLoadResult> {
+    const data = await backendApiRequest<AdultRoomResponse>('/api/family/adult-room');
+    const result = normalizeMentorRoomResult(data);
+    return mentorRoomService.primeLearners(result);
+  },
+
   async verifyParentPin(pin: string): Promise<boolean> {
     const normalizedPin = validateParentPin(pin);
     const data = await backendApiRequest<AccessCheckResponse>('/api/family/access-check', {

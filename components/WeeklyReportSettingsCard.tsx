@@ -24,7 +24,7 @@ export const WeeklyReportSettingsCard: React.FC<Props> = ({ userProfile, premium
   const premiumChecking = !premiumActive && profileFreshness !== 'fresh';
   const [statusLoading, setStatusLoading] = useState(false);
   const [status, setStatus] = useState<WeeklyReportPreferenceStatus | null>(null);
-  const [enabled, setEnabled] = useState(Boolean(userProfile.weeklyReportEmail));
+  const [enabled, setEnabled] = useState(userProfile.weeklyReportEmail !== '');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export const WeeklyReportSettingsCard: React.FC<Props> = ({ userProfile, premium
     }
   };
 
-  useEffect(() => { setEnabled(Boolean(userProfile.weeklyReportEmail)); }, [userProfile.weeklyReportEmail]);
+  useEffect(() => { setEnabled(userProfile.weeklyReportEmail !== ''); }, [userProfile.weeklyReportEmail]);
   useEffect(() => { void loadStatus(); }, [premiumActive, userProfile.weeklyReportEmail]);
 
   const toggleReport = async (nextEnabled: boolean) => {

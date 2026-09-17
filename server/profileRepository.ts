@@ -108,6 +108,10 @@ async function applyAccountModeWithClient(client: PoolClient, userId: string, mo
     `update profiles
         set role = $2,
             account_mode = $3,
+            weekly_report_email = case
+              when $3 = 'parent' and weekly_report_email is null then (select email from app_users where id = $1)
+              else weekly_report_email
+            end,
             feature_flags = case
               when $3 = 'player' then coalesce(feature_flags, '{}'::jsonb) - 'adultRoom'
               when $3 = 'parent' then jsonb_set(jsonb_set(coalesce(feature_flags, '{}'::jsonb), '{adultRoom}', 'true'::jsonb, true), '{premiumDictionaries}', 'true'::jsonb, true)

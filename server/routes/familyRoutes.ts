@@ -96,7 +96,7 @@ familyRouter.post("/child", async (req: AuthenticatedRequest, res) => {
       }
 
       await client.query(
-        "update profiles set child_display_name = $2, child_share_code = null, child_slots_limit = 1, access_digest = $3, role = 'parent', account_mode = 'parent', feature_flags = jsonb_set(coalesce(feature_flags, '{}'::jsonb), '{adultRoom}', 'true'::jsonb, true), updated_at = now() where id = $1",
+        "update profiles set child_display_name = $2, child_share_code = null, child_slots_limit = 1, access_digest = $3, role = 'parent', account_mode = 'parent', weekly_report_email = coalesce(weekly_report_email, (select email from app_users where id = $1)), feature_flags = jsonb_set(coalesce(feature_flags, '{}'::jsonb), '{adultRoom}', 'true'::jsonb, true), updated_at = now() where id = $1",
         [req.user!.id, childName, digest(accessCode)],
       );
       await client.query(
@@ -142,6 +142,16 @@ familyRouter.post("/adult-room", async (req: AuthenticatedRequest, res) => {
     res.json({ ok: true, learners, backendReady: true, parentAccessExpiresIn: 15 * 60 });
   } catch (error) {
     res.status(400).json({ code: "adult_room_load_failed", error: error instanceof Error ? error.message : "Не удалось открыть кабинет родителя." });
+  }
+});
+
+familyRouter.get("/adult-room", requireParentAccess, async (req: AuthenticatedRequest, res) => {
+  try {
+    const learners = await loadManagedLearners(req.user!.id);
+    res.setHeader("Cache-Control", "private, no-store");
+    res.json({ ok: true, learners, backendReady: true, parentAccessExpiresIn: 15 * 60 });
+  } catch (error) {
+    res.status(400).json({ code: "adult_room_resume_failed", error: error instanceof Error ? error.message : "Не удалось открыть кабинет родителя." });
   }
 });
 

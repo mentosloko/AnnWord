@@ -12,6 +12,7 @@ import {
   type BackendUser,
 } from '../auth';
 import { ensureAccountActionTokenSchema } from '../accountActionTokenSchema';
+import { writeParentAccessCookie } from '../parentAccess';
 import { runtimeConfig } from '../config';
 import { query, transaction } from '../db';
 import { assertRussianRegistrationEmail } from '../emailPolicy';
@@ -264,30 +265,52 @@ magicLinkRouter.post('/magic-link/confirm', async (req, res) => {
       return;
     }
 
-    const userId = await transaction(async client => {
-      const result = await client.query<{ user_id: string }>(
-        `select user_id from account_action_tokens
-          where token_hash = $1 and purpose = 'magic_login' and used_at is null and expires_at > now()
-          for update`,
+    const action = await transaction(async client => {
+      const result = await client.query<{ user_id: string; purpose: 'magic_login' | 'weekly_report_access' }>(
+        `select t.user_id, t.purpose
+           from account_action_tokens t
+           join profiles p on p.id = t.user_id
+          where t.token_hash = $1
+            and t.purpose in ('magic_login', 'weekly_report_access')
+            and t.used_at is null
+            and t.expires_at > now()
+            and (t.purpose = 'magic_login' or p.role = 'parent' or p.account_mode = 'parent')
+          for update of t`,
         [tokenHash],
       );
       const row = result.rows[0];
       if (!row) return null;
-      await client.query('update app_users set email_confirmed_at = coalesce(email_confirmed_at, now()), updated_at = now() where id = $1', [row.user_id]);
-      await client.query("update account_action_tokens set used_at = now() where user_id = $1 and purpose = 'magic_login' and used_at is null", [row.user_id]);
-      return row.user_id;
+      if (row.purpose === 'magic_login') {
+        await client.query('update app_users set email_confirmed_at = coalesce(email_confirmed_at, now()), updated_at = now() where id = $1', [row.user_id]);
+      }
+      await client.query(
+        'update account_action_tokens set used_at = now() where user_id = $1 and purpose = $2 and used_at is null',
+        [row.user_id, row.purpose],
+      );
+      return row;
     });
-    if (!userId) {
+    if (!action) {
       res.status(400).json({ code: 'magic_link_expired', error: 'Ссылка истекла или уже использована.' });
       return;
     }
-    const user = await findUserById(userId);
+    const user = await findUserById(action.user_id);
     if (!user) {
       res.status(404).json({ code: 'magic_link_user_missing', error: 'Аккаунт не найден.' });
       return;
     }
     const sessionToken = createSessionToken(user);
     writeSessionCookie(res, sessionToken);
+    if (action.purpose === 'weekly_report_access') {
+      writeParentAccessCookie(res, user.id);
+      res.json({
+        ...makeSessionPayload(user, sessionToken),
+        ok: true,
+        accountMode: 'parent',
+        redirectTo: '/workspace?weekly_report=1',
+        message: 'Отчёт открыт.',
+      });
+      return;
+    }
     res.json({ ...makeSessionPayload(user, sessionToken), ok: true, message: 'Вход выполнен.' });
   } catch (error) {
     res.status(400).json({ code: 'magic_link_confirm_failed', error: error instanceof Error ? error.message : 'Не удалось подтвердить ссылку.' });

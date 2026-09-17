@@ -1,6 +1,8 @@
+import { createHash, randomBytes } from 'node:crypto';
 import { query } from './db';
 import { runtimeConfig } from './config';
 import { loadMasterDictionaryTranslations } from '../services/masterDictionaryLookup';
+import { ensureAccountActionTokenSchema } from './accountActionTokenSchema';
 
 interface ReportProfileRow {
   id: string;
@@ -43,6 +45,7 @@ export interface WeeklyReportWord {
 
 export interface WeeklyReportContentInput {
   learnerName: string;
+  reportUrl: string;
   periodStart: Date;
   periodEnd: Date;
   games: number;
@@ -79,6 +82,25 @@ const MODE_LABELS: Record<string, string> = {
   letter_square: 'Змейка',
 };
 let tokenCache: { token: string; expiresAt: number } | null = null;
+const WEEKLY_REPORT_ACCESS_TTL_DAYS = 8;
+const hashActionToken = (token: string): string => createHash('sha256').update(token).digest('hex');
+
+const issueWeeklyReportAccessUrl = async (userId: string): Promise<string> => {
+  await ensureAccountActionTokenSchema();
+  await query(
+    "update public.account_action_tokens set used_at = now() where user_id = $1 and purpose = 'weekly_report_access' and used_at is null",
+    [userId],
+  );
+  const token = randomBytes(32).toString('base64url');
+  await query(
+    `insert into public.account_action_tokens (user_id, token_hash, purpose, expires_at)
+     values ($1, $2, 'weekly_report_access', now() + interval '${WEEKLY_REPORT_ACCESS_TTL_DAYS} days')`,
+    [userId, hashActionToken(token)],
+  );
+  await query("delete from public.account_action_tokens where expires_at < now() - interval '1 day' or used_at < now() - interval '1 day'");
+  const appUrl = runtimeConfig.appUrl.replace(/\/+$/, '');
+  return `${appUrl}/workspace?weekly_report=1#weekly_report_token=${encodeURIComponent(token)}`;
+};
 
 const requiredEnv = (name: string): string => {
   const value = process.env[name]?.trim();
@@ -169,7 +191,7 @@ export const buildReportContent = (input: WeeklyReportContentInput) => {
   const status = statusCopy(input.activeDays, accuracy);
   const favorite = modeLabel(input.favoriteGame);
   const advice = buildAdvice(input.activeDays, accuracy, input.difficultWords);
-  const appUrl = escapeHtml(runtimeConfig.appUrl);
+  const reportUrl = escapeHtml(input.reportUrl);
   const accuracyLabel = accuracy === null ? '—' : `${accuracy}%`;
   const subject = `AnnWord: итоги недели — ${learner}`;
   const learnedSummary = input.confidentWordCount > 0
@@ -203,7 +225,7 @@ export const buildReportContent = (input: WeeklyReportContentInput) => {
     `Стоит немного повторить: ${textDifficult}`,
     favorite ? `Чаще всего выбирали: ${favorite} — ${input.favoriteGameCount}` : '',
     `На следующую неделю: ${advice}`,
-    `Посмотреть прогресс: ${runtimeConfig.appUrl}`,
+    `Посмотреть прогресс: ${input.reportUrl}`,
   ].filter(Boolean).join('\n');
 
   const html = `<!doctype html>
@@ -246,7 +268,7 @@ export const buildReportContent = (input: WeeklyReportContentInput) => {
   </td></tr></table>
 </td></tr>
 <tr><td align="center" style="padding:24px">
-  <a href="${appUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:800;padding:13px 22px;border-radius:14px">Посмотреть прогресс</a>
+  <a href="${reportUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:800;padding:13px 22px;border-radius:14px">Открыть отчёт в кабинете</a>
   <div style="font-size:11px;line-height:1.5;color:#94a3b8;margin-top:18px">Вы получаете этот отчёт, потому что еженедельные отчёты включены в родительском кабинете AnnWord. Настройки отчёта можно изменить там же.</div>
 </td></tr>
 </table></td></tr></table></body></html>`;
@@ -370,16 +392,18 @@ export async function runWeeklyReports(now = new Date()): Promise<WeeklyReportRu
   periodStart.setUTCDate(periodStart.getUTCDate() - 7);
   const weekKey = dateKey(periodEnd);
   const profiles = await query<ReportProfileRow>(
-    `select id,
-            weekly_report_email as email,
-            coalesce(nullif(child_display_name, ''), username, 'Ребёнок') as learner_name
-       from public.profiles
-      where weekly_report_email is not null
-        and btrim(weekly_report_email) <> ''
-        and (role = 'parent' or account_mode = 'parent')
-        and subscription_tier = 'premium'
-        and (premium_expires_at is null or premium_expires_at > now())
-      order by id`,
+    `select p.id,
+            coalesce(nullif(p.weekly_report_email, ''), u.email) as email,
+            coalesce(nullif(p.child_display_name, ''), p.username, 'Ребёнок') as learner_name
+       from public.profiles p
+       join public.app_users u on u.id = p.id
+      where p.weekly_report_email is distinct from ''
+        and (p.role = 'parent' or p.account_mode = 'parent')
+        and p.child_display_name is not null
+        and btrim(p.child_display_name) <> ''
+        and p.subscription_tier = 'premium'
+        and (p.premium_expires_at is null or p.premium_expires_at > now())
+      order by p.id`,
   );
 
   const result: WeeklyReportRunResult = {
@@ -415,8 +439,10 @@ export async function runWeeklyReports(now = new Date()): Promise<WeeklyReportRu
         loadWeeklyWordProgress(profile.id, periodStart, periodEnd),
       ]);
       const highlights = await buildWordHighlights(wordRows);
+      const reportUrl = await issueWeeklyReportAccessUrl(profile.id);
       const content = buildReportContent({
         learnerName: profile.learner_name || 'Ребёнок',
+        reportUrl,
         periodStart,
         periodEnd,
         games: numberValue(metrics?.games_played),

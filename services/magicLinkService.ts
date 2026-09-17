@@ -4,9 +4,10 @@ interface MagicLinkResponse {
   ok: boolean;
   message?: string;
   accountMode?: 'player' | 'parent' | 'teacher' | null;
+  redirectTo?: string;
 }
 
-export interface MagicLinkConfirmation { message: string; accountMode?: 'player' | 'parent' | 'teacher' | null; }
+export interface MagicLinkConfirmation { message: string; accountMode?: 'player' | 'parent' | 'teacher' | null; redirectTo?: string; }
 
 export const magicLinkService = {
   async request(email: string): Promise<string> {
@@ -22,6 +23,6 @@ export const magicLinkService = {
       method: 'POST',
       body: { token },
     });
-    return { message: result.message || 'Email подтверждён. Вход выполнен.', accountMode: result.accountMode };
+    return { message: result.message || 'Email подтверждён. Вход выполнен.', accountMode: result.accountMode, redirectTo: result.redirectTo };
   },
 };
