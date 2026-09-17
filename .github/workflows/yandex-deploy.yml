@@ -112,6 +112,29 @@ jobs:
           yc config set cloud-id "$YC_CLOUD_ID"
           yc config set folder-id "$YC_FOLDER_ID"
 
+      - name: Resolve production private network
+        env:
+          YC_SERVERLESS_CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
+        run: |
+          set -euo pipefail
+          yc serverless container revision list --container-id "$YC_SERVERLESS_CONTAINER_ID" --limit 20 --format json > /tmp/production-revisions.json
+          NETWORK_ID="$(node - <<'NODE'
+          const fs = require('fs');
+          const rows = JSON.parse(fs.readFileSync('/tmp/production-revisions.json', 'utf8'));
+          const revisions = Array.isArray(rows) ? rows : [rows];
+          const network = revisions
+            .map(revision => revision?.connectivity?.network_id ?? revision?.connectivity?.networkId ?? '')
+            .find(Boolean) || '';
+          process.stdout.write(network);
+          NODE
+          )"
+          if [ -z "$NETWORK_ID" ]; then
+            echo "No private network found on recent production revisions. Refusing to deploy a database-disconnected revision."
+            exit 1
+          fi
+          echo "YC_NETWORK_ID=$NETWORK_ID" >> "$GITHUB_ENV"
+          echo "Resolved production private network from an existing container revision."
+
       - name: Verify noreply sender in Yandex Postbox
         run: |
           set -euo pipefail
@@ -177,6 +200,7 @@ jobs:
             --container-id "$YC_SERVERLESS_CONTAINER_ID" \
             --image "$BACKEND_IMAGE" \
             --service-account-id "$YC_SERVICE_ACCOUNT_ID" \
+            --network-id "$YC_NETWORK_ID" \
             --cores 1 \
             --memory 512M \
             --execution-timeout 30s \
