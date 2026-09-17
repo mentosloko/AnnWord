@@ -23,7 +23,7 @@ export async function updateWeeklyReportEmailPreference(userId: string, rawEmail
 
   const result = await query(
     `update public.profiles
-        set weekly_report_email = nullif($2, ''),
+        set weekly_report_email = $2,
             updated_at = now()
       where id = $1
       returning id`,
@@ -62,8 +62,8 @@ export async function getWeeklyReportPreferenceStatus(userId: string): Promise<W
   );
   const delivery = deliveryResult.rows[0];
   return {
-    enabled: Boolean(profile.weekly_report_email?.trim()),
-    email: profile.weekly_report_email || null,
+    enabled: profile.weekly_report_email !== '',
+    email: profile.weekly_report_email === '' ? null : (profile.weekly_report_email || profile.account_email),
     accountEmail: profile.account_email,
     latestDelivery: delivery ? {
       weekKey: delivery.week_key,

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { familyAccountService, type TeacherConnection } from '../../services/familyAccountService';
 import { parentPinResetService } from '../../services/parentPinResetService';
 import { mentorRoomService } from '../../services/mentorRoomService';
@@ -21,10 +21,12 @@ export const ParentDashboardScreen: React.FC<Props> = ({ userProfile, onBackHome
   const premium = isPremiumActive(userProfile);
   const premiumPeriod = formatPremiumAccessPeriod(userProfile.premiumExpiresAt);
   const trialPremium = premium && Boolean(userProfile.kidsTrialStartedAt && userProfile.kidsTrialExpiresAt);
+  const directReportRequested = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('weekly_report') === '1';
+  const directReportAttempted = useRef(false);
   const [unlocked, setUnlocked] = useState(false);
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<'unlock' | 'reset' | 'load' | null>(null);
+  const [busy, setBusy] = useState<'unlock' | 'reset' | 'load' | null>(directReportRequested ? 'load' : null);
   const [teacherBusy, setTeacherBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [learners, setLearners] = useState<ManagedLearner[]>([]);
@@ -65,6 +67,28 @@ export const ParentDashboardScreen: React.FC<Props> = ({ userProfile, onBackHome
   };
   useEffect(() => { if (unlocked && !learners.length && !loadError && busy !== 'load') void load(); }, [unlocked]);
   useEffect(() => { if (unlocked) void loadTeacherConnections(); }, [unlocked]);
+  useEffect(() => {
+    if (!directReportRequested || directReportAttempted.current || unlocked) return;
+    directReportAttempted.current = true;
+    setBusy('load'); setPinError(null); setNotice(null);
+    const clearMarker = () => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('weekly_report');
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}` || '/workspace');
+    };
+    familyAccountService.resumeAdultRoom()
+      .then(result => {
+        applyLearners(result.learners);
+        setTab('overview');
+        setUnlocked(true);
+        clearMarker();
+      })
+      .catch(error => {
+        clearMarker();
+        setPinError(error instanceof Error ? error.message : 'Ссылка на отчёт больше не активна. Введите PIN родителя.');
+      })
+      .finally(() => setBusy(null));
+  }, [directReportRequested, unlocked]);
 
   const unlock = async () => {
     setPinError(null); setNotice(null);
@@ -105,6 +129,8 @@ export const ParentDashboardScreen: React.FC<Props> = ({ userProfile, onBackHome
     } catch (error) { setNotice(error instanceof Error ? error.message : 'Не удалось отозвать доступ преподавателя.'); }
     finally { setTeacherBusy(null); }
   };
+
+  if (!unlocked && directReportRequested && busy === 'load') return <ScreenContainer className="max-w-md pb-24 pt-5"><SectionCard><ExperienceState kind="loading" title="Открываю отчёт" description="Проверяем безопасную ссылку из письма…" /></SectionCard></ScreenContainer>;
 
   if (!unlocked) return <ScreenContainer className="max-w-md pb-24 pt-5"><button type="button" onClick={onBackHome} className={experienceUi.secondaryButton}>← Назад</button><SectionCard className="mt-4"><form onSubmit={event => { event.preventDefault(); void unlock(); }}><div className={experienceUi.eyebrow}>Для взрослого</div><h1 className="mt-1 text-3xl font-bold text-indigo-950">Кабинет родителя</h1><p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">Введите PIN, созданный при добавлении ребёнка. Он защищает отчёты и настройки от случайного входа.</p><div className="mt-3"><StableStatusSlot message={pinError || notice} tone={pinError ? 'error' : 'info'} role={pinError ? 'alert' : 'status'} /></div><input value={pin} onChange={event => { setPin(event.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(null); }} type="password" inputMode="numeric" autoComplete="off" aria-label="PIN родителя" maxLength={4} required pattern="[0-9]{4}" placeholder="••••" className="mt-3 w-full rounded-2xl border-2 border-indigo-100 p-4 text-center text-2xl font-bold tracking-[0.5em] focus:border-indigo-500 focus:outline-none" /><button type="submit" disabled={Boolean(busy) || pin.length !== 4} className={`mt-4 w-full ${experienceUi.primaryButton}`}>{busy === 'unlock' ? 'Открываю…' : 'Открыть кабинет'}</button><button type="button" disabled={Boolean(busy)} onClick={() => void resetPin()} className={`mt-2 w-full ${experienceUi.secondaryButton}`}>{busy === 'reset' ? 'Отправляю письмо…' : 'Забыли PIN? Восстановить по email'}</button></form></SectionCard></ScreenContainer>;
 
