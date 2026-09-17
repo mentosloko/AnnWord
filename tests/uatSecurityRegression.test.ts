@@ -42,7 +42,8 @@ describe('UAT security regressions', () => {
     const status = read('server/routes/actionTokenStatusRoutes.ts');
     expect(password).toContain('passwordResetService.validate(token)');
     expect(password).toContain('clearResetToken();\n      setSuccess(message)');
-    expect(magic).toContain('clearToken();\n        setMessage(result.message)');
+    expect(magic).toContain('clearToken(linkToken.kind);\n        if (result.redirectTo)');
+    expect(magic).toContain('clearToken(linkToken.kind);\n        setMessage(problem instanceof Error');
     expect(pin).toContain('parentPinResetService.validate(token)');
     expect(pin).toContain('clearToken();\n      setSuccess(message)');
     expect(status).toContain('/auth/password/reset/status');
