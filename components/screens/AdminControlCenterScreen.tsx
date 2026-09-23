@@ -1,6 +1,7 @@
 import React from 'react';
 import { UserProfile } from '../../types';
 import { AdminPremiumGiftPanel } from '../admin/AdminPremiumGiftPanel';
+import { AdminUsersPanel } from '../admin/AdminUsersPanel';
 import { AdminRcAccessPanel } from '../admin/AdminRcAccessPanel';
 import { AdminAnalyticsScreen } from './AdminAnalyticsScreen';
 
@@ -17,6 +18,7 @@ export const AdminControlCenterScreen: React.FC<Props> = ({ userProfile, onBackH
   return (
     <>
       <div className="mx-auto w-full max-w-6xl space-y-5 px-4 pt-8 sm:px-6">
+        <AdminUsersPanel />
         <AdminPremiumGiftPanel />
         <AdminRcAccessPanel />
       </div>
