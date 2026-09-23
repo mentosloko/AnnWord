@@ -16,6 +16,7 @@ import { authRouter } from "./routes/authRoutes";
 import { profileRouter } from "./routes/profileRoutes";
 import { paymentRouter } from "./routes/paymentRoutes";
 import { adminPremiumRouter } from "./routes/adminPremiumRoutes";
+import { adminUsersRouter } from "./routes/adminUsersRoutes";
 import { parentPinRecoveryRouter } from "./routes/parentPinRecoveryRoutes";
 import { actionTokenStatusRouter } from "./routes/actionTokenStatusRoutes";
 import { familyRouter } from "./routes/familyRoutes";
@@ -297,6 +298,7 @@ app.use("/api/analytics", analyticsRouter);
 app.use("/api/game-events", gameEventRouter);
 app.use("/api/reports/weekly", weeklyReportRouter);
 app.use("/api/admin/premium", adminPremiumRouter);
+app.use("/api/admin/users", adminUsersRouter);
 
 app.use("/api", (_req: Request, res: Response) => {
   res.status(404).json({
