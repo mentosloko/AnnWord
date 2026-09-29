@@ -51,6 +51,8 @@ type AdminUserRow = {
   subscription_tier: string | null;
   premium_expires_at: string | Date | null;
   child_display_name: string | null;
+  active_game_days: number | string | null;
+  last_game_at: string | Date | null;
 };
 
 const mapUser = (row: AdminUserRow) => {
@@ -73,6 +75,8 @@ const mapUser = (row: AdminUserRow) => {
     premiumExpiresAt,
     premiumActive,
     childDisplayName: row.child_display_name,
+    activeGameDays: Number(row.active_game_days || 0),
+    lastGameAt: toIso(row.last_game_at),
   };
 };
 
@@ -102,24 +106,55 @@ adminUsersRouter.get('/', requireAdmin, async (req: AuthenticatedRequest, res) =
         [search],
       ),
       query<AdminUserRow>(
-        `select u.id,
-                u.email,
-                u.full_name,
-                u.provider,
-                u.email_confirmed_at,
-                u.created_at,
-                p.username,
-                p.role,
-                p.account_mode,
-                p.subscription_tier,
-                p.premium_expires_at,
-                p.child_display_name
-           from app_users u
-           left join profiles p on p.id = u.id
-           ${where}
-          order by u.created_at desc, u.id desc
-          limit $2
-         offset $3`,
+        `with selected_users as (
+           select u.id,
+                  u.email,
+                  u.full_name,
+                  u.provider,
+                  u.email_confirmed_at,
+                  u.created_at,
+                  p.username,
+                  p.role,
+                  p.account_mode,
+                  p.subscription_tier,
+                  p.premium_expires_at,
+                  p.child_display_name
+             from app_users u
+             left join profiles p on p.id = u.id
+             ${where}
+            order by u.created_at desc, u.id desc
+            limit $2
+           offset $3
+         ), game_days as (
+           select events.user_id,
+                  events.occurred_at::date as game_day,
+                  max(events.occurred_at) as last_event_at
+             from (
+               select user_id, occurred_at
+                 from game_events
+                where event_type in ('game_started', 'game_finished')
+                  and user_id in (select id from selected_users)
+               union all
+               select user_id, occurred_at
+                 from analytics_events
+                where event_name in ('game_started', 'game_finished')
+                  and user_id in (select id from selected_users)
+             ) events
+            where events.user_id is not null
+            group by events.user_id, events.occurred_at::date
+         ), game_activity as (
+           select user_id,
+                  count(*)::int as active_game_days,
+                  max(last_event_at) as last_game_at
+             from game_days
+            group by user_id
+         )
+         select selected_users.*,
+                coalesce(game_activity.active_game_days, 0)::int as active_game_days,
+                game_activity.last_game_at
+           from selected_users
+           left join game_activity on game_activity.user_id = selected_users.id
+          order by selected_users.created_at desc, selected_users.id desc`,
         [search, pageSize, offset],
       ),
     ]);

@@ -15,6 +15,10 @@ describe('admin users list', () => {
     expect(route).toContain('left join profiles p on p.id = u.id');
     expect(route).toContain('limit $2');
     expect(route).toContain('offset $3');
+    expect(route).toContain("event_type in ('game_started', 'game_finished')");
+    expect(route).toContain("event_name in ('game_started', 'game_finished')");
+    expect(route).toContain('count(*)::int as active_game_days');
+    expect(route).toContain('max(last_event_at) as last_game_at');
     expect(route).toContain('const MAX_PAGE_SIZE = 100');
     expect(route).toContain("res.setHeader('Cache-Control', 'no-store')");
     expect(route).not.toContain('password_hash');
@@ -31,6 +35,10 @@ describe('admin users list', () => {
     expect(route).toContain("coalesce(p.child_display_name, '') ilike");
     expect(route).toContain('subscriptionTier');
     expect(route).toContain('childDisplayName');
+    expect(route).toContain('activeGameDays');
+    expect(route).toContain('lastGameAt');
+    expect(client).toContain('activeGameDays: number');
+    expect(client).toContain('lastGameAt: string | null');
     expect(client).toContain('/api/admin/users?');
     expect(client).toContain("query.set('pageSize'");
   });
@@ -45,6 +53,9 @@ describe('admin users list', () => {
     expect(panel).toContain('md:hidden');
     expect(panel).toContain('hidden overflow-x-auto');
     expect(panel).toContain('Email, имя аккаунта или ребёнка');
+    expect(panel).toContain('Дней с играми');
+    expect(panel).toContain('Последняя игра');
+    expect(panel).toContain("day: '2-digit', month: '2-digit', year: '2-digit'");
     expect(panel).toContain('Всего: {total}');
   });
 });
