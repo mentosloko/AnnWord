@@ -14,6 +14,8 @@ export interface AdminUserSummary {
   premiumExpiresAt: string | null;
   premiumActive: boolean;
   childDisplayName: string | null;
+  activeGameDays: number;
+  lastGameAt: string | null;
 }
 
 export interface AdminUsersPage {
