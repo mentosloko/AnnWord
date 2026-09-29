@@ -7,7 +7,7 @@ const formatDate = (value: string | null | undefined): string => {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium' }).format(date);
+  return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' }).format(date);
 };
 
 const roleLabel = (user: AdminUserSummary): string => {
@@ -176,6 +176,14 @@ export const AdminUsersPanel: React.FC = () => {
                     <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Регистрация</div>
                     <div className="mt-1 font-semibold text-slate-700">{formatDate(user.createdAt)}</div>
                   </div>
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Дней с играми</div>
+                    <div className="mt-1 font-semibold text-slate-700">{user.activeGameDays}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Последняя игра</div>
+                    <div className="mt-1 font-semibold text-slate-700">{formatDate(user.lastGameAt)}</div>
+                  </div>
                 </div>
               </article>
             ))}
@@ -191,6 +199,8 @@ export const AdminUsersPanel: React.FC = () => {
                   <th className="px-4 py-3">Вход</th>
                   <th className="px-4 py-3">Доступ</th>
                   <th className="px-4 py-3">Регистрация</th>
+                  <th className="px-4 py-3">Дней с играми</th>
+                  <th className="px-4 py-3">Последняя игра</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
@@ -205,6 +215,8 @@ export const AdminUsersPanel: React.FC = () => {
                     <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-700">{providerLabel(user.provider)}</td>
                     <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-700">{premiumLabel(user)}</td>
                     <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-700">{formatDate(user.createdAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-700">{user.activeGameDays}</td>
+                    <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-700">{formatDate(user.lastGameAt)}</td>
                   </tr>
                 ))}
               </tbody>
