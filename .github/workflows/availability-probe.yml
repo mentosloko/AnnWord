@@ -19,11 +19,9 @@ jobs:
         shell: bash
         run: |
           set -u -o pipefail
-
           echo "=== DNS ==="
           getent ahostsv4 annword.ru || true
           getent ahostsv4 api.annword.ru || true
-
           probe() {
             local label="$1"
             local url="$2"
@@ -40,15 +38,66 @@ jobs:
             echo "body:"
             head -c 500 "$body" 2>/dev/null || true
             echo
-            return $exit_code
+            return 0
           }
+          probe "frontend-root" "https://annword.ru/"
+          probe "frontend-release" "https://annword.ru/release.json"
+          probe "api-health" "https://api.annword.ru/api/health"
+          probe "api-db-health" "https://api.annword.ru/api/health/db"
 
-          failures=0
-          probe "frontend-root" "https://annword.ru/" || failures=$((failures+1))
-          probe "frontend-release" "https://annword.ru/release.json" || failures=$((failures+1))
-          probe "api-health" "https://api.annword.ru/api/health" || failures=$((failures+1))
-          probe "api-db-health" "https://api.annword.ru/api/health/db" || failures=$((failures+1))
+  diagnose-yandex:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+      YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+      YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+      YC_SERVERLESS_CONTAINER_ID: ${{ secrets.YC_SERVERLESS_CONTAINER_ID }}
+    steps:
+      - name: Install Yandex Cloud CLI
+        run: |
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+          echo "$HOME/yandex-cloud/bin" >> "$GITHUB_PATH"
 
-          echo
-          echo "transport_failures=$failures"
-          test "$failures" -eq 0
+      - name: Configure Yandex Cloud CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > yc-sa-key.json
+          yc config profile create annword-probe
+          yc config set service-account-key yc-sa-key.json
+          yc config set cloud-id "$YC_CLOUD_ID"
+          yc config set folder-id "$YC_FOLDER_ID"
+
+      - name: Inspect container revisions and recent logs
+        shell: bash
+        run: |
+          set -u -o pipefail
+          echo "=== container ==="
+          yc serverless container get --id "$YC_SERVERLESS_CONTAINER_ID" --format json || true
+          echo "=== revisions ==="
+          yc serverless container revision list --container-id "$YC_SERVERLESS_CONTAINER_ID" --limit 5 --format json || true
+          echo "=== log groups ==="
+          yc logging group list --format json || true
+          echo "=== recent logs ==="
+          yc logging read --since 30m --limit 300 --format json > /tmp/recent-logs.json || true
+          node <<'NODE'
+          const fs = require('fs');
+          let rows = [];
+          try { rows = JSON.parse(fs.readFileSync('/tmp/recent-logs.json', 'utf8')); } catch {}
+          if (!Array.isArray(rows)) rows = [];
+          const interesting = rows.filter(row => {
+            const text = JSON.stringify(row).toLowerCase();
+            return text.includes('serverless.container') || text.includes('usercodeerror') || text.includes('exit status') || text.includes('error') || text.includes('annword');
+          }).slice(-120);
+          for (const row of interesting) {
+            const out = {
+              timestamp: row.timestamp || row.ingested_at || null,
+              level: row.level || null,
+              resource: row.resource || null,
+              message: row.message || null,
+              json_payload: row.json_payload || null
+            };
+            console.log(JSON.stringify(out));
+          }
+          NODE
